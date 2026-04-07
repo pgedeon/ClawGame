@@ -153,3 +153,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated pm_feedback.md with M3 completion status
 
 ---
+
+### [0.4.1] - 2026-04-07
+
+#### Added
+- AI branding tokens (--ai-primary, --ai-primary-hover, --ai-glow, --ai-gradient)
+- Fullscreen toggle to Game Preview with Esc key exit support
+- Keyboard hints with kbd styling
+- Visual feedback for canvas overlay and fullscreen state
+- Honest "Preview Mode" messaging for AI Command interface
+
+#### Changed
+- File workspace layout: added proper flex sizing with min-height: 0 for nested scrolling
+- Code editor visibility: fixed height constraints in editor page layout
+- Dark mode contrast: lightened --text-muted from #64748b to #94a3b8 for WCAG AA compliance
+- Game preview canvas: added fullscreen wrapper with dynamic sizing
+
+#### Fixed
+- **Critical:** Code editor not visible - fixed flex layout with proper height containers
+- **Critical:** AI Command showing fake implementation plans - now clearly indicates mock/preview status
+- **Critical:** Dark mode contrast issue with --text-muted failing WCAG AA - now passes 4.5:1 ratio
+- Added keyboard focus indicators for accessibility
+- AI Command interface now transparent about limitations
+
