@@ -1,3 +1,24 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* Global styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--fg);
+  background: var(--bg);
+  overflow-x: hidden;
+}
+
+code, pre, .editor-textarea, .prompt-text {
+  font-family: var(--font-mono);
+}
+
 /* Page-specific styles */
 .page-header {
   padding: 2rem;
@@ -23,7 +44,7 @@
 }
 
 .page-header p {
-  color: #888;
+  color: var(--text-muted);
   font-size: 1rem;
 }
 
@@ -34,7 +55,7 @@
   padding: 2rem;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
 }
 
 .form-section {
@@ -55,16 +76,18 @@
   padding: 0.75rem;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--fg);
   font-size: 1rem;
+  outline: none;
+  transition: border-color var(--transition-fast);
 }
 
 .form-section input:focus,
 .form-section select:focus,
 .form-section textarea:focus {
-  outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
 }
 
 .form-section textarea {
@@ -84,12 +107,12 @@
   cursor: pointer;
   padding: 0.5rem;
   border: 1px solid var(--border);
-  border-radius: 4px;
-  transition: background 0.2s;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
 }
 
 .radio-option:hover {
-  background: var(--card);
+  background: var(--surface-alt);
 }
 
 .radio-option input[type="radio"] {
@@ -107,10 +130,10 @@
 .cta-button {
   padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   text-decoration: none;
   font-weight: 500;
-  transition: all 0.2s;
+  transition: all var(--transition-fast);
   cursor: pointer;
   display: inline-block;
 }
@@ -125,8 +148,9 @@
 }
 
 .primary-button:disabled {
-  background: #666;
+  background: var(--border);
   cursor: not-allowed;
+  color: var(--text-muted);
 }
 
 .secondary-button {
@@ -160,12 +184,12 @@
   display: block;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: 1.5rem;
   margin-bottom: 1rem;
   text-decoration: none;
   color: var(--fg);
-  transition: all 0.2s;
+  transition: all var(--transition-fast);
 }
 
 .project-card:hover {
@@ -191,16 +215,16 @@
   font-size: 0.8rem;
   font-weight: 500;
   background: var(--border);
-  color: #ccc;
+  color: var(--text-muted);
 }
 
 .project-status.active {
-  background: #4CAF50;
+  background: var(--success);
   color: white;
 }
 
 .project-status.draft {
-  background: #ff6b35;
+  background: var(--warning);
   color: white;
 }
 
@@ -209,12 +233,12 @@
 }
 
 .project-type {
-  color: #888;
+  color: var(--text-muted);
   margin-bottom: 0.25rem;
 }
 
 .project-date {
-  color: #666;
+  color: var(--text-muted);
   font-size: 0.9rem;
 }
 
@@ -242,11 +266,11 @@
   display: block;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: 1.5rem;
   text-decoration: none;
   color: var(--fg);
-  transition: all 0.2s;
+  transition: all var(--transition-fast);
 }
 
 .template-card:hover {
@@ -268,14 +292,14 @@
 
 .template-genre {
   padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 0.8rem;
   background: var(--border);
-  color: #ccc;
+  color: var(--text-muted);
 }
 
 .template-description {
-  color: #888;
+  color: var(--text-muted);
   margin-bottom: 1rem;
   line-height: 1.5;
 }
@@ -288,18 +312,19 @@
 
 .difficulty-tag {
   padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 0.8rem;
   background: var(--border);
+  color: var(--text-muted);
 }
 
 .difficulty-tag.Beginner {
-  background: #4CAF50;
+  background: var(--success);
   color: white;
 }
 
 .difficulty-tag.Intermediate {
-  background: #ff6b35;
+  background: var(--warning);
   color: white;
 }
 
@@ -314,7 +339,7 @@
   padding: 3rem 2rem;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   margin: 2rem auto;
   max-width: 600px;
 }
@@ -325,7 +350,7 @@
 }
 
 .create-from-scratch p {
-  color: #888;
+  color: var(--text-muted);
   margin-bottom: 1.5rem;
 }
 
@@ -337,7 +362,22 @@
 }
 
 .demo-hint {
-  color: #666;
+  color: var(--text-muted);
   margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+/* Error states */
+.error-message {
+  padding: 1rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-sm);
+  color: var(--error);
+  margin: 1rem 0;
+}
+
+.error-message p {
+  margin: 0;
   font-size: 0.9rem;
 }

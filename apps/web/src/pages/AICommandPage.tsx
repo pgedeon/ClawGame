@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { api, type AICommandRequest, type AICommandResponse, type AICommandHistory } from '../api/client';
 
 export function AICommandPage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -8,6 +9,7 @@ export function AICommandPage() {
     type: 'user' | 'assistant';
     content: string;
     timestamp: Date;
+    response?: AICommandResponse;
   }>>([
     {
       type: 'assistant',
@@ -16,10 +18,29 @@ export function AICommandPage() {
     }
   ]);
   const [isLoading, setIsLoading] = useState(false);
+  const [commandHistory, setCommandHistory] = useState<AICommandHistory[]>([]);
+
+  // Load command history on mount
+  useEffect(() => {
+    if (projectId) {
+      loadCommandHistory();
+    }
+  }, [projectId]);
+
+  const loadCommandHistory = async () => {
+    if (!projectId) return;
+    
+    try {
+      const history = await api.getAIHistory(projectId, 10);
+      setCommandHistory(history.history);
+    } catch (error) {
+      console.error('Failed to load command history:', error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || !projectId) return;
 
     const userMessage = input.trim();
     setInput('');
@@ -37,44 +58,46 @@ export function AICommandPage() {
     setIsLoading(true);
 
     try {
-      // TODO: Actually connect to AI API
-      // For now, simulate a response
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const commandRequest: AICommandRequest = {
+        projectId,
+        command: userMessage,
+        context: {
+          selectedFiles: [], // Could be enhanced with actual selected files
+          selectedCode: '', // Could be enhanced with actual selected code
+        }
+      };
 
-      // Add simulated response
-      const response = `🤖 I understand you want to: "${userMessage}"
+      const result = await api.processAICommand(projectId, commandRequest);
+      const response = result.response;
 
-This is a placeholder AI response. In the full implementation, I would:
-
-1. Analyze your project context
-2. Identify affected files and systems
-3. Generate appropriate code or suggestions
-4. Show you the changes before applying them
-5. Apply the changes if you approve
-
-🚀 **Current Status:** AI Command interface ready - actual AI integration coming next!
-
-🔧 **API Integration Plan:**
-- Connect to AI orchestration service
-- Support multiple AI providers
-- Show implementation plans
-- Generate diffs and summaries
-- Support approval workflow
-
-Would you like to try another request or see what other commands are available?`;
-
+      // Add AI response with structured data
       setMessages(prev => [
         ...prev,
         {
           type: 'assistant',
-          content: response,
+          content: response.content,
           timestamp: new Date(),
+          response,
         }
       ]);
+
+      // Update history
+      setCommandHistory(prev => [
+        {
+          id: response.id,
+          projectId,
+          command: userMessage,
+          response,
+          timestamp: new Date(),
+          status: 'completed',
+        },
+        ...prev.slice(0, 9) // Keep only last 9
+      ]);
+
     } catch (error) {
       console.error('AI request failed:', error);
       
-      const errorMessage = '❌ Sorry, I encountered an error processing your request. This is a placeholder interface - actual AI integration is coming soon!';
+      const errorMessage = `❌ Sorry, I encountered an error processing your request: ${error instanceof Error ? error.message : 'Unknown error'}`;
       
       setMessages(prev => [
         ...prev,
@@ -98,6 +121,56 @@ Would you like to try another request or see what other commands are available?`
     ));
   };
 
+  const renderChanges = (response?: AICommandResponse) => {
+    if (!response?.changes) return null;
+
+    return (
+      <div className="ai-changes">
+        <h4>📝 Proposed Changes:</h4>
+        <div className="changes-list">
+          {response.changes.map((change, index) => (
+            <div key={index} className="change-item">
+              <div className="change-path">{change.path}</div>
+              <div className="change-summary">{change.summary}</div>
+              <div className="change-confidence">
+                Confidence: {Math.round(change.confidence * 100)}%
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderNextSteps = (response?: AICommandResponse) => {
+    if (!response?.nextSteps) return null;
+
+    return (
+      <div className="ai-next-steps">
+        <h4>🎯 Next Steps:</h4>
+        <ul className="steps-list">
+          {response.nextSteps.map((step, index) => (
+            <li key={index}>{step}</li>
+          ))}
+        </ul>
+      </div>
+    );
+  };
+
+  const renderRiskBadge = (riskLevel: string) => {
+    const colors = {
+      low: 'bg-green-100 text-green-800',
+      medium: 'bg-yellow-100 text-yellow-800',
+      high: 'bg-red-100 text-red-800'
+    };
+    
+    return (
+      <span className={`risk-badge ${colors[riskLevel as keyof typeof colors] || colors.low}`}>
+        {riskLevel}
+      </span>
+    );
+  };
+
   return (
     <div className="ai-command-page">
       <header className="page-header">
@@ -115,6 +188,25 @@ Would you like to try another request or see what other commands are available?`
               >
                 <div className="message-content">
                   {formatMessage(message.content)}
+                  
+                  {/* Show AI-specific response data */}
+                  {message.type === 'assistant' && message.response && (
+                    <div className="ai-response-details">
+                      <div className="response-header">
+                        <h3>{message.response.title}</h3>
+                        {renderRiskBadge(message.response.riskLevel)}
+                      </div>
+                      
+                      {renderChanges(message.response)}
+                      {renderNextSteps(message.response)}
+                      
+                      {message.response.estimatedTime && (
+                        <div className="estimated-time">
+                          ⏱️ Estimated time: {message.response.estimatedTime}s
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="message-time">
                   {message.timestamp.toLocaleTimeString('en-US', {
@@ -152,7 +244,7 @@ Would you like to try another request or see what other commands are available?`
               <button 
                 type="submit" 
                 className="send-button"
-                disabled={!input.trim() || isLoading}
+                disabled={!input.trim() || isLoading || !projectId}
               >
                 {isLoading ? '⏳' : '→'}
               </button>
@@ -186,8 +278,40 @@ Would you like to try another request or see what other commands are available?`
               >
                 Debug Errors
               </button>
+              <button 
+                onClick={() => setInput("Analyze code quality")}
+                className="prompt-button"
+              >
+                Code Review
+              </button>
+              <button 
+                onClick={() => setInput("Explain the collision system")}
+                className="prompt-button"
+              >
+                Explain Code
+              </button>
             </div>
           </div>
+
+          {/* Command History */}
+          {commandHistory.length > 0 && (
+            <div className="command-history">
+              <h4>Recent Commands</h4>
+              <div className="history-list">
+                {commandHistory.slice(0, 5).map((cmd) => (
+                  <div key={cmd.id} className="history-item">
+                    <div className="history-command">{cmd.command}</div>
+                    <div className="history-time">
+                      {cmd.timestamp.toLocaleTimeString()}
+                    </div>
+                    <div className="history-type">
+                      {cmd.response.type}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

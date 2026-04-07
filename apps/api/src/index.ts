@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { projectRoutes } from './routes/projects';
 import { fileRoutes } from './routes/files';
+import { aiRoutes } from './routes/aiRoutes';
 
 const app = Fastify({ logger: true });
 
@@ -15,6 +16,9 @@ app.register(projectRoutes);
 
 // File operations
 app.register(fileRoutes);
+
+// AI command processing
+app.register(aiRoutes);
 
 const start = async () => {
   try {

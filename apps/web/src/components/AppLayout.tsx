@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom';
+import { FileCode, Bot, Palette, Play } from 'lucide-react';
 import { api, type ProjectListItem } from '../api/client';
 import { sidebarItems } from '../constants/sidebar';
 
-interface AppLayoutProps {
-  children?: React.ReactNode;
+interface SidebarNavItem {
+  path: string;
+  label: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
 }
 
-export function AppLayout({ children }: AppLayoutProps) {
+export function AppLayout({ children }: { children?: React.ReactNode }) {
   const [projects, setProjects] = useState<ProjectListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentProject, setCurrentProject] = useState<ProjectListItem | null>(null);
@@ -19,7 +22,6 @@ export function AppLayout({ children }: AppLayoutProps) {
   const projectId = isInProjectContext ? location.pathname.split('/')[2] : null;
 
   useEffect(() => {
-    // Only load projects if we're in project context
     if (isInProjectContext) {
       loadProjects();
     }
@@ -30,8 +32,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       setLoading(true);
       const projectList = await api.listProjects();
       setProjects(projectList);
-      
-      // Set current project
+
       if (projectId) {
         const project = projectList.find(p => p.id === projectId);
         setCurrentProject(project || null);
@@ -43,35 +44,34 @@ export function AppLayout({ children }: AppLayoutProps) {
     }
   };
 
-  const dynamicSidebarItems = [...sidebarItems];
-  
+  const dynamicSidebarItems: SidebarNavItem[] = [...sidebarItems] as SidebarNavItem[];
+
   // Add project-specific navigation when in project context
-  if (isInProjectContext) {
+  if (isInProjectContext && projectId) {
     const project = projects.find(p => p.id === projectId);
     if (project) {
-      // Insert project items after settings
-      const settingsIndex = dynamicSidebarItems.findIndex(item => item.path === '/settings');
-      if (settingsIndex !== -1) {
-        const projectItems = [
-          {
-            path: `/project/${projectId}/editor`,
-            label: 'Editor',
-            icon: '✏️',
-          },
-          {
-            path: `/project/${projectId}/ai`,
-            label: 'AI Command',
-            icon: '🤖',
-          },
-          {
-            path: `/project/${projectId}/assets`,
-            label: 'Asset Studio',
-            icon: '🎨',
-          },
-        ];
-        
-        dynamicSidebarItems.splice(settingsIndex + 1, 0, ...projectItems);
-      }
+      dynamicSidebarItems.push(
+        {
+          path: `/project/${projectId}/editor`,
+          label: 'Editor',
+          icon: FileCode,
+        },
+        {
+          path: `/project/${projectId}/ai`,
+          label: 'AI Command',
+          icon: Bot,
+        },
+        {
+          path: `/project/${projectId}/assets`,
+          label: 'Asset Studio',
+          icon: Palette,
+        },
+        {
+          path: `/project/${projectId}/preview`,
+          label: 'Game Preview',
+          icon: Play,
+        },
+      );
     }
   }
 
@@ -81,46 +81,32 @@ export function AppLayout({ children }: AppLayoutProps) {
         <div className="sidebar-header">
           <h1>🎮 ClawGame</h1>
           {currentProject && (
-            <p style={{ fontSize: '0.8rem', opacity: 0.8, marginTop: '0.25rem' }}>
+            <p className="sidebar-project-name">
               {currentProject.name}
             </p>
           )}
         </div>
-        
+
         <div className="sidebar-nav">
           {dynamicSidebarItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            
-            // Check if this is a project route and we're in project context
-            const isProjectRoute = item.path.includes('/project/:projectId/');
-            if (isProjectRoute && projectId) {
-              const itemWithId = item.path.replace(':projectId', projectId);
-              return (
-                <Link
-                  key={item.path}
-                  to={itemWithId}
-                  className={`nav-item ${isActive ? 'active' : ''}`}
-                >
-                  <span className="nav-icon">{item.icon}</span>
-                  <span className="nav-text">{item.label}</span>
-                </Link>
-              );
-            }
-            
+            const isActive = location.pathname === item.path ||
+              (item.path !== '/' && location.pathname.startsWith(item.path));
+            const Icon = item.icon;
+
             return (
               <Link
                 key={item.path}
                 to={item.path}
                 className={`nav-item ${isActive ? 'active' : ''}`}
               >
-                <span className="nav-icon">{item.icon}</span>
+                <Icon size={20} className="nav-icon" />
                 <span className="nav-text">{item.label}</span>
               </Link>
             );
           })}
         </div>
       </nav>
-      
+
       <main className="main-content">
         {children || <Outlet />}
       </main>

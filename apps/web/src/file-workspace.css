@@ -12,14 +12,14 @@
   align-items: center;
   justify-content: space-between;
   padding: 1rem;
-  border-bottom: 1px solid var(--border-color);
-  background: var(--surface-color);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
 }
 
 .workspace-header h2 {
   margin: 0;
   font-size: 1.5rem;
-  color: var(--text-color);
+  color: var(--fg);
 }
 
 .search-bar {
@@ -31,31 +31,33 @@
 .search-bar input {
   flex: 1;
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background: var(--input-bg);
-  color: var(--text-color);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--fg);
   font-size: 0.9rem;
+  outline: none;
+  transition: border-color var(--transition-fast);
 }
 
 .search-bar input:focus {
-  outline: none;
-  border-color: var(--primary-color);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
 }
 
 .search-bar button {
   padding: 0.5rem 1rem;
-  background: var(--primary-color);
+  background: var(--accent);
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 0.9rem;
-  transition: background 0.2s;
+  transition: background var(--transition-fast);
 }
 
 .search-bar button:hover {
-  background: var(--primary-hover);
+  background: var(--accent-hover);
 }
 
 .workspace-content {
@@ -68,9 +70,9 @@
 .sidebar {
   width: 300px;
   min-width: 250px;
-  border-right: 1px solid var(--border-color);
+  border-right: 1px solid var(--border);
   overflow-y: auto;
-  background: var(--surface-color);
+  background: var(--surface);
 }
 
 /* Main Content - Code Editor */
@@ -86,23 +88,135 @@
   display: flex;
   gap: 0.5rem;
   padding: 0.75rem;
-  border-top: 1px solid var(--border-color);
-  background: var(--surface-color);
+  border-top: 1px solid var(--border);
+  background: var(--surface);
 }
 
 .action-btn {
   padding: 0.5rem 1rem;
-  background: var(--secondary-color);
-  color: white;
-  border: none;
-  border-radius: 4px;
+  background: var(--surface);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 0.85rem;
-  transition: background 0.2s;
+  transition: all var(--transition-fast);
 }
 
 .action-btn:hover {
-  background: var(--secondary-hover);
+  background: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Dialog Overlay */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-overlay);
+}
+
+.dialog {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  width: 480px;
+  max-width: 90vw;
+  box-shadow: var(--shadow-lg);
+}
+
+.dialog h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  color: var(--fg);
+}
+
+.dialog-hint {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.dialog-hint code {
+  background: var(--surface-alt);
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+.dialog-input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color var(--transition-fast);
+  box-sizing: border-box;
+}
+
+.dialog-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+.dialog-error {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: var(--error);
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.dialog-btn {
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all var(--transition-fast);
+}
+
+.dialog-btn.primary {
+  background: var(--accent);
+  color: white;
+}
+
+.dialog-btn.primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.dialog-btn.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dialog-btn.secondary {
+  background: var(--surface);
+  color: var(--fg);
+  border: 1px solid var(--border);
+}
+
+.dialog-btn.secondary:hover {
+  background: var(--surface-alt);
 }
 
 /* Editor Page */
@@ -118,14 +232,14 @@
   align-items: center;
   justify-content: space-between;
   padding: 1rem 1.5rem;
-  border-bottom: 1px solid var(--border-color);
-  background: var(--surface-color);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
 }
 
 .project-info h1 {
   margin: 0;
   font-size: 1.5rem;
-  color: var(--text-color);
+  color: var(--fg);
 }
 
 .project-info p {
@@ -136,7 +250,7 @@
 
 .project-name {
   font-weight: 600;
-  color: var(--primary-color);
+  color: var(--accent);
 }
 
 .page-actions {
@@ -155,15 +269,30 @@
   color: var(--text-muted);
 }
 
+.empty-editor .empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.empty-editor .empty-message {
+  text-align: center;
+}
+
 .empty-editor .empty-message h3 {
   margin: 0 0 0.5rem;
   font-size: 1.25rem;
-  color: var(--text-color);
+  color: var(--fg);
 }
 
 .empty-editor .empty-message p {
-  margin: 0;
+  margin: 0.25rem 0;
   font-size: 0.95rem;
+}
+
+.empty-editor .empty-message .hint {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
 }
 
 .search-results {
@@ -175,7 +304,7 @@
 .search-results h4 {
   margin: 0 0 1rem;
   font-size: 1rem;
-  color: var(--text-color);
+  color: var(--fg);
 }
 
 .search-results ul {
@@ -190,26 +319,27 @@
   justify-content: space-between;
   padding: 0.75rem 1rem;
   margin-bottom: 0.5rem;
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-fast);
 }
 
 .search-result-item:hover {
-  border-color: var(--primary-color);
-  background: var(--hover-bg);
+  border-color: var(--accent);
+  background: var(--accent-light);
 }
 
 .result-name {
   font-weight: 500;
-  color: var(--text-color);
+  color: var(--fg);
 }
 
 .result-path {
   font-size: 0.85rem;
   color: var(--text-muted);
+  font-family: var(--font-mono);
 }
 
 .loading, .error {
@@ -222,10 +352,10 @@
 }
 
 .error {
-  color: var(--error-color);
+  color: var(--error);
 }
 
 .error h2 {
   margin: 0 0 0.5rem;
-  color: var(--error-color);
+  color: var(--error);
 }

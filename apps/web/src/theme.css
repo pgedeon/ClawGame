@@ -1,65 +1,118 @@
-/* CSS Variables for ClawGame Theme */
+/* ClawGame Design System — Single Source of Truth */
+/* All colors, typography, spacing, and elevation tokens */
+
 :root {
-  /* Base Colors */
-  --text-color: #1a1a1a;
-  --text-muted: #666666;
-  --border-color: #e0e0e0;
-  --bg-color: #ffffff;
-  --surface-color: #f8f8f8;
-  --surface-alt: #f0f0f0;
+  /* ── Primary / Accent ── */
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --accent-light: #dbeafe;
+
+  /* ── Background layers ── */
+  --bg: #ffffff;
+  --surface: #f9fafb;
+  --surface-alt: #f3f4f6;
+  --card: #ffffff;
+  --card-hover: #f9fafb;
   --hover-bg: #f5f5f5;
-  
-  /* Editor Colors */
-  --editor-bg: #fafafa;
-  --editor-text: #1a1a1a;
-  --editor-placeholder: #999999;
-  
-  /* Primary/Action Colors */
-  --primary-color: #0077be;
-  --primary-hover: #005a87;
-  --primary-light: #e3f2fd;
-  
-  /* Secondary Colors */
-  --secondary-color: #666666;
-  --secondary-hover: #555555;
-  
-  /* Status Colors */
-  --success-color: #4caf50;
-  --success-hover: #43a047;
-  --warning-color: #ff9800;
-  --error-color: #f44336;
-  
-  /* Input Colors */
-  --input-bg: #ffffff;
-  
-  /* Shadows */
+
+  /* ── Text ── */
+  --fg: #111827;
+  --fg-secondary: #4b5563;
+  --text-muted: #9ca3af;
+
+  /* ── Borders ── */
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
+
+  /* ── Status colours ── */
+  --success: #10b981;
+  --success-hover: #059669;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --info: #3b82f6;
+
+  /* ── Editor ── */
+  --editor-bg: #f9fafb;
+  --editor-text: #111827;
+  --editor-gutter: #e5e7eb;
+  --editor-selection: #dbeafe;
+  --editor-placeholder: #9ca3af;
+
+  /* ── Shadows ── */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+  /* ── Spacing scale ── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ── Typography ── */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
+
+  /* ── Radius ── */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  /* ── Sidebar ── */
+  --sidebar-width: 240px;
+  --sidebar-collapsed-width: 64px;
+
+  /* ── Transitions ── */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.2s ease;
+
+  /* ── Z-index layers ── */
+  --z-sidebar: 100;
+  --z-command-palette: 500;
+  --z-overlay: 400;
+  --z-toast: 600;
 }
 
-/* Dark mode support (future) */
+/* ── Dark mode ── */
 @media (prefers-color-scheme: dark) {
   :root {
-    --text-color: #e0e0e0;
-    --text-muted: #aaaaaa;
-    --border-color: #444444;
-    --bg-color: #1a1a1a;
-    --surface-color: #2a2a2a;
-    --surface-alt: #333333;
-    --hover-bg: #3a3a3a;
-    
-    --editor-bg: #1e1e1e;
-    --editor-text: #e0e0e0;
-    --editor-placeholder: #666666;
-    
-    --primary-color: #4fc3f7;
-    --primary-hover: #29b6f6;
-    --primary-light: #1a2332;
-    
-    --secondary-color: #888888;
-    --secondary-hover: #777777;
-    
-    --input-bg: #2a2a2a;
+    --accent: #60a5fa;
+    --accent-hover: #3b82f6;
+    --accent-light: #1e3a5f;
+
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface-alt: #334155;
+    --card: #1e293b;
+    --card-hover: #334155;
+    --hover-bg: #334155;
+
+    --fg: #f1f5f9;
+    --fg-secondary: #94a3b8;
+    --text-muted: #64748b;
+
+    --border: #334155;
+    --border-strong: #475569;
+
+    --success: #34d399;
+    --warning: #fbbf24;
+    --error: #f87171;
+
+    --editor-bg: #0f172a;
+    --editor-text: #f1f5f9;
+    --editor-gutter: #1e293b;
+    --editor-selection: #1e3a5f;
+    --editor-placeholder: #64748b;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
   }
 }

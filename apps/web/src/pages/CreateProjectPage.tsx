@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api, type CreateProjectInput } from '../api/client';
+import { FolderPlus, ArrowLeft } from 'lucide-react';
 
 export function CreateProjectPage() {
   const [formData, setFormData] = useState<CreateProjectInput>({
@@ -25,7 +26,7 @@ export function CreateProjectPage() {
       const response = await api.createProject(formData);
       console.log('Project created:', response);
       // Navigate to the new project
-      navigate(`/project/${response.id}`);
+      navigate(`/project/${response.id}/editor`);
     } catch (err) {
       console.error('Error creating project:', err);
       setError(err instanceof Error ? err.message : 'Failed to create project');
@@ -38,38 +39,47 @@ export function CreateProjectPage() {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const projectTypes = [
-    { id: '2d-platformer', name: '2D Platformer', description: 'Classic side-scrolling platform game' },
-    { id: 'top-down-action', name: 'Top-Down Action', description: 'View from above, action gameplay' },
-    { id: 'puzzle', name: 'Puzzle Game', description: 'Brain teasers and puzzles' },
-    { id: 'rpg', name: 'RPG', description: 'Role-playing game mechanics' },
-  ];
-
   const artStyles = [
-    { id: 'pixel', name: 'Pixel Art', description: 'Retro 8/16-bit style' },
-    { id: 'vector', name: 'Vector Art', description: 'Clean scalable graphics' },
-    { id: '3d-low', name: 'Low Poly 3D', description: 'Simple 3D models' },
-    { id: 'hand-drawn', name: 'Hand Drawn', description: 'Illustrative style' },
+    { 
+      id: 'pixel', 
+      name: 'Pixel Art', 
+      description: 'Retro 8/16-bit style',
+      preview: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTAiIGN5PSIxMCIgcj0iMiIgZmlsbD0iIzAwMCIvPgo8cGF0aCBkPSJNMTAgM0g2WiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjEiLz4KPC9zdmc+'
+    },
+    { 
+      id: 'vector', 
+      name: 'Vector Art', 
+      description: 'Clean scalable graphics',
+      preview: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMSIgZmlsbD0iIzMzMyIvPgo8cGF0aCBkPSJNMTIgM0g4Yy0xIDAtMy0yLTQtNC0xem0tNiAxMGMtMiAwLTMtMi00LTQgNC00IDAtMiAxIDQgMiA0IDQgMCAyIDMgNiAwIDAgMi0xIDItNHptMCAxOGMtMiAwIDMtMiA0LTQgNC00IDAgMi0xIDItMSA0em0tMiAxOGMtMiAwIDMtMi00IDQgNCA0IDAgMi0xIDItMSA0em0tMiAxOGMtMiAwIDMtMi00IDQgNCA0IDAgMi0xIDItMSA0eiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjEiLz4KPC9zdmc+'
+    },
+    { 
+      id: '3d-low', 
+      name: 'Low Poly 3D', 
+      description: 'Simple 3D models',
+      preview: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE0IDAgMjFjMC4xLjcgMSAwLjVzMS4xLjUgMCAxIDAgMS0xLjUgMS4xLTEgMC0xem0tMSAxNWMwIDEuMS41IDAgMC41LTEuMS41LTEgMS0xLjUgMS0xLjUgMS0xem0tMSAxOGMtMSAwLjUtMS41IDAtMC41IDEuMS0xLjUgMS0xem0tMSAxOGMtMC45IDEuOS0yLjkgMC45IDIuOSAxLjl6IiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMSIvPgo8L3N2Zz4='
+    },
+    { 
+      id: 'hand-drawn', 
+      name: 'Hand Drawn', 
+      description: 'Illustrative style',
+      preview: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTMgMTIgMTAgMTAgMTFjMC0xIDAtMi0xLTJzLS0yLS0yLTIgLTJIM3oiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxIi8+Cjwvc3ZnPg=='
+    },
   ];
 
   return (
     <div className="create-project-page">
       <header className="page-header">
-        <Link to="/" className="back-link">← Back to Dashboard</Link>
+        <Link to="/" className="back-link">
+          <ArrowLeft size={16} className="icon" />
+          Back to Dashboard
+        </Link>
         <h1>Create New Project</h1>
         <p>Start building your game with ClawGame</p>
       </header>
 
       {error && (
-        <div className="error-message" style={{
-          padding: '1rem',
-          background: '#ffebee',
-          border: '1px solid #ffcdd2',
-          borderRadius: '4px',
-          color: '#d32f2f',
-          marginBottom: '1rem'
-        }}>
-          {error}
+        <div className="error-message">
+          <p>{error}</p>
         </div>
       )}
 
@@ -96,6 +106,7 @@ export function CreateProjectPage() {
             id="genre"
             value={formData.genre}
             onChange={(e) => handleChange('genre', e.target.value)}
+            className="form-select"
           >
             <option value="action">Action</option>
             <option value="adventure">Adventure</option>
@@ -107,20 +118,26 @@ export function CreateProjectPage() {
         </div>
 
         <div className="form-section">
-          <label className="form-label" htmlFor="artStyle">
-            Art Style
-          </label>
-          <div className="radio-group">
+          <label className="form-label">Art Style</label>
+          <div className="art-style-grid">
             {artStyles.map((style) => (
-              <label key={style.id} className="radio-option">
+              <label
+                key={style.id}
+                className={`art-style-card ${formData.artStyle === style.id ? 'selected' : ''}`}
+              >
                 <input
                   type="radio"
                   name="artStyle"
                   value={style.id}
                   checked={formData.artStyle === style.id}
                   onChange={(e) => handleChange('artStyle', e.target.value)}
+                  className="sr-only"
                 />
-                <span>{style.name}</span>
+                <div className="art-style-preview">
+                  <img src={style.preview} alt={style.name} />
+                </div>
+                <span className="art-style-name">{style.name}</span>
+                <span className="art-style-desc">{style.description}</span>
               </label>
             ))}
           </div>

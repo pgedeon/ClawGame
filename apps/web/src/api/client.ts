@@ -5,7 +5,11 @@
 
 const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000';
 
-async function request<T>(path: string, options?: RequestInit & { query?: Record<string, string> }): Promise<T> {
+interface RequestOptions extends RequestInit {
+  query?: Record<string, string>;
+}
+
+async function request<T>(path: string, options?: RequestOptions): Promise<T> {
   const url = new URL(`${API_BASE}${path}`);
   
   // Add query parameters if provided
@@ -104,6 +108,46 @@ export interface DiffEntry {
   summary?: string;
 }
 
+// ─── AI Command types ───
+
+export interface AICommandRequest {
+  projectId: string;
+  command: string;
+  context?: {
+    selectedFiles?: string[];
+    selectedCode?: string;
+    selectedRange?: { start: number; end: number };
+    recentChanges?: Array<{ path: string; content: string }>;
+  };
+}
+
+export interface AICommandResponse {
+  id: string;
+  type: 'explanation' | 'change' | 'fix' | 'analysis' | 'error';
+  title: string;
+  content: string;
+  changes?: Array<{
+    path: string;
+    oldContent?: string;
+    newContent?: string;
+    summary: string;
+    confidence: number;
+  }>;
+  nextSteps?: string[];
+  estimatedTime?: number;
+  riskLevel: 'low' | 'medium' | 'high';
+  errors?: string[];
+}
+
+export interface AICommandHistory {
+  id: string;
+  projectId: string;
+  command: string;
+  response: AICommandResponse;
+  timestamp: Date;
+  status: 'pending' | 'completed' | 'failed';
+}
+
 // ─── API functions ───
 
 export const api = {
@@ -164,4 +208,25 @@ export const api = {
       method: 'GET',
       query: { q: query },
     }).then((r) => r.results),
+
+  // AI Command operations
+  processAICommand: (projectId: string, command: AICommandRequest) =>
+    request<{ response: AICommandResponse }>(`/api/projects/${projectId}/ai/command`, {
+      method: 'POST',
+      body: JSON.stringify(command),
+    }),
+
+  getAIHistory: (projectId: string, limit?: number) => {
+    const query = limit !== undefined ? { limit: limit.toString() } : undefined;
+    return request<{ history: AICommandHistory[] }>(`/api/projects/${projectId}/ai/history`, {
+      method: 'GET',
+      query,
+    });
+  },
+
+  getAICommand: (projectId: string, commandId: string) =>
+    request<{ command: AICommandHistory }>(`/api/projects/${projectId}/ai/commands/${commandId}`),
+
+  getAIHealth: () => 
+    request<{ status: string; service: string; version: string; features: string[] }>('/api/ai/health'),
 };

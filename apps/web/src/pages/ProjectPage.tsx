@@ -159,6 +159,9 @@ export function ProjectPage() {
         <div className="project-actions">
           <h3>Project Actions</h3>
           <div className="action-buttons">
+            <Link to={`/project/${project.id}/preview`} className="play-button">
+              🎮 Play Game
+            </Link>
             <Link to={`/project/${project.id}/editor`} className="primary-button">
               Open Editor
             </Link>

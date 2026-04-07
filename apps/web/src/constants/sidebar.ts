@@ -1,30 +1,23 @@
-export const sidebarItems = [
+import { Home, Settings } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+
+export interface SidebarItem {
+  path: string;
+  label: string;
+  icon: LucideIcon;
+}
+
+export const sidebarItems: SidebarItem[] = [
   {
     path: '/',
     label: 'Dashboard',
-    icon: '📊',
+    icon: Home,
   },
   {
     path: '/settings',
     label: 'Settings',
-    icon: '⚙️',
+    icon: Settings,
   },
-  // Will be added when user opens a project:
-  // {
-  //   path: '/project/:projectId/editor',
-  //   label: 'Editor',
-  //   icon: '✏️',
-  // },
-  // {
-  //   path: '/project/:projectId/ai',
-  //   label: 'AI Command',
-  //   icon: '🤖',
-  // },
-  // {
-  //   path: '/project/:projectId/assets',
-  //   label: 'Asset Studio',
-  //   icon: '🎨',
-  // },
 ];
 
 export const projectStatusVariants = {
@@ -37,32 +30,11 @@ export const projectStatusVariants = {
     text: 'Draft',
   },
   active: {
-    color: '#4CAF50',
+    color: '#10b981',
     text: 'Active',
   },
   completed: {
-    color: '#2196F3',
+    color: '#3b82f6',
     text: 'Completed',
   },
 };
-
-export const quickActionOptions = [
-  {
-    id: 'new-project',
-    label: 'New Project',
-    icon: '➕',
-    description: 'Start a new game project',
-  },
-  {
-    id: 'open-project',
-    label: 'Open Project',
-    icon: '📁',
-    description: 'Open existing project',
-  },
-  {
-    id: 'examples',
-    label: 'Examples',
-    icon: '📚',
-    description: 'Browse sample templates',
-  },
-];
