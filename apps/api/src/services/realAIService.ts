@@ -10,7 +10,7 @@ import { getFileTree, readFileContent } from './fileService';
 
 // OpenRouter API configuration
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const OPENROUTER_API_KEY = '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';
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 const DEFAULT_MODEL = 'qwen/qwen3.6-plus:free';
 
 // Types
