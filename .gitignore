@@ -51,3 +51,5 @@ secrets*.json
 # OpenClaw workspace files - NEVER COMMIT
 .openclaw/
 openclaw.json
+node_modules/
+dist/
