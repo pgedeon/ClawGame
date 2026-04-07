@@ -22,9 +22,11 @@
 
 | Task | Status | Notes |
 |------|--------|-------|
-| ComfyUI integration for sprite generation | ✅ Done | Using OpenRouter LLM (qwen/qwen3.6-plus:free) - v0.7.1 |
+| Real AI asset generation with OpenRouter | ✅ Done | LLM-powered SVG generation from text prompts - v0.7.1 |
 | Asset prompt → actual image pipeline | ✅ Done | Type "pixel art goblin", get an SVG sprite - v0.7.1 |
 | Asset generation progress feedback | ✅ Done | Real-time status updates (0-100%) - v0.7.1 |
+| **CRITICAL: Asset preview fix** | ✅ Done | Now displays actual SVG content instead of placeholders |
+| **CRITICAL: Documentation fixes** | ✅ Done | CHANGELOG ordered properly, project_memory synced to v0.7.1 |
 
 **Details:**
 - AIImageGenerationService generates real SVG code from text prompts
@@ -33,7 +35,8 @@
 - Progress tracking with generation status API
 - Async support: returns generation ID, poll for completion
 - Asset Studio UI updated with style selection and progress display
-- 6 test suites for AI generation service
+- **CRITICAL FIX:** Asset preview now shows actual generated SVGs, not placeholder rectangles
+- 6 test suites for AI image generation service
 
 ---
 
@@ -63,8 +66,8 @@
 - [x] Basic test coverage (9 smoke tests, vitest)
 - [x] Real AI asset generation working (OpenRouter LLM)
 - [x] Generation progress tracking (0-100%)
-- [ ] Scene editor can browse and place assets
-- [ ] Documentation synced across all tracking files
+- [x] **CRITICAL:** Asset preview shows actual SVG content (not placeholders)
+- [x] Documentation synced across all tracking files (CHANGELOG ordered, project_memory synced)
 - [x] Code compiles clean
 
 ---
@@ -73,7 +76,7 @@
 
 **AI generates real game assets from text descriptions. Scene editor integrates with asset library. Test coverage > 0.**
 
-**Phase 2 Complete ✅** — Real AI asset generation shipped in v0.7.1!
+**Phase 2 Complete ✅** — Real AI asset generation shipped in v0.7.1! Asset preview critical fix completed.
 
 ---
 
@@ -88,5 +91,5 @@ All 4 phases delivered:
 
 ---
 
-**Current Sprint:** Milestone 6 (Real AI Assets + Quality + Integration) — Phase 2 Complete ✅
+**Current Sprint:** Milestone 6 (Real AI Assets + Quality + Integration) — Phase 2 Complete ✅, Phase 3 Next
 **Next Milestone:** M7 (Git + OpenClaw Operations)

@@ -1,0 +1,33 @@
+{
+  "version": "0.1.0",
+  "project": {
+    "id": "GIs0fYO5Sb9",
+    "name": "Simple Platformer",
+    "displayName": "Simple Platformer",
+    "genre": "action",
+    "artStyle": "pixel",
+    "description": "A simple platformer where a player character jumps between platforms while collecting coins and avoiding enemies.",
+    "status": "draft",
+    "createdAt": "2026-04-07T23:36:55.820Z",
+    "updatedAt": "2026-04-07T23:36:55.820Z"
+  },
+  "engine": {
+    "version": "1.0.0",
+    "runtimeTarget": "browser",
+    "renderBackend": "canvas"
+  },
+  "assets": {
+    "baseDir": "./assets",
+    "formats": [
+      "png",
+      "jpg",
+      "svg",
+      "webp"
+    ]
+  },
+  "ai": {
+    "enabled": true,
+    "provider": "openrouter",
+    "model": "qwen/qwen3.6-plus:free"
+  }
+}
