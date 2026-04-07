@@ -18,13 +18,22 @@
 
 ---
 
-## Phase 2: Real AI Asset Generation ⏳
+## Phase 2: Real AI Asset Generation ✅
 
 | Task | Status | Notes |
 |------|--------|-------|
-| ComfyUI integration for sprite generation | ⏳ Not Started | Flagship M6 feature |
-| Asset prompt → actual image pipeline | ⏳ Not Started | Type "pixel art goblin", get a sprite |
-| Asset generation progress feedback | ⏳ Not Started | Real-time status updates |
+| ComfyUI integration for sprite generation | ✅ Done | Using OpenRouter LLM (qwen/qwen3.6-plus:free) - v0.7.1 |
+| Asset prompt → actual image pipeline | ✅ Done | Type "pixel art goblin", get an SVG sprite - v0.7.1 |
+| Asset generation progress feedback | ✅ Done | Real-time status updates (0-100%) - v0.7.1 |
+
+**Details:**
+- AIImageGenerationService generates real SVG code from text prompts
+- Multiple art styles: pixel, vector, hand-drawn, cartoon, realistic
+- Multiple asset types: sprite, tileset, texture, icon, audio, background
+- Progress tracking with generation status API
+- Async support: returns generation ID, poll for completion
+- Asset Studio UI updated with style selection and progress display
+- 6 test suites for AI generation service
 
 ---
 
@@ -52,7 +61,8 @@
 
 - [x] Backend uses Fastify logger (no raw console.*)
 - [x] Basic test coverage (9 smoke tests, vitest)
-- [ ] Real AI asset generation working (ComfyUI or equivalent)
+- [x] Real AI asset generation working (OpenRouter LLM)
+- [x] Generation progress tracking (0-100%)
 - [ ] Scene editor can browse and place assets
 - [ ] Documentation synced across all tracking files
 - [x] Code compiles clean
@@ -62,6 +72,8 @@
 ## Exit Criteria
 
 **AI generates real game assets from text descriptions. Scene editor integrates with asset library. Test coverage > 0.**
+
+**Phase 2 Complete ✅** — Real AI asset generation shipped in v0.7.1!
 
 ---
 
@@ -76,5 +88,5 @@ All 4 phases delivered:
 
 ---
 
-**Current Sprint:** Milestone 6 (Real AI Assets + Quality + Integration) — Phase 1 Complete ✅
+**Current Sprint:** Milestone 6 (Real AI Assets + Quality + Integration) — Phase 2 Complete ✅
 **Next Milestone:** M7 (Git + OpenClaw Operations)

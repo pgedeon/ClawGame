@@ -225,7 +225,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CodeEditor handles loading state from parent component
 - Better error messaging on file operations
 
-
 ## [0.5.2] - 2026-04-07
 
 #### Added
@@ -278,7 +277,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed console.log from SceneEditorPage (PM feedback)
 - Fixed TypeScript type errors for import.meta.env
 - Improved accessibility with proper focus indicators
-
 
 ### [0.6.0] - 2026-04-07
 
@@ -355,3 +353,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Fixed
 - TypeScript build error from RealAIService export conflict during logger migration
 - Missing closing brace in realAIService.ts after cleanup
+
+### [0.7.1] - 2026-04-08
+
+#### Added
+- **Real AI Asset Generation** — LLM-powered SVG output from text prompts
+  - AIImageGenerationService using OpenRouter (qwen/qwen3.6-plus:free)
+  - Generate actual game assets (not placeholder rectangles)
+  - Multiple art styles: pixel, vector, hand-drawn, cartoon, realistic
+  - Multiple asset types: sprite, tileset, texture, icon, audio, background
+  - Customizable size (default 64x64), format (SVG/PNG/WebP), background color
+- **Generation Progress Tracking** — Real-time status updates (0-100%)
+  - Generation status API: `/api/projects/:projectId/assets/generations/:generationId`
+  - List all generations: `/api/projects/:projectId/assets/generations`
+  - Poll endpoint to create assets from completed generations
+  - Async support: returns generation ID immediately if not ready
+- **Enhanced Asset Studio UI** — Style selection, progress tracking, AI badges
+  - Style buttons (Pixel Art, Vector, Hand-drawn, Cartoon, Realistic)
+  - Real-time generation progress with progress bar and percentage
+  - Active generations list showing in-flight work
+  - AI-generated badges on asset cards and detail views
+  - Generation metadata: style, duration, prompt, generation ID
+- **Shared Type Exports** — All types now exported from @clawgame/shared
+  - Engine types (Entity, Transform, Component, etc.)
+  - Project types (CreateProjectRequest, ProjectDetail, etc.)
+  - Asset types (AssetMetadata, AssetType, etc.)
+  - Helper functions (createPlayerEntity, createEnemyEntity, etc.)
+  - Utility functions (generateId, generateProjectId)
+- **AI Image Generation Tests** — 6 test suites covering service functionality
+  - generateImage with different types/styles
+  - getGenerationStatus and getGenerations
+  - cleanupOldGenerations
+  - healthCheck
+
+#### Changed
+- AssetService now integrates with AIImageGenerationService
+- Generate asset API accepts options (style, width, height, format, background)
+- API client updated with generation status types
+- Asset routes extended with generation endpoints
+- Shared package exports all types (no more duplicate definitions)
+- Browser compatibility fixes (removed NodeJS.Timeout, added named exports)
+
+#### Fixed
+- Placeholder asset generation replaced with real AI-powered SVG creation
+- Type mismatches between shared package and backend/frontend
+- Default export issues with AssetStudioPage
+- ProjectService now uses shared types consistently
+
+#### Technical
+- Game-optimized style prompts for each asset type
+- SVG validation and cleaning (removes markdown, fixes escaping)
+- Automatic cleanup of old completed generations (1 hour default)
+- Full TypeScript type safety across all services
+- Error handling and logging throughout AI generation pipeline
+
+---
+
+*For versions before 0.3.0, see git history.*
