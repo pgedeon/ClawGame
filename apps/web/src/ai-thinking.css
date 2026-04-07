@@ -1,0 +1,90 @@
+/* AI Thinking Indicator Styles */
+
+.ai-thinking-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  gap: 1.5rem;
+}
+
+.ai-pulse {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pulse-ring {
+  position: absolute;
+  border: 2px solid #8b5cf6;
+  border-radius: 50%;
+  opacity: 0;
+}
+
+.pulse-1 {
+  animation: pulse 2s ease-out infinite;
+}
+
+.pulse-2 {
+  animation: pulse 2s ease-out infinite 0.5s;
+}
+
+@keyframes pulse {
+  0% {
+    width: 40px;
+    height: 40px;
+    opacity: 0.8;
+  }
+  100% {
+    width: 80px;
+    height: 80px;
+    opacity: 0;
+  }
+}
+
+.pulse-center {
+  z-index: 1;
+}
+
+.ai-thinking-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 320px;
+}
+
+.thinking-step {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm, 4px);
+  color: var(--text-muted, #64748b);
+  font-size: 0.9rem;
+  transition: all var(--transition-fast, 150ms ease);
+}
+
+.thinking-step.active {
+  color: var(--ai-primary, #8b5cf6);
+  background: var(--ai-glow, rgba(139, 92, 246, 0.1));
+  font-weight: 500;
+}
+
+.thinking-step.completed {
+  color: var(--success, #10b981);
+}
+
+.ai-thinking-indicator .pulse-center svg {
+  filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.3));
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .thinking-step.active {
+    background: var(--ai-glow-strong, rgba(139, 92, 246, 0.2));
+  }
+}

@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { Sparkles } from 'lucide-react';
 import { api, type AICommandRequest, type AICommandResponse, type AICommandHistory } from '../api/client';
+import { AIThinkingIndicator } from '../components/AIThinkingIndicator';
+import '../ai-thinking.css';
 
 export function AICommandPage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -10,22 +13,42 @@ export function AICommandPage() {
     content: string;
     timestamp: Date;
     response?: AICommandResponse;
-  }>>([
-    {
-      type: 'assistant',
-      content: '🤖 Welcome to AI Command (Preview Mode)\n\nThis is a demonstration of AI-powered game development features. Real AI integration is coming soon!\n\n✨ **What this preview includes:**\n• Command parsing and analysis\n• Response generation based on your intent\n• Code change suggestions\n• Risk assessment\n\n⚠️ **Current Limitations:**\n• This is a mock service - responses are generated locally\n• No actual code generation or modification\n• No real AI service integration yet\n• Responses are simulated based on command patterns\n\n💬 **Try asking:**\n"Create a simple player movement system"\n"Explain the collision system"\n"Fix the attack cooldown bug"\n"Analyze code quality"\n\nWhat would you like to explore?',
-      timestamp: new Date(),
-    }
-  ]);
+  }>>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRealAI, setIsRealAI] = useState(false);
   const [commandHistory, setCommandHistory] = useState<AICommandHistory[]>([]);
 
-  // Load command history on mount
+  // Load initial welcome message and check AI status
   useEffect(() => {
+    checkAIStatus();
     if (projectId) {
       loadCommandHistory();
     }
   }, [projectId]);
+
+  const checkAIStatus = async () => {
+    try {
+      const health = await fetch('http://localhost:3000/api/ai/health').then(r => r.json());
+      setIsRealAI(health.service !== 'mock-ai-preview');
+      
+      // Set welcome message based on AI status
+      setMessages([{
+        type: 'assistant',
+        content: isRealAI 
+          ? `🤖 Welcome to AI Command (Real AI Connected)\n\n**Connected to:** ${health.service}\n**Model:** ${health.model}\n\n✨ **Real AI Features Available:**\n• Actual code generation powered by ${health.model}\n• Context-aware code analysis\n• Real-time code suggestions\n• Bug detection and fixes\n• Code quality reviews\n\n💬 **Try asking:**\n"Create a simple player movement system"\n"Explain the collision system"\n"Fix the attack cooldown bug"\n"Analyze code quality"\n\nReady to help you build your game!`
+          : `🤖 Welcome to AI Command (Preview Mode)\n\nThis is a demonstration of AI-powered game development features. Real AI integration is available by setting USE_REAL_AI=1 in the API environment.\n\n✨ **What this preview includes:**\n• Command parsing and analysis\n• Response generation based on your intent\n• Code change suggestions\n• Risk assessment\n\n⚠️ **Current Limitations:**\n• This is a mock service - responses are generated locally\n• No actual code generation or modification\n• No real AI service integration yet\n• Responses are simulated based on command patterns\n\n💬 **Try asking:**\n"Create a simple player movement system"\n"Explain collision system"\n"Fix the attack cooldown bug"\n"Analyze code quality"\n\nWhat would you like to explore?`,
+        timestamp: new Date(),
+      }]);
+    } catch (err) {
+      console.error('Failed to check AI status:', err);
+      // Default to preview mode if API not reachable
+      setMessages([{
+        type: 'assistant',
+        content: '🤖 Welcome to AI Command (Preview Mode)\n\nThis is a demonstration of AI-powered game development features.\n\nNote: Could not connect to the API server. Make sure the backend is running.',
+        timestamp: new Date(),
+      }]);
+    }
+  };
 
   const loadCommandHistory = async () => {
     if (!projectId) return;
@@ -71,23 +94,13 @@ export function AICommandPage() {
       const response = result.response;
 
       // Add AI response with structured data
-      const previewNotice = response.content.includes('Preview Mode') || 
-                           response.content.includes('when AI service is connected') 
-                           ? '' 
-                           : `\n\n⚠️ **Important:** This is a preview simulation. Real AI integration is planned for future releases.`;
-
-      const enhancedContent = response.content + previewNotice;
-
       setMessages(prev => [
         ...prev,
         {
           type: 'assistant',
-          content: enhancedContent,
+          content: response.content,
           timestamp: new Date(),
-          response: {
-            ...response,
-            content: enhancedContent
-          }
+          response,
         }
       ]);
 
@@ -97,10 +110,7 @@ export function AICommandPage() {
           id: response.id,
           projectId,
           command: userMessage,
-          response: {
-            ...response,
-            content: enhancedContent
-          },
+          response,
           timestamp: new Date(),
           status: 'completed',
         },
@@ -116,7 +126,7 @@ export function AICommandPage() {
         ...prev,
         {
           type: 'assistant',
-          content: errorMessage + '\n\nThis is a preview mock service - errors are simulated.',
+          content: errorMessage,
           timestamp: new Date(),
         }
       ]);
@@ -139,7 +149,7 @@ export function AICommandPage() {
 
     return (
       <div className="ai-changes">
-        <h4>📝 Simulated Changes Preview:</h4>
+        <h4>📝 Changes Preview:</h4>
         <div className="changes-list">
           {response.changes.map((change, index) => (
             <div key={index} className="change-item">
@@ -151,9 +161,11 @@ export function AICommandPage() {
             </div>
           ))}
         </div>
-        <div className="mock-notice">
-          ⚠️ These are simulated changes - no actual files will be modified.
-        </div>
+        {!isRealAI && (
+          <div className="mock-notice">
+            ⚠️ These are simulated changes - no actual files will be modified.
+          </div>
+        )}
       </div>
     );
   };
@@ -163,41 +175,73 @@ export function AICommandPage() {
 
     return (
       <div className="ai-next-steps">
-        <h4>🎯 Next Steps (Preview):</h4>
+        <h4>🎯 Next Steps:</h4>
         <ul className="steps-list">
           {response.nextSteps.map((step, index) => (
             <li key={index}>{step}</li>
           ))}
         </ul>
-        <div className="mock-notice">
-          ⚠️ Next steps are simulated for demonstration purposes.
-        </div>
+        {!isRealAI && (
+          <div className="mock-notice">
+            ⚠️ Next steps are simulated for demonstration purposes.
+          </div>
+        )}
       </div>
     );
   };
 
   const renderRiskBadge = (riskLevel: string) => {
     const colors = {
-      low: 'bg-green-100 text-green-800',
-      medium: 'bg-yellow-100 text-yellow-800',
-      high: 'bg-red-100 text-red-800'
+      low: 'var(--success-light)',
+      medium: 'var(--warning-light)',
+      high: 'var(--error-light)'
+    };
+    const textColors = {
+      low: 'var(--success)',
+      medium: 'var(--warning)',
+      high: 'var(--error)'
     };
     
     return (
-      <span className={`risk-badge ${colors[riskLevel as keyof typeof colors] || colors.low}`}>
+      <span 
+        className="risk-badge" 
+        style={{ 
+          background: colors[riskLevel as keyof typeof colors] || colors.low,
+          color: textColors[riskLevel as keyof typeof textColors] || textColors.low
+        }}
+      >
         {riskLevel}
       </span>
     );
   };
 
+  const aiThinkingSteps = [
+    'Analyzing your request...',
+    'Understanding project context...',
+    'Generating solution...',
+    'Reviewing and optimizing...',
+    'Finalizing response...'
+  ];
+
   return (
     <div className="ai-command-page">
       <header className="page-header">
-        <h1>AI Command (Preview Mode)</h1>
-        <p>Experience AI-powered game development in simulation mode</p>
-        <div className="mock-notice">
-          🎭 <strong>Preview Mode Active:</strong> This is a demonstration - no real AI integration yet.
-        </div>
+        <h1>
+          <Sparkles size={20} color={isRealAI ? '#8b5cf6' : '#94a3b8'} />
+          {' '}AI Command
+          {!isRealAI && ' (Preview Mode)'}
+        </h1>
+        <p>
+          {isRealAI 
+            ? 'Real AI-powered game development assistance'
+            : 'Experience AI-powered game development in simulation mode'
+          }
+        </p>
+        {!isRealAI && (
+          <div className="mock-notice">
+            🎭 <strong>Preview Mode Active:</strong> Set USE_REAL_AI=1 to enable real AI.
+          </div>
+        )}
       </header>
 
       <div className="ai-command-container">
@@ -242,11 +286,7 @@ export function AICommandPage() {
             {isLoading && (
               <div className="message assistant loading">
                 <div className="message-content">
-                  <div className="typing-indicator">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                  </div>
+                  <AIThinkingIndicator steps={aiThinkingSteps} />
                 </div>
               </div>
             )}
@@ -259,7 +299,10 @@ export function AICommandPage() {
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask me anything about your game (Preview Mode)..."
+                placeholder={isRealAI 
+                  ? "Ask me anything about your game..." 
+                  : "Ask me anything about your game (Preview Mode)..."
+                }
                 rows={2}
                 className="chat-input"
               />
@@ -327,7 +370,7 @@ export function AICommandPage() {
                       {cmd.timestamp.toLocaleTimeString()}
                     </div>
                     <div className="history-type">
-                      {cmd.response.type} (Preview)
+                      {cmd.response.type}
                     </div>
                   </div>
                 ))}
@@ -335,27 +378,29 @@ export function AICommandPage() {
             </div>
           )}
 
-          <div className="mock-status">
-            <h4>ℹ️ About This Preview</h4>
-            <div className="mock-details">
-              <p><strong>What's Real:</strong></p>
-              <ul>
-                <li>Command parsing and intent analysis</li>
-                <li>Response generation based on patterns</li>
-                <li>UI interactions and state management</li>
-                <li>Command history tracking</li>
-                <li>Code change simulations</li>
-              </ul>
-              <p><strong>What's Not Real:</strong></p>
-              <ul>
-                <li>No actual AI service connection</li>
-                <li>No file modifications</li>
-                <li>No real code generation</li>
-                <li>No contextual code analysis</li>
-                <li>Simulated confidence scores</li>
-              </ul>
+          {!isRealAI && (
+            <div className="mock-status">
+              <h4>ℹ️ About This Preview</h4>
+              <div className="mock-details">
+                <p><strong>What's Real:</strong></p>
+                <ul>
+                  <li>Command parsing and intent analysis</li>
+                  <li>Response generation based on patterns</li>
+                  <li>UI interactions and state management</li>
+                  <li>Command history tracking</li>
+                  <li>Code change simulations</li>
+                </ul>
+                <p><strong>What's Not Real:</strong></p>
+                <ul>
+                  <li>No actual AI service connection</li>
+                  <li>No file modifications</li>
+                  <li>No real code generation</li>
+                  <li>No contextual code analysis</li>
+                  <li>Simulated confidence scores</li>
+                </ul>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,27 +1,42 @@
 import { FastifyInstance } from 'fastify';
-import * as aiService from '../services/aiService';
+import * as mockAiService from '../services/aiService';
+import * as realAIService from '../services/realAIService';
+
+// Environment variable to control which AI service to use
+const USE_REAL_AI = process.env.USE_REAL_AI === 'true' || process.env.USE_REAL_AI === '1';
 
 export async function aiRoutes(app: FastifyInstance) {
+  console.log(`AI Routes initialized: ${USE_REAL_AI ? 'Real AI (OpenRouter)' : 'Mock AI (Preview Mode)'}`);
+
   // Process an AI command
-  app.post<{ Body: aiService.AICommandRequest; Params: { projectId: string } }>(
+  app.post<{ Body: realAIService.AICommandRequest; Params: { projectId: string } }>(
     '/api/projects/:projectId/ai/command',
     async (request, reply) => {
       const { projectId } = request.params;
       const command = request.body;
 
       try {
-        const response = await aiService.aiService.processCommand({
-          ...command,
-          projectId
-        });
-        
+        let response: realAIService.AICommandResponse;
+
+        if (USE_REAL_AI) {
+          response = await realAIService.realAIService.processCommand({
+            ...command,
+            projectId,
+          });
+        } else {
+          response = await mockAiService.aiService.processCommand({
+            ...command,
+            projectId,
+          });
+        }
+
         return { response };
       } catch (err: any) {
         console.error('AI command processing failed:', err);
         reply.code(500);
-        return { 
+        return {
           error: 'Failed to process AI command',
-          details: err.message 
+          details: err.message,
         };
       }
     }
@@ -33,8 +48,14 @@ export async function aiRoutes(app: FastifyInstance) {
     async (request) => {
       const { projectId } = request.params;
       const limit = parseInt(request.query.limit || '10', 10);
-      
-      const history = await aiService.aiService.getCommandHistory(projectId, limit);
+
+      let history: any[];
+      if (USE_REAL_AI) {
+        history = await realAIService.realAIService.getCommandHistory(projectId, limit);
+      } else {
+        history = await mockAiService.aiService.getCommandHistory(projectId, limit);
+      }
+
       return { history };
     }
   );
@@ -44,36 +65,48 @@ export async function aiRoutes(app: FastifyInstance) {
     '/api/projects/:projectId/ai/commands/:commandId',
     async (request, reply) => {
       const { projectId, commandId } = request.params;
-      
-      const command = await aiService.aiService.getCommandDetails(commandId);
+
+      let command: any;
+      if (USE_REAL_AI) {
+        command = await realAIService.realAIService.getCommandDetails(commandId);
+      } else {
+        command = await mockAiService.aiService.getCommandDetails(commandId);
+      }
+
       if (!command) {
         reply.code(404);
         return { error: 'Command not found' };
       }
-      
+
       if (command.projectId !== projectId) {
         reply.code(403);
         return { error: 'Access denied' };
       }
-      
+
       return { command };
     }
   );
 
   // Health check for AI service
   app.get('/api/ai/health', async () => {
-    return { 
-      status: 'ok',
-      service: 'ai-command',
-      version: '0.1.0',
-      features: [
-        'code explanation',
-        'code generation',
-        'bug fixing',
-        'code analysis',
-        'change preview',
-        'diff summaries'
-      ]
-    };
+    if (USE_REAL_AI) {
+      const health = await realAIService.realAIService.healthCheck();
+      return health;
+    } else {
+      return {
+        status: 'ok',
+        service: 'mock-ai-preview',
+        version: '0.1.0',
+        features: [
+          'code explanation (simulated)',
+          'code generation (simulated)',
+          'bug fixing (simulated)',
+          'code analysis (simulated)',
+          'change preview (simulated)',
+          'diff summaries (simulated)',
+        ],
+        note: 'Set USE_REAL_AI=1 to enable real AI service',
+      };
+    }
   });
 }
