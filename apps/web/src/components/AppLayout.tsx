@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { FileCode, Bot, Palette, Play } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { api, type ProjectListItem } from '../api/client';
 import { sidebarItems } from '../constants/sidebar';
 
 interface SidebarNavItem {
   path: string;
   label: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  icon: LucideIcon;
 }
 
 export function AppLayout({ children }: { children?: React.ReactNode }) {
@@ -44,7 +45,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
     }
   };
 
-  const dynamicSidebarItems: SidebarNavItem[] = [...sidebarItems] as SidebarNavItem[];
+  const dynamicSidebarItems: SidebarNavItem[] = [...sidebarItems];
 
   // Add project-specific navigation when in project context
   if (isInProjectContext && projectId) {
