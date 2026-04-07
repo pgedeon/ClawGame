@@ -1,0 +1,22 @@
+{
+  "name": "clawgame",
+  "version": "0.0.1",
+  "private": true,
+  "description": "AI-first web game engine and editor",
+  "scripts": {
+    "dev": "pnpm --filter @clawgame/web dev & pnpm --filter @clawgame/api dev",
+    "dev:web": "pnpm --filter @clawgame/web dev",
+    "dev:api": "pnpm --filter @clawgame/api dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "clean": "pnpm -r clean"
+  },
+  "keywords": ["game-engine", "ai", "openclaw", "2d", "web"],
+  "author": "Peter",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@9.0.0"
+}

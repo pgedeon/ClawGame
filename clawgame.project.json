@@ -1,0 +1,55 @@
+{
+  "$schema": "https://clawgame.dev/schemas/project/v1",
+  "name": "clawgame",
+  "version": "0.0.1",
+  "engine": {
+    "version": "0.0.1",
+    "runtimeTarget": "browser",
+    "renderBackend": "canvas"
+  },
+  "project": {
+    "displayName": "ClawGame Engine",
+    "genre": "engine",
+    "artStyle": "varies",
+    "description": "AI-first web game engine and editor"
+  },
+  "ai": {
+    "providers": ["openai", "anthropic", "openrouter"],
+    "defaultProvider": "openrouter",
+    "roles": ["builder", "art", "director"]
+  },
+  "assets": {
+    "comfyui": {
+      "enabled": true,
+      "url": "http://127.0.0.1:8188"
+    },
+    "formats": ["png", "webp", "json"],
+    "directories": {
+      "sprites": "assets/sprites",
+      "tilesets": "assets/tilesets",
+      "audio": "assets/audio",
+      "data": "assets/data"
+    }
+  },
+  "openclaw": {
+    "integrationLevel": "native",
+    "memoryPaths": [
+      "docs/ai/project_memory.md",
+      "docs/tasks/current_sprint.md",
+      "docs/architecture/architecture.md"
+    ],
+    "agentRoles": [
+      "director-agent",
+      "gameplay-agent",
+      "ui-agent",
+      "tools-agent",
+      "asset-agent",
+      "qa-agent"
+    ]
+  },
+  "structure": {
+    "apps": ["web", "api"],
+    "packages": ["engine", "editor-core", "ai-orchestrator", "asset-pipeline", "project-sdk", "ui", "shared"],
+    "docs": ["product", "design", "architecture", "tasks", "qa", "ai"]
+  }
+}
