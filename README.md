@@ -8,6 +8,28 @@
 
 ClawGame lets you design, generate, debug, iterate, and ship 2D browser games using integrated AI coding agents, asset generation pipelines (ComfyUI), and native OpenClaw orchestration.
 
+## 🤖 Autonomous Multi-Agent Development
+
+ClawGame is built by a **team of AI agents** working together:
+
+| Agent | Schedule | Role |
+|-------|----------|------|
+| **Dev Agent** | Every 30m | Implements features, fixes bugs |
+| **PM/CEO Agent** | Every 2h | Reviews quality, sets strategy |
+| **Game Dev Agent** | Every 3h | Uses engine, provides UX feedback |
+| **Team Standup** | Every 2d | Aligns all agents, makes decisions |
+
+### How Agents Communicate
+
+```
+Game Dev uses product → writes feedback (game_dev_feedback.md)
+PM reviews code + feedback → writes direction (pm_feedback.md)
+Dev reads Standup > PM > Game Dev → implements code
+Standup (every 2d) reviews all → updates sprint
+```
+
+All agents share feedback via `.md` files in `docs/ai/`.
+
 ## 🚀 Quick Start
 
 ```bash
@@ -46,9 +68,14 @@ clawgame/
 │   ├── architecture/     # System architecture
 │   ├── tasks/            # Backlog, sprint docs
 │   ├── qa/               # Known issues, test plans
-│   └── ai/               # AI project memory
+│   └── ai/               # Agent feedback and memory
+│       ├── project_memory.md     # System state
+│       ├── pm_feedback.md        # CEO direction
+│       ├── game_dev_feedback.md  # User feedback
+│       └── standup_notes.md      # Team meetings
 ├── examples/             # Sample game projects
 ├── projects/             # User game projects (gitignored)
+├── scripts/              # Agent prompts, utilities
 ├── CHANGELOG.md          # Version history
 ├── VERSION.json          # Current version info
 └── clawgame.project.json # Machine-readable project metadata
@@ -56,7 +83,7 @@ clawgame/
 
 ## 🎯 Current Status
 
-**Milestone 0: Foundation** — Creating repo, package layout, docs skeleton, and initial project metadata model.
+**Milestone 0: Foundation** — Repo, packages, docs, multi-agent system.
 
 See [Roadmap](docs/product/roadmap.md) for full timeline.
 
@@ -67,6 +94,7 @@ ClawGame is designed to be operable by AI agents natively:
 - **OpenClaw Integration**: Agents can inspect and modify projects
 - **Multi-role AI**: Builder, Art, and Director roles
 - **ComfyUI**: Asset generation for sprites, tilesets, textures
+- **Autonomous Development**: 4-agent team builds continuously
 
 ### AI Agent Roles
 
@@ -125,6 +153,7 @@ MIT License - See [LICENSE](LICENSE) for details.
 - Built with [OpenClaw](https://openclaw.ai) native integration
 - Asset generation via [ComfyUI](https://github.com/comfyanonymous/ComfyUI)
 - Inspired by the vision of AI-first game development
+- Developed autonomously by a multi-agent AI team
 
 ---
 
