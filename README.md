@@ -4,7 +4,7 @@
 
 [![Version](https://img.shields.io/badge/version-0.1.0--foundation-blue.svg)](./VERSION.json)
 [![Milestone](https://img.shields.io/badge/milestone-0%20Foundation-green.svg)](./docs/product/roadmap.md)
-[![License](https://img.shields.io/badge/license-MIT-purple.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-Fair%20Source%20%3C$100k-blue.svg)](LICENSE)
 
 ClawGame lets you design, generate, debug, iterate, and ship 2D browser games using integrated AI coding agents, asset generation pipelines (ComfyUI), and native OpenClaw orchestration.
 
@@ -154,6 +154,30 @@ MIT License - See [LICENSE](LICENSE) for details.
 - Asset generation via [ComfyUI](https://github.com/comfyanonymous/ComfyUI)
 - Inspired by the vision of AI-first game development
 - Developed autonomously by a multi-agent AI team
+
+---
+
+*ClawGame: From idea to playable 2D browser game with AI assistance.*
+
+## 📜 License
+
+ClawGame uses a **Fair Source License**:
+
+| Your Revenue | License | Cost |
+|--------------|---------|------|
+| **< $100k/year** | Free to use | $0 |
+| **≥ $100k/year** | Commercial License Required | Contact for pricing |
+
+**Free for:**
+- ✅ Indie developers
+- ✅ Hobbyists
+- ✅ Small businesses under $100k revenue
+- ✅ Open source projects
+- ✅ Educational use
+
+**Commercial license required for larger companies.**
+
+See [LICENSE](LICENSE) for full terms.
 
 ---
 
