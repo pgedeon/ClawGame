@@ -27,7 +27,18 @@
 | Scene editor toasts | ⏳ Deferred | Would require type changes to Scene Editor components |
 | Editor save toast | ⏳ Deferred | Already handled by FileWorkspace |
 
-## Phase 3: Asset Pipeline ⏳
+## Phase 3: UX Polish & Branding 🚧 (v0.5.3)
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Error boundaries | ✅ Done | ErrorBoundary component wraps entire app |
+| Onboarding tour | ✅ Done | 4-step AI-first introduction |
+| Dashboard AI branding | ✅ Done | AI-themed hero with floating orbs |
+| Console.log cleanup | ✅ Done | Removed console.log from SceneEditorPage |
+| Responsive dashboard | ✅ Done | Mobile-optimized layout |
+| Toasts integration (all pages) | ⏳ Pending | SceneEditor, others |
+
+## Phase 4: Asset Pipeline ⏳
 
 | Task | Status | Notes |
 |------|--------|-------|
@@ -46,6 +57,9 @@
 - [x] No bundle size warnings
 - [x] Real AI backend connected
 - [x] AI thinking indicator with progress visualization
+- [x] Error boundaries for graceful failure
+- [x] Onboarding tour for first-time users
+- [x] AI-branded dashboard
 - [ ] Toasts integrated into all user actions
 - [ ] Asset generation workflow operational
 
@@ -62,6 +76,9 @@
 - ✅ File operations show toast feedback
 - ✅ Real AI code generation (OpenRouter API)
 - ✅ AI thinking progress indicator
+- ✅ Error boundaries for graceful failure
+- ✅ First-time user onboarding
+- ✅ AI-first branding visible in dashboard
 - [ ] Asset generation from prompts
 
 ---
@@ -114,8 +131,35 @@
 - Automatic welcome message based on AI status
 - No TypeScript errors, build successful
 
+### Phase 3: UX Polish & Branding (v0.5.3) ✅
+
+#### Files Created
+- `apps/web/src/components/ErrorBoundary.tsx` — Error boundary class component
+- `apps/web/src/error-boundary.css` — Error boundary styles
+- `apps/web/src/components/OnboardingTour.tsx` — 4-step onboarding tour component
+- `apps/web/src/onboarding.css` — Onboarding tour styles
+
+#### Files Modified
+- `apps/web/src/App.tsx` — Added ErrorBoundary and OnboardingTour wrappers
+- `apps/web/src/App.css` — Added AI hero, floating orbs, enhanced dashboard styles
+- `apps/web/src/pages/DashboardPage.tsx` — Complete rewrite with AI branding, hero section
+- `apps/web/src/pages/SceneEditorPage.tsx` — Removed console.log statement
+- `VERSION.json` — Bumped to 0.5.3
+- `CHANGELOG.md` — v0.5.3 changelog entry
+
+#### Technical Achievements
+- Error boundaries wrap entire app for graceful failure
+- First-time users see 4-step AI-first introduction
+- Dashboard features AI-themed gradient with animated orbs
+- Floating orbs create visual interest and reinforce AI branding
+- Keyboard shortcut hints throughout UI (Ctrl+K)
+- Responsive design works on mobile devices
+- All console.log statements removed (production cleanliness)
+- Projects grid layout from list to card-based
+- AI tips section promotes command palette usage
+
 ---
 
 **Previous Sprint:** Milestone 4 (Scene Editor) — Complete ✅
-**Current Sprint:** Milestone 5 (AI-Native UX + Assets) — Phase 1-2 Complete ✅
+**Current Sprint:** Milestone 5 (AI-Native UX + Assets) — Phase 1-3 Complete ✅
 **Next Phase:** Asset Pipeline Generation 🚀

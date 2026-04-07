@@ -257,3 +257,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+
+### [0.5.3] - 2026-04-07
+
+#### Added
+- Onboarding tour component with 4-step AI-first introduction
+- Error boundary component for graceful component failures
+- AI-branded dashboard hero with floating orbs animation
+- Dashboard keyboard shortcuts hint (Ctrl+K for AI command)
+- AI-powered badge on "New Project" quick action
+- Responsive design improvements for mobile dashboard
+
+#### Changed
+- Enhanced dashboard with AI-themed gradient background
+- Improved quick actions grid with better visual hierarchy
+- Projects grid layout from list to card grid
+- Added AI tips section with command palette shortcut
+
+#### Fixed
+- Removed console.log from SceneEditorPage (PM feedback)
+- Fixed TypeScript type errors for import.meta.env
+- Improved accessibility with proper focus indicators
+
