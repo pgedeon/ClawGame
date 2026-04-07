@@ -3,7 +3,7 @@
 **Sprint Goal:** Make AI feel native, connect real services, polish UX, build asset pipeline.
 
 **Started:** 2026-04-07 19:00 UTC
-**Status:** 🚧 Phase 1 complete, Phase 2 complete, Phase 3 complete, Phase 4 in progress
+**Status:** ✅ All phases complete. Patch v0.6.1 applied (documentation debt, 404, logger).
 
 ---
 
@@ -51,6 +51,20 @@
 | Toast integration | ✅ Done | All asset operations show toasts |
 
 ---
+
+
+## Patch v0.6.1 — Documentation & Quality ✅
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Fix project_memory.md (3 versions behind) | ✅ Done | Updated from v0.3.2 → v0.6.0 reality |
+| Fix VERSION.json status | ✅ Done | Changed from in-progress to released |
+| Fix README version badge | ✅ Done | Updated from 0.1.0 to 0.6.0 |
+| Add 404 Not Found page | ✅ Done | Styled page with gradient, back/home buttons |
+| Replace console.log/error with logger | ✅ Done | 28 calls across 12 files → logger utility |
+| Add Preview Mode badge to Asset Studio | ✅ Done | Generate button shows "Preview" badge |
+| Clean build verification | ✅ Done | All chunks build clean |
+| CHANGELOG.md updated | ✅ Done | Added v0.6.1 entry |
 
 ## Definition of Done
 
