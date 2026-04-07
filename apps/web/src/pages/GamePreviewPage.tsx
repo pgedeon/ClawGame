@@ -24,10 +24,12 @@ function GamePreviewContent({ projectId }: GamePreviewPageProps) {
   const [showHitboxes, setShowHitboxes] = useState(false);
   const [fps, setFps] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [fpsUpdateInterval, setFpsUpdateInterval] = useState<number | null>(null);
 
   useEffect(() => {
     loadProject();
     return () => {
+      if (fpsUpdateInterval) clearInterval(fpsUpdateInterval);
       stopGame();
     };
   }, [projectId]);
@@ -180,6 +182,13 @@ function GamePreviewContent({ projectId }: GamePreviewPageProps) {
       engine.loadScene(demoScene);
       engine.start();
 
+      // Setup FPS counter from engine
+      if (fpsUpdateInterval) clearInterval(fpsUpdateInterval);
+      const interval = window.setInterval(() => {
+        setFps(engine.getFPS());
+      }, 100);
+      setFpsUpdateInterval(interval);
+
       engineRef.current = engine;
       setIsPlaying(true);
       setError(null);
@@ -188,13 +197,6 @@ function GamePreviewContent({ projectId }: GamePreviewPageProps) {
       if (canvasWrapperRef.current) {
         canvasWrapperRef.current.focus();
       }
-
-      // FPS counter from engine
-      const fpsInterval = setInterval(() => {
-        // FPS is shown in debug panel
-      }, 1000);
-
-      return () => clearInterval(fpsInterval);
 
     } catch (err) {
       console.error('Failed to start game:', err);
@@ -207,6 +209,10 @@ function GamePreviewContent({ projectId }: GamePreviewPageProps) {
       engineRef.current.stop();
       engineRef.current = null;
     }
+    if (fpsUpdateInterval) {
+      clearInterval(fpsUpdateInterval);
+      setFpsUpdateInterval(null);
+    }
     setIsPlaying(false);
     setFps(0);
   };
@@ -214,6 +220,19 @@ function GamePreviewContent({ projectId }: GamePreviewPageProps) {
   const resetGame = () => {
     stopGame();
     setTimeout(() => startGame(), 100);
+  };
+
+  const handleDebugToggle = (type: 'grid' | 'hitboxes', checked: boolean) => {
+    setShowGrid(type === 'grid' ? checked : showGrid);
+    setShowHitboxes(type === 'hitboxes' ? checked : showHitboxes);
+
+    // Update engine config if running
+    if (engineRef.current && isPlaying) {
+      engineRef.current.setConfig({
+        showGrid,
+        showHitboxes
+      });
+    }
   };
 
   if (isLoading) {
@@ -273,6 +292,13 @@ function GamePreviewContent({ projectId }: GamePreviewPageProps) {
             width={800}
             height={600}
             className="game-canvas"
+            style={{ 
+              width: '100%',
+              height: 'auto',
+              maxWidth: '800px',
+              maxHeight: '600px',
+              objectFit: 'contain'
+            }}
           />
 
           {!isPlaying && (
@@ -341,13 +367,7 @@ function GamePreviewContent({ projectId }: GamePreviewPageProps) {
                 <input
                   type="checkbox"
                   checked={showGrid}
-                  onChange={(e) => {
-                    setShowGrid(e.target.checked);
-                    if (engineRef.current) {
-                      engineRef.current.destroy();
-                      startGame();
-                    }
-                  }}
+                  onChange={(e) => handleDebugToggle('grid', e.target.checked)}
                 />
                 Show grid
               </label>
@@ -355,13 +375,7 @@ function GamePreviewContent({ projectId }: GamePreviewPageProps) {
                 <input
                   type="checkbox"
                   checked={showHitboxes}
-                  onChange={(e) => {
-                    setShowHitboxes(e.target.checked);
-                    if (engineRef.current) {
-                      engineRef.current.destroy();
-                      startGame();
-                    }
-                  }}
+                  onChange={(e) => handleDebugToggle('hitboxes', e.target.checked)}
                 />
                 Show hitboxes
               </label>

@@ -2,8 +2,8 @@
  * @clawgame/engine - Render system
  */
 
-import { Scene, RendererConfig } from '../types';
-import { Sprite, Transform, Collision } from '../types';
+import { Scene, RendererConfig, Entity } from '../types';
+import { Sprite, Collision } from '../types';
 
 export class RenderSystem {
   private ctx: CanvasRenderingContext2D;
@@ -11,6 +11,7 @@ export class RenderSystem {
   private lastFrameTime = performance.now();
   private frameCount = 0;
   private fps = 60;
+  private entityCount = 0;
 
   constructor(ctx: CanvasRenderingContext2D, config: RendererConfig) {
     this.ctx = ctx;
@@ -32,18 +33,15 @@ export class RenderSystem {
       this.drawGrid(width, height);
     }
 
-    // Draw entities
+    // Count and draw entities
+    this.entityCount = 0;
     scene.entities.forEach((entity) => {
+      this.entityCount++;
       this.renderEntity(entity, showHitboxes);
     });
 
-    // Draw scene name
-    this.drawSceneInfo(scene.name);
-
-    // Draw FPS if enabled
-    if (this.config.showFPS) {
-      this.drawFPS();
-    }
+    // Draw HUD overlay (scene info + FPS combined)
+    this.drawHUD(scene.name);
 
     this.updateFPS();
   }
@@ -51,7 +49,7 @@ export class RenderSystem {
   /**
    * Render a single entity
    */
-  private renderEntity(entity: { id: string; transform: any; components: Map<string, any> }, showHitboxes: boolean): void {
+  private renderEntity(entity: Entity, showHitboxes: boolean): void {
     const transform = entity.transform;
     const sprite = entity.components.get('sprite') as Sprite | undefined;
     const collision = entity.components.get('collision') as Collision | undefined;
@@ -90,17 +88,25 @@ export class RenderSystem {
     }
 
     // Draw hitbox if enabled and collision component exists
-    if (showHitboxes && collision && transform) {
-      this.drawHitbox(transform, collision);
+    if (showHitboxes) {
+      if (collision) {
+        this.drawHitbox(transform.x, transform.y, collision);
+      } else if (sprite) {
+        // Fallback: draw hitbox based on sprite dimensions
+        this.drawHitbox(transform.x, transform.y, {
+          width: sprite.width,
+          height: sprite.height,
+          type: entity.components.has('playerInput') ? 'player' :
+                entity.components.has('ai') ? 'enemy' : 'collectible'
+        } as Collision);
+      }
     }
   }
 
   /**
    * Draw a hitbox
    */
-  private drawHitbox(transform: any, collision: Collision): void {
-    const x = transform.x;
-    const y = transform.y;
+  private drawHitbox(x: number, y: number, collision: Collision): void {
     const { width, height, type } = collision;
 
     let color = 'rgba(255, 0, 0, 0.3)';
@@ -151,29 +157,29 @@ export class RenderSystem {
   }
 
   /**
-   * Draw scene name and info
+   * Draw HUD overlay — single combined panel with scene info and FPS
    */
-  private drawSceneInfo(sceneName: string): void {
+  private drawHUD(sceneName: string): void {
+    if (!this.config.showFPS) return;
+
+    const padding = 10;
+    const lineHeight = 16;
+    const lines = [
+      `Scene: ${sceneName}`,
+      `Entities: ${this.entityCount}`,
+      `FPS: ${this.fps.toFixed(1)}`,
+    ];
+    const boxWidth = 160;
+    const boxHeight = padding * 2 + lines.length * lineHeight;
+
     this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    this.ctx.fillRect(10, 10, 200, 80);
+    this.ctx.fillRect(10, 10, boxWidth, boxHeight);
 
     this.ctx.fillStyle = '#ffffff';
     this.ctx.font = '12px monospace';
-    this.ctx.fillText(`Scene: ${sceneName}`, 20, 30);
-    this.ctx.fillText(`Entities: ${this.config.showFPS ? this.frameCount : ''}`, 20, 50);
-    this.ctx.fillText(`FPS: ${this.fps.toFixed(1)}`, 20, 70);
-  }
-
-  /**
-   * Draw FPS counter
-   */
-  private drawFPS(): void {
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    this.ctx.fillRect(10, 10, 100, 24);
-
-    this.ctx.fillStyle = '#ffffff';
-    this.ctx.font = '12px monospace';
-    this.ctx.fillText(`FPS: ${this.fps.toFixed(1)}`, 20, 26);
+    lines.forEach((line, i) => {
+      this.ctx.fillText(line, 10 + padding, 10 + padding + (i + 1) * lineHeight - 3);
+    });
   }
 
   /**
@@ -190,6 +196,13 @@ export class RenderSystem {
       this.frameCount = 0;
       this.lastFrameTime = now;
     }
+  }
+
+  /**
+   * Get current FPS value (for external consumers)
+   */
+  getFPS(): number {
+    return this.fps;
   }
 
   /**

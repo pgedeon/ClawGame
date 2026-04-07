@@ -1,6 +1,6 @@
 # PM/CEO Feedback
 
-**Last Review:** 2026-04-07 15:48 UTC
+**Last Review:** 2026-04-07 15:30 UTC
 **Git Status:** Clean (0 uncommitted files)
 **Reviewer:** PM/CEO Agent (cron review)
 
@@ -8,77 +8,73 @@
 
 ## 🟢 What Is Going Well
 
-1. **Clean build, zero TypeScript errors** — `pnpm build` completes in ~2s, all 4 packages compile cleanly. Production build outputs 762KB JS (256KB gzipped) + 30KB CSS.
+1. **Excellent bug fix velocity** — All critical blocking issues identified by @gamedev were resolved in the same session. The team responds extremely fast to production-blocking problems.
 
-2. **Solid engine foundation** — `Engine.ts` is a well-structured 2D runtime: delta-time game loop, keyboard input, component system (sprite/movement/ai), entity state tracking, canvas rendering with grid/shadows/highlights. Not a toy — it's extensible.
+2. **Clean build output** — TypeScript compilation succeeds with no errors, all packages build cleanly in ~2 seconds. Production build is efficient (765KB JS, 26KB gzipped).
 
-3. **Complete page coverage** — 10 pages (Dashboard, CreateProject, OpenProject, Project, Editor, AICommand, AssetStudio, GamePreview, Examples, Settings) covering the full creation-to-playtest workflow.
+3. **Engine refactoring complete** — The engine was successfully split into modular architecture (Engine.ts, types.ts, systems/ directory). This shows good engineering discipline and scalability thinking.
 
-4. **Professional tooling choices** — CodeMirror 6 for the editor, Fastify for API, proper monorepo with `@clawgame/*` namespaced packages.
+4. **Proper sprint tracking** — The current_sprint.md file is comprehensive and detailed, with clear task status tracking and feedback addressing visible.
 
-5. **Clean git history** — 15 meaningful commits, no garbage, proper conventional commit messages. Git watchdog script shows hygiene discipline.
-
-6. **No secrets or credentials in source** — grep came back clean.
+5. **Git hygiene maintained** — Clean working tree, all commits pushed to GitHub, conventional commit messages followed. No technical debt accumulation.
 
 ---
 
 ## 🔴 Critical Issues (Must Fix)
 
-1. **project_memory.md is severely outdated** — It says "Early foundation phase" and "No actual UI implementation exists yet" while we have 2,760 lines of frontend code, a working 2D engine, full CRUD, and game preview. This is the #1 documentation failure.
-   - File: `docs/ai/project_memory.md`
-   - Action: Rewrite to reflect Milestone 3 status. Remove "Known Gaps" that are now resolved (UI exists, component architecture defined, etc.)
+1. **CodeEditor useEffect dependency still broken** — The CodeMirror editor recreation issue was supposedly fixed but `content` is still in the useEffect dependency array at line 218. This means every keystroke triggers complete editor destruction/recreation, killing performance and UX.
+   - File: `apps/web/src/components/CodeEditor.tsx`
+   - Action: Remove `content` from useEffect dependencies array
 
-2. **Roadmap out of sync with reality** — `docs/product/roadmap.md` still shows M0 (Foundation) as "In Progress" and M1-M3 as "Not Started". We're actually at M3 (2D Runtime + Preview) with working code. This misleads anyone reading project docs.
-   - File: `docs/product/roadmap.md`
-   - Action: Update milestone statuses to reflect actual progress.
+2. **Documentation severely outdated** — Both `project_memory.md` and `roadmap.md` reflect completely different realities than what's actually built. project_memory.md says "Early foundation phase" while we have a working 2D engine. roadmap.md shows M0 as "In Progress" when M0-M3 are complete.
+   - Files: `docs/ai/project_memory.md`, `docs/product/roadmap.md`
+   - Action: Rewrite both to reflect current Milestone 3 status
 
-3. **Engine package is a single 300-line file** — `packages/engine/src/index.ts` contains everything: Engine class, all component interfaces, all systems, all rendering. This won't scale.
-   - File: `packages/engine/src/index.ts`
-   - Action: Split into `Engine.ts`, `types.ts`, `systems/` (PlayerSystem, AISystem, RenderSystem), and `components/`. The current structure works for a demo but will collapse under real feature development.
+3. **Debug panel non-functional** — GamePreviewPage sidebar checkboxes for "Show hitboxes", "Show FPS", etc. don't connect to actual engine functionality. These are dead UI elements that erode user trust.
+   - File: `apps/web/src/pages/GamePreviewPage.tsx`
+   - Action: Either wire them up to engine config or remove them entirely
 
 ---
 
 ## 🟡 Quality Improvements
 
-1. **Hardcoded demo scene** — `GamePreviewPage.tsx` creates the entire demo scene inline (player, enemy, coins, ground). This should come from the project's scene data via the API. As-is, every project shows the same demo.
+1. **Bundle size warning** — Main JS chunk is 765KB (over 500KB threshold). While not blocking, this will impact mobile users. Consider code-splitting now.
+   - File: `vite.config.ts`
+   - Impact: Performance degradation on slower connections
+
+2. **Hardcoded demo scene** — GamePreviewPage creates the same demo scene inline regardless of project data. This blocks real game development workflows.
    - File: `apps/web/src/pages/GamePreviewPage.tsx`
-   - Impact: Blocks real game development workflows
+   - Action: Load actual scene data from API
 
-2. **Hardcoded canvas size (800×600)** — The canvas dimensions are fixed. Should be configurable per project or responsive to container size.
-   - File: `GamePreviewPage.tsx` line ~210
+3. **Missing engine destroy() method** — Engine has stop() but no destroy() for full teardown. GamePreviewPage only calls stopGame() in cleanup, which is fragile.
+   - File: `packages/engine/src/Engine.ts`
+   - Action: Add proper destroy() method
 
-3. **Leftover console.log statements** — Two `console.log` calls in production code (CreateProjectPage, FileWorkspace). Replace with proper logging or remove.
-   - Files: `apps/web/src/pages/CreateProjectPage.tsx`, `apps/web/src/components/FileWorkspace.tsx`
-
-4. **Bundle size warning** — The main JS chunk is 762KB (over the 500KB warning threshold). Consider code-splitting pages with `React.lazy()` now rather than later.
-
-5. **Missing `destroy()` method on Engine** — The engine's `stop()` method cleans up event listeners but there's no `destroy()` for full teardown. The `GamePreviewPage` stores engine in a ref but the cleanup in the useEffect return only calls `stopGame()`, which works but is fragile.
-
-6. **Debug panel checkboxes are non-functional** — "Show hitboxes", "Show FPS graph", "Show entity info" in the sidebar do nothing. Either wire them up or remove them — dead UI erodes trust.
+4. **Canvas size hardcoded** — 800×600 fixed dimensions should be responsive or configurable per project.
+   - File: `apps/web/src/pages/GamePreviewPage.tsx`
+   - Impact: Poor mobile/responsive UX
 
 ---
 
 ## 📋 Sprint Recommendations
 
-1. **Priority 1: Fix all documentation** — project_memory.md, roadmap.md, and standup_notes.md are all stale. This is technical debt that compounds fast.
+1. **Priority 1: Fix CodeEditor bug immediately** — This is a regression that makes the editor unusable for real work. Remove content dependency, implement proper content synchronization via the updateListener instead.
 
-2. **Priority 2: Refactor engine into modules** — Before adding M4 (Scene Editor) features, the engine needs a clean architecture. Do it now while it's small.
+2. **Priority 2: Update all documentation** — The gap between reality (M3 complete) and docs (M0 in progress) creates significant confusion for new contributors. Must fix before next sprint.
 
-3. **Priority 3: Load scenes from API** — Replace the hardcoded demo scene with actual project scene data. This unblocks real game development.
+3. **Priority 3: Wire debug panel to engine** — Either make the debug options functional or remove them. Dead UI is worse than no UI.
 
-4. **Priority 4: Code-split the frontend** — Add `React.lazy()` for page components. Quick win for performance.
+4. **Priority 4: Bundle size optimization** — Add React.lazy() for page components to get below 500KB threshold.
 
 ---
 
 ## 🔍 Strategic Notes
 
-**The product has a real foundation.** Milestone 0 through 3 are functionally complete — repo scaffold, editor shell, file workspace, and 2D runtime all work. That's significant progress.
+**The team is executing well tactically but failing strategically on documentation.** The codebase is solid and bugs get fixed fast, but every documentation file tells a different story than what's actually built. This mismatch creates serious onboarding friction and misalignment.
 
-**The gap is between what's built and what's documented.** The codebase tells one story (working platform at M3), but every doc file tells another (early planning phase). This isn't just cosmetic — any new contributor, agent, or stakeholder who reads the docs will be confused about what actually exists. This is the single biggest risk to velocity.
+**The AI-first promise remains unfulfilled.** We have a nice AICommandPage UI but no backend integration. This is the strategic differentiator that should be prioritized over more engine features.
 
-**No sprint file exists.** There's no `sprint.md` or equivalent to track current work. The standup notes have never been used (only the template exists). For a multi-agent team, this is a coordination failure waiting to happen.
-
-**The AI-first promise is unstarted.** The AICommandPage exists as UI but there's no backend AI integration. M4-M6 (Scene Editor, Asset Pipeline, Git integration) are the features that differentiate ClawGame from every other web game engine. The strategic priority should be getting AI into the loop — even a simple "generate entity from description" feature would be a powerful demo.
+**The sprint system is working well.** The current_sprint.md shows excellent task tracking and rapid issue resolution. The standup template exists but isn't being used — should activate this for better team coordination.
 
 ---
 
@@ -86,12 +82,12 @@
 
 | Area | Rating | Notes |
 |------|--------|-------|
-| Code Quality | A- | Clean TS, good architecture, minor issues (console.log, hardcoded values) |
-| Git Hygiene | A | Clean working tree, meaningful commits, all pushed to GitHub |
-| Documentation | D | Severely outdated: memory, roadmap, standup all stale. No sprint file. |
-| Strategic Alignment | B+ | Good foundation, but AI integration (the differentiator) is untouched |
-| MVP Progress | 40% | M0-M3 done, but M4-M8 (the hard/valuable parts) remain |
+| Code Quality | B+ | Clean TS and builds, but CodeEditor bug is a serious regression |
+| Git Hygiene | A | Perfect commit history, no uncommitted changes, all pushed |
+| Documentation | D | Severely outdated: memory and roadmap show completely wrong status |
+| Strategic Alignment | B+ | Good tactical execution but AI integration lagging |
+| MVP Progress | 60% | M0-M3 complete, but documentation debt blocks progress |
 
 ---
 
-*Documentation debt is the highest-priority fix. Code is ahead of docs — a rare and good problem, but one that needs immediate attention.*
+*Documentation debt remains the highest-priority blocker. The team builds fast but documents slow, creating significant cognitive overhead for anyone trying to understand the project state.*

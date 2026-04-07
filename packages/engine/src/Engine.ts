@@ -64,6 +64,27 @@ export class Engine {
   }
 
   /**
+   * Get current FPS from render system
+   */
+  getFPS(): number {
+    return this.renderSystem.getFPS();
+  }
+
+  /**
+   * Update renderer config at runtime (e.g. toggle grid/hitboxes)
+   */
+  setConfig(partial: Partial<RendererConfig>): void {
+    this.config = { ...this.config, ...partial };
+  }
+
+  /**
+   * Get current config
+   */
+  getConfig(): RendererConfig {
+    return { ...this.config };
+  }
+
+  /**
    * Set callback for when error occurs
    */
   onError(callback: (error: Error) => void): void {
@@ -109,11 +130,12 @@ export class Engine {
   }
 
   /**
-   * Destroy the engine and cleanup
+   * Destroy the engine — stop loop, detach input, cleanup render system
    */
   destroy(): void {
     this.stop();
     this.renderSystem.destroy();
+    this.scene = null;
   }
 
   /**
