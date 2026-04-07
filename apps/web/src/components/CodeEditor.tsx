@@ -22,7 +22,9 @@ interface CodeEditorProps {
   projectId: string;
   filePath: string;
   onSave?: (content: string) => void;
+  onLoad?: (content: string) => Promise<string>;
   readOnly?: boolean;
+  loading?: boolean;
   className?: string;
 }
 
@@ -53,11 +55,11 @@ function isDarkMode(): boolean {
   return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
 }
 
-export function CodeEditor({ projectId, filePath, onSave, readOnly = false, className }: CodeEditorProps) {
-  const [isLoading, setIsLoading] = useState(true);
+export function CodeEditor({ projectId, filePath, onSave, onLoad, readOnly = false, loading = false, className }: CodeEditorProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -65,21 +67,21 @@ export function CodeEditor({ projectId, filePath, onSave, readOnly = false, clas
   const needsFocus = useRef(false);
   const handleSaveRef = useRef<() => void>();
 
-  // Load file content when file path changes
+  // Load file content when file path changes or onLoad prop changes
   useEffect(() => {
     if (!filePath) return;
     loadFileContent();
-  }, [projectId, filePath]);
+  }, [projectId, filePath, onLoad]);
 
   const handleSave = useCallback(async () => {
-    if (!filePath || isSaving || !hasChanges) return;
+    if (!filePath || isSaving || !hasChanges || !onSave) return;
 
     setIsSaving(true);
     try {
       await api.writeFile(projectId, filePath, contentRef.current);
       setHasChanges(false);
       setLastSaved(new Date().toLocaleTimeString());
-      onSave?.(contentRef.current);
+      onSave(contentRef.current);
     } catch (err) {
       console.error('Failed to save file:', err);
     } finally {
@@ -93,15 +95,24 @@ export function CodeEditor({ projectId, filePath, onSave, readOnly = false, clas
   }, [handleSave]);
 
   const loadFileContent = async () => {
-    if (!filePath) return;
+    if (!filePath || hasLoaded) return;
 
-    setIsLoading(true);
+    let newContent = '';
+    setIsSaving(true); // Show loading while fetching content
+
     try {
-      const response = await api.readFile(projectId, filePath);
-      const newContent = response.content;
+      // Use onLoad prop if provided, otherwise fallback to API
+      if (onLoad) {
+        newContent = await onLoad(filePath);
+      } else {
+        const response = await api.readFile(projectId, filePath);
+        newContent = response.content || '';
+      }
+
       contentRef.current = newContent;
       setHasChanges(false);
       needsFocus.current = true;
+      setHasLoaded(true);
 
       // If editor already exists, update its content without destroying it
       if (viewRef.current) {
@@ -115,7 +126,7 @@ export function CodeEditor({ projectId, filePath, onSave, readOnly = false, clas
             },
           });
         }
-        setIsLoading(false);
+        setIsSaving(false);
         if (needsFocus.current) {
           viewRef.current.focus();
           needsFocus.current = false;
@@ -126,18 +137,19 @@ export function CodeEditor({ projectId, filePath, onSave, readOnly = false, clas
       console.error('Failed to load file:', err);
       contentRef.current = '';
     } finally {
-      setIsLoading(false);
+      setIsSaving(false);
     }
   };
 
   const handleReset = () => {
     if (!filePath) return;
+    setHasLoaded(false);
     loadFileContent();
   };
 
   // Create CodeMirror editor once (NOT re-creating on content change)
   useEffect(() => {
-    if (!editorRef.current) return;
+    if (!editorRef.current || !hasLoaded) return;
 
     // Destroy previous editor
     if (viewRef.current) {
@@ -226,7 +238,7 @@ export function CodeEditor({ projectId, filePath, onSave, readOnly = false, clas
         viewRef.current = null;
       }
     };
-  }, [filePath, readOnly]); // Intentionally NOT including content — only recreate on file/type change
+  }, [filePath, readOnly, hasLoaded]); // Only recreate on file/type change or reset
 
   // Cleanup on unmount
   useEffect(() => {
@@ -238,26 +250,18 @@ export function CodeEditor({ projectId, filePath, onSave, readOnly = false, clas
     };
   }, []);
 
-  if (isLoading) {
-    return <div className={`code-editor ${className}`}>
-      <div className="editor-loading">
-        <div className="editor-loading-spinner" />
-        <span>Loading file...</span>
-      </div>
-    </div>;
-  }
-
   return (
     <div className={`code-editor ${className}`}>
       <div className="editor-header">
         <div className="file-info">
           <span className="file-path">{filePath}</span>
-          {hasChanges && <span className="unsaved-badge">Unsaved</span>}
+          {loading && isSaving && <span className="loading-badge">Loading...</span>}
+          {hasChanges && !isSaving && <span className="unsaved-badge">Unsaved</span>}
           {lastSaved && <span className="last-saved">Last saved: {lastSaved}</span>}
         </div>
 
         <div className="editor-actions">
-          {!readOnly && (
+          {!readOnly && !loading && (
             <>
               <button
                 onClick={handleSave}
@@ -278,13 +282,20 @@ export function CodeEditor({ projectId, filePath, onSave, readOnly = false, clas
 
       <div 
         ref={editorRef} 
-        className="codemirror-container"
+        className={`codemirror-container ${!hasLoaded ? 'loading' : ''}`}
         onClick={() => {
           if (viewRef.current) {
             viewRef.current.focus();
           }
         }}
       />
+
+      {loading && (
+        <div className="editor-loading">
+          <div className="editor-loading-spinner" />
+          <span>Loading file...</span>
+        </div>
+      )}
 
       {readOnly && (
         <div className="editor-footer">

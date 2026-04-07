@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { FileTree } from './FileTree';
 import { CodeEditor } from './CodeEditor';
-import { api } from '../api/client';
+import { api, type FileContent } from '../api/client';
+import { useToast } from './Toast';
 
 interface FileWorkspaceProps {
   projectId: string;
@@ -18,14 +19,37 @@ export function FileWorkspace({ projectId, className }: FileWorkspaceProps) {
   const [newFileName, setNewFileName] = useState('');
   const [newFileError, setNewFileError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const { addToast } = useToast();
 
   const handleFileSelect = (filePath: string) => {
     setSelectedFile(filePath);
   };
 
-  const handleSave = (content: string) => {
-    // File save completed successfully
-  };
+  const handleSave = useCallback(async (content: string) => {
+    if (!selectedFile) return;
+
+    setSaving(true);
+    try {
+      await api.writeFile(projectId, selectedFile, content);
+      addToast(`File saved: ${selectedFile}`, 'success');
+    } catch (err: any) {
+      addToast(`Failed to save file: ${err.message || 'Unknown error'}`, 'error');
+    } finally {
+      setSaving(false);
+    }
+  }, [projectId, selectedFile, addToast]);
+
+  const handleLoad = useCallback(async (filePath: string): Promise<string> => {
+    try {
+      const result = await api.readFile(projectId, filePath);
+      return result.content || '';
+    } catch (err: any) {
+      addToast(`Failed to load file: ${err.message || 'Unknown error'}`, 'error');
+      return '';
+    }
+  }, [projectId, addToast]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
@@ -35,9 +59,15 @@ export function FileWorkspace({ projectId, className }: FileWorkspaceProps) {
 
     try {
       const results = await api.searchFiles(projectId, searchQuery);
+      if (results && results.length > 0) {
+        addToast(`Found ${results.length} file${results.length > 1 ? 's' : ''}`, 'info');
+      } else {
+        addToast('No files found matching your search', 'info');
+      }
       setSearchResults(results || []);
     } catch (err) {
       console.error('Search failed:', err);
+      addToast('Search failed', 'error');
       setSearchResults([]);
     }
   };
@@ -45,6 +75,7 @@ export function FileWorkspace({ projectId, className }: FileWorkspaceProps) {
   const handleRefresh = () => {
     setRefreshKey(prev => prev + 1);
     setSearchResults([]);
+    addToast('File list refreshed', 'info');
   };
 
   const handleCreateFile = useCallback(async () => {
@@ -70,12 +101,14 @@ export function FileWorkspace({ projectId, className }: FileWorkspaceProps) {
       handleRefresh();
       // Auto-select the new file
       setSelectedFile(cleanName);
+      addToast(`File created: ${cleanName}`, 'success');
     } catch (err: any) {
       setNewFileError(err.message || 'Failed to create file');
+      addToast(`Failed to create file: ${err.message}`, 'error');
     } finally {
       setCreating(false);
     }
-  }, [newFileName, projectId]);
+  }, [newFileName, projectId, addToast]);
 
   const handleCreateFolder = useCallback(async () => {
     if (!newFileName.trim()) {
@@ -97,12 +130,14 @@ export function FileWorkspace({ projectId, className }: FileWorkspaceProps) {
       setShowNewFolderDialog(false);
       setNewFileName('');
       handleRefresh();
+      addToast(`Folder created: ${cleanName}`, 'success');
     } catch (err: any) {
       setNewFileError(err.message || 'Failed to create folder');
+      addToast(`Failed to create folder: ${err.message}`, 'error');
     } finally {
       setCreating(false);
     }
-  }, [newFileName, projectId]);
+  }, [newFileName, projectId, addToast]);
 
   const closeDialogs = () => {
     setShowNewFileDialog(false);
@@ -145,6 +180,8 @@ export function FileWorkspace({ projectId, className }: FileWorkspaceProps) {
               projectId={projectId}
               filePath={selectedFile}
               onSave={handleSave}
+              onLoad={handleLoad}
+              loading={saving}
             />
           ) : (
             <div className="empty-editor">
