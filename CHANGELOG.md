@@ -335,3 +335,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Missing 404 handling: unknown routes now show helpful page instead of silent redirect
 - Console noise in production: errors no longer log to browser console
 - Asset Studio: generate button now clearly indicates preview mode
+
+### [0.7.0] - 2026-04-08
+
+#### Added
+- Vitest test framework for API (9 smoke tests: health, projects CRUD, AI health, assets CRUD/stats/validation)
+- Test helper for building Fastify app without starting server
+- `pnpm test` and `pnpm test:watch` scripts in API package
+
+#### Changed
+- All 8 backend console.log/error calls replaced with Fastify logger (pino)
+- AssetService and RealAIService now receive logger via constructor injection
+- Routes instantiate services with `app.log` instead of importing singletons
+- VERSION.json bumped to M6 (milestone 6)
+- Sprint file updated: Phase 1 (Backend Quality) marked COMPLETE
+- Roadmap updated: M5 COMPLETE, M6 Phase 1 COMPLETE
+- project_memory.md updated to v0.7.0 reality
+
+#### Fixed
+- TypeScript build error from RealAIService export conflict during logger migration
+- Missing closing brace in realAIService.ts after cleanup

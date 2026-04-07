@@ -1,8 +1,8 @@
 {
-  "version": "0.6.1",
-  "codename": "doc-cleanup",
-  "milestone": 5,
-  "milestoneName": "AI-Native UX + Real AI Backend + Asset Pipeline",
-  "releaseDate": "2026-04-07",
-  "status": "released"
+  "version": "0.7.0",
+  "codename": "quality-gate",
+  "milestone": 6,
+  "milestoneName": "Real AI Assets + Quality + Integration",
+  "releaseDate": "2026-04-08",
+  "status": "in-progress"
 }

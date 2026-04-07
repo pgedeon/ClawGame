@@ -1,38 +1,48 @@
 import { FastifyInstance } from 'fastify';
 import * as mockAiService from '../services/aiService';
-import * as realAIService from '../services/realAIService';
+import { RealAIService } from '../services/realAIService';
 
 // Environment variable to control which AI service to use
 const USE_REAL_AI = process.env.USE_REAL_AI === 'true' || process.env.USE_REAL_AI === '1';
 
+// Global reference to real AI service (initialized with logger)
+let realAIServiceInstance: RealAIService | null = null;
+
 export async function aiRoutes(app: FastifyInstance) {
-  console.log(`AI Routes initialized: ${USE_REAL_AI ? 'Real AI (OpenRouter)' : 'Mock AI (Preview Mode)'}`);
+  app.log.info(`AI Routes initialized: ${USE_REAL_AI ? 'Real AI (OpenRouter)' : 'Mock AI (Preview Mode)'}`);
+
+  // Initialize real AI service with logger on first use
+  if (USE_REAL_AI && !realAIServiceInstance) {
+    realAIServiceInstance = new RealAIService(app.log);
+  }
 
   // Process an AI command
-  app.post<{ Body: realAIService.AICommandRequest; Params: { projectId: string } }>(
+  app.post<{ Body: any; Params: { projectId: string } }>(
     '/api/projects/:projectId/ai/command',
     async (request, reply) => {
       const { projectId } = request.params;
-      const command = request.body;
+      const body = request.body as any;
 
       try {
-        let response: realAIService.AICommandResponse;
+        let response: any;
 
-        if (USE_REAL_AI) {
-          response = await realAIService.realAIService.processCommand({
-            ...command,
+        if (USE_REAL_AI && realAIServiceInstance) {
+          response = await realAIServiceInstance.processCommand({
             projectId,
+            command: body.command,
+            context: body.context,
           });
         } else {
           response = await mockAiService.aiService.processCommand({
-            ...command,
             projectId,
+            command: body.command,
+            context: body.context,
           });
         }
 
         return { response };
       } catch (err: any) {
-        console.error('AI command processing failed:', err);
+        app.log.error('AI command processing failed:', err);
         reply.code(500);
         return {
           error: 'Failed to process AI command',
@@ -50,8 +60,8 @@ export async function aiRoutes(app: FastifyInstance) {
       const limit = parseInt(request.query.limit || '10', 10);
 
       let history: any[];
-      if (USE_REAL_AI) {
-        history = await realAIService.realAIService.getCommandHistory(projectId, limit);
+      if (USE_REAL_AI && realAIServiceInstance) {
+        history = await realAIServiceInstance.getCommandHistory(projectId, limit);
       } else {
         history = await mockAiService.aiService.getCommandHistory(projectId, limit);
       }
@@ -67,8 +77,8 @@ export async function aiRoutes(app: FastifyInstance) {
       const { projectId, commandId } = request.params;
 
       let command: any;
-      if (USE_REAL_AI) {
-        command = await realAIService.realAIService.getCommandDetails(commandId);
+      if (USE_REAL_AI && realAIServiceInstance) {
+        command = await realAIServiceInstance.getCommandDetails(commandId);
       } else {
         command = await mockAiService.aiService.getCommandDetails(commandId);
       }
@@ -89,8 +99,8 @@ export async function aiRoutes(app: FastifyInstance) {
 
   // Health check for AI service
   app.get('/api/ai/health', async () => {
-    if (USE_REAL_AI) {
-      const health = await realAIService.realAIService.healthCheck();
+    if (USE_REAL_AI && realAIServiceInstance) {
+      const health = await realAIServiceInstance.healthCheck();
       return health;
     } else {
       return {

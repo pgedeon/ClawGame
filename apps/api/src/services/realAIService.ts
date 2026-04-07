@@ -7,6 +7,7 @@ import axios, { type AxiosInstance } from 'axios';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { getFileTree, readFileContent } from './fileService';
+import { FastifyLoggerInstance } from 'fastify';
 
 // OpenRouter API configuration
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
@@ -55,8 +56,10 @@ export interface AICommandHistory {
 export class RealAIService {
   private history: Map<string, AICommandHistory> = new Map();
   private axios: AxiosInstance;
+  private logger: FastifyLoggerInstance;
 
-  constructor() {
+  constructor(logger: FastifyLoggerInstance) {
+    this.logger = logger;
     this.axios = axios.create({
       baseURL: OPENROUTER_API_URL,
       headers: {
@@ -111,7 +114,7 @@ export class RealAIService {
 
       return structuredResponse;
     } catch (error: any) {
-      console.error('AI API call failed:', error.response?.data || error.message);
+      this.logger.error({ err: error.response?.data || error.message }, 'AI API call failed');
 
       // Return error response
       const errorResponse: AICommandResponse = {
@@ -406,7 +409,7 @@ Structure your responses with these sections:
         ],
       };
     } catch (error: any) {
-      console.error('AI health check failed:', error.message);
+      this.logger.error({ err: error.message }, 'AI health check failed');
       return {
         status: 'error',
         service: 'real-ai-openrouter',
@@ -415,7 +418,5 @@ Structure your responses with these sections:
       };
     }
   }
-}
 
-// Export singleton instance
-export const realAIService = new RealAIService();
+}

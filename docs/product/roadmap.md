@@ -1,10 +1,10 @@
 # ClawGame Roadmap
 
-## Current Status: Milestone 5 (AI-Native UX Foundation) - IN PROGRESS 🚧
+## Current Status: Milestone 6 — IN PROGRESS 🚧
 
-**Goal:** Make AI feel native and omnipresent. Fix UX gaps. Polish.
+**Goal:** Ship real AI asset generation, add test coverage, connect scene editor to assets, backend quality.
 
-**Started:** 2026-04-07 19:00 UTC
+**Started:** 2026-04-08
 
 ---
 
@@ -49,24 +49,47 @@
 - Code-splitting (lazy pages, vendor chunks)
 - Sidebar command search bar
 
+### Milestone 5: AI-Native UX + Real AI + Asset Pipeline ✅ (v0.5.0 → v0.6.1)
+
+| Task | Status | Version |
+|------|--------|---------|
+| AI backend integration | ✅ Done | v0.5.2 — OpenRouter API connected |
+| Toast integration in editors | ✅ Done | v0.5.1 — FileWorkspace wired |
+| Asset generation workflow | ✅ Done | v0.6.0 — Placeholder SVGs, real AI to follow |
+| Asset Studio UI | ✅ Done | v0.6.0 — Three-panel, CRUD, filtering |
+| Command Palette | ✅ Done | v0.5.0 — Ctrl+K, keyboard nav |
+| Floating AI Assistant | ✅ Done | v0.5.0 — FAB on all project pages |
+| Error Boundaries | ✅ Done | v0.5.3 — Graceful failure |
+| Onboarding Tour | ✅ Done | v0.5.3 — 4-step AI-first intro |
+| Logger utility (frontend) | ✅ Done | v0.6.1 — Silent in prod, verbose in dev |
+| 404 Page | ✅ Done | v0.6.1 — Styled not-found page |
+| Documentation cleanup | ✅ Done | v0.6.1 — Memory, README, CHANGELOG aligned |
+
+### Milestone 6 Phase 1: Backend Quality ✅ (v0.7.0)
+
+| Task | Status | Version |
+|------|--------|---------|
+| Backend logger migration (console → pino) | ✅ Done | v0.7.0 — All 8 console.* calls replaced |
+| Vitest test framework setup | ✅ Done | v0.7.0 — 9 API smoke tests passing |
+| Build fix (TS export conflict) | ✅ Done | v0.7.0 — RealAIService logger migration |
+| M5 docs officially closed | ✅ Done | v0.7.0 — Roadmap, sprint, memory aligned |
+
 ---
 
-## Current Phase: Milestone 5 — Asset Pipeline + Real AI 🎯
-
-**Goal:** Connect real AI services and asset generation
+## Current Phase: Milestone 6 — Phase 2+ (In Progress)
 
 | Task | Status | Notes |
 |------|--------|-------|
-| AI backend integration | ⏳ Not Started | Connect real LLM for code generation |
-| Toast integration in editors | ⏳ Not Started | Add toasts to save/load/create actions |
-| Asset generation workflow | ⏳ Not Started | ComfyUI or placeholder generation |
-| Enhanced onboarding | ⏳ Not Started | Welcome flow, template gallery |
+| Real AI asset generation (ComfyUI) | ⏳ Not Started | #1 differentiator — flagship feature |
+| Scene editor ↔ Asset pipeline integration | ⏳ Not Started | Drag assets from library into scenes |
+| Export/packaging pipeline | ⏳ Not Started | Let users ship games |
+| Visual scripting foundation | ⏳ Not Started | Node-based event system |
 
 ---
 
 ## Future Milestones
 
-### Milestone 6: Git + OpenClaw Operations 🔄
+### Milestone 7: Git + OpenClaw Operations 🔄
 
 | Task | Status | Notes |
 |------|--------|-------|
@@ -74,7 +97,7 @@
 | Auto-commit on save | ⏳ Not Started | Auto-commit code changes |
 | Branch management | ⏳ Not Started | Create/switch branches |
 
-### Milestone 7: Visual Scripting ✨
+### Milestone 8: Visual Scripting ✨
 
 | Task | Status | Notes |
 |------|--------|-------|
@@ -92,19 +115,18 @@
 | ✅ User can inspect file changes in editor | Complete | CodeMirror with syntax highlighting |
 | ✅ User can run game in browser preview | Complete | 2D canvas with FPS/debug |
 | ✅ User can visually edit a 2D scene | Complete | Scene editor with drag-drop |
-| 🚧 User can describe feature and AI implements | In Progress | Interface ready, backend pending |
-| ⏳ User can generate an asset via AI | Future | M5 Asset Pipeline |
-| ⏳ User can init and commit to Git | Future | M6 Git + OpenClaw |
+| ✅ User can describe feature and AI implements | Complete | OpenRouter API connected |
+| 🚧 User can generate an asset via AI | In Progress | Placeholder SVGs, ComfyUI next |
+| ⏳ User can init and commit to Git | Future | M7 Git + OpenClaw |
 
 ---
 
 ## Known Issues & Technical Debt
 
-1. **AI Service:** Mock responses — backend integration pending
-2. **Bundle Size:** Resolved via code-splitting (largest chunk: 496KB CodeMirror vendor)
-3. **File Tree:** Needs file watcher for auto-refresh
-4. **No Sprite Image Loading:** Scene editor uses color placeholders only
-5. **No Undo/Redo:** Scene editor and editor pages lack undo history
+1. **Asset generation is placeholder** — SVG rectangles, not real AI art. ComfyUI integration is M6 flagship.
+2. **Scene editor ↔ Asset gap** — Two powerful features working in isolation.
+3. **No Sprite Image Loading** — Scene editor uses color placeholders only.
+4. **No Undo/Redo** — Scene editor and editor pages lack undo history.
 
 ---
 
@@ -115,4 +137,4 @@ See also:
 - [UI/UX Feedback](../ai/uiux_feedback.md)
 - [Game Dev Feedback](../ai/game_dev_feedback.md)
 
-## Last Updated: 2026-04-07
+## Last Updated: 2026-04-08

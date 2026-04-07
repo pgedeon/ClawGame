@@ -1,8 +1,16 @@
 import { FastifyInstance } from 'fastify';
-import { assetService } from '../services/assetService';
+import { AssetService } from '../services/assetService';
 import type { AssetType } from '../services/assetService';
 
+// Global reference to asset service (initialized with logger)
+let assetServiceInstance: AssetService | null = null;
+
 export async function assetRoutes(app: FastifyInstance) {
+  // Initialize asset service with logger on first use
+  if (!assetServiceInstance) {
+    assetServiceInstance = new AssetService(app.log);
+  }
+
   // List assets for a project
   app.get<{
     Params: { projectId: string };
@@ -11,7 +19,7 @@ export async function assetRoutes(app: FastifyInstance) {
     '/api/projects/:projectId/assets',
     async (request) => {
       const { projectId } = request.params;
-      const assets = await assetService.listAssets(projectId);
+      const assets = await assetServiceInstance!.listAssets(projectId);
       return { assets };
     }
   );
@@ -21,7 +29,7 @@ export async function assetRoutes(app: FastifyInstance) {
     '/api/projects/:projectId/assets/:assetId',
     async (request, reply) => {
       const { projectId, assetId } = request.params;
-      const asset = await assetService.getAsset(projectId, assetId);
+      const asset = await assetServiceInstance!.getAsset(projectId, assetId);
       
       if (!asset) {
         reply.code(404);
@@ -39,7 +47,7 @@ export async function assetRoutes(app: FastifyInstance) {
       const { projectId, assetId } = request.params;
       
       try {
-        const { content, mimeType } = await assetService.getAssetFile(projectId, assetId);
+        const { content, mimeType } = await assetServiceInstance!.getAssetFile(projectId, assetId);
         reply.type(mimeType);
         return content;
       } catch (error: any) {
@@ -61,7 +69,7 @@ export async function assetRoutes(app: FastifyInstance) {
         return { error: 'type and prompt are required' };
       }
       
-      const asset = await assetService.generateAsset(projectId, type, prompt);
+      const asset = await assetServiceInstance!.generateAsset(projectId, type, prompt);
       reply.code(201);
       return asset;
     }
@@ -80,7 +88,7 @@ export async function assetRoutes(app: FastifyInstance) {
       }
       
       const buffer = Buffer.from(content, 'base64');
-      const asset = await assetService.uploadAsset(
+      const asset = await assetServiceInstance!.uploadAsset(
         projectId,
         name,
         type,
@@ -98,7 +106,7 @@ export async function assetRoutes(app: FastifyInstance) {
     '/api/projects/:projectId/assets/:assetId',
     async (request, reply) => {
       const { projectId, assetId } = request.params;
-      const deleted = await assetService.deleteAsset(projectId, assetId);
+      const deleted = await assetServiceInstance!.deleteAsset(projectId, assetId);
       
       if (!deleted) {
         reply.code(404);
@@ -114,7 +122,7 @@ export async function assetRoutes(app: FastifyInstance) {
     '/api/projects/:projectId/assets/stats',
     async (request) => {
       const { projectId } = request.params;
-      const stats = await assetService.getAssetStats(projectId);
+      const stats = await assetServiceInstance!.getAssetStats(projectId);
       return stats;
     }
   );

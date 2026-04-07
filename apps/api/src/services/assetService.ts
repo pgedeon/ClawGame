@@ -6,6 +6,7 @@
 import { mkdir, readFile, writeFile, readdir, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
+import { FastifyLoggerInstance } from 'fastify';
 
 const ASSETS_DIR = process.env.ASSETS_DIR || './data/assets';
 
@@ -36,6 +37,11 @@ export type AssetType = 'sprite' | 'tileset' | 'texture' | 'icon' | 'audio' | 'b
 
 export class AssetService {
   private cache: Map<string, AssetMetadata> = new Map();
+  private logger: FastifyLoggerInstance;
+
+  constructor(logger: FastifyLoggerInstance) {
+    this.logger = logger;
+  }
 
   async listAssets(projectId: string): Promise<AssetMetadata[]> {
     const projectAssetsDir = join(ASSETS_DIR, projectId);
@@ -63,7 +69,7 @@ export class AssetService {
           assets.push(metadata);
           this.cache.set(assetId, metadata);
         } catch (err) {
-          console.error(`Failed to load metadata for ${assetId}:`, err);
+          this.logger.error({ err }, `Failed to load metadata for ${assetId}`);
         }
       }
     }
@@ -92,7 +98,7 @@ export class AssetService {
       this.cache.set(assetId, metadata);
       return metadata;
     } catch (err) {
-      console.error(`Failed to load asset ${assetId}:`, err);
+      this.logger.error({ err }, `Failed to load asset ${assetId}`);
       return null;
     }
   }
@@ -132,7 +138,7 @@ export class AssetService {
       this.cache.delete(assetId);
       return true;
     } catch (err) {
-      console.error(`Failed to delete asset ${assetId}:`, err);
+      this.logger.error({ err }, `Failed to delete asset ${assetId}`);
       return false;
     }
   }
@@ -249,4 +255,3 @@ export class AssetService {
   }
 }
 
-export const assetService = new AssetService();
