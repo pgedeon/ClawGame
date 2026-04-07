@@ -1,0 +1,30 @@
+{
+  "id": "main-scene",
+  "name": "Main Game Scene",
+  "entities": [
+    {
+      "id": "player",
+      "name": "Player",
+      "transform": {
+        "x": 400,
+        "y": 300
+      },
+      "components": [
+        {
+          "type": "Sprite",
+          "data": {
+            "texture": "player-sprite"
+          }
+        }
+      ]
+    }
+  ],
+  "layers": [
+    {
+      "id": "main",
+      "name": "Main Layer",
+      "visible": true,
+      "entityIds": ["player"]
+    }
+  ]
+}

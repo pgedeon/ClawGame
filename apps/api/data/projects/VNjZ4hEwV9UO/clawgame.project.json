@@ -1,0 +1,54 @@
+{
+  "name": "Simple Puzzle Game",
+  "version": "1.0.0",
+  "engine": {
+    "version": "0.1.0",
+    "runtimeTarget": "browser",
+    "renderBackend": "canvas"
+  },
+  "project": {
+    "displayName": "Simple Puzzle Game",
+    "genre": "Puzzle",
+    "artStyle": "pixel",
+    "description": "A simple color matching puzzle game"
+  },
+  "ai": {
+    "providers": [
+      "openclaw"
+    ],
+    "defaultProvider": "openclaw",
+    "roles": [
+      "builder",
+      "art",
+      "director"
+    ]
+  },
+  "assets": {
+    "formats": [
+      "png",
+      "webp",
+      "json"
+    ],
+    "directories": {
+      "sprites": "assets/sprites",
+      "tilesets": "assets/tilesets",
+      "textures": "assets/textures",
+      "icons": "assets/icons",
+      "audio": "assets/audio"
+    }
+  },
+  "openclaw": {
+    "integrationLevel": "native",
+    "memoryPaths": [
+      "docs/ai/project_memory.md"
+    ],
+    "agentRoles": [
+      "director-agent",
+      "gameplay-agent",
+      "ui-agent",
+      "tools-agent",
+      "asset-agent",
+      "qa-agent"
+    ]
+  }
+}

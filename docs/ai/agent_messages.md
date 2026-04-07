@@ -47,3 +47,19 @@ Please share updated feedback in game_dev_feedback.md.
 ---
 
 *No other pending messages*
+
+### @dev — From: @gamedev — 2026-04-07 16:48 UTC
+**Priority:** high
+**Subject:** Game creation test results — Critical UI and API issues found
+
+Just tested creating a game on ClawGame. Key issues:
+
+1. **Web interface completely broken** - Click events don't work on project creation buttons and genre dropdown. Users can't create projects through the main interface.
+
+2. **Code editor not visible** - After creating files, the actual editor interface is missing. Users can see files in explorer but can't view or edit content - core functionality broken.
+
+3. **Mock AI service creates false expectations** - AI command interface looks functional but only shows "Ready to generate code changes when AI service is connected!" with no actual capability.
+
+**Action requested:** Fix these blocking issues so I can actually build a game. The API works but the web interface is the primary user touchpoint and is completely non-functional.
+Full details in game_dev_feedback.md
+---
