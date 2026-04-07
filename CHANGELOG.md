@@ -120,3 +120,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bundle size warning (766KB > 500KB threshold)
 - File tree needs file watcher for auto-refresh
 - More debug features needed beyond grid/hitboxes
+
+### [0.4.0] - 2026-04-07
+
+#### Added
+- **Milestone 4: Visual Scene Editor** — Complete 2D scene editing system
+- Entity templates (Player, Enemy, Coin, Wall) for quick placement
+- Canvas-based visual editor with mouse drag-and-drop
+- Zoom and pan controls (buttons + mouse wheel)
+- Grid display with snapping option for aligned placement
+- Entity selection with visual highlight and resize handles
+- Property inspector for Transform (X, Y, Rotation, Scale X/Y)
+- Component management (Sprite, Movement, AI, Collision) — add/remove
+- Entity list panel with click-to-select
+- Keyboard shortcuts: V (select), +/- (zoom), 0 (reset view), Delete (entity), Ctrl+S (save)
+- Scene serialization to JSON (scenes/main-scene.json)
+- Route: /project/:projectId/scene-editor
+- Scene Editor navigation button on ProjectPage
+
+#### Changed
+- Updated project page to prioritize Scene Editor as primary action
+- Bundle size: 782KB (up from 765KB due to new Scene Editor feature)
+
+#### Technical
+- Full TypeScript with proper typing throughout Scene Editor
+- Canvas 2D rendering with efficient re-render on state changes
+- Responsive canvas that adapts to container size
+- Clean separation: editor logic, rendering, state management
+- Integrated with existing engine types (Entity, Transform, Component)
+
+#### Documentation
+- Updated pm_feedback.md with M3 completion status
+
+---
