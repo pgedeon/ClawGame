@@ -19,6 +19,7 @@ import {
   Gamepad2,
 } from 'lucide-react';
 import '../game-hub.css';
+import { logger } from '../utils/logger';
 
 interface ProjectTab {
   id: string;
@@ -49,7 +50,7 @@ export function ProjectPage() {
       const projectData = await api.getProject(id);
       setProject(projectData);
     } catch (err) {
-      console.error('Error loading project:', err);
+      logger.error('Error loading project:', err);
       setError(err instanceof Error ? err.message : 'Failed to load project');
     } finally {
       setLoading(false);

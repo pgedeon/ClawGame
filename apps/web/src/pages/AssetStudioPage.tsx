@@ -23,6 +23,7 @@ import {
   Layers,
   Layout
 } from 'lucide-react';
+import { logger } from '../utils/logger';
 
 // Asset type to icon mapping
 const ASSET_TYPE_ICONS: Record<AssetType, React.ReactNode> = {
@@ -80,7 +81,7 @@ export function AssetStudioPage() {
       });
       setAssets(assetList);
     } catch (error: any) {
-      console.error('Failed to load assets:', error);
+      logger.error('Failed to load assets:', error);
       showToast({
         type: 'error',
         message: `Failed to load assets: ${error.message}`,
@@ -127,7 +128,7 @@ export function AssetStudioPage() {
       });
       
     } catch (error: any) {
-      console.error('Asset generation failed:', error);
+      logger.error('Asset generation failed:', error);
       showToast({
         type: 'error',
         message: `Failed to generate asset: ${error.message}`,
@@ -160,7 +161,7 @@ export function AssetStudioPage() {
         message: `Deleted "${assetName}"`,
       });
     } catch (error: any) {
-      console.error('Failed to delete asset:', error);
+      logger.error('Failed to delete asset:', error);
       showToast({
         type: 'error',
         message: `Failed to delete asset: ${error.message}`,
@@ -291,6 +292,7 @@ export function AssetStudioPage() {
                   <>
                     <Sparkles size={18} />
                     Generate Asset
+                    <span className="preview-mode-badge">Preview</span>
                   </>
                 )}
               </button>

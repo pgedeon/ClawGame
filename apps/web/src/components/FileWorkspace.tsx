@@ -3,6 +3,7 @@ import { FileTree } from './FileTree';
 import { CodeEditor } from './CodeEditor';
 import { api, type FileContent } from '../api/client';
 import { useToast } from './Toast';
+import { logger } from '../utils/logger';
 
 interface FileWorkspaceProps {
   projectId: string;
@@ -66,7 +67,7 @@ export function FileWorkspace({ projectId, className }: FileWorkspaceProps) {
       }
       setSearchResults(results || []);
     } catch (err) {
-      console.error('Search failed:', err);
+      logger.error('Search failed:', err);
       showToast({ type: 'error', message: 'Search failed' });
       setSearchResults([]);
     }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../api/client';
 import '../file-tree.css';
+import { logger } from '../utils/logger';
 
 interface FileTreeProps {
   projectId: string;
@@ -41,7 +42,7 @@ function TreeNode({ node, level, projectId, selectedFile, onFileSelect }: TreeNo
       setChildren(response);
       setIsExpanded(true);
     } catch (err) {
-      console.error('Failed to load directory:', err);
+      logger.error('Failed to load directory:', err);
     } finally {
       setIsLoading(false);
     }
@@ -129,7 +130,7 @@ export function FileTree({ projectId, currentPath = '', onFileSelect, selectedFi
       const response = await api.getFileTree(projectId, currentPath, 3);
       setFileTree(response);
     } catch (err) {
-      console.error('Failed to load file tree:', err);
+      logger.error('Failed to load file tree:', err);
       setFileTree([]);
     } finally {
       setIsLoading(false);

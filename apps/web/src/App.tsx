@@ -1,8 +1,9 @@
 import React, { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AppLayout } from './components/AppLayout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { OnboardingTour } from './components/OnboardingTour';
+import { NotFoundPage } from './pages/NotFoundPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { CreateProjectPage } from './pages/CreateProjectPage';
 import { OpenProjectPage } from './pages/OpenProjectPage';
@@ -75,7 +76,7 @@ function App() {
                 <GamePreviewPage />
               </Suspense>
             } />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

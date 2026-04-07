@@ -1,98 +1,93 @@
 # ClawGame Project Memory
 
 ## Project Overview
-- **Status:** Milestone 3 Complete - 2D Runtime + Preview
-- **Current Stage:** Core functionality working, improving quality and UX
-- **Next Phase:** AI integration with real services, scene editor
-- **Timeline:** v0.3.x with bug fixes and engine improvements
+- **Status:** Milestone 5 Complete — AI-Native UX + Asset Pipeline
+- **Current Version:** v0.6.0 (asset-pipeline)
+- **Current Stage:** Full IDE with AI integration, asset pipeline, scene editor, game preview
+- **Next Phase:** Milestone 6 — Real AI asset generation, scene editor polish, export pipeline
+- **Timeline:** v0.6.0 with working AI backend, asset CRUD, visual scene editor
 
 ## Key Documents
-- **README.md:** Comprehensive vision and roadmap documentation
-- **uiux_feedback.md:** Detailed UI/UX analysis and recommendations  
-- **game_dev_feedback.md:** Real user testing feedback
-- **CHANGELOG.md:** Version history and development tracking
-- **current_sprint.md:** Sprint progress and task tracking
+- **README.md:** Vision, roadmap, multi-agent development docs
+- **uiux_feedback.md:** Detailed UI/UX analysis — wants game studio metaphor, not IDE
+- **game_dev_feedback.md:** Real user testing feedback — API works, web UI click issues remain
+- **pm_feedback.md:** Documentation debt critical, M4 scene editor gap, test coverage missing
+- **CHANGELOG.md:** Full version history v0.1.0 → v0.6.0
+- **current_sprint.md:** M5 sprint complete with all 4 phases done
 
-## Architecture Decisions
-- **Monorepo Structure:** apps/web (React) and apps/api (FastAPI) working
-- **Multi-Agent Development:** 4-agent team working (Dev, PM/CEO, Game Dev, Standup)
-- **Technology Stack:** React + Vite frontend, FastAPI backend, Canvas 2D engine
-- **Design System:** Modern UI with theme.css variables
+## Architecture
+- **Monorepo:** apps/web (React + Vite) and apps/api (Fastify)
+- **Multi-Agent Team:** Dev (30m), PM/CEO (2h), Game Dev (3h), Standup (2d)
+- **Tech Stack:** React + Vite frontend, Fastify backend, Canvas 2D engine, CodeMirror editor
+- **Design System:** theme.css variables, dark theme with purple/cyan accents
 
-## Current Implementation Status
-- ✅ **M0 Foundation:** Repo structure, basic components, routing
-- ✅ **M1 Editor Shell:** Dashboard, navigation, project CRUD
-- ✅ **M2 Code + AI:** File tree, CodeMirror editor, AI command interface (mock)
-- ✅ **M3 Runtime + Preview:** 2D engine with keyboard input, entity rendering, game loop
-- 🚧 **M4 Scene Editor:** Next priority for visual scene building
-- 📋 **M5 Asset Pipeline:** ComfyUI integration for AI assets
-- 📋 **M6 Git + OpenClaw:** Native version control and agent ops
+## Milestone Status
+- ✅ **M0 Foundation:** Repo structure, basic components, routing, sidebar
+- ✅ **M1 Editor Shell:** Dashboard, navigation, project CRUD, settings
+- ✅ **M2 Code + AI:** File tree, CodeMirror editor, AI command interface
+- ✅ **M3 Runtime + Preview:** 2D engine, keyboard input, entity rendering, game loop, FPS counter
+- ✅ **M4 Scene Editor:** Visual scene editor with canvas, drag-and-drop, entity templates, property inspector, component management, zoom/pan, save/load
+- ✅ **M5 AI-Native UX + Asset Pipeline:** Command palette, floating AI assistant, real AI backend (OpenRouter), error boundaries, onboarding tour, asset CRUD + studio UI
+- 📋 **M6 Export + Deploy:** Build/export pipeline, game packaging, deployment
 
-## UI/UX Foundation
-- **Design System:** theme.css with dark/light mode support
-- **Components:** File tree, Code editor, Game preview, AI command panel
-- **Navigation:** AppLayout sidebar with project context
-- **Layout:** Modern sidebar + main content area with panels
+## Current Capabilities (v0.6.0)
+- **Code Editor:** CodeMirror with file tree, multi-file support, save/load
+- **Scene Editor:** Canvas-based visual editor, entity templates (Player/Enemy/Coin/Wall), drag-and-drop, zoom/pan, grid+snap, property inspector, component management
+- **Game Preview:** Live 2D canvas with keyboard input (arrows+WASD), play/stop/reset, FPS counter, debug panel
+- **AI Integration:** Real OpenRouter API backend, AI command interface, floating AI assistant (FAB), command palette (Ctrl+K), thinking indicators
+- **Asset Pipeline:** Full CRUD REST API, asset studio with three-panel UI, placeholder SVG generation, type filtering, search
+- **UX Polish:** Error boundaries, onboarding tour, toast notifications, code-splitting, responsive design
 
-## Engine Capabilities
-- ✅ **2D Runtime:** Canvas-based rendering with delta time
-- ✅ **Keyboard Input:** Arrow keys + WASD with preventDefault
-- ✅ **Entity System:** Components (Transform, Sprite, Movement, AI, Collision)
-- ✅ **Rendering System:** Shadows, borders, grid, FPS counter
-- ✅ **Movement System:** Player-controlled with diagonal normalization
-- ✅ **AI System:** Basic patrol patterns for enemies
-
-## Competitive Analysis
-- **Unity:** Professional dark theme, organized inspector panels
-- **Construct 3:** Visual event system, intuitive drag-and-drop
-- **GDevelop:** Scene-based workflow, visual scripting
-- **PlayCanvas:** Real-time collaboration features
-- **Godot:** Developer-friendly extensibility
+## Known Issues & Gaps
+- **Web UI click issues:** Some interactive elements unresponsive (genre dropdown, project creation) — reported by Game Dev agent
+- **Asset generation is placeholder:** Generates SVG rectangles, not real AI art — needs ComfyUI integration
+- **No test coverage:** Zero test files — PM flagged as risk
+- **Console.log noise:** ~28 console statements remain (mostly console.error, acceptable)
+- **No 404 page:** Bad URLs silently redirect to /
+- **Scene editor M4 done but underused:** Needs tighter integration with asset pipeline
 
 ## AI Integration Status
+- ✅ **Real Backend:** OpenRouter API connected (USE_REAL_AI env var)
 - ✅ **Interface:** AICommandPage with natural language input
-- ⚠️ **Backend:** Mock implementation - needs real AI service integration
-- 📋 **Roadmap:** Real code generation, visual scripting, asset generation
-- 📋 **Features:** Progress tracking, AI suggestions, contextual help
+- ✅ **Floating Assistant:** FAB accessible on all project pages
+- ✅ **Command Palette:** Ctrl+K for quick navigation and AI commands
+- ✅ **Thinking Indicators:** Animated progress while AI processes
+- 📋 **Asset Generation:** Placeholder only — needs ComfyUI or similar
+- 📋 **Visual Scripting:** Not started
+- 📋 **Scene Generation:** AI-generated scenes from descriptions — not started
 
-## Development Priorities
-1. **High Priority:** Fix CodeEditor useEffect content dependency issue
-2. **High Priority:** Wire debug panel to actual engine functionality
-3. **High Priority:** Update outdated documentation
-4. **Medium Priority:** Responsive canvas design
-5. **Medium Priority:** AI backend service integration
-6. **Low Priority:** Advanced AI features and collaboration tools
+## Development Priorities (from PM)
+1. **🔴 Documentation debt** — Fix changelog gaps, project_memory, VERSION status
+2. **🔴 Scene Editor polish** — M4 done but needs tighter asset/workflow integration
+3. **🟡 Real AI asset generation** — ComfyUI integration for actual sprite/texture generation
+4. **🟡 Test coverage** — Basic integration tests for API routes (vitest + node:test)
+5. **🟢 Export/deploy** — Let users package and ship games
 
-## Agent Communication System
-- **Game Dev → Feedback:** game_dev_feedback.md (crucial for usability)
-- **PM → Quality:** pm_feedback.md (code quality, documentation debt)
-- **UI/UX → Design:** uiux_feedback.md (visual improvements, AI-first patterns)
-- **Agent Messages:** agent_messages.md for direct communication
-- **Team Standup:** Standup template exists, needs activation
+## Agent Communication
+- **agent_messages.md:** Direct messages between agents
+- **game_dev_feedback.md:** User testing feedback (crucial for usability)
+- **pm_feedback.md:** Code quality, documentation, strategic direction
+- **uiux_feedback.md:** Visual design, interaction patterns, AI-first UX
+- **standup_notes.md:** Team standup meetings (template ready, not yet active)
 
-## Recent Key Fixes
-1. **CRITICAL:** Keyboard input not working (fixed with preventDefault)
-2. **CRITICAL:** File content not visible (fixed CodeMirror deps)
-3. **CRITICAL:** Player movement not responding (fixed MovementSystem)
-4. **QUALITY:** RenderSystem FPS/scene info overlap (fixed HUD rendering)
-5. **QUALITY:** Engine missing destroy() method (added proper cleanup)
+## Recent Key Accomplishments (v0.4.0 → v0.6.0)
+1. v0.4.0 — Visual Scene Editor with drag-and-drop, entity templates, property inspector
+2. v0.4.1 — Code editor visibility fix, AI honest "Preview Mode" messaging, fullscreen toggle
+3. v0.5.0 — Command Palette, Floating AI Assistant, Toast system, code-splitting
+4. v0.5.2 — Real AI backend with OpenRouter, thinking indicators
+5. v0.5.3 — Error boundaries, onboarding tour, AI-branded dashboard
+6. v0.6.0 — Full Asset Pipeline (CRUD API, Studio UI, placeholder generation)
 
-## Known Gaps
-- Documentation severely outdated (memory and roadmap files)
-- AI service not connected (only mock responses)
-- File tree needs file watcher for auto-refresh
-- Debug panel checkboxes now functional but need more features
-- Bundle size warning (766KB > 500KB threshold)
+## Current Version: v0.6.0
+**Codename:** asset-pipeline
+**Status:** Milestone 5 complete, moving to M6 planning
 
-## Current Version: v0.3.2
-**Codename:** bug-fixes  
-**Status:** Core functionality working, quality improvements in progress
-
-## Next Milestone: M4 Scene Editor
-- Visual 2D scene editing with component inspector
-- Real-time entity manipulation
-- Scene save/load functionality
-- Enhanced debug panel for editing
+## Next Milestone: M6 Export + Real AI Assets
+- ComfyUI integration for real AI asset generation
+- Game export/packaging pipeline
+- Basic test coverage
+- Scene editor → asset pipeline integration
+- 404 page and route-level loading states
 
 ## Last Updated: 2026-04-07
-*This memory file reflects the actual current state of ClawGame after significant development and bug fixes.*
+*Reflects actual state after v0.6.0 delivery — all milestones M0-M5 complete.*

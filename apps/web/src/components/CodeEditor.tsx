@@ -17,6 +17,7 @@ import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
 import { searchKeymap } from '@codemirror/search';
 import { api } from '../api/client';
 import '../code-editor.css';
+import { logger } from '../utils/logger';
 
 interface CodeEditorProps {
   projectId: string;
@@ -83,7 +84,7 @@ export function CodeEditor({ projectId, filePath, onSave, onLoad, readOnly = fal
       setLastSaved(new Date().toLocaleTimeString());
       onSave(contentRef.current);
     } catch (err) {
-      console.error('Failed to save file:', err);
+      logger.error('Failed to save file:', err);
     } finally {
       setIsSaving(false);
     }
@@ -134,7 +135,7 @@ export function CodeEditor({ projectId, filePath, onSave, onLoad, readOnly = fal
         return;
       }
     } catch (err) {
-      console.error('Failed to load file:', err);
+      logger.error('Failed to load file:', err);
       contentRef.current = '';
     } finally {
       setIsSaving(false);

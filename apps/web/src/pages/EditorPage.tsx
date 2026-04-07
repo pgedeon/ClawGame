@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { FileWorkspace } from '../components/FileWorkspace';
+import { logger } from '../utils/logger';
 
 interface EditorPageProps {
   projectId: string;
@@ -23,7 +24,7 @@ function EditorPageContent({ projectId }: EditorPageProps) {
       const project = await api.getProject(projectId);
       setProjectName(project?.name || 'Unknown Project');
     } catch (err) {
-      console.error('Failed to load project:', err);
+      logger.error('Failed to load project:', err);
     } finally {
       setIsLoading(false);
     }

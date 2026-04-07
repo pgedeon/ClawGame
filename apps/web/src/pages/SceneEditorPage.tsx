@@ -8,6 +8,7 @@ import { useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { Entity, Transform, Sprite, Movement, AI, Collision, Scene } from '@clawgame/engine';
 import '../scene-editor.css';
+import { logger } from '../utils/logger';
 
 interface SceneEditorPageProps {
   projectId: string;
@@ -145,7 +146,7 @@ function SceneEditorContent({ projectId }: SceneEditorPageProps) {
         setEntities(Array.from(defaultScene.entities.values()));
       }
     } catch (err) {
-      console.error('Failed to load project:', err);
+      logger.error('Failed to load project:', err);
       setError('Failed to load project');
     } finally {
       setIsLoading(false);
@@ -568,7 +569,7 @@ function SceneEditorContent({ projectId }: SceneEditorPageProps) {
       );
 
     } catch (err) {
-      console.error('Failed to save scene:', err);
+      logger.error('Failed to save scene:', err);
       setError('Failed to save scene');
     }
   };

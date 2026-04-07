@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { api, type ProjectListItem } from '../api/client';
+import { logger } from '../utils/logger';
 
 export function OpenProjectPage() {
   const [projects, setProjects] = useState<ProjectListItem[]>([]);
@@ -18,7 +19,7 @@ export function OpenProjectPage() {
       const projectList = await api.listProjects();
       setProjects(projectList);
     } catch (err) {
-      console.error('Error loading projects:', err);
+      logger.error('Error loading projects:', err);
       setError(err instanceof Error ? err.message : 'Failed to load projects');
     } finally {
       setLoading(false);

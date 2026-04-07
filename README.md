@@ -2,8 +2,8 @@
 
 **AI-first, web-based 2D game engine and editor.**
 
-[![Version](https://img.shields.io/badge/version-0.1.0--foundation-blue.svg)](./VERSION.json)
-[![Milestone](https://img.shields.io/badge/milestone-0%20Foundation-green.svg)](./docs/product/roadmap.md)
+[![Version](https://img.shields.io/badge/version-0.6.0--asset-pipeline-blue.svg)](./VERSION.json)
+[![Milestone](https://img.shields.io/badge/milestone-5%20AI-Asset%20Pipeline-green.svg)](./docs/product/roadmap.md)
 [![License](https://img.shields.io/badge/license-Fair%20Source%20%3C$100k-blue.svg)](LICENSE)
 
 ClawGame lets you design, generate, debug, iterate, and ship 2D browser games using integrated AI coding agents, asset generation pipelines (ComfyUI), and native OpenClaw orchestration.

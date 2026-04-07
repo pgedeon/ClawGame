@@ -7,6 +7,7 @@ import React, { useEffect, useRef, useState, Suspense, useCallback } from 'react
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import '../game-preview.css';
+import { logger } from '../utils/logger';
 
 interface ProjectScene {
   name: string;
@@ -103,7 +104,7 @@ const GamePreviewContent: React.FC = () => {
           setProjectScene(defaultScene);
         }
       } catch (err) {
-        console.error('Failed to load project:', err);
+        logger.error('Failed to load project:', err);
         setError(err instanceof Error ? err.message : 'Failed to load project');
       } finally {
         setLoading(false);

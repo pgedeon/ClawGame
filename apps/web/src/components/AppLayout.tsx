@@ -7,6 +7,7 @@ import { sidebarItems } from '../constants/sidebar';
 import { ToastProvider, ToastList } from './Toast';
 import { AIFAB } from './AIFAB';
 import { CommandPalette, useCommandPaletteToggle } from './CommandPalette';
+import { logger } from '../utils/logger';
 
 interface SidebarNavItem {
   path: string;
@@ -45,7 +46,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
         setCurrentProject(project || null);
       }
     } catch (err) {
-      console.error('Error loading projects:', err);
+      logger.error('Error loading projects:', err);
     } finally {
       setLoading(false);
     }

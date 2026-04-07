@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api, type CreateProjectInput } from '../api/client';
 import { FolderPlus, ArrowLeft } from 'lucide-react';
+import { logger } from '../utils/logger';
 
 export function CreateProjectPage() {
   const [formData, setFormData] = useState<CreateProjectInput>({
@@ -27,7 +28,7 @@ export function CreateProjectPage() {
       // Navigate to the new project
       navigate(`/project/${response.id}/editor`);
     } catch (err) {
-      console.error('Error creating project:', err);
+      logger.error('Error creating project:', err);
       setError(err instanceof Error ? err.message : 'Failed to create project');
     } finally {
       setIsSubmitting(false);

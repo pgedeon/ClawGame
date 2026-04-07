@@ -4,6 +4,7 @@ import { Sparkles } from 'lucide-react';
 import { api, type AICommandRequest, type AICommandResponse, type AICommandHistory } from '../api/client';
 import { AIThinkingIndicator } from '../components/AIThinkingIndicator';
 import '../ai-thinking.css';
+import { logger } from '../utils/logger';
 
 export function AICommandPage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -40,7 +41,7 @@ export function AICommandPage() {
         timestamp: new Date(),
       }]);
     } catch (err) {
-      console.error('Failed to check AI status:', err);
+      logger.error('Failed to check AI status:', err);
       // Default to preview mode if API not reachable
       setMessages([{
         type: 'assistant',
@@ -57,7 +58,7 @@ export function AICommandPage() {
       const history = await api.getAIHistory(projectId, 10);
       setCommandHistory(history.history);
     } catch (error) {
-      console.error('Failed to load command history:', error);
+      logger.error('Failed to load command history:', error);
     }
   };
 
@@ -118,7 +119,7 @@ export function AICommandPage() {
       ]);
 
     } catch (error) {
-      console.error('AI request failed:', error);
+      logger.error('AI request failed:', error);
       
       const errorMessage = `❌ Sorry, I encountered an error processing your request: ${error instanceof Error ? error.message : 'Unknown error'}`;
       
