@@ -314,3 +314,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Client-side asset preview with data URIs
 - RESTful API design for asset operations
 
+
+### [0.6.1] - 2026-04-07
+
+#### Added
+- 404 Not Found page with styled UI (gradient 404 code, back/home buttons)
+- Logger utility (`utils/logger.ts`) — silent in production, console in dev
+- Preview Mode badge on Asset Studio generate button (honest about placeholder status)
+- Preview mode badge styling (subtle pill, hover state)
+
+#### Changed
+- Updated project_memory.md from v0.3.2 → v0.6.0 (was 3 versions behind, agents relied on this)
+- Updated VERSION.json status from `in-progress` to `released`
+- Updated README version badge from 0.1.0 to 0.6.0
+- Replaced 28 `console.error`/`console.log` calls across 12 files with logger utility
+- ErrorBoundary retains direct `console.error` (intentional error reporting)
+
+#### Fixed
+- Documentation debt: project_memory.md was misleading agents about actual project state
+- Missing 404 handling: unknown routes now show helpful page instead of silent redirect
+- Console noise in production: errors no longer log to browser console
+- Asset Studio: generate button now clearly indicates preview mode
