@@ -9,10 +9,9 @@ build/
 
 # Environment files - NEVER COMMIT
 .env
-.env.*
-*.env
 .env.local
 .env.*.local
+!.env.example
 
 # IDE
 .idea/
