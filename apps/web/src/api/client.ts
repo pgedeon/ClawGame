@@ -100,14 +100,6 @@ export interface FileWriteResult {
   created: boolean;
 }
 
-export interface DiffEntry {
-  type: 'added' | 'modified' | 'deleted';
-  path: string;
-  oldContent?: string;
-  newContent?: string;
-  summary?: string;
-}
-
 // ─── Asset types ───
 
 export type AssetType = 'sprite' | 'tileset' | 'texture' | 'icon' | 'audio' | 'background';
@@ -130,6 +122,12 @@ export interface AssetMetadata {
     confidence: number;
     parameters?: Record<string, unknown>;
   };
+  aiGeneration?: {
+    generationId: string;
+    style: string;
+    prompt: string;
+    duration: number;
+  };
 }
 
 export interface GenerateAssetRequest {
@@ -138,10 +136,30 @@ export interface GenerateAssetRequest {
   options?: {
     width?: number;
     height?: number;
-    style?: 'pixel' | 'vector' | '3d' | 'hand-drawn';
+    style?: 'pixel' | 'vector' | 'hand-drawn' | 'cartoon' | 'realistic';
     format?: 'png' | 'svg' | 'webp';
     backgroundColor?: string;
   };
+}
+
+export interface GenerationStatus {
+  id: string;
+  projectId: string;
+  type: AssetType;
+  prompt: string;
+  status: 'pending' | 'generating' | 'completed' | 'failed';
+  progress: number;
+  result?: {
+    success: boolean;
+    svg?: string;
+    png?: string;
+    error?: string;
+    generatedAt: string;
+    generationTime: number;
+  };
+  error?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ListAssetsFilter {
@@ -163,6 +181,7 @@ export interface AssetStats {
   total: number;
   byType: Record<AssetType, number>;
   totalSize: number;
+  aiGenerated: number;
 }
 
 // ─── AI Command types ───
@@ -286,9 +305,20 @@ export const api = {
     request<Blob>(`/api/projects/${projectId}/assets/${assetId}/file`),
 
   generateAsset: (projectId: string, assetReq: GenerateAssetRequest) =>
-    request<AssetMetadata>(`/api/projects/${projectId}/assets/generate`, {
+    request<{ generationId: string; metadata: AssetMetadata; status: string }>(`/api/projects/${projectId}/assets/generate`, {
       method: 'POST',
       body: JSON.stringify(assetReq),
+    }),
+
+  getGenerationStatus: (projectId: string, generationId: string) =>
+    request<GenerationStatus>(`/api/projects/${projectId}/assets/generations/${generationId}`),
+
+  getGenerations: (projectId: string) =>
+    request<GenerationStatus[]>(`/api/projects/${projectId}/assets/generations`),
+
+  pollGenerations: (projectId: string) =>
+    request<{ created: string[], errors: string[] }>(`/api/projects/${projectId}/assets/generations/poll`, {
+      method: 'POST'
     }),
 
   uploadAsset: (projectId: string, uploadReq: UploadAssetRequest) =>

@@ -1,12 +1,13 @@
 /**
- * Asset Service (Simplified)
- * Basic asset management without AI generation for now.
+ * Asset Service (Enhanced)
+ * Full asset management with AI-powered generation.
  */
 
 import { mkdir, readFile, writeFile, readdir, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
 import { FastifyLoggerInstance } from 'fastify';
+import { AIImageGenerationService, type AIImageGenerationRequest, type GenerationStatus } from './aiImageGenerationService';
 
 const ASSETS_DIR = process.env.ASSETS_DIR || './data/assets';
 
@@ -31,6 +32,17 @@ export interface AssetMetadata {
   updatedAt: string;
   tags?: string[];
   status: 'generated' | 'uploaded' | 'error';
+  generationData?: {
+    model: string;
+    confidence: number;
+    parameters?: Record<string, unknown>;
+  };
+  aiGeneration?: {
+    generationId: string;
+    style: string;
+    prompt: string;
+    duration: number;
+  };
 }
 
 export type AssetType = 'sprite' | 'tileset' | 'texture' | 'icon' | 'audio' | 'background';
@@ -38,9 +50,17 @@ export type AssetType = 'sprite' | 'tileset' | 'texture' | 'icon' | 'audio' | 'b
 export class AssetService {
   private cache: Map<string, AssetMetadata> = new Map();
   private logger: FastifyLoggerInstance;
+  private aiImageService: AIImageGenerationService;
+  private ongoingGenerations: Map<string, GenerationStatus> = new Map();
 
   constructor(logger: FastifyLoggerInstance) {
     this.logger = logger;
+    this.aiImageService = new AIImageGenerationService(logger);
+    
+    // Start a periodic cleanup of old generations
+    setInterval(() => {
+      this.aiImageService.cleanupOldGenerations();
+    }, 300000); // Every 5 minutes
   }
 
   async listAssets(projectId: string): Promise<AssetMetadata[]> {
@@ -182,44 +202,175 @@ export class AssetService {
     return metadata;
   }
 
-  async generateAsset(projectId: string, type: AssetType, prompt: string): Promise<AssetMetadata> {
-    // For now, return a placeholder asset
-    // Real AI generation to be implemented
-    const assetId = Math.random().toString(36).substring(2, 11);
-    const projectAssetsDir = await ensureAssetsDir(projectId);
-    
-    const placeholderSvg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-  <rect width="64" height="64" fill="#8b5cf6" opacity="0.2"/>
-  <rect x="16" y="16" width="32" height="32" fill="#8b5cf6" opacity="0.5"/>
-  <text x="32" y="36" text-anchor="middle" fill="#8b5cf6" font-size="12" font-family="Arial">
-    ${type.charAt(0).toUpperCase()}
-  </text>
-</svg>`;
+  /**
+   * Generate asset using AI image generation service
+   */
+  async generateAsset(projectId: string, type: AssetType, prompt: string, options?: {
+    style?: 'pixel' | 'vector' | 'hand-drawn' | 'cartoon' | 'realistic';
+    width?: number;
+    height?: number;
+    format?: 'svg' | 'png' | 'webp';
+    backgroundColor?: string;
+  }): Promise<{ generationId: string; metadata: AssetMetadata }> {
+    const requestId = options?.style || 'pixel';
+    const width = options?.width || 64;
+    const height = options?.height || 64;
+    const format = options?.format || 'svg';
+    const backgroundColor = options?.backgroundColor || '';
 
-    const filename = `${assetId}.svg`;
-    const filePath = join(projectAssetsDir, filename);
-    await writeFile(filePath, placeholderSvg, 'utf-8');
+    // Create generation request
+    const generationRequest: AIImageGenerationRequest = {
+      type,
+      prompt,
+      style: requestId,
+      width,
+      height,
+      format,
+      backgroundColor,
+    };
+
+    // Start AI generation
+    const generationStatus = await this.aiImageService.generateImage(projectId, generationRequest);
+    const generationId = generationStatus.id;
+
+    // Store generation reference for tracking
+    this.ongoingGenerations.set(generationId, generationStatus);
+
+    // If generation is immediate and successful, create the asset immediately
+    if (generationStatus.status === 'completed' && generationStatus.result?.svg) {
+      try {
+        const metadata = await this.createAssetFromGeneration(projectId, type, prompt, generationStatus);
+        return { generationId, metadata };
+      } catch (error) {
+        this.logger.error({ error, generationId }, 'Failed to create asset from generation');
+        throw error;
+      }
+    }
+
+    // Return generation ID for async tracking
+    const metadata = this.createAssetMetadataFromGeneration(projectId, type, prompt, generationStatus);
+    return { generationId, metadata };
+  }
+
+  /**
+   * Get generation status by ID
+   */
+  async getGenerationStatus(projectId: string, generationId: string): Promise<GenerationStatus | null> {
+    return this.aiImageService.getGenerationStatus(projectId, generationId);
+  }
+
+  /**
+   * List all ongoing generations for a project
+   */
+  async getGenerations(projectId: string): Promise<GenerationStatus[]> {
+    return this.aiImageService.getGenerations(projectId);
+  }
+
+  /**
+   * Poll for completed generations and create assets
+   */
+  async pollAndCreateAssets(projectId: string): Promise<{ created: string[], errors: string[] }> {
+    const created: string[] = [];
+    const errors: string[] = [];
+
+    const generations = await this.aiImageService.getGenerations(projectId);
     
-    const metadata: AssetMetadata = {
-      id: assetId,
+    for (const generation of generations) {
+      if (generation.status === 'completed' && generation.result?.svg && !this.ongoingGenerations.get(generation.id)) {
+        try {
+          const asset = await this.createAssetFromGeneration(projectId, generation.type, generation.prompt, generation);
+          created.push(asset.id);
+          this.ongoingGenerations.delete(generation.id);
+        } catch (error: any) {
+          errors.push(generation.id);
+          this.logger.error({ error, generationId: generation.id }, 'Failed to create asset from completed generation');
+        }
+      } else if (generation.status === 'failed') {
+        errors.push(generation.id);
+      }
+    }
+
+    return { created, errors };
+  }
+
+  /**
+   * Create asset metadata from generation result
+   */
+  private createAssetMetadataFromGeneration(
+    projectId: string, 
+    type: AssetType, 
+    prompt: string, 
+    generation: GenerationStatus
+  ): AssetMetadata {
+    return {
+      id: `ai_${generation.id.substring(4)}`, // Strip 'gen_' prefix
       projectId,
       name: `${type.charAt(0).toUpperCase() + type.slice(1)} - ${prompt.substring(0, 20)}`,
       type,
       prompt,
-      url: `/api/projects/${projectId}/assets/${assetId}`,
-      size: placeholderSvg.length,
+      url: `/api/projects/${projectId}/assets/ai_${generation.id.substring(4)}`,
+      size: generation.result?.svg?.length || 0,
       mimeType: 'image/svg+xml',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      tags: [type],
-      status: 'generated',
+      createdAt: generation.createdAt,
+      updatedAt: generation.updatedAt,
+      tags: [type, 'ai-generated'],
+      status: generation.result?.success ? 'generated' : 'error',
+      generationData: {
+        model: 'qwen/qwen3.6-plus:free',
+        confidence: 0.85,
+        parameters: {
+          style: generation.type,
+          width: 64,
+          height: 64,
+          format: 'svg',
+        },
+      },
+      aiGeneration: {
+        generationId: generation.id,
+        style: generation.type,
+        prompt,
+        duration: generation.result?.generationTime || 0,
+      },
     };
+  }
+
+  /**
+   * Create actual asset files from generation result
+   */
+  private async createAssetFromGeneration(
+    projectId: string, 
+    type: AssetType, 
+    prompt: string, 
+    generation: GenerationStatus
+  ): Promise<AssetMetadata> {
+    if (!generation.result?.svg) {
+      throw new Error('Generation result does not contain SVG');
+    }
+
+    const assetId = `ai_${generation.id.substring(4)}`;
+    const projectAssetsDir = await ensureAssetsDir(projectId);
+    
+    // Save SVG content
+    const svgContent = generation.result.svg;
+    const svgPath = join(projectAssetsDir, `${assetId}.svg`);
+    await writeFile(svgPath, svgContent, 'utf-8');
+    
+    // Create metadata
+    const metadata: AssetMetadata = this.createAssetMetadataFromGeneration(projectId, type, prompt, generation);
+    metadata.size = svgContent.length;
     
     const metadataPath = join(projectAssetsDir, `${assetId}.json`);
     await writeFile(metadataPath, JSON.stringify(metadata, null, 2), 'utf-8');
     
     this.cache.set(assetId, metadata);
+    
+    this.logger.info({ 
+      projectId, 
+      assetId, 
+      type, 
+      prompt: prompt.substring(0, 50),
+      duration: metadata.aiGeneration?.duration 
+    }, 'AI-generated asset created');
     
     return metadata;
   }
@@ -228,6 +379,7 @@ export class AssetService {
     total: number;
     byType: Record<AssetType, number>;
     totalSize: number;
+    aiGenerated: number;
   }> {
     const assets = await this.listAssets(projectId);
     
@@ -241,17 +393,21 @@ export class AssetService {
     };
     
     let totalSize = 0;
+    let aiGenerated = 0;
     
     for (const asset of assets) {
       byType[asset.type]++;
       totalSize += asset.size;
+      if (asset.aiGeneration) {
+        aiGenerated++;
+      }
     }
     
     return {
       total: assets.length,
       byType,
       totalSize,
+      aiGenerated,
     };
   }
 }
-

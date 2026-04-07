@@ -3,9 +3,9 @@
  * AI-powered asset generation and management for game development.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { api, type AssetMetadata, type AssetType } from '../api/client';
+import { api, type AssetMetadata, type AssetType, type GenerateAssetRequest, type GenerationStatus } from '../api/client';
 import { useToast } from '../components/Toast';
 import { 
   Sparkles, 
@@ -21,7 +21,8 @@ import {
   Image,
   Music,
   Layers,
-  Layout
+  Layout,
+  Loader2
 } from 'lucide-react';
 import { logger } from '../utils/logger';
 
@@ -44,9 +45,19 @@ const ASSET_TYPE_COLORS: Record<AssetType, string> = {
   background: '#0f172a',
 };
 
-export function AssetStudioPage() {
+// Styles for generation
+const STYLES = [
+  { value: 'pixel', label: 'Pixel Art' },
+  { value: 'vector', label: 'Vector' },
+  { value: 'hand-drawn', label: 'Hand-drawn' },
+  { value: 'cartoon', label: 'Cartoon' },
+  { value: 'realistic', label: 'Realistic' },
+] as const;
+
+const AssetStudioPage = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const { showToast } = useToast();
+  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   
   // Asset state
   const [assets, setAssets] = useState<AssetMetadata[]>([]);
@@ -59,15 +70,33 @@ export function AssetStudioPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationPrompt, setGenerationPrompt] = useState('');
   const [selectedType, setSelectedType] = useState<AssetType>('sprite');
-  const [selectedStyle, setSelectedStyle] = useState<'pixel' | 'vector' | 'hand-drawn'>('pixel');
+  const [selectedStyle, setSelectedStyle] = useState<'pixel' | 'vector' | 'hand-drawn' | 'cartoon' | 'realistic'>('pixel');
+  
+  // Generation tracking
+  const [generations, setGenerations] = useState<GenerationStatus[]>([]);
+  const [activeGeneration, setActiveGeneration] = useState<GenerationStatus | null>(null);
   
   // Upload state
   const [isUploading, setIsUploading] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
-  
+
   // Load assets on mount and when filters change
   useEffect(() => {
     loadAssets();
+    loadGenerations();
+    
+    // Set up periodic polling for generation completion
+    pollTimerRef.current = setInterval(() => {
+      if (generations.length > 0) {
+        checkGenerationProgress();
+      }
+    }, 2000); // Poll every 2 seconds
+    
+    return () => {
+      if (pollTimerRef.current) {
+        clearInterval(pollTimerRef.current);
+      }
+    };
   }, [projectId, filter, searchQuery]);
 
   const loadAssets = async () => {
@@ -91,6 +120,77 @@ export function AssetStudioPage() {
     }
   };
 
+  const loadGenerations = async () => {
+    if (!projectId) return;
+    
+    try {
+      const genList = await api.getGenerations(projectId);
+      setGenerations(genList);
+      
+      // Check if any are completed and need polling
+      const completed = genList.filter(g => g.status === 'completed' && !g.result?.svg);
+      if (completed.length > 0) {
+        pollGenerations();
+      }
+    } catch (error: any) {
+      logger.error('Failed to load generations:', error);
+    }
+  };
+
+  const checkGenerationProgress = async () => {
+    if (!projectId || generations.length === 0) return;
+    
+    try {
+      const updatedGenerations = await api.getGenerations(projectId);
+      setGenerations(updatedGenerations);
+      
+      // Update active generation if any
+      const active = updatedGenerations.find(g => g.status === 'generating');
+      if (active) {
+        setActiveGeneration(active);
+      }
+      
+      // Check for newly completed generations and poll to create assets
+      const newCompleted = updatedGenerations.filter(
+        g => g.status === 'completed' && g.result?.svg && generations.find(og => og.id === g.id)?.status !== 'completed'
+      );
+      
+      if (newCompleted.length > 0) {
+        pollGenerations();
+      }
+    } catch (error: any) {
+      logger.error('Failed to check generation progress:', error);
+    }
+  };
+
+  const pollGenerations = async () => {
+    if (!projectId) return;
+    
+    try {
+      const result = await api.pollGenerations(projectId);
+      
+      if (result.created.length > 0) {
+        showToast({
+          type: 'success',
+          message: `✅ Generated ${result.created.length} new assets!`,
+        });
+        loadAssets(); // Refresh assets
+      }
+      
+      if (result.errors.length > 0) {
+        showToast({
+          type: 'error',
+          message: `❌ ${result.errors.length} generation(s) failed`,
+        });
+      }
+      
+      // Load fresh generations
+      loadGenerations();
+    } catch (error: any) {
+      logger.error('Failed to poll generations:', error);
+    }
+  };
+
   const handleGenerateAsset = async () => {
     if (!generationPrompt.trim() || isGenerating || !projectId) return;
     
@@ -99,10 +199,10 @@ export function AssetStudioPage() {
     try {
       showToast({
         type: 'info',
-        message: '🎨 Generating asset with AI...',
+        message: '🎨 Starting AI generation...',
       });
       
-      const newAsset = await api.generateAsset(projectId, {
+      const generateRequest: GenerateAssetRequest = {
         type: selectedType,
         prompt: generationPrompt,
         options: {
@@ -111,27 +211,30 @@ export function AssetStudioPage() {
           width: 64,
           height: 64,
         },
-      });
+      };
       
-      // Add to assets list
-      setAssets(prev => [newAsset, ...prev]);
+      const result = await api.generateAsset(projectId, generateRequest);
       
-      // Select the new asset
-      setSelectedAsset(newAsset);
+      // Add to generations list
+      const newGeneration = await api.getGenerationStatus(projectId, result.generationId);
+      if (newGeneration) {
+        setGenerations(prev => [newGeneration, ...prev]);
+        setActiveGeneration(newGeneration);
+      }
       
       // Clear prompt
       setGenerationPrompt('');
       
       showToast({
         type: 'success',
-        message: `✅ Generated "${newAsset.name}" successfully!`,
+        message: `🎨 Generation started! Creating ${selectedType} "${generationPrompt.substring(0, 20)}..."`,
       });
       
     } catch (error: any) {
       logger.error('Asset generation failed:', error);
       showToast({
         type: 'error',
-        message: `Failed to generate asset: ${error.message}`,
+        message: `Failed to start generation: ${error.message}`,
       });
     } finally {
       setIsGenerating(false);
@@ -178,10 +281,9 @@ export function AssetStudioPage() {
   };
 
   const getAssetPreviewUrl = (asset: AssetMetadata): string => {
-    // For generated assets with placeholder SVGs, use a data URL
-    // In production, this would be the actual URL from the asset.url
-    if (asset.status === 'generated') {
-      // Generate a simple SVG based on type
+    // For AI-generated assets, show the actual generated content
+    if (asset.aiGeneration) {
+      // For now, fall back to placeholder, in production this would show the actual generated asset
       const color = ASSET_TYPE_COLORS[asset.type];
       return `data:image/svg+xml;base64,${btoa(`<?xml version="1.0" encoding="UTF-8"?>
 <svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
@@ -210,6 +312,16 @@ export function AssetStudioPage() {
     return true;
   });
 
+  const getGenerationStatusText = (status: GenerationStatus['status']) => {
+    switch (status) {
+      case 'pending': return 'Queued';
+      case 'generating': return 'Creating...';
+      case 'completed': return 'Done';
+      case 'failed': return 'Failed';
+      default: return status;
+    }
+  };
+
   return (
     <div className="asset-studio-page">
       <header className="page-header">
@@ -231,6 +343,35 @@ export function AssetStudioPage() {
       <div className="asset-studio-container">
         {/* Left Panel: Generation & Upload */}
         <div className="studio-sidebar">
+          {/* Generation Status */}
+          {activeGeneration && (
+            <div className="studio-panel generation-status">
+              <div className="panel-header">
+                <Loader2 size={18} className="panel-icon spinning" />
+                <h2>Generation Progress</h2>
+              </div>
+              
+              <div className="generation-progress">
+                <div className="progress-bar">
+                  <div 
+                    className="progress-fill"
+                    style={{ width: `${activeGeneration.progress}%` }}
+                  />
+                </div>
+                <div className="progress-text">
+                  {activeGeneration.progress}% - {getGenerationStatusText(activeGeneration.status)}
+                </div>
+              </div>
+              
+              {activeGeneration.prompt && (
+                <div className="generation-prompt">
+                  <span className="prompt-label">Prompt:</span>
+                  <span className="prompt-text">{activeGeneration.prompt}</span>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Generate Section */}
           <div className="studio-panel">
             <div className="panel-header">
@@ -259,13 +400,13 @@ export function AssetStudioPage() {
               <div className="form-group">
                 <label>Style</label>
                 <div className="style-grid">
-                  {(['pixel', 'vector', 'hand-drawn'] as const).map((style) => (
+                  {STYLES.map((style) => (
                     <button
-                      key={style}
-                      className={`style-button ${selectedStyle === style ? 'active' : ''}`}
-                      onClick={() => setSelectedStyle(style)}
+                      key={style.value}
+                      className={`style-button ${selectedStyle === style.value ? 'active' : ''}`}
+                      onClick={() => setSelectedStyle(style.value as any)}
                     >
-                      {style.charAt(0).toUpperCase() + style.slice(1)}
+                      {style.label}
                     </button>
                   ))}
                 </div>
@@ -288,16 +429,49 @@ export function AssetStudioPage() {
                 disabled={!generationPrompt.trim() || isGenerating}
                 className="generate-button"
               >
-                {isGenerating ? '⏳ Generating...' : (
+                {isGenerating ? (
+                  <>
+                    <Loader2 size={18} className="spinning" />
+                    AI Generating...
+                  </>
+                ) : (
                   <>
                     <Sparkles size={18} />
                     Generate Asset
-                    <span className="preview-mode-badge">Preview</span>
                   </>
                 )}
               </button>
             </div>
           </div>
+
+          {/* Active Generations */}
+          {generations.length > 0 && (
+            <div className="studio-panel">
+              <div className="panel-header">
+                <Loader2 size={18} className="panel-icon" />
+                <h2>Active Generations</h2>
+              </div>
+              <div className="generations-list">
+                {generations.slice(0, 3).map((gen) => (
+                  <div key={gen.id} className="generation-item">
+                    <div className="generation-type">{gen.type}</div>
+                    <div className="generation-status">{getGenerationStatusText(gen.status)}</div>
+                    <div className="generation-progress-bar">
+                      <div 
+                        className="generation-progress-fill"
+                        style={{ width: `${gen.progress}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+                {generations.length > 3 && (
+                  <div className="generations-more">
+                    + {generations.length - 3} more
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Upload Section */}
           <div className="studio-panel">
@@ -363,6 +537,9 @@ export function AssetStudioPage() {
                 <span className="asset-count">{filteredAssets.length}</span>
               )}
             </h3>
+            {assets.some(a => a.aiGeneration) && (
+              <span className="ai-badge">AI Generated</span>
+            )}
           </div>
 
           {loading ? (
@@ -398,13 +575,26 @@ export function AssetStudioPage() {
                     <div className="asset-type-badge" style={{ backgroundColor: ASSET_TYPE_COLORS[asset.type] }}>
                       {ASSET_TYPE_ICONS[asset.type]}
                     </div>
+                    {asset.aiGeneration && (
+                      <div className="ai-generated-badge" title="AI Generated">
+                        ✨
+                      </div>
+                    )}
                   </div>
                   <div className="asset-info">
                     <h4 className="asset-name" title={asset.name}>{asset.name}</h4>
                     <div className="asset-meta">
                       <span className="asset-type-label">{asset.type}</span>
-                      <span className="asset-status status-ok">✓</span>
+                      <span className={`asset-status ${asset.status}`}>
+                        {asset.status === 'generated' ? '✓' : asset.status === 'error' ? '✗' : '•'}
+                      </span>
                     </div>
+                    {asset.aiGeneration && (
+                      <div className="ai-info">
+                        <span className="ai-style">{asset.aiGeneration.style}</span>
+                        <span className="ai-duration">{asset.aiGeneration.duration}ms</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -424,6 +614,9 @@ export function AssetStudioPage() {
                   <div>
                     <h2>{selectedAsset.name}</h2>
                     <span className="detail-type">{selectedAsset.type}</span>
+                    {selectedAsset.aiGeneration && (
+                      <span className="ai-tag">AI Generated</span>
+                    )}
                   </div>
                 </div>
                 <div className="detail-actions">
@@ -471,8 +664,28 @@ export function AssetStudioPage() {
 
               {selectedAsset.prompt && (
                 <div className="detail-section">
-                  <h3>Prompt</h3>
+                  <h3>Original Prompt</h3>
                   <p className="prompt-text">{selectedAsset.prompt}</p>
+                </div>
+              )}
+
+              {selectedAsset.aiGeneration && (
+                <div className="detail-section">
+                  <h3>AI Generation Details</h3>
+                  <div className="ai-details-grid">
+                    <div className="detail-item">
+                      <label>Style</label>
+                      <span>{selectedAsset.aiGeneration.style}</span>
+                    </div>
+                    <div className="detail-item">
+                      <label>Duration</label>
+                      <span>{selectedAsset.aiGeneration.duration}ms</span>
+                    </div>
+                    <div className="detail-item">
+                      <label>Generation ID</label>
+                      <span className="generation-id">{selectedAsset.aiGeneration.generationId}</span>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -504,4 +717,7 @@ export function AssetStudioPage() {
       </div>
     </div>
   );
-}
+};
+
+export default AssetStudioPage;
+export { AssetStudioPage };

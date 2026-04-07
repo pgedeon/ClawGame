@@ -4,102 +4,170 @@
 
 import { nanoid } from 'nanoid';
 
-// ─── IDs ───
-export const createId = () => nanoid(12);
-
-// ─── Project metadata types ───
-
-export interface ClawGameProject {
-  name: string;
-  version: string;
-  engine: EngineConfig;
-  project: ProjectMeta;
-  ai?: AIConfig;
-  assets?: AssetsConfig;
-  openclaw?: OpenClawConfig;
+// Utility functions
+export function generateId(): string {
+  return nanoid(10);
 }
 
-export interface EngineConfig {
-  version: string;
-  runtimeTarget: 'browser' | 'desktop' | 'mobile';
-  renderBackend: 'canvas' | 'webgl' | 'webgpu';
+export function generateProjectId(): string {
+  return nanoid(11);
 }
 
-export interface ProjectMeta {
-  displayName: string;
-  genre: string;
-  artStyle: string;
-  description?: string;
+export function createId(): string {
+  return nanoid(8);
 }
 
-export interface AIConfig {
-  providers: string[];
-  defaultProvider: string;
-  roles: string[];
-}
-
-export interface AssetsConfig {
-  comfyui?: {
-    enabled: boolean;
-    url: string;
-  };
-  formats: string[];
-  directories: Record<string, string>;
-}
-
-export interface OpenClawConfig {
-  integrationLevel: 'native' | 'basic' | 'none';
-  memoryPaths: string[];
-  agentRoles: string[];
-}
-
-// ─── Entity/Component types (for engine) ───
-
-export interface Entity {
-  id: string;
-  name: string;
-  components: Component[];
-  transform: Transform;
-}
-
-export interface Component {
-  type: string;
-  data: Record<string, unknown>;
+// Shared types used across packages
+export interface Vector2 {
+  x: number;
+  y: number;
 }
 
 export interface Transform {
   x: number;
   y: number;
-  rotation?: number;
-  scaleX?: number;
-  scaleY?: number;
+  scaleX: number;
+  scaleY: number;
+  rotation: number; // degrees
 }
 
-// ─── Scene types ───
+export interface Sprite {
+  image: string | null;
+  width: number;
+  height: number;
+  sourceX?: number;
+  sourceY?: number;
+}
+
+export interface Movement {
+  vx: number;
+  vy: number;
+  speed: number;
+  friction: number;
+  acceleration: number;
+}
+
+export interface AI {
+  type: 'idle' | 'patrol' | 'chase' | 'flee';
+  patrolSpeed: number;
+  chaseSpeed: number;
+  fleeSpeed: number;
+  detectionRange: number;
+  patrolPoints: Vector2[];
+  currentPatrolIndex: number;
+}
+
+export interface Collision {
+  width: number;
+  height: number;
+  type: 'wall' | 'platform' | 'collectible' | 'enemy' | 'player';
+  solid: boolean;
+  sensor: boolean;
+}
+
+export interface Animation {
+  frames: string[];
+  currentFrame: number;
+  frameRate: number;
+  loop: boolean;
+  playing: boolean;
+}
+
+export interface Entity {
+  id: string;
+  transform: Transform;
+  components: Map<string, any>;
+}
 
 export interface Scene {
+  name: string;
+  entities: Map<string, Entity>;
+}
+
+export interface SceneTemplate {
   id: string;
   name: string;
+  description: string;
   entities: Entity[];
-  layers: Layer[];
 }
 
-export interface Layer {
+export interface AssetMetadata {
+  id: string;
+  projectId: string;
+  name: string;
+  type: 'sprite' | 'tileset' | 'texture' | 'icon' | 'audio' | 'background';
+  prompt?: string;
+  url: string;
+  size: number;
+  mimeType: string;
+  createdAt: string;
+  updatedAt: string;
+  tags?: string[];
+  status: 'generated' | 'uploaded' | 'error';
+}
+
+// Project types - matching backend structure
+export interface ProjectConfig {
+  version: string;
+  engine: {
+    version: string;
+    runtimeTarget: string;
+    renderBackend: string;
+  };
+  assets: {
+    baseDir: string;
+    formats: string[];
+  };
+  ai: {
+    enabled: boolean;
+    provider: 'openrouter' | 'openai' | 'anthropic';
+    model: string;
+  };
+  openclaw?: {
+    enabled: boolean;
+    project: string;
+  };
+}
+
+export interface ProjectInner {
   id: string;
   name: string;
-  visible: boolean;
-  entityIds: string[];
+  displayName?: string;
+  genre: string;
+  artStyle: string;
+  description?: string;
+  status: 'draft' | 'active' | 'completed';
+  createdAt: string;
+  updatedAt: string;
 }
 
-// ─── API request/response types ───
+export interface ClawGameProject {
+  version: string;
+  project: ProjectInner;
+  engine: {
+    version: string;
+    runtimeTarget: string;
+    renderBackend: string;
+  };
+  assets: ProjectConfig['assets'];
+  ai: ProjectConfig['ai'];
+  openclaw?: ProjectConfig['openclaw'];
+}
 
 export interface CreateProjectRequest {
   name: string;
   genre: string;
   artStyle: string;
   description?: string;
-  runtimeTarget?: 'browser' | 'desktop' | 'mobile';
-  renderBackend?: 'canvas' | 'webgl' | 'webgpu';
+  runtimeTarget?: string;
+  renderBackend?: string;
+}
+
+export interface UpdateProjectRequest {
+  name?: string;
+  genre?: string;
+  artStyle?: string;
+  description?: string;
 }
 
 export interface ProjectListItem {
@@ -115,61 +183,193 @@ export interface ProjectListItem {
 
 export interface ProjectDetail extends ProjectListItem {
   version: string;
-  engine: EngineConfig;
-  ai?: AIConfig;
-  assets?: AssetsConfig;
-  openclaw?: OpenClawConfig;
+  engine: {
+    version: string;
+    runtimeTarget: string;
+    renderBackend: string;
+  };
+  ai?: ProjectConfig['ai'];
+  assets?: ProjectConfig['assets'];
+  openclaw?: ProjectConfig['openclaw'];
   sceneCount: number;
   entityCount: number;
 }
 
-export interface UpdateProjectRequest {
-  name?: string;
-  genre?: string;
-  artStyle?: string;
-  description?: string;
+// Game engine configuration
+export interface EngineConfig {
+  debug: boolean;
+  showGrid: boolean;
+  showCollision: boolean;
+  showFPS: boolean;
+  targetFPS: number;
+  maxEntities: number;
 }
 
-// ─── Defaults ───
-
-export const DEFAULT_ENGINE_VERSION = '0.1.0';
-export const DEFAULT_RUNTIME_TARGET: EngineConfig['runtimeTarget'] = 'browser';
-export const DEFAULT_RENDER_BACKEND: EngineConfig['renderBackend'] = 'canvas';
-
-export function createDefaultProject(input: CreateProjectRequest): ClawGameProject {
+// Component creation helpers
+export function createMovement(overrides: Partial<Movement> = {}): Movement {
   return {
-    name: input.name,
-    version: '1.0.0',
-    engine: {
-      version: DEFAULT_ENGINE_VERSION,
-      runtimeTarget: input.runtimeTarget ?? DEFAULT_RUNTIME_TARGET,
-      renderBackend: input.renderBackend ?? DEFAULT_RENDER_BACKEND,
-    },
+    vx: 0,
+    vy: 0,
+    speed: 100,
+    friction: 0.8,
+    acceleration: 0.5,
+    ...overrides,
+  };
+}
+
+export function createAI(overrides: Partial<AI> = {}): AI {
+  return {
+    type: 'idle',
+    patrolSpeed: 50,
+    chaseSpeed: 100,
+    fleeSpeed: 150,
+    detectionRange: 100,
+    patrolPoints: [],
+    currentPatrolIndex: 0,
+    ...overrides,
+  };
+}
+
+export function createCollision(overrides: Partial<Collision> = {}): Collision {
+  return {
+    width: 32,
+    height: 32,
+    type: 'wall',
+    solid: true,
+    sensor: false,
+    ...overrides,
+  };
+}
+
+export function createSprite(overrides: Partial<Sprite> = {}): Sprite {
+  return {
+    image: null,
+    width: 32,
+    height: 32,
+    ...overrides,
+  };
+}
+
+export function createTransform(overrides: Partial<Transform> = {}): Transform {
+  return {
+    x: 0,
+    y: 0,
+    scaleX: 1,
+    scaleY: 1,
+    rotation: 0,
+    ...overrides,
+  };
+}
+
+// Entity creation helpers
+export function createPlayerEntity(transform: Partial<Transform> = {}): Entity {
+  return {
+    id: `player_${nanoid(6)}`,
+    transform: createTransform(transform),
+    components: new Map<string, any>([
+      ['playerInput', true],
+      ['movement', createMovement({ speed: 200 })],
+      ['collision', createCollision({ type: 'player', solid: true })],
+      ['sprite', createSprite()],
+    ]),
+  };
+}
+
+export function createEnemyEntity(transform: Partial<Transform> = {}): Entity {
+  return {
+    id: `enemy_${nanoid(6)}`,
+    transform: createTransform(transform),
+    components: new Map<string, any>([
+      ['ai', createAI({ type: 'patrol' })],
+      ['movement', createMovement({ speed: 50 })],
+      ['collision', createCollision({ type: 'enemy', solid: true })],
+      ['sprite', createSprite()],
+    ]),
+  };
+}
+
+export function createCoinEntity(transform: Partial<Transform> = {}): Entity {
+  return {
+    id: `coin_${nanoid(6)}`,
+    transform: createTransform(transform),
+    components: new Map<string, any>([
+      ['collision', createCollision({ type: 'collectible', solid: false, sensor: true })],
+      ['sprite', createSprite()],
+    ]),
+  };
+}
+
+export function createWallEntity(transform: Partial<Transform> = {}): Entity {
+  return {
+    id: `wall_${nanoid(6)}`,
+    transform: createTransform(transform),
+    components: new Map<string, any>([
+      ['collision', createCollision({ type: 'wall', solid: true })],
+    ]),
+  };
+}
+
+// Project helpers
+export function createDefaultProject(input: CreateProjectRequest): ClawGameProject {
+  const now = new Date().toISOString();
+  return {
+    version: '0.1.0',
     project: {
+      id: generateProjectId(),
+      name: input.name,
       displayName: input.name,
       genre: input.genre,
       artStyle: input.artStyle,
       description: input.description,
+      status: 'draft',
+      createdAt: now,
+      updatedAt: now,
     },
-    ai: {
-      providers: ['openclaw'],
-      defaultProvider: 'openclaw',
-      roles: ['builder', 'art', 'director'],
+    engine: {
+      version: '1.0.0',
+      runtimeTarget: input.runtimeTarget || 'web',
+      renderBackend: input.renderBackend || 'canvas',
     },
     assets: {
-      formats: ['png', 'webp', 'json'],
-      directories: {
-        sprites: 'assets/sprites',
-        tilesets: 'assets/tilesets',
-        textures: 'assets/textures',
-        icons: 'assets/icons',
-        audio: 'assets/audio',
-      },
+      baseDir: './assets',
+      formats: ['png', 'jpg', 'svg', 'webp'],
     },
-    openclaw: {
-      integrationLevel: 'native',
-      memoryPaths: ['docs/ai/project_memory.md'],
-      agentRoles: ['director-agent', 'gameplay-agent', 'ui-agent', 'tools-agent', 'asset-agent', 'qa-agent'],
+    ai: {
+      enabled: true,
+      provider: 'openrouter',
+      model: 'qwen/qwen3.6-plus:free',
     },
   };
 }
+
+// Scene helpers
+export function createBasicScene(name: string = 'Main Scene'): Scene {
+  return {
+    name,
+    entities: new Map<string, Entity>(),
+  };
+}
+
+// Color utilities for asset generation
+export const colors = {
+  primary: '#8b5cf6',
+  secondary: '#22d3ee',
+  success: '#10b981',
+  warning: '#f59e0b',
+  error: '#ef4444',
+  info: '#3b82f6',
+  dark: '#0f172a',
+  surface: '#1e293b',
+  card: '#334155',
+  border: '#475569',
+  text: '#f1f5f9',
+  textSecondary: '#94a3b8',
+  textMuted: '#64748b',
+};
+
+// Animation constants
+export const animations = {
+  standardFrameRate: 30,
+  smoothFrameRate: 60,
+  quickFrameRate: 15,
+};

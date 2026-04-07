@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { AssetService } from '../services/assetService';
 import type { AssetType } from '../services/assetService';
+import type { GenerationStatus } from '../services/aiImageGenerationService';
 
 // Global reference to asset service (initialized with logger)
 let assetServiceInstance: AssetService | null = null;
@@ -58,25 +59,114 @@ export async function assetRoutes(app: FastifyInstance) {
   );
 
   // Generate new asset using AI
-  app.post<{ Params: { projectId: string }; Body: { type?: AssetType; prompt?: string; name?: string; content?: string; mimeType?: string } }>(
+  app.post<{
+    Params: { projectId: string };
+    Body: { 
+      type: AssetType; 
+      prompt: string;
+      options?: {
+        style?: 'pixel' | 'vector' | 'hand-drawn' | 'cartoon' | 'realistic';
+        width?: number;
+        height?: number;
+        format?: 'svg' | 'png' | 'webp';
+        backgroundColor?: string;
+      }
+    }
+  }>(
     '/api/projects/:projectId/assets/generate',
     async (request, reply) => {
       const { projectId } = request.params;
-      const { type, prompt } = request.body;
+      const { type, prompt, options } = request.body;
       
       if (!type || !prompt) {
         reply.code(400);
         return { error: 'type and prompt are required' };
       }
       
-      const asset = await assetServiceInstance!.generateAsset(projectId, type, prompt);
-      reply.code(201);
-      return asset;
+      try {
+        const { generationId, metadata } = await assetServiceInstance!.generateAsset(
+          projectId, 
+          type, 
+          prompt,
+          options
+        );
+        
+        reply.code(201);
+        return {
+          generationId,
+          metadata,
+          status: metadata.status === 'generated' ? 'completed' : 'pending'
+        };
+      } catch (error: any) {
+        reply.code(500);
+        return { error: error.message || 'Failed to generate asset' };
+      }
+    }
+  );
+
+  // Get generation status
+  app.get<{
+    Params: { projectId: string; generationId: string }
+  }>(
+    '/api/projects/:projectId/assets/generations/:generationId',
+    async (request, reply) => {
+      const { projectId, generationId } = request.params;
+      
+      try {
+        const status = await assetServiceInstance!.getGenerationStatus(projectId, generationId);
+        
+        if (!status) {
+          reply.code(404);
+          return { error: 'Generation not found' };
+        }
+        
+        return status;
+      } catch (error: any) {
+        reply.code(500);
+        return { error: error.message || 'Failed to get generation status' };
+      }
+    }
+  );
+
+  // List all generations for a project
+  app.get<{
+    Params: { projectId: string }
+  }>(
+    '/api/projects/:projectId/assets/generations',
+    async (request, reply) => {
+      const { projectId } = request.params;
+      
+      try {
+        const generations = await assetServiceInstance!.getGenerations(projectId);
+        return { generations };
+      } catch (error: any) {
+        reply.code(500);
+        return { error: error.message || 'Failed to get generations' };
+      }
+    }
+  );
+
+  // Poll for completed generations and create assets
+  app.post<{
+    Params: { projectId: string }
+  }>(
+    '/api/projects/:projectId/assets/generations/poll',
+    async (request, reply) => {
+      const { projectId } = request.params;
+      
+      try {
+        const result = await assetServiceInstance!.pollAndCreateAssets(projectId);
+        reply.code(200);
+        return result;
+      } catch (error: any) {
+        reply.code(500);
+        return { error: error.message || 'Failed to poll generations' };
+      }
     }
   );
 
   // Upload asset file
-  app.post<{ Params: { projectId: string }; Body: { type?: AssetType; prompt?: string; name?: string; content?: string; mimeType?: string } }>(
+  app.post<{ Params: { projectId: string }; Body: { name: string; type: AssetType; content?: string; mimeType?: string } }>(
     '/api/projects/:projectId/assets/upload',
     async (request, reply) => {
       const { projectId } = request.params;
@@ -87,17 +177,22 @@ export async function assetRoutes(app: FastifyInstance) {
         return { error: 'name, type, and content are required' };
       }
       
-      const buffer = Buffer.from(content, 'base64');
-      const asset = await assetServiceInstance!.uploadAsset(
-        projectId,
-        name,
-        type,
-        buffer,
-        mimeType || 'image/png'
-      );
-      
-      reply.code(201);
-      return asset;
+      try {
+        const buffer = Buffer.from(content, 'base64');
+        const asset = await assetServiceInstance!.uploadAsset(
+          projectId,
+          name,
+          type,
+          buffer,
+          mimeType || 'image/png'
+        );
+        
+        reply.code(201);
+        return asset;
+      } catch (error: any) {
+        reply.code(500);
+        return { error: error.message || 'Failed to upload asset' };
+      }
     }
   );
 
