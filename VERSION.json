@@ -1,6 +1,6 @@
 {
-  "version": "0.3.0",
-  "codename": "game-runtime",
+  "version": "0.3.1",
+  "codename": "editor-fixes",
   "milestone": 3,
   "milestoneName": "2D Runtime + Preview",
   "releaseDate": "2026-04-07",
