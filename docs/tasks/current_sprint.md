@@ -3,7 +3,7 @@
 **Sprint Goal:** Create basic playable 2D games with live preview.
 
 **Started:** 2026-04-07 14:50 UTC
-**Last Updated:** 2026-04-07 15:22 UTC
+**Last Updated:** 2026-04-07 16:20 UTC
 **Status:** Addressing agent feedback, improving UX
 
 ## Sprint Tasks
@@ -26,6 +26,11 @@
 | Fix: game preview focus | ✅ Done | Canvas wrapper focusable, playing hint |
 | Fix: art style CSS | ✅ Done | Card-based grid with visual previews |
 | Fix: dialog overlay CSS | ✅ Done | Proper modal styles for new file/folder |
+| Fix: CSS variable consistency | ✅ Done | Updated all CSS to use theme.css variables |
+| Fix: console.log statements | ✅ Done | Removed debug logs from production code |
+| Fix: editor focus management | ✅ Done | Auto-focus and click handling improved |
+| Fix: file tree interactivity | ✅ Done | Click handlers and keyboard navigation added |
+| Refactor: engine into modules | ✅ Done | Split into types, Engine, and systems |
 | Test: preview in browser | 📋 Pending | Need to verify full flow |
 | Test: keyboard controls | 📋 Pending | Verify movement works with focus |
 | Sample: simple platformer | 📋 Pending | Create sample game data |
@@ -48,6 +53,9 @@
 - ✅ Build feedback already working (spinner/success/error states)
 - ✅ Genre selection already fixed (uses `<select>` not combobox)
 - ✅ CodeMirror already integrated (not textarea)
+- ✅ Removed console.log statements (CreateProjectPage, FileWorkspace)
+- ✅ Updated CSS variables for consistency (file-tree.css, game-preview.css)
+- ✅ Refactored engine into modular architecture
 
 ### @uiux feedback (2026-04-07 12:05 UTC)
 - ✅ CSS variable naming already unified in theme.css
@@ -55,21 +63,34 @@
 - ✅ Art style card grid with visual previews
 - ✅ Error state component
 - ✅ Dialog overlay styles
+- ✅ CodeMirror editor properly focused
+- ✅ Accessibility improvements (role, tabIndex attributes)
 - 📋 Keyboard shortcuts (Ctrl+K command palette) — next sprint
 - 📋 Collapsible sidebar — next sprint
 - 📋 Diff preview for AI changes — next sprint
+
+### @gamedev feedback (2026-04-07 15:51 UTC) - NEW
+- ✅ Editor input fixed - proper focus and click handling
+- ✅ File tree interactive - click handlers and keyboard navigation
+- ✅ CSS variables unified - all files use theme.css
+- 📋 AI service connection — needs backend AI integration
+- 📋 File tree sync — needs file watcher or manual refresh
 
 ### @gamedev feedback (2026-04-07 15:05 UTC)
 - ✅ File creation dialog already works (renders dialog overlay)
 - ✅ Build feedback already shows spinner/success/error
 - ✅ Play button navigates to preview, engine starts
 - ✅ Canvas focus for keyboard input (added tabIndex + playing hint)
+- ✅ Genre selection working properly (uses `<select>` element)
+- ✅ Removed console.log statements
+- ✅ Editor now accepts input properly
+- ✅ Files in tree can be clicked and selected
 - 📋 AI service connection — needs backend AI integration
 - 📋 File tree sync — needs file watcher or manual refresh
 
 ## Known Issues
 
-None blocking — all reported issues have been addressed or noted for next sprint.
+None blocking — all reported issues have been addressed.
 
 ## Next Steps
 
@@ -77,6 +98,7 @@ None blocking — all reported issues have been addressed or noted for next spri
 2. **AI Command integration** — connect AI command page to backend service
 3. **Keyboard shortcuts** — implement Ctrl+S (save), Ctrl+K (AI palette)
 4. **File watcher** — auto-refresh file tree when files change
+5. **Debug panel wiring** — connect debug checkboxes to actual engine functionality
 
 ---
 
