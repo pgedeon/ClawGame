@@ -1,0 +1,128 @@
+/* Code Editor Styles */
+
+.code-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--editor-bg);
+}
+
+.editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--surface-alt);
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.file-path {
+  font-size: 0.9rem;
+  color: var(--text-color);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.unsaved-badge {
+  padding: 0.15rem 0.5rem;
+  background: var(--warning-color);
+  color: white;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.last-saved {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.editor-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.save-btn {
+  padding: 0.4rem 0.85rem;
+  background: var(--success-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.save-btn:hover:not(:disabled) {
+  background: var(--success-hover);
+}
+
+.save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.reset-btn {
+  padding: 0.4rem 0.85rem;
+  background: var(--secondary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.2s;
+}
+
+.reset-btn:hover:not(:disabled) {
+  background: var(--secondary-hover);
+}
+
+.reset-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.editor-textarea {
+  flex: 1;
+  width: 100%;
+  padding: 1rem;
+  background: var(--editor-bg);
+  color: var(--editor-text);
+  border: none;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  resize: none;
+  outline: none;
+}
+
+.editor-textarea::placeholder {
+  color: var(--editor-placeholder);
+}
+
+.editor-textarea:read-only {
+  opacity: 0.9;
+}
+
+.editor-footer {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--border-color);
+  background: var(--surface-alt);
+}
+
+.editor-footer p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}

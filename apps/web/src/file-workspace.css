@@ -1,0 +1,231 @@
+/* File Workspace Styles */
+
+.file-workspace {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.workspace-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--surface-color);
+}
+
+.workspace-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--text-color);
+}
+
+.search-bar {
+  display: flex;
+  gap: 0.5rem;
+  max-width: 400px;
+}
+
+.search-bar input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--input-bg);
+  color: var(--text-color);
+  font-size: 0.9rem;
+}
+
+.search-bar input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.search-bar button {
+  padding: 0.5rem 1rem;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+.search-bar button:hover {
+  background: var(--primary-hover);
+}
+
+.workspace-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Sidebar - File Tree */
+.sidebar {
+  width: 300px;
+  min-width: 250px;
+  border-right: 1px solid var(--border-color);
+  overflow-y: auto;
+  background: var(--surface-color);
+}
+
+/* Main Content - Code Editor */
+.main-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Quick Actions */
+.quick-actions {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-top: 1px solid var(--border-color);
+  background: var(--surface-color);
+}
+
+.action-btn {
+  padding: 0.5rem 1rem;
+  background: var(--secondary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.2s;
+}
+
+.action-btn:hover {
+  background: var(--secondary-hover);
+}
+
+/* Editor Page */
+.editor-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.editor-page .page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--surface-color);
+}
+
+.project-info h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--text-color);
+}
+
+.project-info p {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.project-name {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.page-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Empty States */
+.empty-editor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: var(--text-muted);
+}
+
+.empty-editor .empty-message h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  color: var(--text-color);
+}
+
+.empty-editor .empty-message p {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.search-results {
+  margin-top: 2rem;
+  width: 100%;
+  max-width: 600px;
+}
+
+.search-results h4 {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  color: var(--text-color);
+}
+
+.search-results ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.search-result-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.search-result-item:hover {
+  border-color: var(--primary-color);
+  background: var(--hover-bg);
+}
+
+.result-name {
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.result-path {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.loading, .error {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: var(--text-muted);
+}
+
+.error {
+  color: var(--error-color);
+}
+
+.error h2 {
+  margin: 0 0 0.5rem;
+  color: var(--error-color);
+}

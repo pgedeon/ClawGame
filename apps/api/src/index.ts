@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { projectRoutes } from './routes/projects';
+import { fileRoutes } from './routes/files';
 
 const app = Fastify({ logger: true });
 
@@ -11,6 +12,9 @@ app.get('/health', async () => ({ status: 'ok', version: '0.1.0' }));
 
 // Project CRUD
 app.register(projectRoutes);
+
+// File operations
+app.register(fileRoutes);
 
 const start = async () => {
   try {
