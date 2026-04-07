@@ -212,3 +212,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All new components fully TypeScript typed
 - CSS files co-located with components
 - Mobile-first responsive design for all new components
+
+### [0.5.1] - 2026-04-07
+
+#### Added
+- Toast notifications integration in FileWorkspace (save, create, delete, search, refresh)
+- CodeEditor loading state with badge indicator
+- CodeEditor onLoad prop for external content loading
+
+#### Changed
+- FileWorkspace uses toast system for all user-facing actions
+- CodeEditor handles loading state from parent component
+- Better error messaging on file operations
+
