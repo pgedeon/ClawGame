@@ -1,487 +1,410 @@
 /**
  * @clawgame/web - Game Preview Page
+ * Loads and runs actual game content from project
  */
 
-import React, { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useEffect, useRef, useState, Suspense, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
-import { Engine } from '@clawgame/engine';
-import { Entity, Transform, Sprite, Movement, AI, Scene } from '@clawgame/engine';
 import '../game-preview.css';
 
-interface GamePreviewPageProps {
-  projectId: string;
+interface ProjectScene {
+  name: string;
+  entities: Array<{
+    id: string;
+    transform: {
+      x: number;
+      y: number;
+      scaleX: number;
+      scaleY: number;
+      rotation: number;
+    };
+    components: Record<string, any>;
+  }>;
 }
 
-function GamePreviewContent({ projectId }: GamePreviewPageProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const canvasWrapperRef = useRef<HTMLDivElement>(null);
-  const engineRef = useRef<Engine | null>(null);
-  const [projectName, setProjectName] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showGrid, setShowGrid] = useState(false);
-  const [showHitboxes, setShowHitboxes] = useState(false);
-  const [fps, setFps] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const [fpsUpdateInterval, setFpsUpdateInterval] = useState<number | null>(null);
+interface GameStats {
+  fps: number;
+  entities: number;
+  memory: string;
+}
 
+const GamePreviewContent: React.FC = () => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animationRef = useRef<number | null>(null);
+  const { projectId } = useParams<{ projectId: string }>();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [projectScene, setProjectScene] = useState<ProjectScene | null>(null);
+  const [gameStats, setGameStats] = useState<GameStats>({
+    fps: 60,
+    entities: 0,
+    memory: '0MB'
+  });
+
+  // Load project scene
   useEffect(() => {
-    loadProject();
-    
-    // Handle fullscreen change events
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+    if (!projectId) return;
+
+    const loadProjectScene = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Load project
+        const project = await api.getProject(projectId);
+        
+        // Try to load existing scene or create default
+        try {
+          const sceneData = await api.readFile(projectId, 'scenes/main-scene.json');
+          const parsedScene: ProjectScene = JSON.parse(sceneData.content);
+          
+          // Validate and fix scene structure
+          const validatedScene: ProjectScene = {
+            name: parsedScene.name || 'Main Scene',
+            entities: parsedScene.entities || [],
+          };
+          
+          setProjectScene(validatedScene);
+        } catch (sceneErr) {
+          // No scene exists, create default
+          const defaultScene: ProjectScene = {
+            name: 'Main Scene',
+            entities: [
+              {
+                id: 'player-1',
+                transform: { x: 400, y: 300, scaleX: 1, scaleY: 1, rotation: 0 },
+                components: {
+                  playerInput: true,
+                  movement: { vx: 0, vy: 0, speed: 200 },
+                  sprite: { width: 32, height: 32, color: '#3b82f6' }
+                }
+              },
+              {
+                id: 'enemy-1', 
+                transform: { x: 600, y: 400, scaleX: 1, scaleY: 1, rotation: 0 },
+                components: {
+                  ai: { type: 'patrol', speed: 50 },
+                  movement: { vx: 0, vy: 0, speed: 50 },
+                  sprite: { width: 32, height: 32, color: '#ef4444' }
+                }
+              },
+              {
+                id: 'coin-1',
+                transform: { x: 500, y: 200, scaleX: 1, scaleY: 1, rotation: 0 },
+                components: {
+                  collision: { width: 16, height: 16, type: 'collectible' },
+                  sprite: { width: 16, height: 16, color: '#fbbf24' }
+                }
+              }
+            ]
+          };
+          
+          setProjectScene(defaultScene);
+        }
+      } catch (err) {
+        console.error('Failed to load project:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load project');
+      } finally {
+        setLoading(false);
+      }
     };
-    
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      if (fpsUpdateInterval) clearInterval(fpsUpdateInterval);
-      stopGame();
-      exitFullscreen();
-    };
+
+    loadProjectScene();
   }, [projectId]);
 
-  const loadProject = async () => {
-    try {
-      const project = await api.getProject(projectId);
-      setProjectName(project?.name || 'Unknown Project');
-    } catch (err) {
-      console.error('Failed to load project:', err);
-      setError('Failed to load project');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Initialize game loop
+  useEffect(() => {
+    if (!canvasRef.current || !projectScene) return;
 
-  const toggleFullscreen = () => {
-    if (!canvasWrapperRef.current) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    } else {
-      canvasWrapperRef.current.requestFullscreen();
-    }
-  };
-
-  const exitFullscreen = () => {
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    }
-  };
-
-  const createDemoScene = (): Scene => {
-    // Create a simple colored rectangle for player sprite
-    const playerCanvas = document.createElement('canvas');
-    playerCanvas.width = 32;
-    playerCanvas.height = 32;
-    const playerCtx = playerCanvas.getContext('2d');
-    if (playerCtx) {
-      playerCtx.fillStyle = '#ff6b35';
-      playerCtx.fillRect(0, 0, 32, 32);
-      // Add highlight
-      playerCtx.fillStyle = 'rgba(255,255,255,0.2)';
-      playerCtx.fillRect(0, 0, 32, 8);
-      // Add border
-      playerCtx.strokeStyle = 'rgba(255,255,255,0.3)';
-      playerCtx.lineWidth = 2;
-      playerCtx.strokeRect(0, 0, 32, 32);
-    }
-    const playerImage = new Image();
-    playerImage.src = playerCanvas.toDataURL();
-
-    // Create enemy sprite
-    const enemyCanvas = document.createElement('canvas');
-    enemyCanvas.width = 24;
-    enemyCanvas.height = 24;
-    const enemyCtx = enemyCanvas.getContext('2d');
-    if (enemyCtx) {
-      enemyCtx.fillStyle = '#ff3366';
-      enemyCtx.fillRect(0, 0, 24, 24);
-      enemyCtx.strokeStyle = 'rgba(255,255,255,0.3)';
-      enemyCtx.lineWidth = 2;
-      enemyCtx.strokeRect(0, 0, 24, 24);
-    }
-    const enemyImage = new Image();
-    enemyImage.src = enemyCanvas.toDataURL();
-
-    // Create coin sprite
-    const coinCanvas = document.createElement('canvas');
-    coinCanvas.width = 16;
-    coinCanvas.height = 16;
-    const coinCtx = coinCanvas.getContext('2d');
-    if (coinCtx) {
-      coinCtx.fillStyle = '#ffcc00';
-      coinCtx.beginPath();
-      coinCtx.arc(8, 8, 8, 0, Math.PI * 2);
-      coinCtx.fill();
-      coinCtx.strokeStyle = '#cc9900';
-      coinCtx.lineWidth = 2;
-      coinCtx.stroke();
-    }
-    const coinImage = new Image();
-    coinImage.src = coinCanvas.toDataURL();
-
-    // Create entities
-    const playerTransform: Transform = { x: 200, y: 150 };
-    const playerMovement: Movement = { vx: 0, vy: 0, speed: 200 };
-    const playerSprite: Sprite = { image: playerImage, width: 32, height: 32 };
-
-    const playerComponents = new Map();
-    playerComponents.set('movement', playerMovement);
-    playerComponents.set('sprite', playerSprite);
-    // MARK this entity as player-controlled so MovementSystem applies keyboard input
-    playerComponents.set('playerInput', true);
-
-    const playerEntity: Entity = {
-      id: 'player-1',
-      transform: playerTransform,
-      components: playerComponents
+    // Set canvas size
+    const resizeCanvas = () => {
+      const container = canvas.parentElement;
+      if (container) {
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+      }
     };
 
-    const enemyTransform: Transform = { x: 400, y: 150 };
-    const enemyAI: AI = { type: 'patrol', patrolStart: { x: 400, y: 150 }, patrolEnd: { x: 500, y: 150 }, patrolSpeed: 30 };
-    const enemyMovement: Movement = { vx: 0, vy: 0, speed: 50 };
-    const enemySprite: Sprite = { image: enemyImage, width: 24, height: 24 };
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
 
-    const enemyComponents = new Map();
-    enemyComponents.set('ai', enemyAI);
-    enemyComponents.set('movement', enemyMovement);
-    enemyComponents.set('sprite', enemySprite);
+    // Simple game engine
+    const entities = new Map(
+      projectScene.entities.map(entity => [entity.id, {
+        ...entity,
+        vx: 0,
+        vy: 0,
+        color: entity.components.sprite?.color || '#8b5cf6',
+        width: entity.components.sprite?.width || 32,
+        height: entity.components.sprite?.height || 32,
+      }])
+    );
 
-    const enemyEntity: Entity = {
-      id: 'enemy-1',
-      transform: enemyTransform,
-      components: enemyComponents
+    const keys: Record<string, boolean> = {};
+    let frameCount = 0;
+    let lastTime = 0;
+
+    // Input handling
+    const handleKeyDown = (e: KeyboardEvent) => {
+      keys[e.key.toLowerCase()] = true;
     };
 
-    const coinTransform1: Transform = { x: 300, y: 200 };
-    const coinSprite1: Sprite = { image: coinImage, width: 16, height: 16 };
-
-    const coinComponents1 = new Map();
-    coinComponents1.set('sprite', coinSprite1);
-
-    const coinEntity1: Entity = {
-      id: 'coin-1',
-      transform: coinTransform1,
-      components: coinComponents1
+    const handleKeyUp = (e: KeyboardEvent) => {
+      keys[e.key.toLowerCase()] = false;
     };
 
-    const coinTransform2: Transform = { x: 500, y: 200 };
-    const coinComponents2 = new Map();
-    coinComponents2.set('sprite', coinSprite1);
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
 
-    const coinEntity2: Entity = {
-      id: 'coin-2',
-      transform: coinTransform2,
-      components: coinComponents2
-    };
+    // Game update logic
+    const update = () => {
+      const currentTime = performance.now();
+      const deltaTime = currentTime - lastTime;
+      lastTime = currentTime;
 
-    const entities = new Map();
-    entities.set('player-1', playerEntity);
-    entities.set('enemy-1', enemyEntity);
-    entities.set('coin-1', coinEntity1);
-    entities.set('coin-2', coinEntity2);
+      // Update entities with AI/movement logic
+      entities.forEach((entity, id) => {
+        // Player movement
+        if (entity.components?.playerInput) {
+          const speed = entity.components.movement?.speed || 200;
+          entity.vx = 0;
+          entity.vy = 0;
 
-    return {
-      name: 'Demo Scene',
-      entities
-    };
-  };
+          if (keys['arrowleft'] || keys['a']) entity.vx = -speed;
+          if (keys['arrowright'] || keys['d']) entity.vx = speed;
+          if (keys['arrowup'] || keys['w']) entity.vy = -speed;
+          if (keys['arrowdown'] || keys['s']) entity.vy = speed;
 
-  const startGame = () => {
-    if (!canvasRef.current) return;
+          // Update position
+          entity.transform.x += entity.vx * (deltaTime / 1000);
+          entity.transform.y += entity.vy * (deltaTime / 1000);
 
-    try {
-      const engine = new Engine(canvasRef.current, {
-        width: 800,
-        height: 600,
-        showGrid,
-        showHitboxes,
-        showFPS: true,
-        backgroundColor: '#f9fafb'
+          // Keep player in bounds
+          const margin = entity.width / 2;
+          entity.transform.x = Math.max(margin, Math.min(canvas.width - margin, entity.transform.x));
+          entity.transform.y = Math.max(margin, Math.min(canvas.height - margin, entity.transform.y));
+        }
+
+        // Simple AI patrol for enemies
+        if (entity.components?.ai?.type === 'patrol') {
+          const patrolSpeed = entity.components.ai.patrolSpeed || 50;
+          const time = currentTime / 1000;
+          
+          // Simple back-and-forth patrol
+          entity.transform.x = 400 + Math.sin(time * patrolSpeed / 100) * 200;
+          entity.transform.y = 300 + Math.cos(time * patrolSpeed / 100) * 100;
+        }
+
+        // Rotation animation for coins
+        if (entity.components?.collision?.type === 'collectible') {
+          entity.transform.rotation += deltaTime * 0.002;
+        }
       });
 
-      const demoScene = createDemoScene();
-      engine.loadScene(demoScene);
-      engine.start();
+      // Check collisions
+      const player = entities.get('player-1');
+      const collectibles = Array.from(entities.values()).filter(e => 
+        e.components?.collision?.type === 'collectible'
+      );
 
-      // Setup FPS counter from engine
-      if (fpsUpdateInterval) clearInterval(fpsUpdateInterval);
-      const interval = window.setInterval(() => {
-        setFps(engine.getFPS());
-      }, 100);
-      setFpsUpdateInterval(interval);
+      collectibles.forEach(coin => {
+        const dx = player!.transform.x - coin.transform.x;
+        const dy = player!.transform.y - coin.transform.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
 
-      engineRef.current = engine;
-      setIsPlaying(true);
-      setError(null);
+        if (distance < (player!.width + coin.width) / 2) {
+          // Collect coin - remove from game
+          entities.delete(coin.id);
+        }
+      });
 
-      // Focus canvas wrapper for keyboard events
-      if (canvasWrapperRef.current) {
-        canvasWrapperRef.current.focus();
+      // Update game stats
+      frameCount++;
+      if (frameCount % 30 === 0) {
+        const fps = Math.round(1000 / deltaTime);
+        const memory = typeof (performance as any).memory === 'object' 
+          ? `${((performance as any).memory.usedJSHeapSize || 0) / 1048576 | 0}MB`
+          : 'N/A';
+        
+        setGameStats({
+          fps,
+          entities: entities.size,
+          memory
+        });
+      }
+    };
+
+    // Render function
+    const render = () => {
+      // Clear canvas
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw grid
+      ctx.strokeStyle = 'rgba(71, 85, 105, 0.2)';
+      ctx.lineWidth = 1;
+      const gridSize = 32;
+
+      for (let x = 0; x < canvas.width; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
       }
 
-    } catch (err) {
-      console.error('Failed to start game:', err);
-      setError('Failed to start game engine');
-    }
-  };
+      for (let y = 0; y < canvas.height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
 
-  const stopGame = () => {
-    if (engineRef.current) {
-      engineRef.current.stop();
-      engineRef.current = null;
-    }
-    if (fpsUpdateInterval) {
-      clearInterval(fpsUpdateInterval);
-      setFpsUpdateInterval(null);
-    }
-    setIsPlaying(false);
-    setFps(0);
-    exitFullscreen();
-  };
+      // Draw entities
+      entities.forEach((entity, id) => {
+        const { x, y, scaleX, scaleY, rotation } = entity.transform;
+        const width = entity.width;
+        const height = entity.height;
 
-  const resetGame = () => {
-    stopGame();
-    setTimeout(() => startGame(), 100);
-  };
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(rotation);
+        ctx.scale(scaleX, scaleY);
 
-  const handleDebugToggle = (type: 'grid' | 'hitboxes', checked: boolean) => {
-    setShowGrid(type === 'grid' ? checked : showGrid);
-    setShowHitboxes(type === 'hitboxes' ? checked : showHitboxes);
+        // Draw entity
+        ctx.fillStyle = entity.color;
+        ctx.fillRect(-width/2, -height/2, width, height);
 
-    // Update engine config if running
-    if (engineRef.current && isPlaying) {
-      engineRef.current.setConfig({
-        showGrid,
-        showHitboxes
+        // Add border for player
+        if (entity.components?.playerInput) {
+          ctx.strokeStyle = '#60a5fa';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(-width/2, -height/2, width, height);
+        }
+
+        // Draw label
+        ctx.fillStyle = 'white';
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(id.split('-')[0], 0, 4);
+
+        ctx.restore();
       });
-    }
-  };
 
-  if (isLoading) {
+      // Draw UI
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillRect(10, 10, 200, 80);
+      
+      ctx.fillStyle = 'white';
+      ctx.font = '14px monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText(`FPS: ${gameStats.fps}`, 20, 30);
+      ctx.fillText(`Entities: ${gameStats.entities}`, 20, 50);
+      ctx.fillText(`Memory: ${gameStats.memory}`, 20, 70);
+
+      // Draw controls
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillRect(canvas.width - 210, 10, 200, 100);
+      
+      ctx.fillStyle = 'white';
+      ctx.font = '12px monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText('Controls:', canvas.width - 200, 30);
+      ctx.fillText('WASD/Arrows: Move', canvas.width - 200, 50);
+      ctx.fillText('ESC: Exit game', canvas.width - 200, 70);
+      ctx.fillText(`Scene: ${projectScene.name}`, canvas.width - 200, 90);
+    };
+
+    // Game loop
+    const gameLoop = () => {
+      update();
+      render();
+      animationRef.current = requestAnimationFrame(gameLoop);
+    };
+
+    // Start game loop
+    gameLoop();
+
+    // Cleanup
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('resize', resizeCanvas);
+    };
+  }, [projectScene, gameStats]);
+
+  if (loading) {
     return (
-      <div className="game-preview-page">
-        <div className="loading">Loading game preview...</div>
+      <div className="game-preview">
+        <div className="game-preview-loading">
+          <div className="game-preview-spinner" />
+          <p>Loading game...</p>
+          <p className="game-preview-subtitle">Loading project data and initializing game engine</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="game-preview">
+        <div className="game-preview-error">
+          <div className="game-preview-error-icon">⚠️</div>
+          <h3>Failed to Load Game</h3>
+          <p>{error}</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="game-preview-page">
-      <header className="page-header">
-        <div className="project-info">
-          <h1>🎮 Game Preview</h1>
-          <p>Project: <span className="project-name">{projectName}</span></p>
-        </div>
-
-        <div className="game-controls">
-          {!isPlaying ? (
-            <button className="control-btn play" onClick={startGame}>
-              ▶️ Play
-            </button>
-          ) : (
-            <>
-              <button className="control-btn stop" onClick={stopGame}>
-                ⏹️ Stop
-              </button>
-              <button className="control-btn reset" onClick={resetGame}>
-                🔄 Reset
-              </button>
-              <button 
-                className="control-btn fullscreen-btn" 
-                onClick={toggleFullscreen}
-                title={isFullscreen ? "Exit Fullscreen (Esc)" : "Enter Fullscreen"}
-              >
-                {isFullscreen ? "⛶" : "⛶"}
-              </button>
-            </>
-          )}
-
-          <div className="game-stats">
-            <div className="stat-item">
-              <span className="stat-label">FPS:</span>
-              <span className={`stat-value ${fps > 50 ? 'success' : fps > 30 ? '' : 'error'}`}>
-                {fps}
-              </span>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {error && (
-        <div className="error-banner">
-          ❌ {error}
-        </div>
-      )}
-
-      <div className="game-container">
-        <div
-          className={`canvas-wrapper ${isFullscreen ? 'fullscreen' : ''} ${isPlaying ? 'focused' : ''}`}
-          ref={canvasWrapperRef}
-          tabIndex={0}
-          onClick={() => canvasWrapperRef.current?.focus()}
-          style={{ outline: 'none' }}
-        >
-          <canvas
-            ref={canvasRef}
-            width={800}
-            height={600}
-            className="game-canvas"
-            style={{ 
-              width: '100%',
-              height: 'auto',
-              maxWidth: '800px',
-              maxHeight: '600px',
-              objectFit: 'contain'
-            }}
-          />
-
-          {!isPlaying && (
-            <div className="canvas-overlay">
-              <div className="overlay-content">
-                <h2>🚀 Ready to Play</h2>
-                <p>Click Play button to start game preview</p>
-                <p className="hint">Use arrow keys or WASD to move player</p>
-                <p className="hint">The canvas will capture keyboard input when playing</p>
-              </div>
+    <div className="game-preview">
+      <div className="game-preview-container">
+        <div className="game-preview-canvas-container">
+          <canvas ref={canvasRef} className="game-preview-canvas" />
+          {!projectScene && (
+            <div className="game-preview-placeholder">
+              <p>No scene data available</p>
             </div>
           )}
-
-          {isPlaying && (
-            <div className="playing-hint">
-              Click here and use arrow keys / WASD to move
-            </div>
-          )}
-
-          {isFullscreen && (
-            <div className="fullscreen-exit-hint">
-              ⛶ Press <kbd>Esc</kbd> to exit fullscreen
-            </div>
-          )}
-        </div>
-
-        <div className="debug-panel">
-          <div className="debug-panel-header">
-            <h3>🐛 Debug Panel</h3>
-          </div>
-
-          <div className="debug-options">
-            <label className="debug-option">
-              <input
-                type="checkbox"
-                checked={showGrid}
-                onChange={(e) => handleDebugToggle('grid', e.target.checked)}
-              />
-              Show Grid
-            </label>
-            <label className="debug-option">
-              <input
-                type="checkbox"
-                checked={showHitboxes}
-                onChange={(e) => handleDebugToggle('hitboxes', e.target.checked)}
-              />
-              Show Hitboxes
-            </label>
-          </div>
-
-          <div className="debug-info">
-            <h4>Game State</h4>
-            <div className="debug-info-section">
-              <div className="debug-info-label">Status</div>
-              <div className="debug-info-value">
-                {isPlaying ? 'Playing' : 'Stopped'}
-              </div>
-            </div>
-            <div className="debug-info-section">
-              <div className="debug-info-label">Resolution</div>
-              <div className="debug-info-value">800 × 600</div>
-            </div>
-            <div className="debug-info-section">
-              <div className="debug-info-label">Renderer</div>
-              <div className="debug-info-value">Canvas 2D</div>
-            </div>
-          </div>
-
-          <div className="debug-info">
-            <h4>Controls</h4>
-            <div className="debug-info-section">
-              <div className="debug-info-label">Movement</div>
-              <div className="debug-info-value">
-                <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> or <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd>
-              </div>
-            </div>
-            <div className="debug-info-section">
-              <div className="debug-info-label">Fullscreen</div>
-              <div className="debug-info-value">Click button or <kbd>Esc</kbd> to exit</div>
-            </div>
-          </div>
-
-          <div className="debug-info">
-            <h4>Scene Entities ({4})</h4>
-            <div className="debug-entity">
-              <div className="debug-entity-header">
-                <span className="debug-entity-name">player-1</span>
-                <span className="debug-entity-type">Player</span>
-              </div>
-              <div className="debug-entity-props">
-                pos: <span>(200, 150)</span><br/>
-                speed: <span>200</span>
-              </div>
-            </div>
-            <div className="debug-entity">
-              <div className="debug-entity-header">
-                <span className="debug-entity-name">enemy-1</span>
-                <span className="debug-entity-type">Enemy</span>
-              </div>
-              <div className="debug-entity-props">
-                pos: <span>(400, 150)</span><br/>
-                type: <span>patrol</span>
-              </div>
-            </div>
-            <div className="debug-entity">
-              <div className="debug-entity-header">
-                <span className="debug-entity-name">coin-1</span>
-                <span className="debug-entity-type">Collectible</span>
-              </div>
-              <div className="debug-entity-props">
-                pos: <span>(300, 200)</span>
-              </div>
-            </div>
-            <div className="debug-entity">
-              <div className="debug-entity-header">
-                <span className="debug-entity-name">coin-2</span>
-                <span className="debug-entity-type">Collectible</span>
-              </div>
-              <div className="debug-entity-props">
-                pos: <span>(500, 200)</span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
   );
-}
+};
 
 export function GamePreviewPage() {
   const { projectId } = useParams<{ projectId: string }>();
 
   if (!projectId) {
     return (
-      <div className="game-preview-page">
-        <div className="error-state">
-          <div className="error-icon">🎮</div>
+      <div className="game-preview">
+        <div className="game-preview-error">
+          <div className="game-preview-error-icon">🎮</div>
           <h3>No Project Selected</h3>
-          <p>Please open a project first to preview the game.</p>
+          <p>Please open a project first to preview.</p>
         </div>
       </div>
     );
   }
 
-  return <GamePreviewContent projectId={projectId} />;
+  return (
+    <Suspense fallback={
+      <div className="game-preview">
+        <div className="game-preview-loading">
+          <div className="game-preview-spinner" />
+          <p>Loading game engine...</p>
+        </div>
+      </div>
+    }>
+      <GamePreviewContent />
+    </Suspense>
+  );
 }

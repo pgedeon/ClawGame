@@ -9,9 +9,11 @@ import { OpenProjectPage } from './pages/OpenProjectPage';
 import { ExamplesPage } from './pages/ExamplesPage';
 import { SettingsPage } from './pages/SettingsPage';
 
-// Import CSS
+// Import CSS files
 import './error-boundary.css';
 import './onboarding.css';
+import './game-hub.css';
+import './game-preview.css';
 
 // Lazy-loaded pages (code-split for smaller initial bundle)
 const ProjectPage = lazy(() => import('./pages/ProjectPage').then(m => ({ default: m.ProjectPage })));
@@ -43,22 +45,34 @@ function App() {
             <Route path="examples" element={<ExamplesPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="project/:projectId" element={
-              <Suspense fallback={<PageLoader />}><ProjectPage /></Suspense>
+              <Suspense fallback={<PageLoader />}>
+                <ProjectPage />
+              </Suspense>
             } />
             <Route path="project/:projectId/editor" element={
-              <Suspense fallback={<PageLoader />}><EditorPage /></Suspense>
+              <Suspense fallback={<PageLoader />}>
+                <EditorPage />
+              </Suspense>
             } />
             <Route path="project/:projectId/scene-editor" element={
-              <Suspense fallback={<PageLoader />}><SceneEditorPage /></Suspense>
+              <Suspense fallback={<PageLoader />}>
+                <SceneEditorPage />
+              </Suspense>
             } />
             <Route path="project/:projectId/ai" element={
-              <Suspense fallback={<PageLoader />}><AICommandPage /></Suspense>
+              <Suspense fallback={<PageLoader />}>
+                <AICommandPage />
+              </Suspense>
             } />
             <Route path="project/:projectId/assets" element={
-              <Suspense fallback={<PageLoader />}><AssetStudioPage /></Suspense>
+              <Suspense fallback={<PageLoader />}>
+                <AssetStudioPage />
+              </Suspense>
             } />
             <Route path="project/:projectId/preview" element={
-              <Suspense fallback={<PageLoader />}><GamePreviewPage /></Suspense>
+              <Suspense fallback={<PageLoader />}>
+                <GamePreviewPage />
+              </Suspense>
             } />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
