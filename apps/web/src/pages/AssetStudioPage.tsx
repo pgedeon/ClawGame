@@ -281,18 +281,9 @@ const AssetStudioPage = () => {
   };
 
   const getAssetPreviewUrl = (asset: AssetMetadata): string => {
-    // For AI-generated assets, show the actual generated content
+    // For AI-generated assets, serve the actual SVG file from the API
     if (asset.aiGeneration) {
-      // For now, fall back to placeholder, in production this would show the actual generated asset
-      const color = ASSET_TYPE_COLORS[asset.type];
-      return `data:image/svg+xml;base64,${btoa(`<?xml version="1.0" encoding="UTF-8"?>
-<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-  <rect width="64" height="64" fill="${color}" opacity="0.2"/>
-  <rect x="16" y="16" width="32" height="32" fill="${color}" opacity="0.5"/>
-  <text x="32" y="36" text-anchor="middle" fill="${color}" font-size="12" font-family="Arial">
-    ${asset.type.charAt(0).toUpperCase()}
-  </text>
-</svg>`)}`;
+      return `${api.getAssetFile(projectId!, asset.id)}`.toString();
     }
     
     // For uploaded assets, return the API URL

@@ -1,19 +1,19 @@
 # ClawGame Project Memory
 
 ## Project Overview
-- **Status:** Milestone 5 Complete — AI-Native UX + Asset Pipeline
-- **Current Version:** v0.7.0 (quality-gate)
-- **Current Stage:** Full IDE with AI integration, asset pipeline, scene editor, game preview, documentation debt resolved
-- **Next Phase:** Milestone 6 — Real AI asset generation (ComfyUI), test coverage, scene editor ↔ asset integration
-- **Timeline:** v0.6.1 with clean docs, working backend logger, vitest setup
+- **Status:** Milestone 6 Phase 2 Complete — Real AI Asset Generation + Quality + Integration
+- **Current Version:** v0.7.1 (ai-asset-generation)
+- **Current Stage:** Real AI-powered asset generation working, CHANGELOG fixed, documentation synced
+- **Next Phase:** M6 Phase 3 — Scene Editor ↔ Asset Integration (browser panel, drag-and-drop, sprite rendering)
+- **Timeline:** Real AI assets shipped via OpenRouter LLM, changelog reordered, project_memory synced
 
 ## Key Documents
 - **README.md:** Vision, roadmap, multi-agent development docs
 - **uiux_feedback.md:** Detailed UI/UX analysis — wants game studio metaphor, not IDE
 - **game_dev_feedback.md:** Real user testing feedback — API works, web UI click issues remain
 - **pm_feedback.md:** Documentation debt resolved, backend logger flagged, test coverage missing
-- **CHANGELOG.md:** Full version history v0.1.0 → v0.6.1
-- **current_sprint.md:** M6 in progress — real AI assets, tests, integration improvements
+- **CHANGELOG.md:** Full version history v0.1.0 → v0.7.1, now properly ordered (newest first)
+- **current_sprint.md:** M6 in progress — real AI assets completed, CHANGELOG fix, project_memory sync
 
 ## Architecture
 - **Monorepo:** apps/web (React + Vite) and apps/api (Fastify)
@@ -28,41 +28,42 @@
 - ✅ **M3 Runtime + Preview:** 2D engine, keyboard input, entity rendering, game loop, FPS counter
 - ✅ **M4 Scene Editor:** Visual scene editor with canvas, drag-and-drop, entity templates, property inspector, component management, zoom/pan, save/load
 - ✅ **M5 AI-Native UX + Asset Pipeline:** Command palette, floating AI assistant, real AI backend (OpenRouter), error boundaries, onboarding tour, asset CRUD + studio UI, logger utility, 404 page, documentation cleanup
-- 📋 **M6 Real AI + Quality + Integration:** ComfyUI asset generation, test coverage, scene editor ↔ asset integration, backend logger migration
+- ✅ **M6 Phase 1:** Backend quality improvements (Fastify logger migration, test coverage setup) - v0.7.0
+- ✅ **M6 Phase 2:** Real AI asset generation via OpenRouter LLM, enhanced Asset Studio, shared type exports, CHANGELOG ordering fix, project_memory sync - v0.7.1
+- 📋 **M6 Phase 3:** Scene Editor ↔ Asset Integration (browser panel, drag-and-drop, sprite rendering from real assets)
 
-## Current Capabilities (v0.6.1)
+## Current Capabilities (v0.7.1)
 - **Code Editor:** CodeMirror with file tree, multi-file support, save/load, console cleanup via logger utility
 - **Scene Editor:** Canvas-based visual editor, entity templates (Player/Enemy/Coin/Wall), drag-and-drop, zoom/pan, grid+snap, property inspector, component management
 - **Game Preview:** Live 2D canvas with keyboard input (arrows+WASD), play/stop/reset, FPS counter, debug panel
 - **AI Integration:** Real OpenRouter API backend, AI command interface, floating AI assistant (FAB), command palette (Ctrl+K), thinking indicators
-- **Asset Pipeline:** Full CRUD REST API, asset studio with three-panel UI, placeholder SVG generation, type filtering, search, preview mode badges
+- **Asset Pipeline:** Full CRUD REST API, asset studio with three-panel UI, **real AI asset generation** (OpenRouter LLM), actual SVG preview, style selection, progress tracking
 - **UX Polish:** Error boundaries, onboarding tour, toast notifications, code-splitting, responsive design, 404 page, logger utility (frontend)
 - **Documentation:** Aligned tracking docs, clean CHANGELOG, updated README badges, project_memory matches current version
 
 ## Known Issues & Gaps
+- **Asset preview gap FIXED:** Now displays actual AI-generated SVGs instead of placeholder rectangles
+- **CHANGELOG ordering FIXED:** Now newest versions at top, oldest at bottom
+- **Documentation sync FIXED:** project_memory.md now matches v0.7.1 reality
 - **Web UI click issues:** Some interactive elements unresponsive (genre dropdown, project creation) — reported by Game Dev agent
-- **Asset generation is placeholder:** Generates SVG rectangles, not real AI art — needs ComfyUI integration (M6 flagship)
-- **No test coverage:** Zero test files — vitest setup in progress
-- **Backend console statements:** 8 console.* calls in API code — migrating to Fastify logger in progress
-- **Scene editor ↔ Asset gap:** Two powerful features working in isolation — integration planned for M6
-- **No Sprite Image Loading:** Scene editor uses color placeholders only — will be fixed with real asset integration
+- **Scene editor ↔ Asset gap:** Two powerful features working in isolation — integration planned for M6 Phase 3
+- **No Sprite Image Loading in Scene Editor:** Still uses color placeholders — will be fixed with Phase 3 integration
 
 ## AI Integration Status
 - ✅ **Real Backend:** OpenRouter API connected (USE_REAL_AI env var)
+- ✅ **Real Asset Generation:** LLM-powered SVG generation from text prompts (pixel, vector, cartoon, etc.)
 - ✅ **Interface:** AICommandPage with natural language input
 - ✅ **Floating Assistant:** FAB accessible on all project pages
 - ✅ **Command Palette:** Ctrl+K for quick navigation and AI commands
 - ✅ **Thinking Indicators:** Animated progress while AI processes
-- 📋 **Asset Generation:** Placeholder only — ComfyUI integration planned for M6
+- ✅ **Asset Generation:** Working SVG generation with progress tracking
 - 📋 **Visual Scripting:** Not started
 - 📋 **Scene Generation:** AI-generated scenes from descriptions — not started
 
 ## Development Priorities (from PM)
-1. **🔴 Backend quality** — Replace console.* with Fastify logger (8 calls pending)
-2. **🔴 Test coverage** — Add vitest + basic API smoke tests (currently zero coverage)
-3. **🟡 Real AI asset generation** — ComfyUI integration for actual sprite/texture generation (M6 flagship)
-4. **🟡 Scene editor integration** — Connect asset library to scene editor (drag assets into scenes)
-5. **🟢 Export/deploy** — Let users package and ship games
+1. **🟡 Scene Editor ↔ Asset Integration** — Connect asset library to scene editor (drag assets into scenes, render real sprites)
+2. **🟡 Export/deploy** — Let users package and ship games
+3. **🔴 Web UI click issues** — Fix unresponsive interactive elements
 
 ## Agent Communication
 - **agent_messages.md:** Direct messages between agents
@@ -71,25 +72,23 @@
 - **uiux_feedback.md:** Visual design, interaction patterns, AI-first UX
 - **standup_notes.md:** Team standup meetings (template ready, not yet active)
 
-## Recent Key Accomplishments (v0.4.0 → v0.6.1)
-1. v0.4.0 — Visual Scene Editor with drag-and-drop, entity templates, property inspector
-2. v0.4.1 — Code editor visibility fix, AI honest "Preview Mode" messaging, fullscreen toggle
-3. v0.5.0 — Command Palette, Floating AI Assistant, Toast system, code-splitting
-4. v0.5.2 — Real AI backend with OpenRouter, thinking indicators
-5. v0.5.3 — Error boundaries, onboarding tour, AI-branded dashboard
-6. v0.6.0 — Full Asset Pipeline (CRUD API, Studio UI, placeholder generation)
-7. v0.6.1 — Documentation debt fix, logger utility (28 console.* replaced), 404 page, preview badges
+## Recent Key Accomplishments (v0.6.0 → v0.7.1)
+1. v0.6.0 — Asset Pipeline (CRUD API, Studio UI, placeholder generation)
+2. v0.6.1 — Documentation debt fix, logger utility (28 console.* replaced), 404 page, preview badges
+3. v0.7.0 — Vitest test framework (9 smoke tests), backend logger migration, build quality
+4. v0.7.1 — **Real AI asset generation via OpenRouter**, actual SVG preview, CHANGELOG ordering fix, project_memory sync
 
-## Current Version: v0.7.0
-**Codename:** doc-cleanup
-**Status:** Released with documentation debt resolved
+## Current Version: v0.7.1
+**Codename:** ai-asset-generation
+**Status:** Released with real AI asset generation and documentation fixes
 
-## Next Milestone: M6 Real AI Assets + Quality + Integration
-- ComfyUI integration for real AI asset generation (flagship feature)
-- Basic test coverage with vitest
-- Scene editor → asset pipeline integration (drag assets into scenes)
-- Backend logger migration (Fastify pino instead of console.*)
-- Export/packaging pipeline
+## Current Sprint: Milestone 6 (Real AI Assets + Quality + Integration)
+- ✅ Phase 1: Backend quality improvements (Fastify logger, test coverage) - v0.7.0
+- ✅ Phase 2: Real AI asset generation via OpenRouter LLM - v0.7.1
+- 📋 Phase 3: Scene editor ↔ asset integration (browser panel, drag-and-drop, sprite rendering)
+
+## Next Milestone: M7 (Git + OpenClaw Operations)
+- Future focus: Export/packaging, deeper AI integration, web UI fixes
 
 ## Last Updated: 2026-04-08
-*M6 in progress — backend quality improvements, test coverage, real AI assets*
+*M6 Phase 2 complete — Real AI asset generation working, CHANGELOG fixed, documentation synced*
