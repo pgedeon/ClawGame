@@ -1,143 +1,168 @@
-# Current Sprint: Milestone 3 (2D Runtime + Preview) - COMPLETE ✅
+# Current Sprint: Milestone 4 (Scene Editor) - COMPLETE ✅
 
-**Sprint Goal:** Create basic playable 2D games with live preview.
+**Sprint Goal:** Visual 2D scene editing component-based workflow.
 
-**Started:** 2026-04-07 14:50 UTC
-**Completed:** 2026-04-07 17:30 UTC
-**Status:** ✅ ALL MAJOR FEATURES COMPLETE, CRITICAL BUGS FIXED
+**Started:** 2026-04-07 18:00 UTC
+**Completed:** 2026-04-07 18:20 UTC
+**Status:** ✅ MILESTONE 4 COMPLETE — Full scene editor implemented
 
 ## Sprint Tasks
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Engine: basic game loop | ✅ Done | Loop with update/render, delta time |
-| Engine: keyboard input | ✅ Done | Arrow keys + WASD support |
-| Engine: entity rendering | ✅ Done | Sprite rendering with shadows and highlights |
-| Engine: player movement | ✅ Done | Keyboard-controlled movement with bounds |
-| Engine: AI patrol | ✅ Done | Simple patrol pattern for enemies |
-| Frontend: game preview page | ✅ Done | Canvas, play/stop/reset controls |
-| Frontend: preview route | ✅ Done | /project/:projectId/preview |
-| Frontend: play button | ✅ Done | Added to project page |
-| Frontend: FPS counter | ✅ Done | Real-time FPS display |
-| Frontend: debug panel | ✅ Done | Debug options now functional (controls engine config) |
-| Fix: build type error | ✅ Done | LucideIcon type mismatch in AppLayout |
-| Fix: dashboard primary CTA | ✅ Done | New Project card is primary with Lucide icons |
-| Fix: error states | ✅ Done | Proper error-state component with retry |
-| Fix: game preview focus | ✅ Done | Canvas wrapper focusable, playing hint |
-| Fix: art style CSS | ✅ Done | Card-based grid with visual previews |
-| Fix: dialog overlay CSS | ✅ Done | Proper modal styles for new file/folder |
-| Fix: CSS variable consistency | ✅ Done | Updated all CSS to use theme.css variables |
-| Fix: console.log statements | ✅ Done | Removed debug logs from production code |
-| Fix: editor focus management | ✅ Done | Auto-focus and click handling improved |
-| Fix: file tree interactivity | ✅ Done | Click handlers and keyboard navigation added |
-| **CRITICAL FIX**: Keyboard input in game | ✅ FIXED | Added preventDefault, playerInput marker, movement system integration |
-| **CRITICAL FIX**: File content visibility | ✅ FIXED | Fixed CodeMirror recreation on keystroke, improved ref management |
-| **CRITICAL FIX**: Player movement not working | ✅ FIXED | MovementSystem now reads input state and applies to player velocity |
-| Refactor: engine into modules | ✅ Done | Split into types, Engine, and systems |
-| **QUALITY FIX**: CodeEditor useEffect dependency | ✅ FIXED | Removed content from deps to prevent recreation |
-| **QUALITY FIX**: RenderSystem overlapping HUD | ✅ FIXED | Combined scene info and FPS into single overlay |
-| **QUALITY FIX**: Debug panel integration | ✅ FIXED | Now controls actual engine configuration |
-| **QUALITY FIX**: Engine destroy() method | ✅ FIXED | Added proper cleanup method |
-| **QUALITY FIX**: Responsive canvas | ✅ FIXED | Scales properly for different screen sizes |
-| **DOCUMENTATION**: Updated project memory | ✅ FIXED | Reflects actual current state instead of outdated info |
-| **DOCUMENTATION**: Updated roadmap | ✅ FIXED | Shows completed milestones and future plans |
-| **VERSION**: Bumped to 0.3.3 | ✅ DONE | Quality improvements milestone |
-| **BUILD**: Clean TypeScript compilation | ✅ DONE | No errors, successful production builds |
+| Scene canvas editor | ✅ Done | Canvas-based visual editor with zoom/pan, grid, snapping |
+| Entity placement | ✅ Done | Drag-and-drop, click-to-place, entity templates |
+| Inspector panel | ✅ Done | Full property editor for Transform and all component types |
+| Entity management | ✅ Done | Add/remove/duplicate entities, component add/remove |
+| Scene save/load | ✅ Done | JSON serialization to scenes/main-scene.json |
+| Layer basics | ⏳ Deferred | Future: layer panel, z-ordering |
 
 ## Definition of Done
 
-- [x] Engine has game loop with delta time
-- [x] Engine supports keyboard input  
-- [x] Engine renders entities to canvas
-- [x] User can start/stop/reset game preview
-- [x] **FIXED:** User can move player with keyboard (now works!)
-- [x] **FIXED:** FPS display shows performance (now works in dev)
-- [x] **FIXED:** Simple demo scene is playable (now works in dev!)
-- [x] **QUALITY:** CodeEditor works without recreating on keystrokes
-- [x] **QUALITY:** Debug panel actually controls engine
-- [x] **QUALITY:** Canvas responsive for different screens
-- [x] **DOCUMENTATION:** All project docs updated to reflect current state
+- [x] Visual canvas editor for 2D scene editing
+- [x] Entity placement via drag-and-drop and click-to-place
+- [x] Property inspector for entity properties
+- [x] Entity list panel with selection
+- [x] Scene save/load as JSON
+- [x] Grid display with snapping option
+- [x] Zoom and pan controls
+- [x] Component management (add/remove components)
+- [x] Keyboard shortcuts for common actions
+- [x] Route and navigation integration
 
-## Feedback Addressed This Session
+## Features Implemented
 
-### @gamedev feedback (2026-04-07 15:51 UTC) - ALL CRITICAL ISSUES RESOLVED ✅
-- ✅ **FIXED:** Keyboard input in game preview - Added preventDefault, playerInput marker, proper movement integration
-- ✅ **FIXED:** File content visibility - Fixed CodeMirror editor recreation on keystroke
-- ✅ **FIXED:** Player movement not working - MovementSystem now applies keyboard input to player velocity
-- ✅ **FIXED:** Debug panel functionality - Now controls engine configuration properly
-- 📋 AI service connection - Currently mock responses, backend integration next sprint
-- 📋 File tree sync - Needs file watcher implementation
+### Core Editor
+- ✅ Canvas-based visual scene editor
+- ✅ Entity selection with visual highlight (blue border, resize handles)
+- ✅ Entity templates (Player, Enemy, Coin, Wall) for quick creation
+- ✅ Drag-and-drop entity movement
+- ✅ Click-to-place entity creation
+- ✅ Viewport zoom (0.1x to 5x) and pan
+- ✅ Grid display with 32px grid
+- ✅ Snapping to grid for aligned placement
 
-### PM/CEO feedback (2026-04-07 15:30 UTC) - ALL CRITICAL ISSUES RESOLVED ✅
-- ✅ **FIXED:** CodeEditor content dependency issue causing editor to recreate on every keystroke
-- ✅ **FIXED:** Debug panel checkboxes now wired to engine (dead UI → functional)
-- ✅ **FIXED:** RenderSystem overlapping scene info and FPS displays (combined into single HUD)
-- ✅ **FIXED:** Added proper destroy() method to Engine for complete cleanup
-- ✅ **FIXED:** Made canvas responsive with proper scaling
-- ✅ **FIXED:** Updated severely outdated project_memory.md and roadmap.md
-- ✅ **QUALITY:** Code compiles successfully with TypeScript
-- ✅ **QUALITY:** Build output clean (765KB JS, 26KB gzipped)
-- ✅ **DOCUMENTATION:** All documentation debt addressed and updated
+### Property Inspector
+- ✅ Entity ID display (read-only)
+- ✅ Transform component editor: X, Y, Rotation, Scale X, Scale Y
+- ✅ Component list showing all attached components
+- ✅ Remove component button for each component
+- ✅ Add component buttons: Sprite, Movement, AI, Collision
+- ✅ Disabled state for components already attached
+- ✅ Entity list with click-to-select
 
-### UI/UX feedback (2026-04-07 14:56 UTC) - ADDRESSED ✅
-- ✅ Basic functionality working - Core navigation, file editing, game preview
-- ✅ Clean design system with theme.css variables
-- ✅ Proper error states and loading indicators
-- ✅ Debug panel now functional (though needs more features)
+### Scene Management
+- ✅ Save scene to JSON (scenes/main-scene.json)
+- ✅ Load existing scene on page load
+- ✅ Default scene creation if none exists
+- ✅ Scene serialization: entities with transforms and components
 
-## Technical Improvements
+### User Experience
+- ✅ Keyboard shortcuts: V (select), +/- (zoom), 0 (reset view), Delete/Backspace (entity), Ctrl+S (save)
+- ✅ Mouse wheel zoom (centered on cursor)
+- ✅ Tool bar with Select and Add Entity modes
+- ✅ Template selector for entity type selection
+- ✅ Zoom controls: +, -, percentage display, reset button
+- ✅ View options: Grid toggle, Snap toggle
+- ✅ Responsive canvas that adapts to container size
+- ✅ Entity deletion with confirmation-free workflow
+- ✅ Duplicate entity action (offset by 32px)
 
-### Code Quality ✅
-- Clean TypeScript compilation across all packages
-- Proper component separation and refactoring
-- Effective error handling and cleanup methods
-- Modular engine architecture (types, Engine, systems)
+### Code Quality
+- ✅ Full TypeScript with proper typing
+- ✅ Efficient re-render using useCallback
+- ✅ Clean component separation
+- ✅ Integrated with existing engine types
+- ✅ Proper cleanup and useEffect management
 
-### Performance ✅  
-- FPS counter working (60 FPS target)
-- Efficient Canvas 2D rendering
-- Proper keyboard event handling
-- Responsive canvas scaling
+## Deliverables
 
-### Usability ✅
-- Functional keyboard controls in game preview
-- Working CodeMirror editor with auto-save
-- Debug panel controls actual engine behavior
-- Clear visual feedback for user actions
+### Files Created
+- `apps/web/src/pages/SceneEditorPage.tsx` — Main editor component (31554 bytes)
+- `apps/web/src/scene-editor.css` — Editor styles (10157 bytes)
 
-### Documentation ✅
-- Updated project_memory.md to actual current state
-- Updated roadmap.md to show completed milestones
-- Comprehensive CHANGELOG.md with all changes
-- Accurate sprint tracking
+### Files Modified
+- `apps/web/src/App.tsx` — Added `/project/:projectId/scene-editor` route
+- `apps/web/src/pages/ProjectPage.tsx` — Added Scene Editor button (highlighted as primary action)
+- `VERSION.json` — Bumped to 0.4.0 (milestone 4)
+- `CHANGELOG.md` — Added v0.4.0 changelog entry
 
-## Known Issues for Next Sprint
+## Technical Details
 
-1. **AI Service Backend**: Currently mock responses only
-2. **File Tree Auto-refresh**: Manual refresh needed when files change  
-3. **Bundle Size**: 766KB > 500KB threshold warning
-4. **Advanced Debug Features**: More options needed beyond grid/hitboxes
-5. **File Watcher**: Auto-refresh file tree on file changes
+### Engine Integration
+- Uses existing engine types: `Entity`, `Transform`, `Sprite`, `Movement`, `AI`, `Collision`, `Scene`
+- Component system based on `Map<string, any>` for flexibility
+- Scene serialization compatible with engine's Scene format
 
-## Major Achievements
+### Canvas Rendering
+- Custom Canvas 2D rendering for entities
+- Color-coded placeholders based on entity type prefix
+- Sprite rendering support (when image is loaded)
+- Collision box rendering (dashed red line)
+- Selection highlight with blue border and resize handles
+- Grid rendering with configurable size
 
-- **CRITICAL FIXES:** All blocking bugs from game dev feedback resolved
-- **QUALITY JUMP:** From broken UI to fully functional development platform
-- **ENGINE ROBUSTNESS:** Modular architecture with proper cleanup
-- **DOCUMENTATION DEBT:** Severely outdated docs now current and accurate
-- **BUILD HEALTH:** Clean TypeScript builds with no errors
+### State Management
+- React state for: scene, entities, selectedEntityId, toolMode, viewport, interaction flags
+- Proper dependency arrays for useEffect
+- Efficient re-render with useCallback for render function
 
-## Next Sprint: Milestone 4 (Scene Editor)
+### Keyboard Shortcuts
+- `V` — Switch to Select tool
+- `M` — Switch to Move tool (reserved for future)
+- `+` / `=` — Zoom in
+- `-` — Zoom out
+- `0` — Reset view (zoom=1, pan=0,0)
+- `Delete` / `Backspace` — Delete selected entity
+- `Ctrl+S` / `Cmd+S` — Save scene
 
-**Goal:** Visual 2D scene editing with component-based workflow
+### Mouse Interactions
+- Left click — Select entity / Place entity / Start drag
+- Drag — Move entity / Pan viewport
+- Mouse wheel — Zoom (centered on cursor)
 
-- Scene canvas editor for visual entity placement
-- Component inspector for entity properties
-- Scene save/load functionality  
-- Enhanced debug panel features
+## Exit Criteria
+
+**User can place and configure entities visually and see changes in preview** — ✅ COMPLETE
+
+- ✅ User can visually select entities
+- ✅ User can move entities via drag-and-drop
+- ✅ User can add new entities via templates
+- ✅ User can edit entity properties in inspector
+- ✅ User can add/remove components
+- ✅ User can delete and duplicate entities
+- ✅ Changes are saved to scene JSON file
+- ✅ Preview can load and run the saved scene (existing M3 functionality)
+
+## Next Steps
+
+### Milestone 5: Asset Pipeline 🛠️
+
+**Goal:** AI-generated assets via ComfyUI integration
+
+- [ ] ComfyUI API integration
+- [ ] Asset generation workflow
+- [ ] Asset library management
+- [ ] Texture/animation export
+
+### Enhancements for Future Sprints
+- [ ] Layer panel and z-ordering
+- [ ] Undo/redo system
+- [ ] Copy/paste entities
+- [ ] Multiple entity selection
+- [ ] Entity grouping
+- [ ] Custom entity templates
+- [ ] Visual scripting editor
+
+## Known Issues
+
+1. **Bundle Size:** 782KB > 500KB threshold warning (acceptable for M4, code-splitting future)
+2. **No Sprite Image Support:** Currently only color placeholders, no actual image loading
+3. **No Tilemap Editing:** Feature planned for future milestone
+4. **No Trigger/Collision Setup:** Can add collision component but no visual editing of collision shapes
 
 ---
 
-**Previous Sprint:** Milestone 2 (Code + AI Workflow) — Complete ✅  
-**Current Sprint:** Milestone 3 (2D Runtime + Preview) — ALL COMPLETE ✅  
-**Next Sprint:** Milestone 4 (Scene Editor) — Planning 🚀
+**Previous Sprint:** Milestone 3 (2D Runtime + Preview) — Complete ✅  
+**Current Sprint:** Milestone 4 (Scene Editor) — ALL COMPLETE ✅  
+**Next Sprint:** Milestone 5 (Asset Pipeline) — Planning 🚀
