@@ -1,0 +1,54 @@
+{
+  "name": "AI Agent Test Game",
+  "version": "1.0.0",
+  "engine": {
+    "version": "0.1.0",
+    "runtimeTarget": "browser",
+    "renderBackend": "canvas"
+  },
+  "project": {
+    "displayName": "AI Agent Test Game",
+    "genre": "action",
+    "artStyle": "pixel",
+    "description": "A simple puzzle game where players match colored tiles"
+  },
+  "ai": {
+    "providers": [
+      "openclaw"
+    ],
+    "defaultProvider": "openclaw",
+    "roles": [
+      "builder",
+      "art",
+      "director"
+    ]
+  },
+  "assets": {
+    "formats": [
+      "png",
+      "webp",
+      "json"
+    ],
+    "directories": {
+      "sprites": "assets/sprites",
+      "tilesets": "assets/tilesets",
+      "textures": "assets/textures",
+      "icons": "assets/icons",
+      "audio": "assets/audio"
+    }
+  },
+  "openclaw": {
+    "integrationLevel": "native",
+    "memoryPaths": [
+      "docs/ai/project_memory.md"
+    ],
+    "agentRoles": [
+      "director-agent",
+      "gameplay-agent",
+      "ui-agent",
+      "tools-agent",
+      "asset-agent",
+      "qa-agent"
+    ]
+  }
+}
