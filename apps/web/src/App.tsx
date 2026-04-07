@@ -1,21 +1,29 @@
 import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AppLayout } from './components/AppLayout';
+import { DashboardPage } from './pages/DashboardPage';
+import { ProjectPage } from './pages/ProjectPage';
+import { EditorPage } from './pages/EditorPage';
+import { AICommandPage } from './pages/AICommandPage';
+import { AssetStudioPage } from './pages/AssetStudioPage';
+import { SettingsPage } from './pages/SettingsPage';
+import './App.css';
 
 function App() {
   return (
-    <div className="app">
-      <header className="app-header">
-        <h1>🎮 ClawGame</h1>
-        <p>AI-first web game engine</p>
-      </header>
-      <main className="app-main">
-        <p>Welcome to ClawGame. Select or create a project to get started.</p>
-        <div className="quick-actions">
-          <button>New Project</button>
-          <button>Open Project</button>
-          <button>Examples</button>
-        </div>
-      </main>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<AppLayout />}>
+          <Route index element={<DashboardPage />} />
+          <Route path="project/:projectId" element={<ProjectPage />} />
+          <Route path="project/:projectId/editor" element={<EditorPage />} />
+          <Route path="project/:projectId/ai" element={<AICommandPage />} />
+          <Route path="project/:projectId/assets" element={<AssetStudioPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }
 

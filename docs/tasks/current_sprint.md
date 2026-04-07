@@ -1,53 +1,31 @@
-# Current Sprint: Milestone 0 (Foundation)
+# Current Sprint: Milestone 1 (Core Editor Shell)
 
-**Sprint Goal:** Create repo, package layout, docs skeleton, and initial project metadata model.
+**Sprint Goal:** Create usable web app shell with dashboard, navigation, and basic project model.
 
 **Started:** 2026-04-07
-**Completed:** 2026-04-07
 
 ## Sprint Tasks
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Create monorepo scaffold | ✅ Done | Full directory structure |
-| Define project metadata schema | ✅ Done | `clawgame.project.json` with OpenClaw schema |
-| Create docs structure | ✅ Done | All 6 doc folders populated |
-| Create web app shell | ✅ Done | Vite + React + TSX entry |
-| Create API shell | ✅ Done | Fastify + TypeScript |
-| Define shared types | ✅ Done | `@clawgame/shared` package |
-| Add TypeScript configs | ✅ Done | All packages + apps have tsconfig.json |
-| Add engine runtime skeleton | ✅ Done | `@clawgame/engine` with basic Engine class |
-| pnpm install + dependencies | ✅ Done | All workspace deps resolved |
-| Build compiles cleanly | ✅ Done | `pnpm build` passes all packages |
-| Web dev server starts | ✅ Done | `pnpm dev:web` → localhost:5173 |
-| API dev server starts | ✅ Done | `pnpm dev:api` → localhost:3000 |
-| Initialize Git + initial commit | ✅ Done | Repo on main branch |
-
-## Completed This Session
-
-- ✅ Monorepo scaffold (apps/web, apps/api, packages/*)
-- ✅ Root package.json with pnpm workspace
-- ✅ Project metadata schema (`clawgame.project.json`)
-- ✅ Web app shell (React + Vite)
-- ✅ API shell (Fastify)
-- ✅ Shared types package
-- ✅ Engine runtime skeleton with Canvas rendering loop
-- ✅ TypeScript configs for all packages and apps
-- ✅ Documentation skeleton (6 doc folders)
-- ✅ Dependencies installed and building
-- ✅ Both dev servers verified working
-- ✅ Git initialized with commits
+| Add react-router routing | ⏳ In Progress | Dashboard, editor, settings routes |
+| Create app layout with sidebar nav | 🔲 Todo | Sidebar + main content area |
+| Build project dashboard page | 🔲 Todo | Overview cards, quick actions |
+| Build project create/open flow | 🔲 Todo | Create new project form, list projects |
+| Add placeholder AI command panel | 🔲 Todo | Chat-like interface stub |
+| Add placeholder asset studio panel | 🔲 Todo | Asset browser stub |
+| API: project CRUD endpoints | 🔲 Todo | Create, list, get, update project |
+| Store project metadata on disk | 🔲 Todo | Read/write clawgame.project.json |
+| Display project metadata in UI | 🔲 Todo | Dashboard reads from API |
 
 ## Definition of Done
 
-- [x] All packages have package.json
-- [x] TypeScript compiles cleanly
-- [x] Web app starts with `pnpm dev:web`
-- [x] API starts with `pnpm dev:api`
-- [x] Git initialized with initial commit
+- [ ] User can navigate between pages via sidebar
+- [ ] User can create a new project from the UI
+- [ ] User can see project metadata on the dashboard
+- [ ] AI command panel placeholder renders
+- [ ] Asset studio placeholder renders
 
 ---
 
-**Milestone 0 is COMPLETE. Next sprint: Milestone 1 (Core Editor Shell)**
-
-**Previous Sprints:** None (first sprint)
+**Previous Sprint:** Milestone 0 (Foundation) — Complete
