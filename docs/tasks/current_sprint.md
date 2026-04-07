@@ -3,7 +3,7 @@
 **Sprint Goal:** Make AI feel native, connect real services, polish UX.
 
 **Started:** 2026-04-07 19:00 UTC
-**Status:** 🚧 Phase 1 complete (AI-native UX foundation), Phase 2 nearly complete
+**Status:** 🚧 Phase 1 complete, Phase 2 complete, Phase 3 next
 
 ---
 
@@ -17,14 +17,14 @@
 | Code-splitting | ✅ Done | Lazy pages, vendor chunks, no bundle warnings |
 | Sidebar command search | ✅ Done | Quick trigger in sidebar header |
 
-## Phase 2: Real AI Integration 🚧
+## Phase 2: Real AI Integration ✅ (v0.5.2)
 
 | Task | Status | Notes |
 |------|--------|-------|
-| AI backend service | ⏳ Next | Connect real LLM for code generation |
+| AI backend service | ✅ Done | Connected to OpenRouter API, USE_REAL_AI env var to toggle |
 | Toast integration in FileWorkspace | ✅ Done | Wired to save/load/create/delete/search/refresh |
-| Toast integration in Scene Editor | ⏳ Deferred | Would require type changes to Scene Editor components |
-| Scene editor toasts | ⏳ Deferred | Feedback for entity add/remove/save |
+| AI Thinking Indicator | ✅ Done | Animated progress while AI processes commands |
+| Scene editor toasts | ⏳ Deferred | Would require type changes to Scene Editor components |
 | Editor save toast | ⏳ Deferred | Already handled by FileWorkspace |
 
 ## Phase 3: Asset Pipeline ⏳
@@ -44,7 +44,8 @@
 - [x] Toast notifications for user feedback
 - [x] Code-splitting with lazy-loaded pages
 - [x] No bundle size warnings
-- [ ] Real AI backend connected
+- [x] Real AI backend connected
+- [x] AI thinking indicator with progress visualization
 - [ ] Toasts integrated into all user actions
 - [ ] Asset generation workflow operational
 
@@ -59,7 +60,8 @@
 - ✅ Action feedback (toasts)
 - ✅ Fast initial load (code-splitting)
 - ✅ File operations show toast feedback
-- [ ] Real AI code generation
+- ✅ Real AI code generation (OpenRouter API)
+- ✅ AI thinking progress indicator
 - [ ] Asset generation from prompts
 
 ---
@@ -91,25 +93,29 @@
 - All project pages lazy-loaded
 - Keyboard-first navigation (Ctrl+K, ↑↓, Enter, Esc)
 
-### Phase 2: Toast Integration (v0.5.1) ✅
+### Phase 2: Real AI Integration (v0.5.2) ✅
+
+#### Files Created
+- `apps/api/src/services/realAIService.ts` — Real AI service with OpenRouter API
+- `apps/web/src/components/AIThinkingIndicator.tsx` — Animated thinking progress component
+- `apps/web/src/ai-thinking.css` — Thinking indicator styles
 
 #### Files Modified
-- `apps/web/src/components/FileWorkspace.tsx` — Toast integration for all actions
-- `apps/web/src/components/CodeEditor.tsx` — onLoad prop support, loading state
+- `apps/api/src/routes/aiRoutes.ts` — Support for both real and mock AI (USE_REAL_AI env var)
+- `apps/web/src/pages/AICommandPage.tsx` — Updated to handle real AI, thinking indicator, health check
+- `apps/api/package.json` — Added axios dependency
+- `VERSION.json` — Bumped to 0.5.2
 
-#### New Toast Notifications
-- ✅ File saved
-- ✅ File created
-- ✅ Folder created
-- ✅ File deleted
-- ✅ Search results found/not found
-- ✅ Refresh
-- ✅ Load failed
-- ✅ Save failed
-- ✅ Create failed
+#### Technical Achievements
+- Real AI backend connected to OpenRouter API (qwen/qwen3.6-plus:free model)
+- Toggle between real and mock AI with USE_REAL_AI environment variable
+- AI thinking indicator with animated progress steps
+- Health check endpoint to detect AI service mode
+- Automatic welcome message based on AI status
+- No TypeScript errors, build successful
 
 ---
 
 **Previous Sprint:** Milestone 4 (Scene Editor) — Complete ✅
 **Current Sprint:** Milestone 5 (AI-Native UX + Assets) — Phase 1-2 Complete ✅
-**Next Phase:** Real AI backend integration 🚀
+**Next Phase:** Asset Pipeline Generation 🚀

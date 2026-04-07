@@ -225,3 +225,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CodeEditor handles loading state from parent component
 - Better error messaging on file operations
 
+
+## [0.5.2] - 2026-04-07
+
+#### Added
+- Real AI backend integration with OpenRouter API
+- AI Thinking Indicator component with animated progress visualization
+- Support for toggling between real and mock AI via USE_REAL_AI environment variable
+- AI health check endpoint to detect service status
+- System prompt engineering for game development context
+- Code extraction and structured response parsing from AI
+- Context-aware file content reading for AI prompts
+- Risk level assessment for AI-generated changes
+- Confidence scores for AI suggestions
+
+#### Changed
+- Updated AICommandPage to handle real AI responses
+- Improved welcome message based on AI service status
+- Enhanced AI response rendering with structured data display
+- Toast notifications now integrated throughout the app
+
+#### Fixed
+- TypeScript compilation issues with async/await in AI service
+- Build process successfully compiles with no errors
+
+#### Technical
+- Added axios dependency to API package
+- API backend can now generate real code changes
+- AI service includes project context and file tree awareness
+- Supports both simulation mode and real LLM-powered responses
+
+---
+

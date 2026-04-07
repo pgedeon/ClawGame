@@ -1,8 +1,8 @@
 {
-  "version": "0.5.1",
-  "codename": "ai-native-ux",
+  "version": "0.5.2",
+  "codename": "real-ai-backend",
   "milestone": 5,
-  "milestoneName": "AI-Native UX Foundation",
+  "milestoneName": "AI-Native UX + Real AI Backend",
   "releaseDate": "2026-04-07",
   "status": "in-progress"
 }
