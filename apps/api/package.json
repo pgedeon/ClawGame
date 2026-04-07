@@ -10,6 +10,7 @@
     "lint": "eslint src --ext ts"
   },
   "dependencies": {
+    "@clawgame/shared": "workspace:^",
     "@fastify/cors": "^9.0.0",
     "fastify": "^4.26.0"
   },

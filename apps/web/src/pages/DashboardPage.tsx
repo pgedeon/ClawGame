@@ -1,42 +1,78 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { quickActionOptions } from '../constants/sidebar';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, Outlet } from 'react-router-dom';
+import { api, type ProjectListItem } from '../api/client';
 
 export function DashboardPage() {
-  const [isCreating, setIsCreating] = useState(false);
-  const [projectName, setProjectName] = useState('');
-  const [projectType, setProjectType] = useState('2d-platformer');
+  const [projects, setProjects] = useState<ProjectListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   const navigate = useNavigate();
 
-  const handleCreateProject = (e: React.FormEvent) => {
-    e.preventDefault();
-    // TODO: Actually create the project via API
-    console.log('Creating project:', { name: projectName, type: projectType });
-    // Navigate to the project (fake ID for now)
-    navigate('/project/demo-project-123');
+  useEffect(() => {
+    loadProjects();
+  }, []);
+
+  const loadProjects = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const projectList = await api.listProjects();
+      setProjects(projectList);
+    } catch (err) {
+      console.error('Error loading projects:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load projects');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const quickActionLinks = [
     {
       to: '/create-project',
       label: 'New Project',
-      icon: quickActionOptions[0].icon,
-      description: quickActionOptions[0].description,
+      icon: '➕',
+      description: 'Start a new game project',
     },
     {
       to: '/open-project',
       label: 'Open Project',
-      icon: quickActionOptions[1].icon,
-      description: quickActionOptions[1].description,
+      icon: '📁',
+      description: 'Open existing project',
     },
     {
       to: '/examples',
       label: 'Examples',
-      icon: quickActionOptions[2].icon,
-      description: quickActionOptions[2].description,
+      icon: '📚',
+      description: 'Browse sample templates',
     },
   ];
+
+  if (loading) {
+    return (
+      <div className="dashboard-page">
+        <div className="loading" style={{ textAlign: 'center', padding: '4rem' }}>
+          Loading dashboard...
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="dashboard-page">
+        <div className="error" style={{ textAlign: 'center', padding: '2rem' }}>
+          <p style={{ color: '#d32f2f', marginBottom: '1rem' }}>{error}</p>
+          <button 
+            onClick={loadProjects}
+            className="primary-button"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-page">
@@ -64,15 +100,49 @@ export function DashboardPage() {
 
       <div className="projects-section">
         <h2>Your Projects</h2>
-        <div className="projects-empty">
-          <p>No projects yet. Create your first game project!</p>
-          <div className="demo-create">
-            <p className="demo-hint">Or try our demo:</p>
-            <Link to="/project/demo-project-123" className="cta-button">
-              View Demo Project
-            </Link>
+        {projects.length === 0 ? (
+          <div className="projects-empty">
+            <p>No projects yet. Create your first game project!</p>
+            <div className="demo-create">
+              <p className="demo-hint">Or try our demo:</p>
+              <Link to="/project/demo-project-123" className="cta-button">
+                View Demo Project
+              </Link>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="projects-list">
+            {projects.map((project) => (
+              <Link
+                key={project.id}
+                to={`/project/${project.id}`}
+                className="project-card"
+              >
+                <div className="project-header">
+                  <h3 className="project-name">{project.name}</h3>
+                  <span className={`project-status ${project.status}`}>
+                    {project.status}
+                  </span>
+                </div>
+                <div className="project-details">
+                  <p className="project-type">
+                    {project.genre} • {project.artStyle}
+                  </p>
+                  <p className="project-date">
+                    Last modified: {new Date(project.updatedAt).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric'
+                    })}
+                  </p>
+                </div>
+                <div className="project-actions">
+                  <span className="open-icon">→</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

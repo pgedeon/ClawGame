@@ -1,35 +1,40 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { api, type CreateProjectInput } from '../api/client';
 
 export function CreateProjectPage() {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<CreateProjectInput>({
     name: '',
-    type: '2d-platformer',
-    description: '',
-    artStyle: 'pixel',
     genre: 'action',
+    artStyle: 'pixel',
+    description: '',
+    runtimeTarget: 'browser',
+    renderBackend: 'canvas',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null);
     
     try {
-      // TODO: Actually create the project via API
-      console.log('Creating project:', formData);
-      // For demo, navigate to project with fake ID
-      navigate(`/project/demo-project-${Date.now()}`);
-    } catch (error) {
-      console.error('Error creating project:', error);
+      const response = await api.createProject(formData);
+      console.log('Project created:', response);
+      // Navigate to the new project
+      navigate(`/project/${response.id}`);
+    } catch (err) {
+      console.error('Error creating project:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create project');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleChange = (field: string, value: string) => {
+  const handleChange = (field: keyof CreateProjectInput, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -55,6 +60,19 @@ export function CreateProjectPage() {
         <p>Start building your game with ClawGame</p>
       </header>
 
+      {error && (
+        <div className="error-message" style={{
+          padding: '1rem',
+          background: '#ffebee',
+          border: '1px solid #ffcdd2',
+          borderRadius: '4px',
+          color: '#d32f2f',
+          marginBottom: '1rem'
+        }}>
+          {error}
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="project-form">
         <div className="form-section">
           <label className="form-label" htmlFor="name">
@@ -68,23 +86,6 @@ export function CreateProjectPage() {
             placeholder="My Awesome Game"
             required
           />
-        </div>
-
-        <div className="form-section">
-          <label className="form-label" htmlFor="type">
-            Project Type
-          </label>
-          <select
-            id="type"
-            value={formData.type}
-            onChange={(e) => handleChange('type', e.target.value)}
-          >
-            {projectTypes.map((type) => (
-              <option key={type.id} value={type.id}>
-                {type.name} - {type.description}
-              </option>
-            ))}
-          </select>
         </div>
 
         <div className="form-section">

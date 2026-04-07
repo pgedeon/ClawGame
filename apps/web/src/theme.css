@@ -1,0 +1,31 @@
+/* CSS Variables for ClawGame Theme */
+:root {
+  /* Colors */
+  --fg: #1a1a1a;
+  --bg: #ffffff;
+  --border: #e0e0e0;
+  --card: #f8f8f8;
+  --card-hover: #f0f0f0;
+  
+  /* Accent colors */
+  --accent: #0077be;
+  --accent-hover: #005a87;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode support (future) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fg: #e0e0e0;
+    --bg: #1a1a1a;
+    --border: #444;
+    --card: #2a2a2a;
+    --card-hover: #3a3a3a;
+    --accent: #4fc3f7;
+    --accent-hover: #29b6f6;
+  }
+}

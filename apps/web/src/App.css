@@ -1,2 +1,206 @@
-/* App.css - General app styles will go here */
-/* App layout styles are now in index.css */
+/* App Layout Styles - Sidebar and main content area */
+
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+/* Sidebar */
+.sidebar {
+  width: 240px;
+  background: var(--card);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--accent);
+}
+
+.sidebar-header p {
+  margin: 0.5rem 0 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.sidebar-nav {
+  padding: 1rem 0;
+  flex: 1;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  color: var(--fg);
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.nav-item:hover {
+  background: var(--card-hover);
+  color: var(--accent);
+}
+
+.nav-item.active {
+  background: var(--accent);
+  color: white;
+}
+
+.nav-icon {
+  margin-right: 0.75rem;
+  font-size: 1.2rem;
+}
+
+.nav-text {
+  font-weight: 500;
+}
+
+/* Main content area */
+.main-content {
+  flex: 1;
+  background: var(--bg);
+}
+
+/* Dashboard page specific styles */
+.dashboard-page {
+  padding: 2rem;
+}
+
+.page-header {
+  padding: 2rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2rem;
+}
+
+.page-header h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  color: var(--fg);
+}
+
+.page-header p {
+  color: #888;
+  font-size: 1rem;
+}
+
+.quick-actions {
+  margin-bottom: 3rem;
+}
+
+.quick-actions h2 {
+  margin-bottom: 1rem;
+  color: var(--fg);
+}
+
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.action-card {
+  display: block;
+  padding: 1.5rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--fg);
+  transition: all 0.2s;
+}
+
+.action-card:hover {
+  background: var(--card-hover);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.action-icon {
+  display: block;
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.action-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  color: var(--fg);
+}
+
+.action-description {
+  margin: 0;
+  color: #888;
+  font-size: 0.95rem;
+}
+
+.projects-section {
+  margin-bottom: 3rem;
+}
+
+.projects-section h2 {
+  margin-bottom: 1rem;
+  color: var(--fg);
+}
+
+.projects-empty {
+  text-align: center;
+  padding: 3rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.projects-empty p {
+  margin-bottom: 1.5rem;
+  color: #666;
+}
+
+.cta-button {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  background: var(--accent);
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.cta-button:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.demo-create {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.demo-hint {
+  color: #666;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+/* Loading states */
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.error {
+  color: #d32f2f;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
