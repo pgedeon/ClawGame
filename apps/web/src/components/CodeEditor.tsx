@@ -59,12 +59,21 @@ export function CodeEditor({ projectId, filePath, onSave, readOnly = false, clas
   const viewRef = useRef<EditorView | null>(null);
   const contentRef = useRef(content);
   const hasChangesRef = useRef(false);
+  const focusEditorRef = useRef<(() => void) | null>(null);
 
   // Load file content when file path changes
   useEffect(() => {
     if (!filePath) return;
     loadFileContent();
   }, [projectId, filePath]);
+
+  // Focus editor when content is loaded
+  useEffect(() => {
+    if (!isLoading && viewRef.current && focusEditorRef.current) {
+      focusEditorRef.current();
+      focusEditorRef.current = null;
+    }
+  }, [isLoading]);
 
   // Keep ref in sync
   useEffect(() => {
@@ -81,6 +90,13 @@ export function CodeEditor({ projectId, filePath, onSave, readOnly = false, clas
       setContent(newContent);
       setHasChanges(false);
       hasChangesRef.current = false;
+
+      // Schedule focus after content loads
+      focusEditorRef.current = () => {
+        if (viewRef.current) {
+          viewRef.current.focus();
+        }
+      };
 
       // Update editor content if view exists
       if (viewRef.current) {
@@ -121,7 +137,7 @@ export function CodeEditor({ projectId, filePath, onSave, readOnly = false, clas
 
   // Create/update CodeMirror editor
   useEffect(() => {
-    if (!editorRef.current || isLoading) return;
+    if (!editorRef.current) return;
 
     // Destroy previous editor
     if (viewRef.current) {
@@ -210,7 +226,7 @@ export function CodeEditor({ projectId, filePath, onSave, readOnly = false, clas
         viewRef.current = null;
       }
     };
-  }, [filePath, isLoading, readOnly]);
+  }, [filePath, content, readOnly, handleSave]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -248,10 +264,11 @@ export function CodeEditor({ projectId, filePath, onSave, readOnly = false, clas
                 disabled={!hasChanges || isSaving}
                 className="save-btn"
                 title="Save (Ctrl+S)"
+                type="button"
               >
                 {isSaving ? 'Saving...' : '💾 Save'}
               </button>
-              <button onClick={handleReset} disabled={isSaving} className="reset-btn">
+              <button onClick={handleReset} disabled={isSaving} className="reset-btn" type="button">
                 ↩ Reset
               </button>
             </>
@@ -259,7 +276,16 @@ export function CodeEditor({ projectId, filePath, onSave, readOnly = false, clas
         </div>
       </div>
 
-      <div ref={editorRef} className="codemirror-container" />
+      <div 
+        ref={editorRef} 
+        className="codemirror-container"
+        onClick={() => {
+          // Focus editor when clicking on container
+          if (viewRef.current) {
+            viewRef.current.focus();
+          }
+        }}
+      />
 
       {readOnly && (
         <div className="editor-footer">

@@ -47,12 +47,21 @@ function TreeNode({ node, level, projectId, selectedFile, onFileSelect }: TreeNo
     }
   };
 
-  const handleSelect = () => {
+  const handleSelect = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (node.type === 'file') {
       onFileSelect?.(node.path);
     } else {
       toggleExpand();
     }
+  };
+
+  const handleIconClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleExpand();
   };
 
   return (
@@ -61,10 +70,17 @@ function TreeNode({ node, level, projectId, selectedFile, onFileSelect }: TreeNo
         className={`tree-node ${isSelected ? 'selected' : ''}`}
         style={{ paddingLeft: `${indent}px` }}
         onClick={handleSelect}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            handleSelect(e as any);
+          }
+        }}
       >
         <div className="node-content">
           {node.type === 'directory' ? (
-            <span className="toggle-icon" onClick={(e) => { e.stopPropagation(); toggleExpand(); }}>
+            <span className="toggle-icon" onClick={handleIconClick} role="button" tabIndex={0}>
               {isExpanded ? '📂' : isLoading ? '📁' : '📁'}
             </span>
           ) : (
@@ -128,7 +144,7 @@ export function FileTree({ projectId, currentPath = '', onFileSelect, selectedFi
     <div className={`file-tree ${className}`}>
       <div className="tree-header">
         <h3>File Explorer</h3>
-        <button onClick={loadFileTree} className="refresh-btn">🔄</button>
+        <button onClick={loadFileTree} className="refresh-btn" type="button">🔄</button>
       </div>
       
       <div className="tree-content">
