@@ -68,3 +68,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sidebar navigation
 - Multi-agent development system
 - Fair Source license (<$100k/year free)
+
+
+### [0.3.2] - 2026-04-07
+
+#### Fixed
+- Fixed keyboard input not working in game preview (arrow keys/WASD scrolling issue)
+- Fixed file content not visible in CodeMirror editor (was recreating on keystroke)
+- Fixed player movement not responding to keyboard input in game preview
+- Added playerInput marker component to distinguish player entities
+- Updated MovementSystem to properly read input state and apply velocity
+- Added preventDefault to game keys to stop page scrolling when game is active
+- Improved editor ref management to prevent focus issues
+- Fixed diagonal movement normalization for smooth player control
+- Enhanced boundary checking to keep player within canvas bounds
+
+#### Changed
+- Bumped version from 0.3.1 to 0.3.2 for bug fix milestone
+- Added game developer quality gates before session end
+
+#### Technical Improvements
+- Refactored CodeEditor useEffect dependencies to avoid recreation on content changes
+- Improved InputSystem with editable element detection
+- Enhanced player entity creation with proper component setup
+- Better error handling in editor save operations
