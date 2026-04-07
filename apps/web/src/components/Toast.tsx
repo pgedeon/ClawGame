@@ -1,73 +1,64 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
-import '../toast.css';
 
 export interface Toast {
   id: string;
+  type: 'success' | 'error' | 'warning' | 'info';
   message: string;
-  type: 'success' | 'error' | 'info' | 'warning';
   duration?: number;
 }
 
-interface ToastContextValue {
+interface ToastContextType {
+  showToast: (toast: Omit<Toast, 'id'>) => void;
   toasts: Toast[];
-  addToast: (message: string, type?: Toast['type'], duration?: number) => void;
-  removeToast: (id: string) => void;
 }
 
-const ToastContext = createContext<ToastContextValue>({
-  toasts: [],
-  addToast: () => {},
-  removeToast: () => {},
-});
-
-export function useToast() {
-  return useContext(ToastContext);
-}
-
-const iconMap: Record<Toast['type'], React.ElementType> = {
-  success: CheckCircle,
-  error: AlertCircle,
-  info: Info,
-  warning: AlertTriangle,
-};
+const ToastContext = createContext<ToastContextType | null>(null);
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const removeToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
+  const showToast = useCallback((toast: Omit<Toast, 'id'>) => {
+    const id = Date.now().toString();
+    setToasts(prev => [...prev, { ...toast, id }]);
+
+    // Auto-dismiss after duration (default 3s)
+    const duration = toast.duration ?? 3000;
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, duration);
   }, []);
 
-  const addToast = useCallback((message: string, type: Toast['type'] = 'info', duration = 3500) => {
-    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    setToasts(prev => [...prev, { id, message, type, duration }]);
-    if (duration > 0) {
-      setTimeout(() => removeToast(id), duration);
-    }
-  }, [removeToast]);
+  return (
+    <ToastContext.Provider value={{ showToast, toasts }}>
+      {children}
+    </ToastContext.Provider>
+  );
+}
+
+export function useToast() {
+  const context = useContext(ToastContext);
+  if (!context) {
+    throw new Error('useToast must be used within ToastProvider');
+  }
+  return context;
+}
+
+export function ToastList() {
+  const context = useContext(ToastContext);
+  if (!context) return null;
+
+  const { toasts } = context;
+  if (toasts.length === 0) return null;
 
   return (
-    <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
-      {children}
-      <div className="toast-container" role="region" aria-label="Notifications" aria-live="polite">
-        {toasts.map(toast => {
-          const Icon = iconMap[toast.type];
-          return (
-            <div key={toast.id} className={`toast toast--${toast.type}`} role="alert">
-              <Icon size={18} className="toast-icon" />
-              <span className="toast-message">{toast.message}</span>
-              <button
-                className="toast-close"
-                onClick={() => removeToast(toast.id)}
-                aria-label="Dismiss notification"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          );
-        })}
-      </div>
-    </ToastContext.Provider>
+    <div className="toast-container">
+      {toasts.map((toast) => (
+        <div key={toast.id} className={`toast toast-${toast.type}`}>
+          <div className="toast-content">
+            <span className="toast-message">{toast.message}</span>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }

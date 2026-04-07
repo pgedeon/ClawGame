@@ -279,3 +279,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed TypeScript type errors for import.meta.env
 - Improved accessibility with proper focus indicators
 
+
+### [0.6.0] - 2026-04-07
+
+#### Added
+- Asset Pipeline with full CRUD operations (list, get, generate, upload, delete, stats)
+- Asset Studio page with three-panel layout (generation, grid, details)
+- Asset API endpoints in backend (`/api/projects/:projectId/assets/*`)
+- Asset service with file storage and metadata management
+- Asset type filtering (sprite, tileset, texture, icon, audio, background)
+- Asset search by name, prompt, and tags
+- Asset generation workflow with placeholder SVG output
+- Asset upload functionality with base64 support
+- Asset detail view with preview, metadata, and tags
+- Asset stats (total count, by type, total size)
+- ToastList component for displaying notifications
+- "Coming Soon" badge removed from Asset Studio in project overview
+- Asset Studio now fully functional and integrated
+
+#### Changed
+- Bumped version from 0.5.3 to 0.6.0 (minor version - significant feature)
+- Updated Toast system to use object-based API (`{ type, message, duration }`)
+- Updated all toast calls across components to use new API
+- Integrated ToastList into AppLayout for consistent notifications
+- Removed ProjectPage "Coming Soon" badge from Asset Studio
+
+#### Technical
+- Asset storage in `data/assets/{projectId}/` directories
+- Asset metadata as JSON files alongside asset files
+- Type-safe AssetMetadata and AssetType interfaces
+- Asset service singleton pattern with caching
+- Asset type colors and icons for visual distinction
+- Responsive three-panel layout for Asset Studio
+- Client-side asset preview with data URIs
+- RESTful API design for asset operations
+

@@ -14,6 +14,7 @@ import './error-boundary.css';
 import './onboarding.css';
 import './game-hub.css';
 import './game-preview.css';
+import './asset-studio.css';
 
 // Lazy-loaded pages (code-split for smaller initial bundle)
 const ProjectPage = lazy(() => import('./pages/ProjectPage').then(m => ({ default: m.ProjectPage })));

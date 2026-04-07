@@ -21,7 +21,7 @@ export function FileWorkspace({ projectId, className }: FileWorkspaceProps) {
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const { addToast } = useToast();
+  const { showToast } = useToast();
 
   const handleFileSelect = (filePath: string) => {
     setSelectedFile(filePath);
@@ -33,23 +33,23 @@ export function FileWorkspace({ projectId, className }: FileWorkspaceProps) {
     setSaving(true);
     try {
       await api.writeFile(projectId, selectedFile, content);
-      addToast(`File saved: ${selectedFile}`, 'success');
+      showToast({ type: 'success', message: `File saved: ${selectedFile}` });
     } catch (err: any) {
-      addToast(`Failed to save file: ${err.message || 'Unknown error'}`, 'error');
+      showToast({ type: 'error', message: `Failed to save file: ${err.message || 'Unknown error'}` });
     } finally {
       setSaving(false);
     }
-  }, [projectId, selectedFile, addToast]);
+  }, [projectId, selectedFile, showToast]);
 
   const handleLoad = useCallback(async (filePath: string): Promise<string> => {
     try {
       const result = await api.readFile(projectId, filePath);
       return result.content || '';
     } catch (err: any) {
-      addToast(`Failed to load file: ${err.message || 'Unknown error'}`, 'error');
+      showToast({ type: 'error', message: `Failed to load file: ${err.message || 'Unknown error'}` });
       return '';
     }
-  }, [projectId, addToast]);
+  }, [projectId, showToast]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
@@ -60,14 +60,14 @@ export function FileWorkspace({ projectId, className }: FileWorkspaceProps) {
     try {
       const results = await api.searchFiles(projectId, searchQuery);
       if (results && results.length > 0) {
-        addToast(`Found ${results.length} file${results.length > 1 ? 's' : ''}`, 'info');
+        showToast({ type: 'info', message: `Found ${results.length} file${results.length > 1 ? 's' : ''}` });
       } else {
-        addToast('No files found matching your search', 'info');
+        showToast({ type: 'info', message: 'No files found matching your search' });
       }
       setSearchResults(results || []);
     } catch (err) {
       console.error('Search failed:', err);
-      addToast('Search failed', 'error');
+      showToast({ type: 'error', message: 'Search failed' });
       setSearchResults([]);
     }
   };
@@ -75,7 +75,7 @@ export function FileWorkspace({ projectId, className }: FileWorkspaceProps) {
   const handleRefresh = () => {
     setRefreshKey(prev => prev + 1);
     setSearchResults([]);
-    addToast('File list refreshed', 'info');
+    showToast({ type: 'info', message: 'File list refreshed' });
   };
 
   const handleCreateFile = useCallback(async () => {
@@ -101,14 +101,14 @@ export function FileWorkspace({ projectId, className }: FileWorkspaceProps) {
       handleRefresh();
       // Auto-select the new file
       setSelectedFile(cleanName);
-      addToast(`File created: ${cleanName}`, 'success');
+      showToast({ type: 'success', message: `File created: ${cleanName}` });
     } catch (err: any) {
       setNewFileError(err.message || 'Failed to create file');
-      addToast(`Failed to create file: ${err.message}`, 'error');
+      showToast({ type: 'error', message: `Failed to create file: ${err.message}` });
     } finally {
       setCreating(false);
     }
-  }, [newFileName, projectId, addToast]);
+  }, [newFileName, projectId, showToast]);
 
   const handleCreateFolder = useCallback(async () => {
     if (!newFileName.trim()) {
@@ -130,14 +130,14 @@ export function FileWorkspace({ projectId, className }: FileWorkspaceProps) {
       setShowNewFolderDialog(false);
       setNewFileName('');
       handleRefresh();
-      addToast(`Folder created: ${cleanName}`, 'success');
+      showToast({ type: 'success', message: `Folder created: ${cleanName}` });
     } catch (err: any) {
       setNewFileError(err.message || 'Failed to create folder');
-      addToast(`Failed to create folder: ${err.message}`, 'error');
+      showToast({ type: 'error', message: `Failed to create folder: ${err.message}` });
     } finally {
       setCreating(false);
     }
-  }, [newFileName, projectId, addToast]);
+  }, [newFileName, projectId, showToast]);
 
   const closeDialogs = () => {
     setShowNewFileDialog(false);

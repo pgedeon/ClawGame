@@ -4,6 +4,7 @@ import cors from '@fastify/cors';
 import { projectRoutes } from './routes/projects';
 import { fileRoutes } from './routes/files';
 import { aiRoutes } from './routes/aiRoutes';
+import { assetRoutes } from './routes/assets';
 
 const app = Fastify({ logger: true });
 
@@ -20,6 +21,9 @@ app.register(fileRoutes);
 
 // AI command processing
 app.register(aiRoutes);
+
+// Asset management and generation
+app.register(assetRoutes);
 
 const start = async () => {
   try {

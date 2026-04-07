@@ -19,7 +19,7 @@ export function AIFAB({ projectId }: AIFABProps) {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isThinking, setIsThinking] = useState(false);
-  const { addToast } = useToast();
+  const { showToast } = useToast();
 
   const togglePanel = () => {
     setIsOpen(prev => !prev);
@@ -50,7 +50,7 @@ export function AIFAB({ projectId }: AIFABProps) {
       };
       setMessages(prev => [...prev, aiMsg]);
       setIsThinking(false);
-      addToast('AI is in preview mode — full capabilities coming soon', 'info', 4000);
+      showToast({ type: 'info', message: 'AI is in preview mode — full capabilities coming soon', duration: 4000 });
     }, 1200);
   };
 

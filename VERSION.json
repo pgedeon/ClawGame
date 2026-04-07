@@ -1,8 +1,8 @@
 {
-  "version": "0.5.3",
-  "codename": "onboarding-ai-branding",
+  "version": "0.6.0",
+  "codename": "asset-pipeline",
   "milestone": 5,
-  "milestoneName": "AI-Native UX + Real AI Backend",
+  "milestoneName": "AI-Native UX + Real AI Backend + Asset Pipeline",
   "releaseDate": "2026-04-07",
   "status": "in-progress"
 }

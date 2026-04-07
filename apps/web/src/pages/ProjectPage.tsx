@@ -3,7 +3,7 @@
  * Game development studio workspace with tabbed interface
  */
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { api, type ProjectDetail } from '../api/client';
 import {
@@ -243,7 +243,7 @@ function ProjectOverview({ project, projectId }: { project: ProjectDetail; proje
       path: `/project/${projectId}/assets`,
       color: '#f59e0b',
       gradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
-      badge: 'Coming Soon',
+      badge: 'New',
     },
     {
       label: 'Play Game',

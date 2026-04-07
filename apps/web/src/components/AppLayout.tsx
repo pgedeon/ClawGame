@@ -4,7 +4,7 @@ import { FileCode, Bot, Palette, Play, Layers } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { api, type ProjectListItem } from '../api/client';
 import { sidebarItems } from '../constants/sidebar';
-import { ToastProvider } from './Toast';
+import { ToastProvider, ToastList } from './Toast';
 import { AIFAB } from './AIFAB';
 import { CommandPalette, useCommandPaletteToggle } from './CommandPalette';
 
@@ -144,6 +144,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
           projectId={projectId || undefined}
         />
       </div>
+        <ToastList />
     </ToastProvider>
   );
 }

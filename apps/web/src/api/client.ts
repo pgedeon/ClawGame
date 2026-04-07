@@ -108,6 +108,63 @@ export interface DiffEntry {
   summary?: string;
 }
 
+// ─── Asset types ───
+
+export type AssetType = 'sprite' | 'tileset' | 'texture' | 'icon' | 'audio' | 'background';
+
+export interface AssetMetadata {
+  id: string;
+  projectId: string;
+  name: string;
+  type: AssetType;
+  prompt?: string;
+  url: string;
+  size: number;
+  mimeType: string;
+  createdAt: string;
+  updatedAt: string;
+  tags?: string[];
+  status: 'generated' | 'uploaded' | 'error';
+  generationData?: {
+    model: string;
+    confidence: number;
+    parameters?: Record<string, unknown>;
+  };
+}
+
+export interface GenerateAssetRequest {
+  type: AssetType;
+  prompt: string;
+  options?: {
+    width?: number;
+    height?: number;
+    style?: 'pixel' | 'vector' | '3d' | 'hand-drawn';
+    format?: 'png' | 'svg' | 'webp';
+    backgroundColor?: string;
+  };
+}
+
+export interface ListAssetsFilter {
+  type?: AssetType;
+  tag?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface UploadAssetRequest {
+  name: string;
+  type: AssetType;
+  content: string; // base64
+  mimeType: string;
+}
+
+export interface AssetStats {
+  total: number;
+  byType: Record<AssetType, number>;
+  totalSize: number;
+}
+
 // ─── AI Command types ───
 
 export interface AICommandRequest {
@@ -208,6 +265,51 @@ export const api = {
       method: 'GET',
       query: { q: query },
     }).then((r) => r.results),
+
+  // Asset operations
+  listAssets: (projectId: string, filter?: ListAssetsFilter) =>
+    request<{ assets: AssetMetadata[] }>(`/api/projects/${projectId}/assets`, {
+      method: 'GET',
+      query: filter ? {
+        type: filter.type || '',
+        tag: filter.tag || '',
+        search: filter.search || '',
+        limit: filter.limit?.toString() || '',
+        offset: filter.offset?.toString() || '',
+      } : undefined,
+    }).then((r) => r.assets),
+
+  getAsset: (projectId: string, assetId: string) =>
+    request<AssetMetadata>(`/api/projects/${projectId}/assets/${assetId}`),
+
+  getAssetFile: (projectId: string, assetId: string) =>
+    request<Blob>(`/api/projects/${projectId}/assets/${assetId}/file`),
+
+  generateAsset: (projectId: string, assetReq: GenerateAssetRequest) =>
+    request<AssetMetadata>(`/api/projects/${projectId}/assets/generate`, {
+      method: 'POST',
+      body: JSON.stringify(assetReq),
+    }),
+
+  uploadAsset: (projectId: string, uploadReq: UploadAssetRequest) =>
+    request<AssetMetadata>(`/api/projects/${projectId}/assets/upload`, {
+      method: 'POST',
+      body: JSON.stringify(uploadReq),
+    }),
+
+  updateAsset: (projectId: string, assetId: string, updates: Partial<AssetMetadata>) =>
+    request<AssetMetadata>(`/api/projects/${projectId}/assets/${assetId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    }),
+
+  deleteAsset: (projectId: string, assetId: string) =>
+    request<{ success: boolean }>(`/api/projects/${projectId}/assets/${assetId}`, {
+      method: 'DELETE',
+    }),
+
+  getAssetStats: (projectId: string) =>
+    request<AssetStats>(`/api/projects/${projectId}/assets/stats`),
 
   // AI Command operations
   processAICommand: (projectId: string, command: AICommandRequest) =>
