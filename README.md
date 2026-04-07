@@ -146,7 +146,7 @@ pnpm lint
 
 ## 📜 License
 
-MIT License - See [LICENSE](LICENSE) for details.
+**Fair Source License** - Free for companies < $100k/year. See [LICENSE](LICENSE) for full terms.
 
 ## 🙏 Acknowledgments
 
