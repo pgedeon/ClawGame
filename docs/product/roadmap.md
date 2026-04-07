@@ -1,87 +1,86 @@
 # ClawGame Roadmap
 
-## Current Status: Milestone 3 (2D Runtime + Preview) - COMPLETED ✅
+## Current Status: Milestone 5 (AI-Native UX Foundation) - IN PROGRESS 🚧
 
-**Goal:** Create basic playable 2D games with live preview.
+**Goal:** Make AI feel native and omnipresent. Fix UX gaps. Polish.
 
-**Status:** ✅ Complete - Core engine and preview functionality working
-
-### Completed Features
-- ✅ Engine: 2D game loop with delta time
-- ✅ Engine: Keyboard input (arrow keys + WASD)
-- ✅ Engine: Entity rendering with shadows and highlights
-- ✅ Engine: Player movement with bounds checking
-- ✅ Engine: AI patrol patterns for enemies
-- ✅ Frontend: Game preview page with canvas
-- ✅ Frontend: Play/Stop/Reset controls
-- ✅ Frontend: FPS counter and debug panel
-- ✅ Frontend: Fixed critical bugs (keyboard input, editor content visibility)
-- ✅ Frontend: Responsive canvas design
+**Started:** 2026-04-07 19:00 UTC
 
 ---
 
-## Current Phase: Quality & AI Integration 🚧
+## Completed Milestones
 
-**Goal:** Improve UX, fix remaining issues, connect AI services
+### Milestone 1: Foundation ✅
+- Monorepo scaffold (pnpm workspaces)
+- React + Vite frontend, Fastify backend
+- Project CRUD API
+- Design system tokens
 
-## Recent Progress
-- **Version 0.3.2**: Critical bugs fixed
-- **Quality Improvements:** Fixed overlapping HUD, working debug panel
-- **Documentation:** Updated project memory and sprint tracking
-- **Build Status:** Working TypeScript compilation, clean builds
+### Milestone 2: Code Workspace ✅
+- File workspace with tree, editor, search
+- Backend file API
+- CodeMirror 6 integration
+- AI command panel scaffold
+
+### Milestone 3: 2D Runtime + Preview ✅
+- 2D game engine with delta time, game loop
+- Keyboard input (WASD + arrows)
+- Entity rendering, player movement, AI patrol
+- Game preview page with canvas, FPS counter, debug panel
+
+### Milestone 4: Visual Scene Editor ✅
+- Canvas-based visual editor with zoom/pan
+- Entity templates (Player, Enemy, Coin, Wall)
+- Property inspector (Transform, Components)
+- Scene save/load as JSON
+- Keyboard shortcuts, grid, snapping
+
+### Milestone 4.1: Quality Fixes ✅
+- Code editor visibility fixed
+- Dark mode contrast (WCAG AA)
+- AI Command honest preview mode
+- Fullscreen preview toggle
+- Focus indicators for accessibility
+
+### Milestone 4.5: AI-Native UX Foundation ✅ (v0.5.0)
+- Command Palette (Ctrl+K)
+- Floating AI assistant (FAB)
+- Toast notification system
+- Code-splitting (lazy pages, vendor chunks)
+- Sidebar command search bar
 
 ---
 
-## Next Phase: Milestone 4 (Scene Editor) 🎯
+## Current Phase: Milestone 5 — Asset Pipeline + Real AI 🎯
 
-**Goal:** Visual 2D scene editing component-based workflow
+**Goal:** Connect real AI services and asset generation
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Scene canvas editor | 📋 Not Started | Visual scene editor with entity manipulation |
-| Component inspector | 📋 Not Started | Edit entity properties visually |
-| Entity management | 📋 Not Started | Add/remove entities, set properties |
-| Scene save/load | 📋 Not Started | JSON-based scene persistence |
-| Enhanced debug panel | 📋 In Progress | Debug panel now functional, needs more features |
+| AI backend integration | ⏳ Not Started | Connect real LLM for code generation |
+| Toast integration in editors | ⏳ Not Started | Add toasts to save/load/create actions |
+| Asset generation workflow | ⏳ Not Started | ComfyUI or placeholder generation |
+| Enhanced onboarding | ⏳ Not Started | Welcome flow, template gallery |
 
 ---
 
 ## Future Milestones
 
-### Milestone 5: Asset Pipeline 🛠️
-
-**Goal:** AI-generated assets via ComfyUI integration
-
-| Task | Status | Notes |
-|------|--------|-------|
-| ComfyUI API integration | ⏳ Not Started | Connect to ComfyUI backend |
-| Asset generation workflow | ⏳ Not Started | Prompt generation, asset creation |
-| Asset library management | ⏳ Not Started | Store and organize generated assets |
-| Texture/animation export | ⏳ Not Started | Export assets for game use |
-
 ### Milestone 6: Git + OpenClaw Operations 🔄
-
-**Goal:** Native version control and agent-native operations
 
 | Task | Status | Notes |
 |------|--------|-------|
 | Git integration UI | ⏳ Not Started | Git interface in web dashboard |
-- Auto-commit on save | ⏳ Not Started | Auto-commit code changes
-- Branch management | ⏳ Not Started | Create/switch branches
-- Commit history | ⏳ Not Started | Visual commit timeline
-- OpenClaw ops | ⏳ Not Started | Agent-native version control
+| Auto-commit on save | ⏳ Not Started | Auto-commit code changes |
+| Branch management | ⏳ Not Started | Create/switch branches |
 
-### Milestone 7: AI-First Platform ✨
-
-**Goal:** Full AI integration for game development
+### Milestone 7: Visual Scripting ✨
 
 | Task | Status | Notes |
 |------|--------|-------|
-- Real AI backend | 🚧 Critical Next | Connect AI service for real code generation
-- AI code completion | ⏳ Not Started | Smart autocomplete and suggestions
-- Visual scripting | ⏳ Not Started | Drag-and-drop event system
-- AI assistant chat | 🚧 In Progress | Interface exists, needs backend
-- Performance prediction | ⏳ Not Started | AI optimization suggestions
+| Node-based event system | ⏳ Not Started | Visual scripting editor |
+| AI-assisted scripting | ⏳ Not Started | AI generates visual logic |
+| Debug visualizer | ⏳ Not Started | Visual debugging tools |
 
 ---
 
@@ -89,46 +88,31 @@
 
 | Criteria | Status | Notes |
 |----------|--------|-------|
-| ✅ User can create a project from browser | Complete | Project creation works |
-| ✅ User can describe a feature and AI implements it | Mock | Interface exists, needs backend |
-| ✅ User can inspect AI-made file changes | Complete | CodeMirror editor works |
-| ✅ User can run game in browser preview | Complete | 2D engine with canvas preview |
-| ✅ User can visually edit a 2D scene | Next sprint | M4 Scene Editor planned |
-| ✅ User can generate an asset via ComfyUI | Future | M5 Asset Pipeline |
-| ✅ User can init and commit to Git | Future | M6 Git + OpenClaw |
-| ✅ Project has stable metadata for OpenClaw | Complete | Multi-agent system working |
-| ✅ Sample game template can be created and modified | Complete | Demo scene works |
-
----
-
-## Quality Gates
-
-| Area | Rating | Gap |
-|------|--------|-----|
-| Code Quality | B+ | Clean but needs testing coverage |
-| Documentation | D+ | Just updated, still needs more detail |
-| AI Integration | C | Interface good, backend missing |
-| User Experience | B- | Core functionality works, UX polish needed |
-| Performance | B | Good FPS, but bundle size high |
+| ✅ User can create a project from browser | Complete | Dashboard → Create Project flow |
+| ✅ User can inspect file changes in editor | Complete | CodeMirror with syntax highlighting |
+| ✅ User can run game in browser preview | Complete | 2D canvas with FPS/debug |
+| ✅ User can visually edit a 2D scene | Complete | Scene editor with drag-drop |
+| 🚧 User can describe feature and AI implements | In Progress | Interface ready, backend pending |
+| ⏳ User can generate an asset via AI | Future | M5 Asset Pipeline |
+| ⏳ User can init and commit to Git | Future | M6 Git + OpenClaw |
 
 ---
 
 ## Known Issues & Technical Debt
 
-1. **Documentation Debt:** All project docs now updated
-2. **Bundle Size:** 766KB > 500KB threshold
-3. **AI Service:** Mock responses only
-4. **File Tree:** Needs file watcher for auto-refresh
-5. **Debug Features:** More options needed beyond grid/hitboxes
+1. **AI Service:** Mock responses — backend integration pending
+2. **Bundle Size:** Resolved via code-splitting (largest chunk: 496KB CodeMirror vendor)
+3. **File Tree:** Needs file watcher for auto-refresh
+4. **No Sprite Image Loading:** Scene editor uses color placeholders only
+5. **No Undo/Redo:** Scene editor and editor pages lack undo history
 
 ---
 
 See also:
 - [Current Sprint](../tasks/current_sprint.md)
-- [Agent Messages](../ai/agent_messages.md)
-- [Game Dev Feedback](../ai/game_dev_feedback.md)
+- [Backlog](../tasks/backlog.md)
 - [PM Feedback](../ai/pm_feedback.md)
 - [UI/UX Feedback](../ai/uiux_feedback.md)
+- [Game Dev Feedback](../ai/game_dev_feedback.md)
 
 ## Last Updated: 2026-04-07
-*Roadmap updated to reflect completed Milestone 3 and current quality improvements.*

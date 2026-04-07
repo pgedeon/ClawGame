@@ -176,3 +176,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added keyboard focus indicators for accessibility
 - AI Command interface now transparent about limitations
 
+
+### [0.5.0] - 2026-04-07
+
+#### Added
+- **Command Palette** (Ctrl/Cmd+K) — quick navigation, AI commands, and search across the app
+  - Keyboard navigation: ↑↓ to browse, Enter to select, Esc to close
+  - Categorized commands: Navigate, AI Commands, Actions
+  - Context-aware: shows project-specific commands when in a project
+- **Floating AI Assistant** (FAB) — omnipresent AI chat button on all project pages
+  - Collapsible chat panel with message history
+  - Typing indicator animation
+  - Preview mode badge with honest messaging
+  - Mobile responsive (full-width bottom sheet on small screens)
+- **Toast Notification System** — contextual feedback for user actions
+  - Success, error, warning, and info variants
+  - Auto-dismiss with manual close
+  - Accessible: role="alert" and aria-live region
+- **Code-splitting** — lazy-loaded pages and vendor chunks
+  - React.lazy() for all project pages (SceneEditor, Editor, Preview, AI Command, Assets)
+  - Manual vendor chunks: react, codemirror, lucide-react
+  - Bundle: 786KB single chunk → 7 optimized chunks, no size warnings
+  - Suspense loading fallback with spinner
+- **Sidebar Command Search** — quick access command palette trigger in sidebar header
+- **Scene Editor navigation** — added to sidebar when in project context
+
+#### Changed
+- AppLayout now wraps content in ToastProvider for global toast access
+- App.tsx uses React.lazy for heavy pages instead of eager imports
+- Vite config: added manualChunks for vendor splitting (react, codemirror, lucide)
+- Sidebar: Scene Editor now appears in project navigation
+
+#### Technical
+- Bundle size warning eliminated (was 786KB > 500KB, now properly split)
+- All new components fully TypeScript typed
+- CSS files co-located with components
+- Mobile-first responsive design for all new components

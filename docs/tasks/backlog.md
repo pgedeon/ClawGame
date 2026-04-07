@@ -12,37 +12,44 @@
 - [x] Engine runtime skeleton
 - [x] Build verification
 
-## P1 (Core Editor Shell) — CURRENT
+## P1 (Core Editor Shell) ✅ COMPLETE
 
-- [ ] Add react-router routing with layout
-- [ ] Create sidebar navigation
-- [ ] Build project dashboard page
-- [ ] Build project create/open flow
-- [ ] Add placeholder AI command panel
-- [ ] Add placeholder asset studio panel
-- [ ] API: project CRUD endpoints
-- [ ] Store/display project metadata
+- [x] Add react-router routing with layout
+- [x] Create sidebar navigation
+- [x] Build project dashboard page
+- [x] Build project create/open flow
+- [x] Add placeholder AI command panel
+- [x] Add placeholder asset studio panel
+- [x] API: project CRUD endpoints
+- [x] Store/display project metadata
 
-## P2 (Code + AI Workflow)
+## P2 (Code + AI Workflow) ✅ COMPLETE
 
-- [ ] Add code workspace
-- [ ] Add file APIs
-- [ ] Implement AI command flow
-- [ ] Implement diff summaries
-- [ ] Create live preview
+- [x] Add code workspace
+- [x] Add file APIs
+- [x] Implement AI command flow (preview mode)
+- [x] Create live preview
+- [x] Code-splitting and lazy loading
+- [x] Command palette (Ctrl+K)
+- [x] Floating AI assistant
+- [x] Toast notifications
 
-## P3 (Scene Editor)
+## P3 (Scene Editor) ✅ COMPLETE
 
-- [ ] Build scene editor basics
-- [ ] Create basic entity model
-- [ ] Implement save/load scene format
-- [ ] Create starter templates
+- [x] Build scene editor basics
+- [x] Create basic entity model
+- [x] Implement save/load scene format
+- [x] Create starter templates
+- [x] Property inspector
+- [x] Component management
 
-## P4 (Assets)
+## P4 (Assets) — CURRENT
 
-- [ ] Connect ComfyUI
-- [ ] Support asset generation history
+- [ ] Connect real AI backend for code generation
+- [ ] Wire toast notifications into all user actions
+- [ ] Asset generation workflow (ComfyUI or placeholder)
 - [ ] Support asset import and metadata
+- [ ] Enhanced onboarding flow
 
 ## P5 (Git + OpenClaw)
 

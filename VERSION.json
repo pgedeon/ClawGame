@@ -1,8 +1,8 @@
 {
-  "version": "0.4.1",
-  "codename": "scene-editor",
-  "milestone": 4,
-  "milestoneName": "Visual Scene Editor",
+  "version": "0.5.0",
+  "codename": "ai-native-ux",
+  "milestone": 5,
+  "milestoneName": "AI-Native UX Foundation",
   "releaseDate": "2026-04-07",
-  "status": "completed"
+  "status": "in-progress"
 }
