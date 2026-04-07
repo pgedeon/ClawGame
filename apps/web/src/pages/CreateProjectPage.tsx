@@ -24,7 +24,6 @@ export function CreateProjectPage() {
     
     try {
       const response = await api.createProject(formData);
-      console.log('Project created:', response);
       // Navigate to the new project
       navigate(`/project/${response.id}/editor`);
     } catch (err) {

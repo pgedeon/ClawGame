@@ -24,7 +24,7 @@ export function FileWorkspace({ projectId, className }: FileWorkspaceProps) {
   };
 
   const handleSave = (content: string) => {
-    console.log(`File saved: ${selectedFile}`, content.length);
+    // File save completed successfully
   };
 
   const handleSearch = async () => {
