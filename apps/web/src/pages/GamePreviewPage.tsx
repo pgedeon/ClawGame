@@ -1,3 +1,7 @@
+/**
+ * @clawgame/web - Game Preview Page
+ */
+
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api/client';
@@ -100,6 +104,8 @@ function GamePreviewContent({ projectId }: GamePreviewPageProps) {
     const playerComponents = new Map();
     playerComponents.set('movement', playerMovement);
     playerComponents.set('sprite', playerSprite);
+    // MARK this entity as player-controlled so MovementSystem applies keyboard input
+    playerComponents.set('playerInput', true);
 
     const playerEntity: Entity = {
       id: 'player-1',

@@ -16,7 +16,7 @@ export class InputSystem {
   }
 
   /**
-   * Attach event listeners
+   * Attach event listeners to the window
    */
   attach(): void {
     if (this.bound) return;
@@ -35,6 +35,7 @@ export class InputSystem {
     window.removeEventListener('keydown', this.handleKeyDown);
     window.removeEventListener('keyup', this.handleKeyUp);
     this.bound = false;
+    this.reset();
   }
 
   /**
@@ -45,23 +46,35 @@ export class InputSystem {
   }
 
   private handleKeyDown = (e: KeyboardEvent): void => {
+    let handled = false;
+
     switch (e.code) {
       case 'ArrowUp':
       case 'KeyW':
         this.state.up = true;
+        handled = true;
         break;
       case 'ArrowDown':
       case 'KeyS':
         this.state.down = true;
+        handled = true;
         break;
       case 'ArrowLeft':
       case 'KeyA':
         this.state.left = true;
+        handled = true;
         break;
       case 'ArrowRight':
       case 'KeyD':
         this.state.right = true;
+        handled = true;
         break;
+    }
+
+    // Prevent default browser behavior (scrolling, etc.) for game keys
+    // Only when we're not in an input/textarea/contenteditable element
+    if (handled && !this.isEditableElement(e.target as Element)) {
+      e.preventDefault();
     }
   };
 
@@ -85,4 +98,28 @@ export class InputSystem {
         break;
     }
   };
+
+  /**
+   * Check if the event target is an editable element (input, textarea, contenteditable)
+   * In those cases we don't want to preventDefault or steal keyboard input.
+   */
+  private isEditableElement(element: Element | null): boolean {
+    if (!element) return false;
+
+    const tagName = element.tagName.toLowerCase();
+    if (tagName === 'input' || tagName === 'textarea' || tagName === 'select') {
+      return true;
+    }
+
+    if (element.getAttribute('contenteditable') === 'true') {
+      return true;
+    }
+
+    // Check for CodeMirror editor
+    if (element.closest('.cm-editor') || element.closest('.CodeMirror')) {
+      return true;
+    }
+
+    return false;
+  }
 }

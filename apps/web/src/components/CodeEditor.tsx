@@ -1,6 +1,10 @@
+/**
+ * @clawgame/web - Code Editor Component
+ */
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter } from '@codemirror/view';
-import { EditorState, Compartment } from '@codemirror/state';
+import { EditorState, Extension } from '@codemirror/state';
 import { javascript } from '@codemirror/lang-javascript';
 import { json } from '@codemirror/lang-json';
 import { css } from '@codemirror/lang-css';
@@ -22,14 +26,15 @@ interface CodeEditorProps {
   className?: string;
 }
 
-function getLanguageExtension(filePath: string) {
+function getLanguageExtension(filePath: string): Extension {
   const ext = filePath.split('.').pop()?.toLowerCase() || '';
   switch (ext) {
     case 'js':
     case 'jsx':
+      return javascript({ jsx: true });
     case 'ts':
     case 'tsx':
-      return javascript({ jsx: true, typescript: ext.startsWith('t') });
+      return javascript({ jsx: true, typescript: true });
     case 'json':
       return json();
     case 'css':
@@ -58,8 +63,12 @@ export function CodeEditor({ projectId, filePath, onSave, readOnly = false, clas
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const contentRef = useRef(content);
-  const hasChangesRef = useRef(false);
-  const focusEditorRef = useRef<(() => void) | null>(null);
+  const needsFocus = useRef(false);
+
+  // Keep content ref in sync
+  useEffect(() => {
+    contentRef.current = content;
+  }, [content]);
 
   // Load file content when file path changes
   useEffect(() => {
@@ -69,16 +78,11 @@ export function CodeEditor({ projectId, filePath, onSave, readOnly = false, clas
 
   // Focus editor when content is loaded
   useEffect(() => {
-    if (!isLoading && viewRef.current && focusEditorRef.current) {
-      focusEditorRef.current();
-      focusEditorRef.current = null;
+    if (!isLoading && viewRef.current && needsFocus.current) {
+      viewRef.current.focus();
+      needsFocus.current = false;
     }
   }, [isLoading]);
-
-  // Keep ref in sync
-  useEffect(() => {
-    contentRef.current = content;
-  }, [content]);
 
   const loadFileContent = async () => {
     if (!filePath) return;
@@ -89,22 +93,7 @@ export function CodeEditor({ projectId, filePath, onSave, readOnly = false, clas
       const newContent = response.content;
       setContent(newContent);
       setHasChanges(false);
-      hasChangesRef.current = false;
-
-      // Schedule focus after content loads
-      focusEditorRef.current = () => {
-        if (viewRef.current) {
-          viewRef.current.focus();
-        }
-      };
-
-      // Update editor content if view exists
-      if (viewRef.current) {
-        const currentState = viewRef.current.state;
-        viewRef.current.dispatch({
-          changes: { from: 0, to: currentState.doc.length, insert: newContent }
-        });
-      }
+      needsFocus.current = true;
     } catch (err) {
       console.error('Failed to load file:', err);
       setContent('');
@@ -114,13 +103,12 @@ export function CodeEditor({ projectId, filePath, onSave, readOnly = false, clas
   };
 
   const handleSave = useCallback(async () => {
-    if (!filePath || isSaving || !hasChangesRef.current) return;
+    if (!filePath || isSaving || !hasChanges) return;
 
     setIsSaving(true);
     try {
       await api.writeFile(projectId, filePath, contentRef.current);
       setHasChanges(false);
-      hasChangesRef.current = false;
       setLastSaved(new Date().toLocaleTimeString());
       onSave?.(contentRef.current);
     } catch (err) {
@@ -157,7 +145,7 @@ export function CodeEditor({ projectId, filePath, onSave, readOnly = false, clas
     const langExt = getLanguageExtension(filePath);
     const dark = isDarkMode();
 
-    const extensions = [
+    const extensions: Extension[] = [
       lineNumbers(),
       highlightActiveLineGutter(),
       highlightActiveLine(),
@@ -187,18 +175,12 @@ export function CodeEditor({ projectId, filePath, onSave, readOnly = false, clas
         if (update.docChanged) {
           const newContent = update.state.doc.toString();
           setContent(newContent);
-          contentRef.current = newContent;
           setHasChanges(true);
-          hasChangesRef.current = true;
         }
       }),
     ];
 
-    if (Array.isArray(langExt)) {
-      extensions.push(...langExt);
-    } else {
-      extensions.push(langExt);
-    }
+    extensions.push(langExt);
 
     if (dark) {
       extensions.push(oneDark);
@@ -220,13 +202,19 @@ export function CodeEditor({ projectId, filePath, onSave, readOnly = false, clas
 
     viewRef.current = view;
 
+    // Focus if needed
+    if (needsFocus.current) {
+      view.focus();
+      needsFocus.current = false;
+    }
+
     return () => {
       if (viewRef.current) {
         viewRef.current.destroy();
         viewRef.current = null;
       }
     };
-  }, [filePath, content, readOnly, handleSave]);
+  }, [filePath, readOnly, content, handleSave]);
 
   // Cleanup on unmount
   useEffect(() => {
