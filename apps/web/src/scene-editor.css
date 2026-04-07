@@ -1,0 +1,474 @@
+/**
+ * @clawgame/web - Scene Editor Styles
+ * Visual editor for 2D scenes with entity placement and property editing
+ */
+
+.scene-editor-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.scene-editor-page .page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.scene-editor-page .project-info h1 {
+  margin: 0;
+  font-size: var(--text-2xl);
+  font-weight: 600;
+}
+
+.scene-editor-page .project-info p {
+  margin: var(--space-xs) 0 0 0;
+  font-size: var(--text-sm);
+  color: var(--fg-secondary);
+}
+
+.scene-editor-page .project-name {
+  font-weight: 500;
+  color: var(--primary);
+}
+
+.scene-editor-page .editor-controls {
+  display: flex;
+  gap: var(--space-md);
+  align-items: center;
+}
+
+.scene-editor-page .tool-bar {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.scene-editor-page .tool-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--fg);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  transition: all 0.2s;
+}
+
+.scene-editor-page .tool-btn:hover {
+  background: var(--surface-alt-2);
+}
+
+.scene-editor-page .tool-btn.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.scene-editor-page .zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+}
+
+.scene-editor-page .zoom-controls button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--text-lg);
+  color: var(--fg-secondary);
+  padding: 0 var(--space-xs);
+  min-width: 24px;
+}
+
+.scene-editor-page .zoom-controls button:hover {
+  color: var(--primary);
+}
+
+.scene-editor-page .zoom-controls span {
+  min-width: 48px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.scene-editor-page .view-options {
+  display: flex;
+  gap: var(--space-md);
+}
+
+.scene-editor-page .option-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  user-select: none;
+}
+
+.scene-editor-page .option-toggle input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.scene-editor-page .save-btn {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.scene-editor-page .save-btn:hover {
+  background: var(--primary-hover);
+}
+
+.scene-editor-page .error-banner {
+  padding: var(--space-md) var(--space-lg);
+  background: #fee2e2;
+  color: #991b1b;
+  border-bottom: 1px solid #fecaca;
+}
+
+.scene-editor-page .scene-editor-container {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.scene-editor-page .entity-templates {
+  position: absolute;
+  left: var(--space-lg);
+  top: 140px;
+  z-index: 10;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  min-width: 200px;
+}
+
+.scene-editor-page .entity-templates h3 {
+  margin: 0 0 var(--space-md) 0;
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.scene-editor-page .template-grid {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.scene-editor-page .template-btn {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--fg);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.scene-editor-page .template-btn:hover {
+  background: var(--surface-alt-2);
+  border-color: var(--primary);
+}
+
+.scene-editor-page .template-btn.selected {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.scene-editor-page .hint {
+  margin: var(--space-md) 0 0 0;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  line-height: var(--leading-normal);
+}
+
+.scene-editor-page .canvas-container {
+  flex: 1;
+  position: relative;
+  background: #f9fafb;
+  overflow: hidden;
+}
+
+.scene-editor-page .scene-canvas {
+  display: block;
+  cursor: default;
+}
+
+.scene-editor-page .scene-canvas:active {
+  cursor: grabbing;
+}
+
+.scene-editor-page .inspector-panel {
+  width: 320px;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  padding: var(--space-md);
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.scene-editor-page .inspector-section {
+  margin-bottom: var(--space-lg);
+}
+
+.scene-editor-page .inspector-section h3 {
+  margin: 0 0 var(--space-md) 0;
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.scene-editor-page .entity-info,
+.scene-editor-page .property-row {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: var(--space-sm);
+  align-items: center;
+  margin-bottom: var(--space-sm);
+}
+
+.scene-editor-page .entity-info label,
+.scene-editor-page .property-row label {
+  font-size: var(--text-sm);
+  color: var(--fg-secondary);
+  font-weight: 500;
+}
+
+.scene-editor-page .entity-info input,
+.scene-editor-page .property-row input {
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--fg);
+  font-size: var(--text-sm);
+  width: 100%;
+}
+
+.scene-editor-page .entity-info input.readonly {
+  background: var(--surface-alt-2);
+  color: var(--fg-secondary);
+  cursor: not-allowed;
+}
+
+.scene-editor-page .entity-info input:focus,
+.scene-editor-page .property-row input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.scene-editor-page .component-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.scene-editor-page .component-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-sm);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.scene-editor-page .component-name {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--fg);
+}
+
+.scene-editor-page .component-item .remove-btn {
+  background: none;
+  border: none;
+  color: var(--error);
+  cursor: pointer;
+  padding: var(--space-xs);
+  font-size: var(--text-sm);
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.scene-editor-page .component-item .remove-btn:hover {
+  opacity: 1;
+}
+
+.scene-editor-page .component-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+}
+
+.scene-editor-page .component-buttons button {
+  padding: var(--space-sm);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--fg);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  transition: all 0.2s;
+}
+
+.scene-editor-page .component-buttons button:hover:not(:disabled) {
+  background: var(--surface-alt-2);
+  border-color: var(--primary);
+}
+
+.scene-editor-page .component-buttons button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.scene-editor-page .action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.scene-editor-page .action-buttons button {
+  padding: var(--space-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--fg);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  transition: all 0.2s;
+}
+
+.scene-editor-page .action-buttons .danger-btn {
+  background: #fee2e2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+.scene-editor-page .action-buttons .danger-btn:hover {
+  background: #fecaca;
+}
+
+.scene-editor-page .action-buttons .duplicate-btn {
+  background: var(--surface-alt);
+}
+
+.scene-editor-page .action-buttons .duplicate-btn:hover {
+  background: var(--surface-alt-2);
+  border-color: var(--primary);
+}
+
+.scene-editor-page .inspector-placeholder {
+  text-align: center;
+  padding: var(--space-2xl) var(--space-md);
+  color: var(--fg-secondary);
+}
+
+.scene-editor-page .inspector-placeholder p {
+  margin: var(--space-sm) 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.scene-editor-page .entity-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.scene-editor-page .entity-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scene-editor-page .entity-list::-webkit-scrollbar-track {
+  background: var(--surface-alt);
+  border-radius: var(--radius-sm);
+}
+
+.scene-editor-page .entity-list::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+
+.scene-editor-page .entity-item {
+  padding: var(--space-sm);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--fg);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  text-align: left;
+  transition: all 0.2s;
+  font-family: var(--font-mono);
+}
+
+.scene-editor-page .entity-item:hover {
+  background: var(--surface-alt-2);
+  border-color: var(--primary);
+}
+
+.scene-editor-page .entity-item.selected {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.scene-editor-page .loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  font-size: var(--text-lg);
+  color: var(--fg-secondary);
+}
+
+.scene-editor-page .error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  text-align: center;
+  padding: var(--space-xl);
+}
+
+.scene-editor-page .error-icon {
+  font-size: 4rem;
+  margin-bottom: var(--space-md);
+}
+
+.scene-editor-page .error-state h3 {
+  margin: 0 0 var(--space-sm) 0;
+  font-size: var(--text-2xl);
+  color: var(--fg);
+}
+
+.scene-editor-page .error-state p {
+  margin: 0;
+  font-size: var(--text-base);
+  color: var(--fg-secondary);
+}

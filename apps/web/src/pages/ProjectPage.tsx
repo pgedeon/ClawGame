@@ -162,8 +162,11 @@ export function ProjectPage() {
             <Link to={`/project/${project.id}/preview`} className="play-button">
               🎮 Play Game
             </Link>
-            <Link to={`/project/${project.id}/editor`} className="primary-button">
-              Open Editor
+            <Link to={`/project/${project.id}/scene-editor`} className="primary-button">
+              🎨 Scene Editor
+            </Link>
+            <Link to={`/project/${project.id}/editor`} className="secondary-button">
+              Code Editor
             </Link>
             <Link to={`/project/${project.id}/ai`} className="secondary-button">
               AI Command

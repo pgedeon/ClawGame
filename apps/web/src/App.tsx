@@ -7,6 +7,7 @@ import { OpenProjectPage } from './pages/OpenProjectPage';
 import { ExamplesPage } from './pages/ExamplesPage';
 import { ProjectPage } from './pages/ProjectPage';
 import { EditorPage } from './pages/EditorPage';
+import { SceneEditorPage } from './pages/SceneEditorPage';
 import { AICommandPage } from './pages/AICommandPage';
 import { AssetStudioPage } from './pages/AssetStudioPage';
 import { GamePreviewPage } from './pages/GamePreviewPage';
@@ -24,6 +25,7 @@ function App() {
           <Route path="examples" element={<ExamplesPage />} />
           <Route path="project/:projectId" element={<ProjectPage />} />
           <Route path="project/:projectId/editor" element={<EditorPage />} />
+          <Route path="project/:projectId/scene-editor" element={<SceneEditorPage />} />
           <Route path="project/:projectId/ai" element={<AICommandPage />} />
           <Route path="project/:projectId/assets" element={<AssetStudioPage />} />
           <Route path="project/:projectId/preview" element={<GamePreviewPage />} />
