@@ -11,6 +11,7 @@ interface GamePreviewPageProps {
 
 function GamePreviewContent({ projectId }: GamePreviewPageProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasWrapperRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<Engine | null>(null);
   const [projectName, setProjectName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -52,7 +53,7 @@ function GamePreviewContent({ projectId }: GamePreviewPageProps) {
       id: 'enemy-1',
       name: 'Enemy',
       components: [
-        { type: 'ai', data: { pattern: 'patrol' } },
+        { type: 'ai', data: { pattern: 'patrol', range: 120 } },
         { type: 'sprite', data: { color: '#ff3366', width: 24, height: 24 } }
       ],
       transform: { x: 400, y: 150, rotation: 0, scaleX: 1, scaleY: 1 }
@@ -66,6 +67,16 @@ function GamePreviewContent({ projectId }: GamePreviewPageProps) {
         { type: 'sprite', data: { color: '#ffcc00', width: 16, height: 16 } }
       ],
       transform: { x: 300, y: 200, rotation: 0, scaleX: 1, scaleY: 1 }
+    };
+
+    const coinEntity2: Entity = {
+      id: 'coin-2',
+      name: 'Coin',
+      components: [
+        { type: 'collectible', data: { value: 10 } },
+        { type: 'sprite', data: { color: '#ffcc00', width: 16, height: 16 } }
+      ],
+      transform: { x: 500, y: 200, rotation: 0, scaleX: 1, scaleY: 1 }
     };
 
     const groundEntity: Entity = {
@@ -82,13 +93,13 @@ function GamePreviewContent({ projectId }: GamePreviewPageProps) {
       id: 'layer-main',
       name: 'Main',
       visible: true,
-      entityIds: ['player-1', 'enemy-1', 'coin-1', 'ground-1']
+      entityIds: ['player-1', 'enemy-1', 'coin-1', 'coin-2', 'ground-1']
     };
 
     return {
       id: 'scene-demo',
       name: 'Demo Scene',
-      entities: [playerEntity, enemyEntity, coinEntity, groundEntity],
+      entities: [playerEntity, enemyEntity, coinEntity, coinEntity2, groundEntity],
       layers: [mainLayer]
     };
   };
@@ -108,6 +119,11 @@ function GamePreviewContent({ projectId }: GamePreviewPageProps) {
       engineRef.current = engine;
       setIsPlaying(true);
       setError(null);
+      
+      // Focus canvas wrapper for keyboard events
+      if (canvasWrapperRef.current) {
+        canvasWrapperRef.current.focus();
+      }
       
       // FPS counter
       let frameCount = 0;
@@ -190,7 +206,13 @@ function GamePreviewContent({ projectId }: GamePreviewPageProps) {
       )}
 
       <div className="game-container">
-        <div className="canvas-wrapper">
+        <div 
+          className="canvas-wrapper" 
+          ref={canvasWrapperRef}
+          tabIndex={0}
+          onClick={() => canvasWrapperRef.current?.focus()}
+          style={{ outline: 'none' }}
+        >
           <canvas
             ref={canvasRef}
             width={800}
@@ -203,8 +225,15 @@ function GamePreviewContent({ projectId }: GamePreviewPageProps) {
               <div className="overlay-content">
                 <h2>🚀 Ready to Play</h2>
                 <p>Click the Play button to start the game preview</p>
-                <p className="hint">Use arrow keys or WASD to move</p>
+                <p className="hint">Use arrow keys or WASD to move the player</p>
+                <p className="hint">The canvas will capture keyboard input when playing</p>
               </div>
+            </div>
+          )}
+          
+          {isPlaying && (
+            <div className="playing-hint">
+              Click here and use arrow keys / WASD to move
             </div>
           )}
         </div>
@@ -220,11 +249,15 @@ function GamePreviewContent({ projectId }: GamePreviewPageProps) {
             </div>
             <div className="info-item">
               <span>Canvas:</span>
-              <span>800 x 600</span>
+              <span>800 × 600</span>
             </div>
             <div className="info-item">
               <span>Renderer:</span>
               <span>Canvas 2D</span>
+            </div>
+            <div className="info-item">
+              <span>Entities:</span>
+              <span>5 (player, enemy, 2 coins, ground)</span>
             </div>
           </div>
           
@@ -233,15 +266,15 @@ function GamePreviewContent({ projectId }: GamePreviewPageProps) {
             <div className="controls-list">
               <div className="control-item">
                 <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd>
-                <span>Move</span>
+                <span>Move player</span>
               </div>
               <div className="control-item">
                 <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd>
-                <span>Move</span>
+                <span>Move player</span>
               </div>
               <div className="control-item">
                 <kbd>Space</kbd>
-                <span>Action</span>
+                <span>Action (coming soon)</span>
               </div>
             </div>
           </div>
@@ -272,8 +305,9 @@ export function GamePreviewPage() {
   if (!projectId) {
     return (
       <div className="game-preview-page">
-        <div className="error">
-          <h2>No Project Selected</h2>
+        <div className="error-state">
+          <div className="error-icon">🎮</div>
+          <h3>No Project Selected</h3>
           <p>Please open a project first to preview the game.</p>
         </div>
       </div>

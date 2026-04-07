@@ -26,7 +26,7 @@
 }
 
 .game-preview-page .project-name {
-  color: var(--accent-primary);
+  color: var(--accent);
   font-weight: 600;
 }
 
@@ -248,7 +248,7 @@
 }
 
 .checkbox-label input {
-  accent-color: var(--accent-primary);
+  accent-color: var(--accent);
 }
 
 .loading {
@@ -276,4 +276,31 @@
 .error p {
   margin: 0;
   color: var(--text-secondary);
+}
+
+/* Playing hint bar */
+.playing-hint {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.75);
+  color: rgba(255, 255, 255, 0.8);
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 10;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Canvas wrapper focus state */
+.canvas-wrapper:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
 }

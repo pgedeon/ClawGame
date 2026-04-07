@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, Outlet } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { PlusCircle, FolderOpen, BookOpen } from 'lucide-react';
 import { api, type ProjectListItem } from '../api/client';
 
 export function DashboardPage() {
@@ -31,20 +32,23 @@ export function DashboardPage() {
     {
       to: '/create-project',
       label: 'New Project',
-      icon: '➕',
-      description: 'Start a new game project',
+      icon: PlusCircle,
+      description: 'Start a new game project with AI assistance',
+      primary: true,
     },
     {
       to: '/open-project',
       label: 'Open Project',
-      icon: '📁',
-      description: 'Open existing project',
+      icon: FolderOpen,
+      description: 'Open an existing project',
+      primary: false,
     },
     {
       to: '/examples',
       label: 'Examples',
-      icon: '📚',
-      description: 'Browse sample templates',
+      icon: BookOpen,
+      description: 'Browse sample game templates',
+      primary: false,
     },
   ];
 
@@ -61,13 +65,12 @@ export function DashboardPage() {
   if (error) {
     return (
       <div className="dashboard-page">
-        <div className="error" style={{ textAlign: 'center', padding: '2rem' }}>
-          <p style={{ color: '#d32f2f', marginBottom: '1rem' }}>{error}</p>
-          <button 
-            onClick={loadProjects}
-            className="primary-button"
-          >
-            Retry
+        <div className="error-state">
+          <div className="error-icon">⚠️</div>
+          <h3>Failed to load projects</h3>
+          <p>{error}</p>
+          <button onClick={loadProjects} className="error-retry-btn">
+            Try Again
           </button>
         </div>
       </div>
@@ -84,17 +87,20 @@ export function DashboardPage() {
       <div className="quick-actions">
         <h2>Quick Actions</h2>
         <div className="action-grid">
-          {quickActionLinks.map((action) => (
-            <Link
-              key={action.to}
-              to={action.to}
-              className="action-card"
-            >
-              <span className="action-icon">{action.icon}</span>
-              <h3 className="action-title">{action.label}</h3>
-              <p className="action-description">{action.description}</p>
-            </Link>
-          ))}
+          {quickActionLinks.map((action) => {
+            const Icon = action.icon;
+            return (
+              <Link
+                key={action.to}
+                to={action.to}
+                className={`action-card ${action.primary ? 'primary' : ''}`}
+              >
+                <Icon size={28} className="action-icon-svg" />
+                <h3 className="action-title">{action.label}</h3>
+                <p className="action-description">{action.description}</p>
+              </Link>
+            );
+          })}
         </div>
       </div>
 
@@ -102,13 +108,13 @@ export function DashboardPage() {
         <h2>Your Projects</h2>
         {projects.length === 0 ? (
           <div className="projects-empty">
-            <p>No projects yet. Create your first game project!</p>
-            <div className="demo-create">
-              <p className="demo-hint">Or try our demo:</p>
-              <Link to="/project/demo-project-123" className="cta-button">
-                View Demo Project
-              </Link>
-            </div>
+            <div className="empty-icon">🎮</div>
+            <h3>No projects yet</h3>
+            <p>Create your first game project and let AI help you build it!</p>
+            <Link to="/create-project" className="cta-button">
+              <PlusCircle size={16} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
+              Create Your First Game
+            </Link>
           </div>
         ) : (
           <div className="projects-list">
