@@ -1,10 +1,10 @@
 # ClawGame License
 
-**Version 1.0**
+**Version 1.1**
 
 ## Summary
 
-ClawGame is **free to use** for individuals, hobbyists, and small businesses with **annual revenue under $100,000 USD**. Redistribution of ClawGame itself is prohibited without a commercial license.
+ClawGame is **free to use** for individuals, hobbyists, and small businesses with **annual revenue under $100,000 USD**. Redistribution of ClawGame as a product is prohibited without a commercial license.
 
 ---
 
@@ -24,12 +24,14 @@ Under the free tier, you may:
 - ✅ Modify the source code for your own use
 - ✅ Distribute games you create with ClawGame (royalty-free)
 - ✅ Fork the repository for personal/internal use
+- ✅ Host ClawGame on your own server for your own use
+- ✅ Self-host for your team or organization (if under $100k revenue)
 
 ### Free Use Restrictions
 
-- ❌ **You may NOT redistribute ClawGame** (modified or unmodified)
-- ❌ You may not host ClawGame on another platform or marketplace
-- ❌ You may not sublicense or resell ClawGame
+- ❌ **You may NOT redistribute ClawGame as a product** (modified or unmodified)
+- ❌ You may not sell, sublicense, or resell ClawGame
+- ❌ You may not host ClawGame as a service for others (SaaS)
 - ❌ You may not use ClawGame as part of a competing product
 - ❌ You may not remove or alter license notices
 
@@ -44,12 +46,14 @@ You must include attribution in games you publish: "Made with ClawGame" with a l
 A **Commercial License** is required if:
 
 - Your company has **annual gross revenue of $100,000 USD or more**, OR
-- You want to **redistribute ClawGame** in any form
+- You want to **redistribute ClawGame as a product** in any form, OR
+- You want to **host ClawGame as a service for others** (SaaS)
 
 ### Commercial License Benefits
 
 - Full commercial rights
 - Redistribution rights (white-label, SaaS, embedded, etc.)
+- Host as a service for customers
 - Priority support
 - No attribution required
 - Access to enterprise features (when available)
@@ -73,7 +77,9 @@ Contributions to ClawGame are welcome! By submitting a pull request, you:
 ## Definitions
 
 - **"ClawGame"** refers to the software, source code, and all associated files
-- **"Redistribute"** means to share, publish, host, sell, or make available ClawGame to third parties
+- **"Redistribute"** means to share, publish, sell, or make available ClawGame as a product to third parties
+- **"Self-host"** means running ClawGame on your own infrastructure for your own use
+- **"SaaS"** means hosting ClawGame as a service available to third parties
 - **"Use"** means running, modifying, or building upon ClawGame for your own purposes
 - **"Revenue"** means annual gross revenue (total income before expenses) of your company or organization
 

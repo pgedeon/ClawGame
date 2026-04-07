@@ -148,6 +148,30 @@ pnpm lint
 
 ClawGame uses a **source-available license**:
 
+| Your Revenue | License | Self-Host | Redistribute as Product | Cost |
+|--------------|---------|-----------|------------------------|------|
+| **< $100k/year** | Free | ✅ Yes | ❌ No | $0 |
+| **≥ $100k/year** | Commercial | ✅ Yes | ✅ Yes | Contact |
+
+**Free tier includes:**
+- ✅ Use ClawGame to create games
+- ✅ Publish games you make (royalty-free)
+- ✅ Modify source for personal use
+- ✅ Self-host on your own server
+
+**Free tier does NOT include:**
+- ❌ Redistributing ClawGame as a product
+- ❌ Hosting as a service for others (SaaS)
+- ❌ Reselling or sublicensing
+
+**Commercial license required for:**
+- Companies with $100k+ annual revenue
+- Anyone who wants to redistribute ClawGame as a product
+- Anyone who wants to offer ClawGame as a hosted service
+
+See [LICENSE](LICENSE) for full terms.
+ClawGame uses a **source-available license**:
+
 | Your Revenue | License | Redistribution | Cost |
 |--------------|---------|---------------|------|
 | **< $100k/year** | Free to use | ❌ Not allowed | $0 |
@@ -183,6 +207,30 @@ See [LICENSE](LICENSE) for full terms.
 
 ## 📜 License
 
+ClawGame uses a **source-available license**:
+
+| Your Revenue | License | Self-Host | Redistribute as Product | Cost |
+|--------------|---------|-----------|------------------------|------|
+| **< $100k/year** | Free | ✅ Yes | ❌ No | $0 |
+| **≥ $100k/year** | Commercial | ✅ Yes | ✅ Yes | Contact |
+
+**Free tier includes:**
+- ✅ Use ClawGame to create games
+- ✅ Publish games you make (royalty-free)
+- ✅ Modify source for personal use
+- ✅ Self-host on your own server
+
+**Free tier does NOT include:**
+- ❌ Redistributing ClawGame as a product
+- ❌ Hosting as a service for others (SaaS)
+- ❌ Reselling or sublicensing
+
+**Commercial license required for:**
+- Companies with $100k+ annual revenue
+- Anyone who wants to redistribute ClawGame as a product
+- Anyone who wants to offer ClawGame as a hosted service
+
+See [LICENSE](LICENSE) for full terms.
 ClawGame uses a **source-available license**:
 
 | Your Revenue | License | Redistribution | Cost |
