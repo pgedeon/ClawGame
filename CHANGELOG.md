@@ -431,3 +431,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sidebar navigation
 - Multi-agent development system
 - Fair Source license (<$100k/year free)
+### [0.7.2] - 2026-04-08
+
+#### Fixed
+- **CRITICAL:** AI-generated asset preview now shows actual SVG content instead of placeholder rectangles
+- **CRITICAL:** CHANGELOG.md reorganized to newest versions first (0.7.1 at top, 0.1.0 at bottom)
+- **CRITICAL:** project_memory.md updated to v0.7.1 reality (Phase 2 complete, real AI assets working)
+- Asset Studio now displays real AI-generated assets, completing the flagship M6 feature
+- Documentation synchronization across tracking files
+- Message agents about critical fixes to PM feedback
+
