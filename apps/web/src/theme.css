@@ -1,54 +1,65 @@
-/* ClawGame Design System — Single Source of Truth */
-/* All colors, typography, spacing, and elevation tokens */
+/* ClawGame Design System — Game Development Studio Theme */
+/* Single Source of Truth: colors, typography, spacing, elevation */
 
 :root {
-  /* ── Primary / Accent ── */
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
-  --accent-light: #dbeafe;
+  /* ── Primary — Creative Purple ── */
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+  --accent-light: rgba(99, 102, 241, 0.12);
+
+  /* ── Secondary — Bright Cyan ── */
+  --secondary: #22d3ee;
+  --secondary-hover: #06b6d4;
+  --secondary-light: rgba(34, 211, 238, 0.12);
 
   /* ── AI Branding ── */
   --ai-primary: #8b5cf6;
   --ai-primary-hover: #7c3aed;
   --ai-glow: rgba(139, 92, 246, 0.3);
-  --ai-gradient: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  --ai-gradient: linear-gradient(135deg, #6366f1, #8b5cf6);
+  --ai-secondary: #06b6d4;
+  --ai-bg: #1e1b4b;
 
-  /* ── Background layers ── */
-  --bg: #ffffff;
-  --surface: #f9fafb;
-  --surface-alt: #f3f4f6;
-  --card: #ffffff;
-  --card-hover: #f9fafb;
-  --hover-bg: #f5f5f5;
+  /* ── Background layers — Dark Studio ── */
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --surface-alt: #334155;
+  --card: #1e293b;
+  --card-hover: #273548;
+  --hover-bg: #334155;
 
   /* ── Text ── */
-  --fg: #111827;
-  --fg-secondary: #4b5563;
-  --text-muted: #9ca3af;
+  --fg: #f1f5f9;
+  --fg-secondary: #94a3b8;
+  --text-muted: #64748b;
 
   /* ── Borders ── */
-  --border: #e5e7eb;
-  --border-strong: #d1d5db;
+  --border: #334155;
+  --border-strong: #475569;
 
   /* ── Status colours ── */
   --success: #10b981;
   --success-hover: #059669;
+  --success-light: rgba(16, 185, 129, 0.12);
   --warning: #f59e0b;
+  --warning-light: rgba(245, 158, 11, 0.12);
   --error: #ef4444;
+  --error-light: rgba(239, 68, 68, 0.12);
   --info: #3b82f6;
-  --info-light: #eff6ff;
+  --info-light: rgba(59, 130, 246, 0.12);
 
   /* ── Editor ── */
-  --editor-bg: #f9fafb;
-  --editor-text: #111827;
-  --editor-gutter: #e5e7eb;
-  --editor-selection: #dbeafe;
-  --editor-placeholder: #9ca3af;
+  --editor-bg: #0f172a;
+  --editor-text: #f1f5f9;
+  --editor-gutter: #1e293b;
+  --editor-selection: rgba(99, 102, 241, 0.3);
+  --editor-placeholder: #64748b;
 
-  /* ── Shadows ── */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  /* ── Shadows — Darker, more prominent ── */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.15);
 
   /* ── Spacing scale ── */
   --space-1: 4px;
@@ -65,6 +76,7 @@
   /* ── Typography ── */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
+  --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
   /* ── Radius ── */
   --radius-sm: 4px;
@@ -75,6 +87,8 @@
   /* ── Sidebar ── */
   --sidebar-width: 240px;
   --sidebar-collapsed-width: 64px;
+  --sidebar-bg: #0f172a;
+  --sidebar-border: #1e293b;
 
   /* ── Transitions ── */
   --transition-fast: 0.15s ease;
@@ -85,46 +99,68 @@
   --z-command-palette: 500;
   --z-overlay: 400;
   --z-toast: 600;
+
+  /* ── Game-specific ── */
+  --canvas-bg: #0a0f1e;
+  --grid-color: rgba(99, 102, 241, 0.15);
+  --grid-color-strong: rgba(99, 102, 241, 0.3);
+  --selection-color: #6366f1;
+  --handle-color: #22d3ee;
+
+  /* ── Highlight accent (warm) ── */
+  --highlight: #f59e0b;
+  --highlight-light: rgba(245, 158, 11, 0.12);
 }
 
-/* ── Dark mode ── */
-@media (prefers-color-scheme: dark) {
+/* ── Light mode override (user preference) ── */
+@media (prefers-color-scheme: light) {
   :root {
-    --accent: #60a5fa;
-    --accent-hover: #3b82f6;
-    --accent-light: #1e3a5f;
+    --accent: #4f46e5;
+    --accent-hover: #4338ca;
+    --accent-light: rgba(79, 70, 229, 0.1);
 
-    --ai-primary: #a78bfa;
-    --ai-primary-hover: #8b5cf6;
-    --ai-glow: rgba(167, 139, 250, 0.3);
+    --secondary: #0891b2;
+    --secondary-hover: #0e7490;
+    --secondary-light: rgba(8, 145, 178, 0.1);
 
-    --bg: #0f172a;
-    --surface: #1e293b;
-    --surface-alt: #334155;
-    --card: #1e293b;
-    --card-hover: #334155;
-    --hover-bg: #334155;
+    --ai-primary: #7c3aed;
+    --ai-primary-hover: #6d28d9;
 
-    --fg: #f1f5f9;
-    --fg-secondary: #cbd5e1;
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --surface-alt: #f1f5f9;
+    --card: #ffffff;
+    --card-hover: #f8fafc;
+    --hover-bg: #f1f5f9;
+
+    --fg: #0f172a;
+    --fg-secondary: #475569;
     --text-muted: #94a3b8;
 
-    --border: #334155;
-    --border-strong: #475569;
+    --border: #e2e8f0;
+    --border-strong: #cbd5e1;
 
-    --success: #34d399;
-    --warning: #fbbf24;
-    --error: #f87171;
+    --success: #059669;
+    --warning: #d97706;
+    --error: #dc2626;
 
-    --editor-bg: #0f172a;
-    --editor-text: #f1f5f9;
-    --editor-gutter: #1e293b;
-    --editor-selection: #1e3a5f;
+    --editor-bg: #ffffff;
+    --editor-text: #0f172a;
+    --editor-gutter: #f1f5f9;
+    --editor-selection: rgba(79, 70, 229, 0.2);
     --editor-placeholder: #94a3b8;
 
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+    --shadow-glow: 0 0 15px rgba(79, 70, 229, 0.08);
+
+    --sidebar-bg: #ffffff;
+    --sidebar-border: #e2e8f0;
+
+    --canvas-bg: #f1f5f9;
+    --grid-color: rgba(79, 70, 229, 0.08);
+    --grid-color-strong: rgba(79, 70, 229, 0.2);
   }
 }
 
@@ -140,4 +176,29 @@ textarea:focus-visible,
 [tabindex]:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* ── Scrollbar styling (dark studio) ── */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-strong);
+}
+
+/* ── Selection colour ── */
+::selection {
+  background: var(--accent-light);
+  color: var(--fg);
 }
