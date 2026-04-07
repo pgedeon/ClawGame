@@ -13,7 +13,7 @@ export function AICommandPage() {
   }>>([
     {
       type: 'assistant',
-      content: '🤖 Welcome to AI Command! I can help you build your game with AI assistance.\n\n✨ **What I can help with:**\n• Create gameplay systems\n• Fix bugs and errors\n• Generate code snippets\n• Explain code and architecture\n• Suggest improvements\n• Generate assets (coming soon)\n\n💬 **Try asking:**\n"Create a simple player movement system"\n"Fix the attack cooldown bug"\n"Add health bar to player"\n\nWhat would you like me to help you with?',
+      content: '🤖 Welcome to AI Command (Preview Mode)\n\nThis is a demonstration of AI-powered game development features. Real AI integration is coming soon!\n\n✨ **What this preview includes:**\n• Command parsing and analysis\n• Response generation based on your intent\n• Code change suggestions\n• Risk assessment\n\n⚠️ **Current Limitations:**\n• This is a mock service - responses are generated locally\n• No actual code generation or modification\n• No real AI service integration yet\n• Responses are simulated based on command patterns\n\n💬 **Try asking:**\n"Create a simple player movement system"\n"Explain the collision system"\n"Fix the attack cooldown bug"\n"Analyze code quality"\n\nWhat would you like to explore?',
       timestamp: new Date(),
     }
   ]);
@@ -71,13 +71,23 @@ export function AICommandPage() {
       const response = result.response;
 
       // Add AI response with structured data
+      const previewNotice = response.content.includes('Preview Mode') || 
+                           response.content.includes('when AI service is connected') 
+                           ? '' 
+                           : `\n\n⚠️ **Important:** This is a preview simulation. Real AI integration is planned for future releases.`;
+
+      const enhancedContent = response.content + previewNotice;
+
       setMessages(prev => [
         ...prev,
         {
           type: 'assistant',
-          content: response.content,
+          content: enhancedContent,
           timestamp: new Date(),
-          response,
+          response: {
+            ...response,
+            content: enhancedContent
+          }
         }
       ]);
 
@@ -87,7 +97,10 @@ export function AICommandPage() {
           id: response.id,
           projectId,
           command: userMessage,
-          response,
+          response: {
+            ...response,
+            content: enhancedContent
+          },
           timestamp: new Date(),
           status: 'completed',
         },
@@ -103,7 +116,7 @@ export function AICommandPage() {
         ...prev,
         {
           type: 'assistant',
-          content: errorMessage,
+          content: errorMessage + '\n\nThis is a preview mock service - errors are simulated.',
           timestamp: new Date(),
         }
       ]);
@@ -126,7 +139,7 @@ export function AICommandPage() {
 
     return (
       <div className="ai-changes">
-        <h4>📝 Proposed Changes:</h4>
+        <h4>📝 Simulated Changes Preview:</h4>
         <div className="changes-list">
           {response.changes.map((change, index) => (
             <div key={index} className="change-item">
@@ -138,6 +151,9 @@ export function AICommandPage() {
             </div>
           ))}
         </div>
+        <div className="mock-notice">
+          ⚠️ These are simulated changes - no actual files will be modified.
+        </div>
       </div>
     );
   };
@@ -147,12 +163,15 @@ export function AICommandPage() {
 
     return (
       <div className="ai-next-steps">
-        <h4>🎯 Next Steps:</h4>
+        <h4>🎯 Next Steps (Preview):</h4>
         <ul className="steps-list">
           {response.nextSteps.map((step, index) => (
             <li key={index}>{step}</li>
           ))}
         </ul>
+        <div className="mock-notice">
+          ⚠️ Next steps are simulated for demonstration purposes.
+        </div>
       </div>
     );
   };
@@ -174,8 +193,11 @@ export function AICommandPage() {
   return (
     <div className="ai-command-page">
       <header className="page-header">
-        <h1>AI Command</h1>
-        <p>Work with AI to build your game</p>
+        <h1>AI Command (Preview Mode)</h1>
+        <p>Experience AI-powered game development in simulation mode</p>
+        <div className="mock-notice">
+          🎭 <strong>Preview Mode Active:</strong> This is a demonstration - no real AI integration yet.
+        </div>
       </header>
 
       <div className="ai-command-container">
@@ -237,7 +259,7 @@ export function AICommandPage() {
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask me anything about your game..."
+                placeholder="Ask me anything about your game (Preview Mode)..."
                 rows={2}
                 className="chat-input"
               />
@@ -305,13 +327,35 @@ export function AICommandPage() {
                       {cmd.timestamp.toLocaleTimeString()}
                     </div>
                     <div className="history-type">
-                      {cmd.response.type}
+                      {cmd.response.type} (Preview)
                     </div>
                   </div>
                 ))}
               </div>
             </div>
           )}
+
+          <div className="mock-status">
+            <h4>ℹ️ About This Preview</h4>
+            <div className="mock-details">
+              <p><strong>What's Real:</strong></p>
+              <ul>
+                <li>Command parsing and intent analysis</li>
+                <li>Response generation based on patterns</li>
+                <li>UI interactions and state management</li>
+                <li>Command history tracking</li>
+                <li>Code change simulations</li>
+              </ul>
+              <p><strong>What's Not Real:</strong></p>
+              <ul>
+                <li>No actual AI service connection</li>
+                <li>No file modifications</li>
+                <li>No real code generation</li>
+                <li>No contextual code analysis</li>
+                <li>Simulated confidence scores</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
     </div>

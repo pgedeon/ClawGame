@@ -20,6 +20,7 @@ function GamePreviewContent({ projectId }: GamePreviewPageProps) {
   const [projectName, setProjectName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [showGrid, setShowGrid] = useState(false);
   const [showHitboxes, setShowHitboxes] = useState(false);
   const [fps, setFps] = useState(0);
@@ -28,9 +29,19 @@ function GamePreviewContent({ projectId }: GamePreviewPageProps) {
 
   useEffect(() => {
     loadProject();
+    
+    // Handle fullscreen change events
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    
     return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
       if (fpsUpdateInterval) clearInterval(fpsUpdateInterval);
       stopGame();
+      exitFullscreen();
     };
   }, [projectId]);
 
@@ -46,6 +57,22 @@ function GamePreviewContent({ projectId }: GamePreviewPageProps) {
     }
   };
 
+  const toggleFullscreen = () => {
+    if (!canvasWrapperRef.current) return;
+
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      canvasWrapperRef.current.requestFullscreen();
+    }
+  };
+
+  const exitFullscreen = () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    }
+  };
+
   const createDemoScene = (): Scene => {
     // Create a simple colored rectangle for player sprite
     const playerCanvas = document.createElement('canvas');
@@ -56,10 +83,10 @@ function GamePreviewContent({ projectId }: GamePreviewPageProps) {
       playerCtx.fillStyle = '#ff6b35';
       playerCtx.fillRect(0, 0, 32, 32);
       // Add highlight
-      playerCtx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+      playerCtx.fillStyle = 'rgba(255,255,255,0.2)';
       playerCtx.fillRect(0, 0, 32, 8);
       // Add border
-      playerCtx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+      playerCtx.strokeStyle = 'rgba(255,255,255,0.3)';
       playerCtx.lineWidth = 2;
       playerCtx.strokeRect(0, 0, 32, 32);
     }
@@ -74,7 +101,7 @@ function GamePreviewContent({ projectId }: GamePreviewPageProps) {
     if (enemyCtx) {
       enemyCtx.fillStyle = '#ff3366';
       enemyCtx.fillRect(0, 0, 24, 24);
-      enemyCtx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+      enemyCtx.strokeStyle = 'rgba(255,255,255,0.3)';
       enemyCtx.lineWidth = 2;
       enemyCtx.strokeRect(0, 0, 24, 24);
     }
@@ -215,6 +242,7 @@ function GamePreviewContent({ projectId }: GamePreviewPageProps) {
     }
     setIsPlaying(false);
     setFps(0);
+    exitFullscreen();
   };
 
   const resetGame = () => {
@@ -264,11 +292,23 @@ function GamePreviewContent({ projectId }: GamePreviewPageProps) {
               <button className="control-btn reset" onClick={resetGame}>
                 🔄 Reset
               </button>
+              <button 
+                className="control-btn fullscreen-btn" 
+                onClick={toggleFullscreen}
+                title={isFullscreen ? "Exit Fullscreen (Esc)" : "Enter Fullscreen"}
+              >
+                {isFullscreen ? "⛶" : "⛶"}
+              </button>
             </>
           )}
 
           <div className="game-stats">
-            {fps > 0 && <span className="fps-counter">FPS: {fps}</span>}
+            <div className="stat-item">
+              <span className="stat-label">FPS:</span>
+              <span className={`stat-value ${fps > 50 ? 'success' : fps > 30 ? '' : 'error'}`}>
+                {fps}
+              </span>
+            </div>
           </div>
         </div>
       </header>
@@ -281,7 +321,7 @@ function GamePreviewContent({ projectId }: GamePreviewPageProps) {
 
       <div className="game-container">
         <div
-          className="canvas-wrapper"
+          className={`canvas-wrapper ${isFullscreen ? 'fullscreen' : ''} ${isPlaying ? 'focused' : ''}`}
           ref={canvasWrapperRef}
           tabIndex={0}
           onClick={() => canvasWrapperRef.current?.focus()}
@@ -317,68 +357,109 @@ function GamePreviewContent({ projectId }: GamePreviewPageProps) {
               Click here and use arrow keys / WASD to move
             </div>
           )}
+
+          {isFullscreen && (
+            <div className="fullscreen-exit-hint">
+              ⛶ Press <kbd>Esc</kbd> to exit fullscreen
+            </div>
+          )}
         </div>
 
-        <div className="game-sidebar">
-          <div className="panel">
-            <h3>📋 Game Info</h3>
-            <div className="info-item">
-              <span>Status:</span>
-              <span className={isPlaying ? 'status-playing' : 'status-stopped'}>
+        <div className="debug-panel">
+          <div className="debug-panel-header">
+            <h3>🐛 Debug Panel</h3>
+          </div>
+
+          <div className="debug-options">
+            <label className="debug-option">
+              <input
+                type="checkbox"
+                checked={showGrid}
+                onChange={(e) => handleDebugToggle('grid', e.target.checked)}
+              />
+              Show Grid
+            </label>
+            <label className="debug-option">
+              <input
+                type="checkbox"
+                checked={showHitboxes}
+                onChange={(e) => handleDebugToggle('hitboxes', e.target.checked)}
+              />
+              Show Hitboxes
+            </label>
+          </div>
+
+          <div className="debug-info">
+            <h4>Game State</h4>
+            <div className="debug-info-section">
+              <div className="debug-info-label">Status</div>
+              <div className="debug-info-value">
                 {isPlaying ? 'Playing' : 'Stopped'}
-              </span>
+              </div>
             </div>
-            <div className="info-item">
-              <span>Canvas:</span>
-              <span>800 × 600</span>
+            <div className="debug-info-section">
+              <div className="debug-info-label">Resolution</div>
+              <div className="debug-info-value">800 × 600</div>
             </div>
-            <div className="info-item">
-              <span>Renderer:</span>
-              <span>Canvas 2D</span>
-            </div>
-            <div className="info-item">
-              <span>Entities:</span>
-              <span>4 (player, enemy, 2 coins)</span>
+            <div className="debug-info-section">
+              <div className="debug-info-label">Renderer</div>
+              <div className="debug-info-value">Canvas 2D</div>
             </div>
           </div>
 
-          <div className="panel">
-            <h3>🎯 Controls</h3>
-            <div className="controls-list">
-              <div className="control-item">
-                <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd>
-                <span>Move player</span>
+          <div className="debug-info">
+            <h4>Controls</h4>
+            <div className="debug-info-section">
+              <div className="debug-info-label">Movement</div>
+              <div className="debug-info-value">
+                <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> or <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd>
               </div>
-              <div className="control-item">
-                <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd>
-                <span>Move player</span>
-              </div>
-              <div className="control-item">
-                <kbd>Space</kbd>
-                <span>Action (coming soon)</span>
-              </div>
+            </div>
+            <div className="debug-info-section">
+              <div className="debug-info-label">Fullscreen</div>
+              <div className="debug-info-value">Click button or <kbd>Esc</kbd> to exit</div>
             </div>
           </div>
 
-          <div className="panel">
-            <h3>🐛 Debug</h3>
-            <div className="debug-options">
-              <label className="debug-option">
-                <input
-                  type="checkbox"
-                  checked={showGrid}
-                  onChange={(e) => handleDebugToggle('grid', e.target.checked)}
-                />
-                Show grid
-              </label>
-              <label className="debug-option">
-                <input
-                  type="checkbox"
-                  checked={showHitboxes}
-                  onChange={(e) => handleDebugToggle('hitboxes', e.target.checked)}
-                />
-                Show hitboxes
-              </label>
+          <div className="debug-info">
+            <h4>Scene Entities ({4})</h4>
+            <div className="debug-entity">
+              <div className="debug-entity-header">
+                <span className="debug-entity-name">player-1</span>
+                <span className="debug-entity-type">Player</span>
+              </div>
+              <div className="debug-entity-props">
+                pos: <span>(200, 150)</span><br/>
+                speed: <span>200</span>
+              </div>
+            </div>
+            <div className="debug-entity">
+              <div className="debug-entity-header">
+                <span className="debug-entity-name">enemy-1</span>
+                <span className="debug-entity-type">Enemy</span>
+              </div>
+              <div className="debug-entity-props">
+                pos: <span>(400, 150)</span><br/>
+                type: <span>patrol</span>
+              </div>
+            </div>
+            <div className="debug-entity">
+              <div className="debug-entity-header">
+                <span className="debug-entity-name">coin-1</span>
+                <span className="debug-entity-type">Collectible</span>
+              </div>
+              <div className="debug-entity-props">
+                pos: <span>(300, 200)</span>
+              </div>
+            </div>
+            <div className="debug-entity">
+              <div className="debug-entity-header">
+                <span className="debug-entity-name">coin-2</span>
+                <span className="debug-entity-type">Collectible</span>
+              </div>
+              <div className="debug-entity-props">
+                pos: <span>(500, 200)</span>
+              </div>
             </div>
           </div>
         </div>
