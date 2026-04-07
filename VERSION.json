@@ -1,8 +1,8 @@
 {
-  "version": "0.1.1",
-  "codename": "foundation",
-  "milestone": 0,
-  "milestoneName": "Foundation",
+  "version": "0.1.2",
+  "codename": "core-editor",
+  "milestone": 1,
+  "milestoneName": "Core Editor Shell",
   "releaseDate": "2026-04-07",
-  "status": "complete"
+  "status": "in-progress"
 }
