@@ -92,3 +92,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved InputSystem with editable element detection
 - Enhanced player entity creation with proper component setup
 - Better error handling in editor save operations
+
+### [0.3.3] - 2026-04-07
+
+#### Fixed
+- Fixed CodeEditor useEffect dependency causing CodeMirror recreation on every keystroke
+- Fixed RenderSystem overlapping scene info and FPS displays (combined into single HUD)
+- Fixed debug panel checkboxes to actually control engine configuration (dead UI now functional)
+- Fixed engine missing destroy() method for proper cleanup
+- Fixed NodeJS type namespace issues in GamePreviewPage
+
+#### Improved
+- Made canvas responsive with proper scaling for different screen sizes
+- Updated severely outdated project_memory.md to reflect current M3 complete status
+- Updated roadmap.md to show completed milestones and future plans
+- Enhanced player movement with proper diagonal normalization
+- Improved editor focus management and auto-focus behavior
+
+#### Technical Debt
+- Bumped version from 0.3.2 to 0.3.3 for quality milestone
+- Maintained clean TypeScript compilation (no errors)
+- Improved component separation and refactoring
+- Updated documentation to actual current state
+
+#### Known Issues
+- AI service still uses mock responses (needs backend integration)
+- Bundle size warning (766KB > 500KB threshold)
+- File tree needs file watcher for auto-refresh
+- More debug features needed beyond grid/hitboxes
