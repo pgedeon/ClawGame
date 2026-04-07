@@ -4,33 +4,10 @@
 
 ## Current Status
 
-- **Phase:** Milestone 0 (Foundation)
+- **Phase:** Milestone 0 (Foundation) → **COMPLETE**
 - **Started:** 2026-04-07
-- **Last Updated:** 2026-04-07 11:15 UTC
-- **Dev Agent:** Runs every 30min
-- **PM Agent:** Runs every 2h
-
-## Agent System
-
-### Development Agent (`clawgame-dev-continuation`)
-- **Cron ID:** `6805c4fa-a84c-4bcc-b297-59419292cfdc`
-- **Schedule:** Every 30 minutes
-- **Role:** Implements features, fixes bugs, builds the product
-- **Priority:** Follows PM feedback first, then sprint tasks
-
-### PM/CEO Agent (`clawgame-pm-review`)
-- **Cron ID:** `5657aedb-e4e5-452e-95d0-1f8b7b04e090`
-- **Schedule:** Every 2 hours
-- **Role:** Reviews work, provides strategic direction, ensures quality
-- **Output:** `docs/ai/pm_feedback.md`
-
-### Feedback Loop
-1. PM reviews recent commits and code quality
-2. PM writes feedback to `pm_feedback.md`
-3. Dev agent reads PM feedback before each run
-4. Dev prioritizes PM issues and suggestions
-5. Dev implements changes and commits
-6. PM reviews new changes on next run
+- **Completed:** 2026-04-07
+- **Next:** Milestone 1 (Core Editor Shell)
 
 ## What We're Building
 
@@ -45,7 +22,7 @@ AI-first, web-based 2D game engine and editor with native OpenClaw integration.
 | Fastify for API | Fast, type-safe, good DX | 2026-04-07 |
 | React + Vite for web | Modern, fast HMR | 2026-04-07 |
 | ComfyUI for assets | Already integrated with OpenClaw | 2026-04-07 |
-| PM + Dev agent system | Quality control, strategic direction | 2026-04-07 |
+| Canvas 2D for initial runtime | Simplest viable rendering path | 2026-04-07 |
 
 ## Architecture
 
@@ -55,47 +32,49 @@ clawgame/
 │   ├── web/         # React editor (port 5173)
 │   └── api/         # Fastify backend (port 3000)
 ├── packages/
-│   ├── engine/      # 2D runtime
+│   ├── engine/      # 2D runtime (Canvas-based)
 │   ├── editor-core/ # Editor state/logic
 │   ├── ai-orchestrator/ # AI provider routing
 │   ├── asset-pipeline/  # ComfyUI client
 │   ├── project-sdk/     # Project manipulation
 │   ├── ui/              # Shared components
 │   └── shared/          # Types, utilities
-├── docs/
-│   ├── product/     # Vision, roadmap
-│   ├── architecture/ # System design
-│   ├── tasks/       # Sprint, backlog
-│   ├── ai/          # Project memory, PM feedback
-│   └── qa/          # Known issues
-└── scripts/         # Agent prompts, utilities
+└── docs/               # Project docs
 ```
 
-## Completed
+## Milestone 0 Completion Summary
 
-- [x] Monorepo scaffold
-- [x] Project metadata schema
-- [x] Web app shell (React + Vite)
-- [x] API shell (Fastify)
-- [x] Shared types package
-- [x] Documentation structure
-- [x] Git initialized with initial commit
-- [x] PM feedback loop established
+- Monorepo scaffold with 5 workspace packages
+- All TypeScript configs in place
+- `@clawgame/shared`: Project metadata, entity/component, scene/layer types
+- `@clawgame/engine`: Basic Engine class with Canvas game loop, scene management, entity rendering
+- `apps/web`: React + Vite shell, builds and serves on :5173
+- `apps/api`: Fastify shell with health + project endpoints, serves on :3000
+- `pnpm build` passes cleanly across all packages
+- Git repo initialized with 3 commits
 
-## Next Steps
+## Build Verification
 
-1. Run `pnpm install` to resolve dependencies
-2. Test `pnpm dev:web` and `pnpm dev:api`
-3. Complete all package.json files
-4. Add TypeScript configs to all packages
-5. Begin Milestone 1 (Core Editor Shell)
+```
+pnpm install → 192 packages
+pnpm build → 4/5 packages build (5th has no build script)
+pnpm dev:web → localhost:5173 ✅
+pnpm dev:api → localhost:3000 ✅
+```
+
+## Next Steps (Milestone 1)
+
+1. Project dashboard UI with layout and routing
+2. Project open/create flows
+3. Navigation sidebar
+4. Placeholder panels (AI command, asset studio)
+5. Project metadata stored and displayed
 
 ## Integration Points
 
 ### OpenClaw
 - Project metadata: `clawgame.project.json`
 - Memory: `docs/ai/project_memory.md`
-- PM Feedback: `docs/ai/pm_feedback.md`
 - Sprint: `docs/tasks/current_sprint.md`
 - Agent roles: `director-agent`, `gameplay-agent`, `ui-agent`, `tools-agent`, `asset-agent`, `qa-agent`
 
@@ -106,6 +85,6 @@ clawgame/
 ---
 
 See also:
-- [PM Feedback](pm_feedback.md) - CEO direction and quality assessment
 - [Current Sprint](../tasks/current_sprint.md)
 - [Known Issues](../qa/known_issues.md)
+- [Architecture](../architecture/architecture.md)
