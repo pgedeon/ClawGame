@@ -567,7 +567,6 @@ function SceneEditorContent({ projectId }: SceneEditorPageProps) {
         'utf-8'
       );
 
-      console.log('Scene saved successfully');
     } catch (err) {
       console.error('Failed to save scene:', err);
       setError('Failed to save scene');

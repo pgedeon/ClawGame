@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { PlusCircle, FolderOpen, BookOpen } from 'lucide-react';
+import { PlusCircle, FolderOpen, BookOpen, Sparkles, Terminal, Zap } from 'lucide-react';
 import { api, type ProjectListItem } from '../api/client';
 
 export function DashboardPage() {
@@ -21,42 +21,18 @@ export function DashboardPage() {
       const projectList = await api.listProjects();
       setProjects(projectList);
     } catch (err) {
-      console.error('Error loading projects:', err);
       setError(err instanceof Error ? err.message : 'Failed to load projects');
     } finally {
       setLoading(false);
     }
   };
 
-  const quickActionLinks = [
-    {
-      to: '/create-project',
-      label: 'New Project',
-      icon: PlusCircle,
-      description: 'Start a new game project with AI assistance',
-      primary: true,
-    },
-    {
-      to: '/open-project',
-      label: 'Open Project',
-      icon: FolderOpen,
-      description: 'Open an existing project',
-      primary: false,
-    },
-    {
-      to: '/examples',
-      label: 'Examples',
-      icon: BookOpen,
-      description: 'Browse sample game templates',
-      primary: false,
-    },
-  ];
-
   if (loading) {
     return (
       <div className="dashboard-page">
-        <div className="loading" style={{ textAlign: 'center', padding: '4rem' }}>
-          Loading dashboard...
+        <div className="dashboard-loading">
+          <div className="dashboard-loading-spinner" />
+          <p>Loading dashboard...</p>
         </div>
       </div>
     );
@@ -79,77 +55,130 @@ export function DashboardPage() {
 
   return (
     <div className="dashboard-page">
-      <header className="page-header">
-        <h1>Dashboard</h1>
-        <p>Manage your ClawGame projects</p>
-      </header>
-
-      <div className="quick-actions">
-        <h2>Quick Actions</h2>
-        <div className="action-grid">
-          {quickActionLinks.map((action) => {
-            const Icon = action.icon;
-            return (
-              <Link
-                key={action.to}
-                to={action.to}
-                className={`action-card ${action.primary ? 'primary' : ''}`}
-              >
-                <Icon size={28} className="action-icon-svg" />
-                <h3 className="action-title">{action.label}</h3>
-                <p className="action-description">{action.description}</p>
-              </Link>
-            );
-          })}
+      {/* AI Hero Section */}
+      <section className="dashboard-hero">
+        <div className="hero-content">
+          <div className="hero-badge">
+            <Sparkles size={14} />
+            <span>AI-Native Platform</span>
+          </div>
+          <h1>Build Games with AI</h1>
+          <p className="hero-subtitle">
+            Describe your game idea, and let AI generate the code. Edit, preview, and ship — all in the browser.
+          </p>
+          <div className="hero-actions">
+            <Link to="/create-project" className="hero-cta-primary">
+              <PlusCircle size={18} />
+              New Project
+            </Link>
+            <button
+              className="hero-cta-secondary"
+              onClick={() => {
+                const event = new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true });
+                document.dispatchEvent(event);
+              }}
+            >
+              <Terminal size={18} />
+              Try AI Command <kbd>⌘K</kbd>
+            </button>
+          </div>
         </div>
-      </div>
+        <div className="hero-visual" aria-hidden="true">
+          <div className="hero-orb hero-orb-1" />
+          <div className="hero-orb hero-orb-2" />
+          <div className="hero-orb hero-orb-3" />
+        </div>
+      </section>
 
-      <div className="projects-section">
-        <h2>Your Projects</h2>
+      {/* Quick Actions */}
+      <section className="dashboard-section">
+        <h2 className="section-title">Quick Actions</h2>
+        <div className="action-grid">
+          <Link to="/create-project" className="action-card primary">
+            <PlusCircle size={24} className="action-icon-svg" />
+            <h3 className="action-title">New Project</h3>
+            <p className="action-description">Start a new game project with AI assistance</p>
+            <span className="action-badge">AI-Powered</span>
+          </Link>
+          <Link to="/open-project" className="action-card">
+            <FolderOpen size={24} className="action-icon-svg" />
+            <h3 className="action-title">Open Project</h3>
+            <p className="action-description">Continue working on an existing game</p>
+          </Link>
+          <Link to="/examples" className="action-card">
+            <BookOpen size={24} className="action-icon-svg" />
+            <h3 className="action-title">Examples</h3>
+            <p className="action-description">Browse sample game templates</p>
+          </Link>
+        </div>
+      </section>
+
+      {/* Projects List */}
+      <section className="dashboard-section">
+        <div className="section-header">
+          <h2 className="section-title">Your Projects</h2>
+          {projects.length > 0 && (
+            <Link to="/create-project" className="section-action">
+              <PlusCircle size={16} />
+              New
+            </Link>
+          )}
+        </div>
+
         {projects.length === 0 ? (
           <div className="projects-empty">
             <div className="empty-icon">🎮</div>
             <h3>No projects yet</h3>
-            <p>Create your first game project and let AI help you build it!</p>
+            <p>Create your first game and let AI help you build it!</p>
             <Link to="/create-project" className="cta-button">
-              <PlusCircle size={16} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
+              <PlusCircle size={16} />
               Create Your First Game
             </Link>
           </div>
         ) : (
-          <div className="projects-list">
+          <div className="projects-grid">
             {projects.map((project) => (
               <Link
                 key={project.id}
                 to={`/project/${project.id}`}
                 className="project-card"
               >
-                <div className="project-header">
+                <div className="project-card-header">
                   <h3 className="project-name">{project.name}</h3>
                   <span className={`project-status ${project.status}`}>
                     {project.status}
                   </span>
                 </div>
-                <div className="project-details">
-                  <p className="project-type">
-                    {project.genre} • {project.artStyle}
-                  </p>
-                  <p className="project-date">
-                    Last modified: {new Date(project.updatedAt).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric'
-                    })}
-                  </p>
+                <div className="project-card-meta">
+                  <span className="project-genre-tag">{project.genre}</span>
+                  <span className="project-art-tag">{project.artStyle}</span>
                 </div>
-                <div className="project-actions">
-                  <span className="open-icon">→</span>
+                <div className="project-card-footer">
+                  <span className="project-date">
+                    {new Date(project.updatedAt).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </span>
+                  <span className="project-open-link">Open →</span>
                 </div>
               </Link>
             ))}
           </div>
         )}
-      </div>
+      </section>
+
+      {/* AI Tips */}
+      <section className="dashboard-section ai-tips-section">
+        <div className="ai-tip">
+          <Zap size={18} className="ai-tip-icon" />
+          <div>
+            <strong>Pro tip:</strong> Press <kbd>⌘K</kbd> anywhere to open the AI command palette.
+            Ask it to generate code, explain errors, or refactor your game logic.
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
