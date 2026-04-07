@@ -1,8 +1,8 @@
 {
-  "version": "0.1.2",
-  "codename": "core-editor",
-  "milestone": 1,
-  "milestoneName": "Core Editor Shell",
+  "version": "0.3.0",
+  "codename": "game-runtime",
+  "milestone": 3,
+  "milestoneName": "2D Runtime + Preview",
   "releaseDate": "2026-04-07",
-  "status": "complete"
+  "status": "in-progress"
 }
