@@ -1,8 +1,8 @@
 {
-  "version": "0.3.3",
-  "codename": "quality-improvements",
-  "milestone": 3,
-  "milestoneName": "2D Runtime + Preview",
+  "version": "0.4.0",
+  "codename": "scene-editor",
+  "milestone": 4,
+  "milestoneName": "Visual Scene Editor",
   "releaseDate": "2026-04-07",
-  "status": "in-progress"
+  "status": "completed"
 }
