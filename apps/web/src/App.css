@@ -737,3 +737,39 @@ kbd {
 kbd:hover {
   background: var(--border);
 }
+
+/* Sidebar command palette trigger */
+.sidebar-cmd-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.sidebar-cmd-btn:hover {
+  border-color: var(--accent);
+  background: var(--accent-light);
+  color: var(--fg-secondary);
+}
+
+.sidebar-cmd-text {
+  font-family: var(--font-sans);
+}
+
+.sidebar-cmd-btn kbd {
+  font-size: 0.65rem;
+  padding: 1px 5px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+}

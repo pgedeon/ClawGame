@@ -1,18 +1,28 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppLayout } from './components/AppLayout';
 import { DashboardPage } from './pages/DashboardPage';
 import { CreateProjectPage } from './pages/CreateProjectPage';
 import { OpenProjectPage } from './pages/OpenProjectPage';
 import { ExamplesPage } from './pages/ExamplesPage';
-import { ProjectPage } from './pages/ProjectPage';
-import { EditorPage } from './pages/EditorPage';
-import { SceneEditorPage } from './pages/SceneEditorPage';
-import { AICommandPage } from './pages/AICommandPage';
-import { AssetStudioPage } from './pages/AssetStudioPage';
-import { GamePreviewPage } from './pages/GamePreviewPage';
 import { SettingsPage } from './pages/SettingsPage';
-import './App.css';
+
+// Lazy-loaded pages (code-split for smaller initial bundle)
+const ProjectPage = lazy(() => import('./pages/ProjectPage').then(m => ({ default: m.ProjectPage })));
+const EditorPage = lazy(() => import('./pages/EditorPage').then(m => ({ default: m.EditorPage })));
+const SceneEditorPage = lazy(() => import('./pages/SceneEditorPage').then(m => ({ default: m.SceneEditorPage })));
+const AICommandPage = lazy(() => import('./pages/AICommandPage').then(m => ({ default: m.AICommandPage })));
+const AssetStudioPage = lazy(() => import('./pages/AssetStudioPage').then(m => ({ default: m.AssetStudioPage })));
+const GamePreviewPage = lazy(() => import('./pages/GamePreviewPage').then(m => ({ default: m.GamePreviewPage })));
+
+function PageLoader() {
+  return (
+    <div className="loading" style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
+      <div className="build-spinner" style={{ margin: '0 auto 1rem' }} />
+      Loading...
+    </div>
+  );
+}
 
 function App() {
   return (
@@ -23,13 +33,25 @@ function App() {
           <Route path="create-project" element={<CreateProjectPage />} />
           <Route path="open-project" element={<OpenProjectPage />} />
           <Route path="examples" element={<ExamplesPage />} />
-          <Route path="project/:projectId" element={<ProjectPage />} />
-          <Route path="project/:projectId/editor" element={<EditorPage />} />
-          <Route path="project/:projectId/scene-editor" element={<SceneEditorPage />} />
-          <Route path="project/:projectId/ai" element={<AICommandPage />} />
-          <Route path="project/:projectId/assets" element={<AssetStudioPage />} />
-          <Route path="project/:projectId/preview" element={<GamePreviewPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="project/:projectId" element={
+            <Suspense fallback={<PageLoader />}><ProjectPage /></Suspense>
+          } />
+          <Route path="project/:projectId/editor" element={
+            <Suspense fallback={<PageLoader />}><EditorPage /></Suspense>
+          } />
+          <Route path="project/:projectId/scene-editor" element={
+            <Suspense fallback={<PageLoader />}><SceneEditorPage /></Suspense>
+          } />
+          <Route path="project/:projectId/ai" element={
+            <Suspense fallback={<PageLoader />}><AICommandPage /></Suspense>
+          } />
+          <Route path="project/:projectId/assets" element={
+            <Suspense fallback={<PageLoader />}><AssetStudioPage /></Suspense>
+          } />
+          <Route path="project/:projectId/preview" element={
+            <Suspense fallback={<PageLoader />}><GamePreviewPage /></Suspense>
+          } />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
