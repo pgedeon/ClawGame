@@ -146,6 +146,28 @@ pnpm lint
 
 ## 📜 License
 
+ClawGame uses a **source-available license**:
+
+| Your Revenue | License | Redistribution | Cost |
+|--------------|---------|---------------|------|
+| **< $100k/year** | Free to use | ❌ Not allowed | $0 |
+| **≥ $100k/year** | Commercial License | ✅ Allowed | Contact for pricing |
+
+**Free tier includes:**
+- ✅ Use ClawGame to create games
+- ✅ Publish games you make (royalty-free)
+- ✅ Modify source for personal use
+
+**Free tier does NOT include:**
+- ❌ Redistribution of ClawGame
+- ❌ Reselling or sublicensing
+- ❌ Hosting on other platforms
+
+**Commercial license required for:**
+- Companies with $100k+ annual revenue
+- Anyone who wants to redistribute ClawGame
+
+See [LICENSE](LICENSE) for full terms.
 **Fair Source License** - Free for companies < $100k/year. See [LICENSE](LICENSE) for full terms.
 
 ## 🙏 Acknowledgments
@@ -161,6 +183,28 @@ pnpm lint
 
 ## 📜 License
 
+ClawGame uses a **source-available license**:
+
+| Your Revenue | License | Redistribution | Cost |
+|--------------|---------|---------------|------|
+| **< $100k/year** | Free to use | ❌ Not allowed | $0 |
+| **≥ $100k/year** | Commercial License | ✅ Allowed | Contact for pricing |
+
+**Free tier includes:**
+- ✅ Use ClawGame to create games
+- ✅ Publish games you make (royalty-free)
+- ✅ Modify source for personal use
+
+**Free tier does NOT include:**
+- ❌ Redistribution of ClawGame
+- ❌ Reselling or sublicensing
+- ❌ Hosting on other platforms
+
+**Commercial license required for:**
+- Companies with $100k+ annual revenue
+- Anyone who wants to redistribute ClawGame
+
+See [LICENSE](LICENSE) for full terms.
 ClawGame uses a **Fair Source License**:
 
 | Your Revenue | License | Cost |
