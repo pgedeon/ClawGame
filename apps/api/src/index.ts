@@ -1,17 +1,16 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import { projectRoutes } from './routes/projects';
 
 const app = Fastify({ logger: true });
 
 app.register(cors, { origin: '*' });
 
-app.get('/health', async () => ({ status: 'ok', version: '0.0.1' }));
+// Health check
+app.get('/health', async () => ({ status: 'ok', version: '0.1.0' }));
 
-app.get('/api/projects', async () => ({ projects: [] }));
-
-app.post('/api/projects', async (request, reply) => {
-  return { id: 'proj_001', name: 'New Project', createdAt: new Date().toISOString() };
-});
+// Project CRUD
+app.register(projectRoutes);
 
 const start = async () => {
   try {

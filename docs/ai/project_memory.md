@@ -2,11 +2,112 @@
 
 > AI continuity file for ClawGame. Updated as work progresses.
 
+## 🎯 UNIFIED GOAL
+
+**Make the best web-based AI-first game development platform that exists.**
+
+All agents share this goal. Every decision, every line of code, every feature should move us toward this objective.
+
+### Key Differentiators
+
+1. **AI-First:** Natural language game creation, not just tools
+2. **Web-Based:** No install, runs in browser
+3. **Intuitive:** Non-technical users can make games
+4. **Powerful:** Experts can go deep
+5. **Fast:** Responsive, real-time editing
+
 ## Current Status
 
-- **Phase:** Milestone 1 (Core Editor Shell) → **70% Complete**
+- **Phase:** Milestone 0 (Foundation)
 - **Started:** 2026-04-07
-- **Next:** Complete API endpoints and project metadata display
+- **Last Updated:** 2026-04-07 12:05 UTC
+
+## 🤖 Multi-Agent System
+
+ClawGame is built by an autonomous multi-agent team united by one goal.
+
+### Dev Agent (`clawgame-dev-continuation`)
+- **Cron ID:** `6805c4fa-a84c-4bcc-b297-59419292cfdc`
+- **Schedule:** Every 30 minutes
+- **Role:** Implements features, fixes bugs, builds the product
+- **Priority:** Standup > PM > UI/UX > Game Dev > Sprint
+- **Reads:** All feedback files
+
+### PM/CEO Agent (`clawgame-pm-review`)
+- **Cron ID:** `5657aedb-e4e5-452e-95d0-1f8b7b04e090`
+- **Schedule:** Every 2 hours
+- **Role:** Reviews quality, sets strategy, ensures excellence
+- **Reads:** All feedback files
+
+### Game Dev Agent (`clawgame-game-dev`)
+- **Cron ID:** `10cc62e4-e17f-4271-a334-a79442ea5088`
+- **Schedule:** Every 3 hours
+- **Role:** Uses the engine to build games, provides real-world UX feedback
+- **Reads:** All feedback files
+
+### UI/UX Agent (`clawgame-uiux-review`)
+- **Schedule:** Every 2 hours
+- **Role:** Reviews visual design, UI/UX, competitive research
+- **Model:** `qwen3.6-plus:free` (visual-focused)
+- **Reads:** Standup notes, current state
+- **Output:** `docs/ai/uiux_feedback.md`
+
+### Team Standup (`clawgame-team-standup`)
+- **Cron ID:** `f5002fc9-60cd-49fa-86e8-baf3ad3857f3`
+- **Schedule:** Every 2 days (10:00 UTC)
+- **Role:** All agents align, review feedback, make decisions
+- **Reads:** All feedback files
+
+### Feedback Loop
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    TEAM STANDUP (Every 2d)                      │
+│   Reviews all feedback, makes decisions, updates sprint         │
+└─────────────────────────────────────────────────────────────────┘
+         ↓ updates              ↓ reads              ↓ reads
+┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
+│   DEV AGENT     │   │    PM AGENT     │   │  GAME DEV AGENT │
+│   (Every 30m)   │←──│    (Every 2h)   │←──│    (Every 3h)   │
+│   Builds code   │   │   CEO/Strategy  │   │    Real user    │
+└─────────────────┘   └─────────────────┘   └─────────────────┘
+         ↑                     ↑                     ↓
+         │              ┌─────────────────┐         │
+         └──────────────│  UI/UX AGENT    │─────────┘
+                        │    (Every 2h)   │
+                        │ Visual/Research │
+                        └─────────────────┘
+```
+
+### Communication Files
+
+| File | Who Writes | Who Reads |
+|------|-----------|-----------|
+| `pm_feedback.md` | PM Agent | All agents |
+| `game_dev_feedback.md` | Game Dev Agent | All agents |
+| `uiux_feedback.md` | UI/UX Agent | All agents |
+| `standup_notes.md` | Standup Facilitator | All agents |
+| `project_memory.md` | All agents | All agents |
+| `current_sprint.md` | Standup/Dev | All agents |
+
+## Research & Competitive Analysis
+
+All agents should:
+1. **Research competitors** - What are Unity, Godot, Construct, GDevelop doing?
+2. **Identify trends** - What's new in game dev tools?
+3. **Learn from others** - What works? What doesn't?
+4. **Adapt features** - If it makes sense, add it
+5. **Innovate** - Find ways to be better
+
+### Known Competitors
+
+| Platform | Strengths | Weaknesses | Our Advantage |
+|----------|-----------|------------|---------------|
+| Unity | Powerful, huge ecosystem | Complex, requires install | Simpler, web-based, AI-first |
+| Godot | Open source, lightweight | Less polished, smaller ecosystem | More AI, better UX |
+| Construct | Easy for non-coders | Limited depth | AI enables both easy AND deep |
+| GDevelop | Visual, beginner-friendly | Limited capabilities | AI + full code access |
+| PlayCanvas | Web-based | Not AI-first | We ARE AI-first |
 
 ## What We're Building
 
@@ -21,8 +122,8 @@ AI-first, web-based 2D game engine and editor with native OpenClaw integration.
 | Fastify for API | Fast, type-safe, good DX | 2026-04-07 |
 | React + Vite for web | Modern, fast HMR | 2026-04-07 |
 | ComfyUI for assets | Already integrated with OpenClaw | 2026-04-07 |
-| Canvas 2D for initial runtime | Simplest viable rendering path | 2026-04-07 |
-| Sidebar-first navigation | Clean project management structure | 2026-04-07 |
+| Multi-agent team | PM + Dev + Game Dev + UI/UX + Standup | 2026-04-07 |
+| qwen3.6-plus:free for UI/UX | Visual focus, cost-effective | 2026-04-07 |
 
 ## Architecture
 
@@ -30,86 +131,30 @@ AI-first, web-based 2D game engine and editor with native OpenClaw integration.
 clawgame/
 ├── apps/
 │   ├── web/         # React editor (port 5173)
-│   │   ├── src/
-│   │   │   ├── components/
-│   │   │   │   └── AppLayout.tsx        # Sidebar navigation layout
-│   │   │   ├── pages/                   # Route components
-│   │   │   ├── constants/
-│   │   │   │   └── sidebar.ts          # Navigation items, quick actions
-│   │   │   └── App.tsx                  # Main router
 │   └── api/         # Fastify backend (port 3000)
 ├── packages/
-│   ├── engine/      # 2D runtime (Canvas-based)
-│   ├── shared/      # Types, utilities
-│   └── ...          # Other packages (scaffolds)
-└── docs/               # Project docs
+│   ├── engine/      # 2D runtime
+│   ├── editor-core/ # Editor state/logic
+│   ├── ai-orchestrator/ # AI provider routing
+│   ├── asset-pipeline/  # ComfyUI client
+│   ├── project-sdk/     # Project manipulation
+│   ├── ui/              # Shared components
+│   └── shared/          # Types, utilities
+├── docs/
+│   ├── product/     # Vision, roadmap
+│   ├── architecture/ # System design
+│   ├── tasks/       # Sprint, backlog
+│   ├── ai/          # Memory, all agent feedback
+│   └── qa/          # Known issues
+└── scripts/         # Agent prompts, utilities
 ```
-
-## Milestone 1 Progress
-
-### ✅ Completed
-- Full routing structure with React Router
-- AppLayout sidebar navigation with branding and menu items
-- DashboardPage with quick actions (New, Open, Examples projects)
-- CreateProjectPage comprehensive form with:
-  - Project name
-  - Project type (2D platformer, top-down, puzzle, RPG)
-  - Genre selection
-  - Art style selection (pixel, vector, low-poly, hand-drawn)
-  - Optional description
-- OpenProjectPage with project listing and status indicators
-- ExamplesPage with template selection
-- Placeholder pages for Editor, AI Command, Asset Studio, Settings
-- Complete CSS styling system with CSS variables
-- Form validation and state management
-- Mock data for demonstration
-
-### 🔄 Next Steps
-- Add API endpoints for project CRUD operations
-- Store project metadata in clawgame.project.json files
-- Display project metadata on dashboard when projects exist
-
-## Technical Implementation Notes
-
-- Used React Router v6 with proper TypeScript types
-- CSS-first design with CSS variables for theming
-- Mock projects data for UI demonstration
-- Form state management with useState hooks
-- Responsive grid layouts for actions and templates
-- Semantic HTML5 structure
-
-## API Integration Points
-
-Next phase requires:
-- `POST /api/projects` - Create new project
-- `GET /api/projects` - List all projects  
-- `GET /api/projects/:id` - Get specific project details
-- `PUT /api/projects/:id` - Update project metadata
-- File system storage of clawgame.project.json files
-
-## Build Verification
-
-```
-pnpm build → ✅ All packages compile
-pnpm dev:web → ✅ localhost:5173
-pnpm dev:api → ✅ localhost:3000
-```
-
-## Integration Points
-
-### OpenClaw
-- Project metadata: `clawgame.project.json`
-- Memory: `docs/ai/project_memory.md`
-- Sprint: `docs/tasks/current_sprint.md`
-- Agent roles: `director-agent`, `gameplay-agent`, `ui-agent`, `tools-agent`, `asset-agent`, `qa-agent`
-
-### ComfyUI
-- Default URL: `http://127.0.0.1:8188`
-- Asset types: sprites, tilesets, textures, icons, portraits, UI elements
 
 ---
 
 See also:
+- [PM Feedback](pm_feedback.md) - CEO direction
+- [Game Dev Feedback](game_dev_feedback.md) - User feedback
+- [UI/UX Feedback](uiux_feedback.md) - Visual design feedback
+- [Standup Notes](standup_notes.md) - Team alignment
 - [Current Sprint](../tasks/current_sprint.md)
 - [Known Issues](../qa/known_issues.md)
-- [Architecture](../architecture/architecture.md)
