@@ -7,6 +7,12 @@
   --accent-hover: #2563eb;
   --accent-light: #dbeafe;
 
+  /* ── AI Branding ── */
+  --ai-primary: #8b5cf6;
+  --ai-primary-hover: #7c3aed;
+  --ai-glow: rgba(139, 92, 246, 0.3);
+  --ai-gradient: linear-gradient(135deg, #3b82f6, #8b5cf6);
+
   /* ── Background layers ── */
   --bg: #ffffff;
   --surface: #f9fafb;
@@ -30,6 +36,7 @@
   --warning: #f59e0b;
   --error: #ef4444;
   --info: #3b82f6;
+  --info-light: #eff6ff;
 
   /* ── Editor ── */
   --editor-bg: #f9fafb;
@@ -87,6 +94,10 @@
     --accent-hover: #3b82f6;
     --accent-light: #1e3a5f;
 
+    --ai-primary: #a78bfa;
+    --ai-primary-hover: #8b5cf6;
+    --ai-glow: rgba(167, 139, 250, 0.3);
+
     --bg: #0f172a;
     --surface: #1e293b;
     --surface-alt: #334155;
@@ -95,8 +106,8 @@
     --hover-bg: #334155;
 
     --fg: #f1f5f9;
-    --fg-secondary: #94a3b8;
-    --text-muted: #64748b;
+    --fg-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
 
     --border: #334155;
     --border-strong: #475569;
@@ -109,10 +120,24 @@
     --editor-text: #f1f5f9;
     --editor-gutter: #1e293b;
     --editor-selection: #1e3a5f;
-    --editor-placeholder: #64748b;
+    --editor-placeholder: #94a3b8;
 
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
     --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
   }
+}
+
+/* ── Global focus indicators (accessibility) ── */
+.nav-item:focus-visible,
+.tree-node:focus-visible,
+.entity-item:focus-visible,
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
