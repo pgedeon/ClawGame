@@ -184,3 +184,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.9.0] - 2026-04-08
 
 [565 more lines in file. Use offset=101 to continue.]
+### [0.12.2] - 2026-04-08
+
+#### Fixed
+- Asset Studio crash ("prev is not iterable"): unwrap getGenerations API response to properly handle `{ generations: [] }` format
+- Game Preview showing wrong game name: display actual project name instead of hardcoded "Eclipse of Runes"
+- Generic start screen description instead of RPG-specific tagline
+
+#### Changed
+- Bumped AI service timeout from 120s to 180s for longer code generation tasks
+
+#### Added
+- Sidebar section dividers: "Platform" and "Project" labels separate navigation groups
+- ARIA accessibility: role="tablist"/"tab" on project hub tabs, aria-selected state
+- aria-live="polite" on AI thinking indicator for screen reader announcements
+- sidebar-section-title CSS styling with uppercase label, muted color, border separator
