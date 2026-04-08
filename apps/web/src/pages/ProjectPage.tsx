@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import '../game-hub.css';
 import { logger } from '../utils/logger';
+import { WelcomeModal } from '../components/WelcomeModal';
 
 interface ProjectTab {
   id: string;
@@ -210,6 +211,9 @@ export function ProjectPage() {
           <Outlet />
         )}
       </div>
+
+      {/* Welcome Modal for new projects */}
+      <WelcomeModal projectId={projectId} projectName={project.name} />
     </div>
   );
 }

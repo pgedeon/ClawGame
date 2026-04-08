@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Sparkles, X, ChevronRight, Command, Bot, Zap } from 'lucide-react';
 
 const TOUR_SEEN_KEY = 'clawgame:tour-seen';
-const TOUR_VERSION = 'v0.6'; // bump to re-show tour after major updates
+const TOUR_VERSION = 'v0.9.4'; // Sync with VERSION.json
 
 interface TourStep {
   title: string;
@@ -33,7 +33,7 @@ const steps: TourStep[] = [
   {
     title: 'Build Faster',
     description:
-      'Create a project, then let AI generate game scripts, scenes, and assets. Review, tweak, and play — all in the browser.',
+      'Create a project, then let AI generate game scripts, scenes, and assets. Review, tweak, and play — all in browser.',
     icon: <Zap size={32} color="#8b5cf6" />,
   },
 ];

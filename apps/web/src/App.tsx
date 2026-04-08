@@ -15,6 +15,7 @@ import './error-boundary.css';
 import './onboarding.css';
 import './game-hub.css';
 import './game-preview.css';
+import './welcome-modal.css';
 import './asset-studio.css';
 import './export-page.css';
 

@@ -3,7 +3,7 @@
  * Loads and runs actual game content from project
  */
 
-import React, { useEffect, useRef, useState, Suspense, useCallback } from 'react';
+import React, { useEffect, useRef, useState, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import '../game-preview.css';
@@ -33,15 +33,12 @@ interface GameStats {
 const GamePreviewContent: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
+  const gameStatsRef = useRef<GameStats>({ fps: 60, entities: 0, memory: '0MB' });
   const { projectId } = useParams<{ projectId: string }>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [projectScene, setProjectScene] = useState<ProjectScene | null>(null);
-  const [gameStats, setGameStats] = useState<GameStats>({
-    fps: 60,
-    entities: 0,
-    memory: '0MB'
-  });
+  const [gameStats, setGameStats] = useState<GameStats>({ fps: 60, entities: 0, memory: '0MB' });
 
   // Load project scene
   useEffect(() => {
@@ -114,7 +111,7 @@ const GamePreviewContent: React.FC = () => {
     loadProjectScene();
   }, [projectId]);
 
-  // Initialize game loop
+  // Initialize game loop - only depends on projectScene, NOT gameStats
   useEffect(() => {
     if (!canvasRef.current || !projectScene) return;
 
@@ -224,7 +221,7 @@ const GamePreviewContent: React.FC = () => {
         }
       });
 
-      // Update game stats
+      // Update game stats - using ref to avoid re-render
       frameCount++;
       if (frameCount % 30 === 0) {
         const fps = Math.round(1000 / deltaTime);
@@ -232,11 +229,20 @@ const GamePreviewContent: React.FC = () => {
           ? `${((performance as any).memory.usedJSHeapSize || 0) / 1048576 | 0}MB`
           : 'N/A';
         
-        setGameStats({
+        // Update ref instead of state to prevent re-renders
+        gameStatsRef.current = {
           fps,
           entities: entities.size,
           memory
-        });
+        };
+        
+        // Only trigger state update every 30 frames (2x per second at 60fps)
+        setGameStats(prev => ({
+          ...prev,
+          fps,
+          entities: entities.size,
+          memory
+        }));
       }
     };
 
@@ -296,16 +302,18 @@ const GamePreviewContent: React.FC = () => {
         ctx.restore();
       });
 
-      // Draw UI
+      // Draw UI - use gameStatsRef for latest values
+      const stats = gameStatsRef.current;
+      
       ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
       ctx.fillRect(10, 10, 200, 80);
       
       ctx.fillStyle = 'white';
       ctx.font = '14px monospace';
       ctx.textAlign = 'left';
-      ctx.fillText(`FPS: ${gameStats.fps}`, 20, 30);
-      ctx.fillText(`Entities: ${gameStats.entities}`, 20, 50);
-      ctx.fillText(`Memory: ${gameStats.memory}`, 20, 70);
+      ctx.fillText(`FPS: ${stats.fps}`, 20, 30);
+      ctx.fillText(`Entities: ${stats.entities}`, 20, 50);
+      ctx.fillText(`Memory: ${stats.memory}`, 20, 70);
 
       // Draw controls
       ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
@@ -339,7 +347,7 @@ const GamePreviewContent: React.FC = () => {
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('resize', resizeCanvas);
     };
-  }, [projectScene, gameStats]);
+  }, [projectScene]); // Only depend on projectScene, NOT gameStats
 
   if (loading) {
     return (
