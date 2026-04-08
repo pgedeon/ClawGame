@@ -414,3 +414,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Design System Adoption**: Newer components (WelcomeModal, Toast) serve as templates for compliance
 - **Phase 3 Progress**: Documentation sync and design system audit completed
 - **Remaining Work**: Test coverage expansion (>50%) and optional pre-commit hook
+
+### [0.10.0] - 2026-04-08
+
+#### Added
+- **M8 Phase 1: Template Gallery & Enhanced Workflows**
+  - **Template Gallery**: Comprehensive template browsing system (8 templates)
+    - Advanced filtering by category, difficulty, and search
+    - Detailed template information with features and learning outcomes
+    - Template previews with difficulty badges and category grouping
+    - Estimated completion time and player count information
+    - Tag-based organization for easy discovery
+  - **AssetStudio Architecture**: Complete component decomposition
+    - GeneratePanel: AI generation form with real-time progress tracking
+    - AssetGrid: Browsable asset display with selection and search
+    - AssetDetailPanel: Detailed asset view with actions and metadata
+    - FilterPanel: Unified search, filter, and upload controls
+    - GenerationTracker: Active generation monitoring and history
+    - Reduced main page from 715 lines to focused orchestrator (~100 lines)
+  - **Enhanced Template System**: 8 professional game templates
+    - Platformer, Top-Down RPG, Logic Puzzle, Space Shooter
+    - Racing Game, Tower Defense, Visual Novel, Rhythm Game
+    - Difficulty scaling: Beginner to Advanced levels
+    - Diverse genres: Action, Puzzle, RPG, Strategy, Simulation, Arcade
+
+#### Changed
+- **Milestone Transition**: Completed M7, began M8 Feature Expansion
+- **Component Architecture**: Improved maintainability through focused sub-components
+- **Design System**: Enhanced consistency across new template gallery and asset studio
+- **User Experience**: Better template selection workflow with detailed information
+- **Documentation**: Updated sprint planning and version tracking for M8
+
+#### Technical Improvements
+- **Code Organization**: Better separation of concerns in asset management
+- **Performance**: Optimized component rendering through focused responsibilities
+- **Maintainability**: Template-based component architecture for future expansion
+- **Discoverability**: Enhanced template discovery with advanced filtering and search
