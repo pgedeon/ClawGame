@@ -402,4 +402,26 @@
 
 .chat-messages::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
+}/* Fix text contrast in AI command chat */
+.message.assistant .message-content {
+  color: var(--fg) !important;
+}
+
+.message.assistant .message-content p,
+.message.assistant .message-content li,
+.message.assistant .message-content span {
+  color: var(--fg) !important;
+}
+
+.message.assistant .change-summary,
+.message.assistant .steps-list li {
+  color: var(--fg) !important;
+}
+
+/* Ensure code blocks are also readable */
+.message.assistant .message-content code {
+  background: var(--bg);
+  color: var(--fg);
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
 }
