@@ -68,13 +68,26 @@
 
 ---
 
-## Phase 4: Export & Packaging ⏳
+## Phase 4: Export & Packaging ✅
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Game export to standalone HTML | ⏳ Not Started | Package game for distribution |
-| Asset bundling in export | ⏳ Not Started | Include all assets in export |
-| Download/share workflow | ⏳ Not Started | Let users ship games |
+| Game export to standalone HTML | ✅ Done | ExportService packages game as HTML - v0.9.0 |
+| Asset bundling in export | ✅ Done | Assets embedded as data URIs in HTML - v0.9.0 |
+| Download/share workflow | ✅ Done | Export page with history, play, download, delete - v0.9.0 |
+
+**Details:**
+- ExportService generates standalone HTML files containing complete game
+- Embedded assets as base64 data URIs for self-contained exports
+- Export API routes: POST export, GET exports, GET/DELETE export files
+- Export page UI with options panel and export history
+- Export options: include assets (working), minify (placeholder), compress (placeholder)
+- ProjectPage updated with Export tab and overview quick action
+- Export history with play-in-browser, download, and delete actions
+- Auto-download on export completion
+- Responsive design with loading states and error handling
+- Exported games include minimal game engine that runs in browser
+- No build tools or npm required for exported games
 
 ---
 
@@ -93,16 +106,19 @@
 - [x] Health endpoint returns actual version from VERSION.json
 - [x] SceneEditorPage decomposed (1270 → 528 lines orchestrator)
 - [x] Component separation (AssetBrowserPanel, SceneCanvas, PropertyInspector)
+- [x] Game export to standalone HTML with embedded assets
+- [x] Download/share workflow with export history
 
 ---
 
 ## Exit Criteria
 
-**AI generates real game assets from text descriptions. Scene editor integrates with asset library. Test coverage > 0. Scene editor has clean component architecture.**
+**AI generates real game assets from text descriptions. Scene editor integrates with asset library. Test coverage > 0. Scene editor has clean component architecture. Users can export games as standalone HTML files.**
 
 **Phase 1 Complete ✅** — Backend quality shipped in v0.7.0!
 **Phase 2 Complete ✅** — Real AI asset generation shipped in v0.7.1!
 **Phase 3 Complete ✅** — Scene Editor ↔ Asset Integration shipped in v0.8.0! Component decomposition shipped in v0.8.1!
+**Phase 4 Complete ✅** — Export & Packaging shipped in v0.9.0!
 
 ---
 
@@ -117,5 +133,5 @@ All 4 phases delivered:
 
 ---
 
-**Current Sprint:** Milestone 6 (Real AI Assets + Quality + Integration) — Phases 1-3 Complete ✅, Phase 4 Next
+**Current Sprint:** Milestone 6 (Real AI Assets + Quality + Integration) — COMPLETE ✅
 **Next Milestone:** M7 (Git + OpenClaw Operations)
