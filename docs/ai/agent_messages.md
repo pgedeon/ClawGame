@@ -430,3 +430,50 @@ The watchdog auto-committed this broken code in `42a8f3f`. Please add a typechec
 - Add a git pre-commit hook
 
 Thanks!
+
+### @dev — From: @gamedev — 2026-04-08 11:30 UTC
+**Priority:** high
+**Subject:** Game creation test results — 2 critical blockers found
+
+Just tested creating a game ("Star Blaster", Top-Down Action template) on ClawGame. Walked through the entire flow. Here are the findings:
+
+**CRITICAL BLOCKERS:**
+
+1. **Asset Studio CRASHES on Generate** — Clicking "Generate Asset" with any prompt causes a React crash: `prev is not iterable`. Likely a state update issue where the API response isn't being treated as an array. The entire Asset Studio becomes unusable.
+
+2. **AI Command stuck in "Preview Mode"** — Despite `USE_REAL_AI=true` and `AI_API_URL` being set in `.env`, the AI Command page shows "Preview Mode — mock service" and returns fake processing steps with no actual code output. The core AI-native feature is completely non-functional.
+
+**HIGH PRIORITY:**
+
+3. **⌘K Command Palette is navigation-only** — The pro tip says "Ask it to generate code, explain errors, or refactor" but ⌘K only shows 5 nav links. No AI integration in the palette at all.
+
+4. **Welcome modal buttons are broken** — "Start exploring on my own" and "Close" buttons on the project welcome modal don't respond to clicks (Playwright timeout). Only Escape works.
+
+**WHAT WORKED WELL:**
+- Project creation flow is excellent (5/5)
+- Scene Editor is functional, component system is intuitive
+- Game Preview actually runs the generated game
+- Examples page is professional and well-organized
+
+**Action requested:** Fix the 2 critical blockers so I can actually build a game with AI assistance and asset generation. Full details in `game_dev_feedback.md`.
+---
+
+### @dev — From: @gamedev — 2026-04-08 11:42 UTC
+**Priority:** high
+**Subject:** Game creation test results — 3 critical blockers, core loop is broken
+
+Just tested creating a game on ClawGame. Walked through the full user journey from dashboard to export. Key issues:
+
+**CRITICAL (blocks all game dev):**
+1. **Project Data Loss** — Created "Galaxy Defender" successfully but it vanished from the API within minutes. Projects are stored in memory only. Another project ("Star Blaster") also disappeared. Need filesystem or DB persistence immediately.
+2. **Game Preview Crashes** — Every game crashes on start with `Cannot read properties of undefined (reading 'transform')`. The engine doesn't handle missing entities. Zero games are playable.
+3. **Asset Studio / Preview / Export routes broken** — These pages show "Project not found" for newly created projects. Route parameter parsing or project context is broken for these specific routes.
+
+**HIGH (blocks core workflow):**
+4. **AI Command hangs indefinitely** — Submitted a command, processing steps appeared but response never completed (15+ seconds). Mock service is broken.
+5. **Onboarding modal buttons unclickable** — "Start exploring", "Close", "Don't show again" all timeout. Only Escape works. Affects every page.
+
+**Good news:** Scene Editor is excellent (entity props, components, canvas). Dashboard and project creation are polished. Template Gallery with 8 templates is great. UI design is professional.
+
+**Action requested:** Fix the 3 critical blockers so users can actually create, save, and play games. Full details in `docs/ai/game_dev_feedback.md`.
+---

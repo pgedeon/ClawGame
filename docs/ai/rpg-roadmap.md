@@ -1,9 +1,9 @@
 # ECLIPSE OF RUNES — Innovative 2D RPG Roadmap
 
 ## Vision
-A procedural narrative RPG where the world reacts to player choices in unexpected ways. 
-Every NPC has a memory. Every biome shifts with time and player actions. Combat blends 
-real-time dodge mechanics with strategic spell-weaving (combine runes mid-fight). 
+A procedural narrative RPG where the world reacts to player choices in unexpected ways.
+Every NPC has a memory. Every biome shifts with time and player actions. Combat blends
+real-time dodge mechanics with strategic spell-weaving (combine runes mid-fight).
 No two playthroughs are the same.
 
 ## Innovation Pillars
@@ -15,12 +15,17 @@ No two playthroughs are the same.
 
 ## Phase Roadmap
 
-### Phase 1: Foundation (Sprint 1-2)
-- [ ] Project scaffolding: game loop, scene management, input handling
-- [ ] Player character: sprite rendering, movement, collision
-- [ ] Basic tilemap engine: loading/rendering Tiled-compatible maps
-- [ ] Camera system: follow player, smooth lerp, bounds
-- [ ] Core RPG framework: stats, inventory slots, equip system
+### Phase 1: Foundation — ✓ COMPLETE
+- [x] Project scaffolding: game loop, scene management, input handling
+- [x] Player character: rendering, movement, collision
+- [x] Basic tilemap engine: loading/rendering Tiled-compatible maps
+- [x] Camera system: follow player, smooth lerp, bounds
+- [x] Core RPG framework: stats, inventory slots
+- [x] Enemy NPC with patrol AI
+- [x] Item collection logic
+- [x] Simple dialogue trigger system
+
+**Deliverable:** Playable demo with movement, enemies, items, and signs.
 
 ### Phase 2: Combat & Runes (Sprint 3-4)
 - [ ] Real-time combat engine: dodge roll, attack frames, hitboxes
@@ -62,3 +67,23 @@ The agent may reorder, skip, or add phases based on:
 - Post feature requests to `docs/ai/agent_messages.md` with `@platform-dev`
 - Log all decisions in `docs/ai/rpg-devlog.md`
 - Update this roadmap when phases change
+
+## Current Status
+**Phase 1: Foundation** — ✅ COMPLETE
+
+**Playable Features:**
+- Player movement (WASD/Arrows) with tile collision
+- Smooth camera follow with map bounds
+- 3 enemy types with patrol/chase AI
+- Item pickups (gold, runes, potions)
+- Dialogue triggers (signs)
+- HP/MP HUD display
+- FPS counter
+
+**Code Stats:**
+- 8 TypeScript modules
+- ~1,420 lines of code
+- No external dependencies
+- Pure Canvas 2D rendering
+
+**Next:** Phase 2 — Combat & Runes

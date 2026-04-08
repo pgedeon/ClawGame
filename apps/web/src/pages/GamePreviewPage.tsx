@@ -60,12 +60,19 @@ const GamePreviewContent: React.FC = () => {
         // Try to load existing scene or create default
         try {
           const sceneData = await api.readFile(projectId, 'scenes/main-scene.json');
-          const parsedScene: ProjectScene = JSON.parse(sceneData.content);
+          const parsedScene = JSON.parse(sceneData.content);
           
-          // Validate and fix scene structure
+          // Validate and fix scene structure — ensure all entities have valid transforms
+          const entities = Array.isArray(parsedScene.entities) ? parsedScene.entities : [];
+          const validatedEntities = entities.map((entity: any) => ({
+            id: entity.id || `entity-${Math.random().toString(36).substr(2, 9)}`,
+            transform: entity.transform || { x: 400, y: 300, scaleX: 1, scaleY: 1, rotation: 0 },
+            components: entity.components || {},
+          }));
+          
           const validatedScene: ProjectScene = {
             name: parsedScene.name || 'Main Scene',
-            entities: parsedScene.entities || [],
+            entities: validatedEntities,
           };
           
           setProjectScene(validatedScene);
@@ -231,22 +238,24 @@ const GamePreviewContent: React.FC = () => {
       });
 
       // Check collisions
-      const player = entities.get('player-1');
+      const player = entities.get('player') || entities.get('player-1');
       const collectibles = Array.from(entities.values()).filter(e => 
         e.components?.collision?.type === 'collectible'
       );
 
+      if (player) {
       collectibles.forEach(coin => {
-        const dx = player!.transform.x - coin.transform.x;
-        const dy = player!.transform.y - coin.transform.y;
+        const dx = player.transform.x - coin.transform.x;
+        const dy = player.transform.y - coin.transform.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (distance < (player!.width + coin.width) / 2) {
+        if (distance < (player.width + coin.width) / 2) {
           // Collect coin - remove from game
           entities.delete(coin.id);
           score += 10;
         }
       });
+      }
 
       // Update game stats
       frameCount++;

@@ -1,0 +1,69 @@
+{
+  "name": "Eclipse of Runes - Starting Area",
+  "description": "The first area where players begin their journey",
+  "entities": [
+    {
+      "id": "player",
+      "type": "player",
+      "transform": { "x": 160, "y": 160, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "playerInput": true,
+        "movement": { "vx": 0, "vy": 0, "speed": 120 },
+        "collision": { "width": 24, "height": 24, "type": "player" },
+        "stats": {
+          "name": "Rune Walker",
+          "level": 1,
+          "hp": 100,
+          "maxHp": 100,
+          "mp": 50,
+          "maxMp": 50
+        }
+      }
+    },
+    {
+      "id": "tree-1",
+      "type": "decor",
+      "transform": { "x": 96, "y": 64, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "sprite": { "width": 32, "height": 32, "tileId": 3 }
+      }
+    },
+    {
+      "id": "item-1",
+      "type": "collectible",
+      "transform": { "x": 320, "y": 160, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "sprite": { "width": 16, "height": 16, "tileId": 4 },
+        "collision": { "width": 16, "height": 16, "type": "collectible" },
+        "collectible": { "type": "rune", "name": "Fire Rune Fragment", "value": 10 }
+      }
+    },
+    {
+      "id": "item-2",
+      "type": "collectible",
+      "transform": { "x": 160, "y": 320, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "sprite": { "width": 16, "height": 16, "tileId": 4 },
+        "collision": { "width": 16, "height": 16, "type": "collectible" },
+        "collectible": { "type": "gold", "name": "Gold Coins", "value": 5 }
+      }
+    }
+  ],
+  "tilemap": {
+    "width": 20,
+    "height": 15,
+    "tileWidth": 32,
+    "tileHeight": 32,
+    "layers": ["ground", "collision", "decor"]
+  },
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 1
+  },
+  "metadata": {
+    "createdAt": "2026-04-08T11:07:37.828Z",
+    "phase": 1,
+    "features": ["player-movement", "tilemap-collision", "camera-follow"]
+  }
+}

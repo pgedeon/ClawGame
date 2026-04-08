@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Send, RefreshCw } from 'lucide-react';
 import { api, type AICommandRequest, type AICommandResponse, type AICommandHistory } from '../api/client';
-import { AIThinkingIndicator } from '../components/AIThinkingIndicator';
+import { useToast } from '../components/Toast';
 import '../ai-thinking.css';
 import { logger } from '../utils/logger';
 
 export function AICommandPage() {
   const { projectId } = useParams<{ projectId: string }>();
+  const { showToast } = useToast();
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Array<{
     type: 'user' | 'assistant';
@@ -30,14 +31,15 @@ export function AICommandPage() {
   const checkAIStatus = async () => {
     try {
       const health = await fetch('http://localhost:3000/api/ai/health').then(r => r.json());
-      setIsRealAI(health.service !== 'mock-ai-preview');
+      const isReal = health.service !== 'mock-ai-preview';
+      setIsRealAI(isReal);
       
       // Set welcome message based on AI status
       setMessages([{
         type: 'assistant',
-        content: isRealAI 
-          ? `🤖 Welcome to AI Command (Real AI Connected)\n\n**Connected to:** ${health.service}\n**Model:** ${health.model}\n\n✨ **Real AI Features Available:**\n• Actual code generation powered by ${health.model}\n• Context-aware code analysis\n• Real-time code suggestions\n• Bug detection and fixes\n• Code quality reviews\n\n💬 **Try asking:**\n"Create a simple player movement system"\n"Explain the collision system"\n"Fix the attack cooldown bug"\n"Analyze code quality"\n\nReady to help you build your game!`
-          : `🤖 Welcome to AI Command (Preview Mode)\n\nThis is a demonstration of AI-powered game development features. Real AI integration is available by setting USE_REAL_AI=1 in the API environment.\n\n✨ **What this preview includes:**\n• Command parsing and analysis\n• Response generation based on your intent\n• Code change suggestions\n• Risk assessment\n\n⚠️ **Current Limitations:**\n• This is a mock service - responses are generated locally\n• No actual code generation or modification\n• No real AI service integration yet\n• Responses are simulated based on command patterns\n\n💬 **Try asking:**\n"Create a simple player movement system"\n"Explain collision system"\n"Fix the attack cooldown bug"\n"Analyze code quality"\n\nWhat would you like to explore?`,
+        content: isReal 
+          ? `🤖 Welcome to AI Command (Real AI Connected)\n\n**Connected to:** ${health.service}\n**Model:** ${health.model}\n\n✨ **Real AI Features Available:**\n• Actual code generation powered by ${health.model}\n• Context-aware code analysis\n• Real-time code suggestions\n• Bug detection and fixes\n• Code quality reviews\n\n💬 **Try asking:**\n"Create a simple player movement system"\n"Explain the collision system"\n"Fix this attack cooldown bug"\n"Analyze code quality"\n\nReady to help you build your game!`
+          : `🤖 Welcome to AI Command\n\nThis is a demonstration of AI-powered game development features. Real AI integration is available by setting \`USE_REAL_AI=1\` in the API environment.\n\n✨ **What this includes:**\n• Command parsing and analysis\n• Response generation based on your intent\n• Code change suggestions\n• Risk assessment\n\n⚠️ **Current Limitations:**\n• This is a mock service - responses are generated locally\n• No actual code generation or modification\n• No real AI service integration yet\n• Responses are simulated based on command patterns\n\n💬 **Try asking:**\n"Create a simple player movement system"\n"Explain the collision system"\n"Fix this attack cooldown bug"\n"Analyze code quality"\n\nWhat would you like to explore?`,
         timestamp: new Date(),
       }]);
     } catch (err) {
@@ -45,9 +47,10 @@ export function AICommandPage() {
       // Default to preview mode if API not reachable
       setMessages([{
         type: 'assistant',
-        content: '🤖 Welcome to AI Command (Preview Mode)\n\nThis is a demonstration of AI-powered game development features.\n\nNote: Could not connect to the API server. Make sure the backend is running.',
+        content: '🤖 Welcome to AI Command\n\nThis is a demonstration of AI-powered game development features.\n\nNote: Could not connect to the API server. Make sure the backend is running at http://localhost:3000',
         timestamp: new Date(),
       }]);
+      setIsRealAI(false);
     }
   };
 
@@ -85,41 +88,26 @@ export function AICommandPage() {
       const commandRequest: AICommandRequest = {
         projectId,
         command: userMessage,
-        context: {
-          selectedFiles: [], // Could be enhanced with actual selected files
-          selectedCode: '', // Could be enhanced with actual selected code
-        }
+        context: {},
       };
 
       const result = await api.processAICommand(projectId, commandRequest);
-      const response = result.response;
-
-      // Add AI response with structured data
+      
+      // Add assistant response
       setMessages(prev => [
         ...prev,
         {
           type: 'assistant',
-          content: response.content,
+          content: result.response.content,
           timestamp: new Date(),
-          response,
+          response: result.response,
         }
       ]);
 
-      // Update history
-      setCommandHistory(prev => [
-        {
-          id: response.id,
-          projectId,
-          command: userMessage,
-          response,
-          timestamp: new Date(),
-          status: 'completed',
-        },
-        ...prev.slice(0, 9) // Keep only last 9
-      ]);
-
-    } catch (error) {
-      logger.error('AI request failed:', error);
+      // Reload history to get updated command list
+      await loadCommandHistory();
+    } catch (error: any) {
+      logger.error('Failed to process AI command:', error);
       
       const errorMessage = `❌ Sorry, I encountered an error processing your request: ${error instanceof Error ? error.message : 'Unknown error'}`;
       
@@ -136,272 +124,180 @@ export function AICommandPage() {
     }
   };
 
-  const formatMessage = (content: string) => {
-    return content.split('\n').map((line, index) => (
-      <React.Fragment key={index}>
-        {line}
-        <br />
-      </React.Fragment>
-    ));
+  const handleRetry = async () => {
+    await checkAIStatus();
+    showToast({ type: 'info', message: 'AI status refreshed' });
   };
-
-  const renderChanges = (response?: AICommandResponse) => {
-    if (!response?.changes) return null;
-
-    return (
-      <div className="ai-changes">
-        <h4>📝 Changes Preview:</h4>
-        <div className="changes-list">
-          {response.changes.map((change, index) => (
-            <div key={index} className="change-item">
-              <div className="change-path">{change.path}</div>
-              <div className="change-summary">{change.summary}</div>
-              <div className="change-confidence">
-                Confidence: {Math.round(change.confidence * 100)}%
-              </div>
-            </div>
-          ))}
-        </div>
-        {!isRealAI && (
-          <div className="mock-notice">
-            ⚠️ These are simulated changes - no actual files will be modified.
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const renderNextSteps = (response?: AICommandResponse) => {
-    if (!response?.nextSteps) return null;
-
-    return (
-      <div className="ai-next-steps">
-        <h4>🎯 Next Steps:</h4>
-        <ul className="steps-list">
-          {response.nextSteps.map((step, index) => (
-            <li key={index}>{step}</li>
-          ))}
-        </ul>
-        {!isRealAI && (
-          <div className="mock-notice">
-            ⚠️ Next steps are simulated for demonstration purposes.
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const renderRiskBadge = (riskLevel: string) => {
-    const colors = {
-      low: 'var(--success-light)',
-      medium: 'var(--warning-light)',
-      high: 'var(--error-light)'
-    };
-    const textColors = {
-      low: 'var(--success)',
-      medium: 'var(--warning)',
-      high: 'var(--error)'
-    };
-    
-    return (
-      <span 
-        className="risk-badge" 
-        style={{ 
-          background: colors[riskLevel as keyof typeof colors] || colors.low,
-          color: textColors[riskLevel as keyof typeof textColors] || textColors.low
-        }}
-      >
-        {riskLevel}
-      </span>
-    );
-  };
-
-  const aiThinkingSteps = [
-    'Analyzing your request...',
-    'Understanding project context...',
-    'Generating solution...',
-    'Reviewing and optimizing...',
-    'Finalizing response...'
-  ];
 
   return (
     <div className="ai-command-page">
-      <header className="page-header">
-        <h1>
-          <Sparkles size={20} color={isRealAI ? '#8b5cf6' : '#94a3b8'} />
-          {' '}AI Command
-          {!isRealAI && ' (Preview Mode)'}
-        </h1>
-        <p>
-          {isRealAI 
-            ? 'Real AI-powered game development assistance'
-            : 'Experience AI-powered game development in simulation mode'
-          }
-        </p>
-        {!isRealAI && (
-          <div className="mock-notice">
-            🎭 <strong>Preview Mode Active:</strong> Set USE_REAL_AI=1 to enable real AI.
-          </div>
-        )}
-      </header>
-
       <div className="ai-command-container">
-        <div className="ai-chat-container">
-          <div className="chat-messages">
-            {messages.map((message, index) => (
-              <div 
-                key={index} 
-                className={`message ${message.type}`}
-              >
-                <div className="message-content">
-                  {formatMessage(message.content)}
-                  
-                  {/* Show AI-specific response data */}
-                  {message.type === 'assistant' && message.response && (
-                    <div className="ai-response-details">
-                      <div className="response-header">
-                        <h3>{message.response.title}</h3>
-                        {renderRiskBadge(message.response.riskLevel)}
-                      </div>
-                      
-                      {renderChanges(message.response)}
-                      {renderNextSteps(message.response)}
-                      
-                      {message.response.estimatedTime && (
-                        <div className="estimated-time">
-                          ⏱️ Estimated time: {message.response.estimatedTime}s
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <div className="message-time">
-                  {message.timestamp.toLocaleTimeString('en-US', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </div>
-              </div>
-            ))}
-            
-            {isLoading && (
-              <div className="message assistant loading">
-                <div className="message-content">
-                  <AIThinkingIndicator steps={aiThinkingSteps} />
-                </div>
-              </div>
-            )}
+        {/* Header */}
+        <div className="ai-command-header">
+          <div className="ai-command-title">
+            <Sparkles size={24} className="ai-icon" />
+            <h2>AI Command{!isRealAI && ' (Demo)'}</h2>
           </div>
+          <button 
+            className="refresh-btn"
+            onClick={handleRetry}
+            title="Refresh AI status"
+          >
+            <RefreshCw size={20} />
+          </button>
         </div>
 
-        <div className="chat-input-container">
-          <form onSubmit={handleSubmit} className="chat-form">
+        {/* Status Banner */}
+        {!isRealAI && (
+          <div className="mock-notice">
+            🎭 <strong>Demo Mode Active:</strong> Set <code>USE_REAL_AI=1</code> in the API environment to enable real AI.
+          </div>
+        )}
+
+        {/* Messages Container */}
+        <div className="ai-messages-container">
+          {messages.map((message, index) => (
+            <div 
+              key={index} 
+              className={`message ${message.type}${isLoading && index === messages.length - 1 ? ' loading' : ''}`}
+            >
+              <div className="message-content">
+                {message.response ? (
+                  <div className="ai-response">
+                    {message.response.type === 'explanation' && (
+                      <div className="response-type explanation">
+                        📖 Explanation
+                      </div>
+                    )}
+                    {message.response.type === 'change' && (
+                      <div className="response-type change">
+                        ✨ Code Change
+                      </div>
+                    )}
+                    {message.response.type === 'fix' && (
+                      <div className="response-type fix">
+                        🔧 Fix
+                      </div>
+                    )}
+                    {message.response.type === 'analysis' && (
+                      <div className="response-type analysis">
+                        🔍 Analysis
+                      </div>
+                    )}
+                    {message.response.type === 'error' && (
+                      <div className="response-type error">
+                        ❌ Error
+                      </div>
+                    )}
+                    {message.response.title && (
+                      <h3>{message.response.title}</h3>
+                    )}
+                    <div className="response-body">
+                      {message.content.split('\n').map((line, i) => (
+                        <p key={i}>{line}</p>
+                      ))}
+                    </div>
+                    {message.response.changes && message.response.changes.length > 0 && (
+                      <div className="changes-list">
+                        <h4>Proposed Changes:</h4>
+                        {message.response.changes.map((change, idx) => (
+                          <div key={idx} className="change-item">
+                            <div className="change-path">{change.path}</div>
+                            <div className="change-summary">{change.summary}</div>
+                            <div className="change-confidence">
+                              Confidence: {Math.round(change.confidence * 100)}%
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {message.response.nextSteps && message.response.nextSteps.length > 0 && (
+                      <div className="next-steps">
+                        <h4>Suggested Next Steps:</h4>
+                        <ul>
+                          {message.response.nextSteps.map((step, idx) => (
+                            <li key={idx}>{step}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {message.response.riskLevel && (
+                      <div className={`risk-badge ${message.response.riskLevel}`}>
+                        Risk: {message.response.riskLevel}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="simple-response">
+                    {message.content.split('\n').map((line, i) => (
+                      <p key={i}>{line}</p>
+                    ))}
+                  </div>
+                )}
+                <div className="message-timestamp">
+                  {message.timestamp.toLocaleTimeString()}
+                </div>
+              </div>
+            </div>
+          ))}
+          
+          {isLoading && (
+            <div className="message assistant loading">
+              <div className="message-content">
+                <div className="ai-thinking-indicator">
+                  <div className="ai-pulse">
+                    <div className="pulse-ring pulse-1"></div>
+                    <div className="pulse-ring pulse-2"></div>
+                    <div className="pulse-center">
+                      <Sparkles size={32} />
+                    </div>
+                  </div>
+                  <div className="ai-thinking-steps">
+                    <div className="thinking-step active">Analyzing your request...</div>
+                    <div className="thinking-step">Processing...</div>
+                    <div className="thinking-step">Generating response...</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Input Form */}
+        <div className="ai-input-container">
+          <form onSubmit={handleSubmit}>
             <div className="input-wrapper">
-              <textarea
+              <input
+                type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder={isRealAI 
-                  ? "Ask me anything about your game..." 
-                  : "Ask me anything about your game (Preview Mode)..."
+                  ? "Ask me anything about your game..."
+                  : "Ask me anything about your game (Demo Mode)..."
                 }
-                rows={2}
-                className="chat-input"
+                disabled={isLoading || !projectId}
+                className="ai-input"
+                autoFocus
               />
               <button 
                 type="submit" 
-                className="send-button"
                 disabled={!input.trim() || isLoading || !projectId}
+                className="send-btn"
+                title={isLoading ? "Processing..." : "Send"}
               >
-                {isLoading ? '⏳' : '→'}
+                {isLoading ? (
+                  <RefreshCw size={20} className="spinning" />
+                ) : (
+                  <Send size={20} />
+                )}
               </button>
             </div>
           </form>
-
-          <div className="quick-prompts">
-            <h4>Quick Prompts</h4>
-            <div className="prompt-buttons">
-              <button 
-                onClick={() => setInput("Create a simple player movement system")}
-                className="prompt-button"
-              >
-                Player Movement
-              </button>
-              <button 
-                onClick={() => setInput("Add health and damage system")}
-                className="prompt-button"
-              >
-                Health System
-              </button>
-              <button 
-                onClick={() => setInput("Generate pixel art sprites")}
-                className="prompt-button"
-              >
-                Generate Assets
-              </button>
-              <button 
-                onClick={() => setInput("Fix runtime errors")}
-                className="prompt-button"
-              >
-                Debug Errors
-              </button>
-              <button 
-                onClick={() => setInput("Analyze code quality")}
-                className="prompt-button"
-              >
-                Code Review
-              </button>
-              <button 
-                onClick={() => setInput("Explain the collision system")}
-                className="prompt-button"
-              >
-                Explain Code
-              </button>
-            </div>
+          <div className="input-hint">
+            <p>⌘K to open command palette</p>
+            <p>Press Enter to send</p>
+            <p>Shift+Enter for new line</p>
           </div>
-
-          {/* Command History */}
-          {commandHistory.length > 0 && (
-            <div className="command-history">
-              <h4>Recent Commands</h4>
-              <div className="history-list">
-                {commandHistory.slice(0, 5).map((cmd) => (
-                  <div key={cmd.id} className="history-item">
-                    <div className="history-command">{cmd.command}</div>
-                    <div className="history-time">
-                      {cmd.timestamp.toLocaleTimeString()}
-                    </div>
-                    <div className="history-type">
-                      {cmd.response.type}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {!isRealAI && (
-            <div className="mock-status">
-              <h4>ℹ️ About This Preview</h4>
-              <div className="mock-details">
-                <p><strong>What's Real:</strong></p>
-                <ul>
-                  <li>Command parsing and intent analysis</li>
-                  <li>Response generation based on patterns</li>
-                  <li>UI interactions and state management</li>
-                  <li>Command history tracking</li>
-                  <li>Code change simulations</li>
-                </ul>
-                <p><strong>What's Not Real:</strong></p>
-                <ul>
-                  <li>No actual AI service connection</li>
-                  <li>No file modifications</li>
-                  <li>No real code generation</li>
-                  <li>No contextual code analysis</li>
-                  <li>Simulated confidence scores</li>
-                </ul>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
