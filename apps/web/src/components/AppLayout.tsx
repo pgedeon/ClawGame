@@ -52,41 +52,14 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
     }
   };
 
-  const dynamicSidebarItems: SidebarNavItem[] = [...sidebarItems];
-
-  // Add project-specific navigation when in project context
-  if (isInProjectContext && projectId) {
-    const project = projects.find(p => p.id === projectId);
-    if (project) {
-      dynamicSidebarItems.push(
-        {
-          path: `/project/${projectId}/editor`,
-          label: 'Editor',
-          icon: FileCode,
-        },
-        {
-          path: `/project/${projectId}/scene-editor`,
-          label: 'Scene Editor',
-          icon: Layers,
-        },
-        {
-          path: `/project/${projectId}/ai`,
-          label: 'AI Command',
-          icon: Bot,
-        },
-        {
-          path: `/project/${projectId}/assets`,
-          label: 'Asset Studio',
-          icon: Palette,
-        },
-        {
-          path: `/project/${projectId}/preview`,
-          label: 'Game Preview',
-          icon: Play,
-        },
-      );
-    }
-  }
+  // Project-specific navigation items
+  const projectNavItems: SidebarNavItem[] = isInProjectContext && projectId ? [
+    { path: `/project/${projectId}/editor`, label: 'Code Editor', icon: FileCode },
+    { path: `/project/${projectId}/scene-editor`, label: 'Scene Editor', icon: Layers },
+    { path: `/project/${projectId}/ai`, label: 'AI Command', icon: Bot },
+    { path: `/project/${projectId}/assets`, label: 'Asset Studio', icon: Palette },
+    { path: `/project/${projectId}/preview`, label: 'Game Preview', icon: Play },
+  ] : [];
 
   return (
     <ToastProvider>
@@ -110,7 +83,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
           </div>
 
           <div className="sidebar-nav">
-            {dynamicSidebarItems.map((item) => {
+            {sidebarItems.map((item) => {
               const isActive = location.pathname === item.path ||
                 (item.path !== '/' && location.pathname.startsWith(item.path));
               const Icon = item.icon;
@@ -126,6 +99,27 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
                 </Link>
               );
             })}
+            {isInProjectContext && projectId && currentProject && (
+              <>
+                <div className="sidebar-section-title">Project</div>
+                {projectNavItems.map((item) => {
+                  const isActive = location.pathname === item.path ||
+                    (item.path !== '/' && location.pathname.startsWith(item.path));
+                  const Icon = item.icon;
+
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={`nav-item ${isActive ? 'active' : ''}`}
+                    >
+                      <Icon size={20} className="nav-icon" />
+                      <span className="nav-text">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </>
+            )}
           </div>
         </nav>
 

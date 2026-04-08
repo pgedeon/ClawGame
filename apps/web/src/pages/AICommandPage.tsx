@@ -301,7 +301,7 @@ export function AICommandPage() {
           {isLoading && (
             <div className="message assistant loading">
               <div className="message-content">
-                <div className="ai-thinking-indicator">
+                <div className="ai-thinking-indicator" role="status" aria-live="polite">
                   <div className="ai-pulse">
                     <div className="pulse-ring pulse-1"></div>
                     <div className="pulse-ring pulse-2"></div>

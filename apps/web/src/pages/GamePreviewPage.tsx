@@ -1282,7 +1282,7 @@ const GamePreviewContent: React.FC = () => {
               <div className="start-screen-content">
                 <div className="start-screen-icon">🎮</div>
                 <h2>{projectName}</h2>
-                <p>Collect runes, craft spells, complete quests!</p>
+                <p>Use WASD to move, SPACE to shoot. Defeat enemies and collect items!</p>
                 <div className="start-screen-info">
                   <div className="info-item"><span className="info-icon">🎯</span><span>WASD/Arrows to move</span></div>
                   <div className="info-item"><span className="info-icon">🔥</span><span>SPACE to shoot</span></div>

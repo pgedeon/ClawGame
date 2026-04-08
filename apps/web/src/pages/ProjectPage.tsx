@@ -190,11 +190,13 @@ export function ProjectPage() {
       </header>
 
       {/* Tab Bar */}
-      <nav className="project-hub-tabs">
+      <nav className="project-hub-tabs" role="tablist" aria-label="Project sections">
         {tabs.map((tab) => (
           <Link
             key={tab.id}
             to={tab.path}
+            role="tab"
+            aria-selected={activeTab.id === tab.id}
             className={`project-hub-tab ${activeTab.id === tab.id ? 'active' : ''}`}
             title={tab.description}
           >

@@ -350,7 +350,7 @@ export const api = {
     request<GenerationStatus>(`/api/projects/${projectId}/assets/generations/${generationId}`),
 
   getGenerations: (projectId: string) =>
-    request<GenerationStatus[]>(`/api/projects/${projectId}/assets/generations`),
+    request<{ generations: GenerationStatus[] }>(`/api/projects/${projectId}/assets/generations`).then((r) => r.generations || []),
 
   pollGenerations: (projectId: string) =>
     request<{ created: string[], errors: string[] }>(`/api/projects/${projectId}/assets/generations/poll`, {
