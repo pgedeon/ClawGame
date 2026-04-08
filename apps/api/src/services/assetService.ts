@@ -7,7 +7,7 @@ import { mkdir, readFile, writeFile, readdir, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
 import { FastifyLoggerInstance } from 'fastify';
-import { AIImageGenerationService, type AIImageGenerationRequest, type GenerationStatus } from './aiImageGenerationService';
+import { AIImageGenerationService, type AIImageGenerationRequest, type GenerationResult } from './aiImageGenerationService';
 
 const ASSETS_DIR = process.env.ASSETS_DIR || './data/assets';
 
@@ -38,7 +38,7 @@ export interface AssetMetadata {
     parameters?: Record<string, unknown>;
   };
   aiGeneration?: {
-    generationId: string;
+    model: string;
     style: string;
     prompt: string;
     duration: number;
@@ -51,116 +51,165 @@ export class AssetService {
   private cache: Map<string, AssetMetadata> = new Map();
   private logger: FastifyLoggerInstance;
   private aiImageService: AIImageGenerationService;
-  private ongoingGenerations: Map<string, GenerationStatus> = new Map();
 
   constructor(logger: FastifyLoggerInstance) {
     this.logger = logger;
     this.aiImageService = new AIImageGenerationService(logger);
-    
-    // Start a periodic cleanup of old generations
-    setInterval(() => {
-      this.aiImageService.cleanupOldGenerations();
-    }, 300000); // Every 5 minutes
   }
 
   async listAssets(projectId: string): Promise<AssetMetadata[]> {
     const projectAssetsDir = join(ASSETS_DIR, projectId);
-    
-    if (!existsSync(projectAssetsDir)) {
-      return [];
-    }
+    if (!existsSync(projectAssetsDir)) return [];
 
     const files = await readdir(projectAssetsDir);
-    const assets: AssetMetadata[] = [];
+    const metadataFiles = files.filter(f => f.endsWith('.json'));
 
-    for (const file of files) {
-      if (!file.endsWith('.json')) continue;
-      
-      const assetId = file.replace('.json', '');
-      const cached = this.cache.get(assetId);
-      
-      if (cached && cached.projectId === projectId) {
-        assets.push(cached);
-      } else {
-        try {
-          const metadataPath = join(projectAssetsDir, file);
-          const content = await readFile(metadataPath, 'utf-8');
-          const metadata: AssetMetadata = JSON.parse(content);
-          assets.push(metadata);
-          this.cache.set(assetId, metadata);
-        } catch (err) {
-          this.logger.error({ err }, `Failed to load metadata for ${assetId}`);
-        }
+    const assets: AssetMetadata[] = [];
+    for (const file of metadataFiles) {
+      try {
+        const content = await readFile(join(projectAssetsDir, file), 'utf-8');
+        const metadata = JSON.parse(content) as AssetMetadata;
+        this.cache.set(metadata.id, metadata);
+        assets.push(metadata);
+      } catch {
+        // Skip malformed metadata files
       }
     }
 
-    assets.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-
-    return assets;
+    return assets.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
   async getAsset(projectId: string, assetId: string): Promise<AssetMetadata | null> {
-    const cached = this.cache.get(assetId);
-    if (cached && cached.projectId === projectId) {
-      return cached;
+    // Check cache first
+    if (this.cache.has(assetId)) {
+      return this.cache.get(assetId)!;
     }
 
     const metadataPath = join(ASSETS_DIR, projectId, `${assetId}.json`);
-    if (!existsSync(metadataPath)) {
-      return null;
-    }
+    if (!existsSync(metadataPath)) return null;
 
     try {
       const content = await readFile(metadataPath, 'utf-8');
-      const metadata: AssetMetadata = JSON.parse(content);
+      const metadata = JSON.parse(content) as AssetMetadata;
       this.cache.set(assetId, metadata);
       return metadata;
-    } catch (err) {
-      this.logger.error({ err }, `Failed to load asset ${assetId}`);
+    } catch {
       return null;
     }
   }
 
   async getAssetFile(projectId: string, assetId: string): Promise<{ content: Buffer; mimeType: string }> {
     const metadata = await this.getAsset(projectId, assetId);
-    if (!metadata) {
-      throw new Error('Asset not found');
+    if (!metadata) throw new Error('Asset not found');
+
+    // Try to find the actual file
+    const projectAssetsDir = join(ASSETS_DIR, projectId);
+
+    // Try common extensions
+    const extensions = ['svg', 'png', 'webp', 'jpg', 'gif'];
+    for (const ext of extensions) {
+      const filePath = join(projectAssetsDir, `${assetId}.${ext}`);
+      if (existsSync(filePath)) {
+        const content = await readFile(filePath);
+        const mimeTypes: Record<string, string> = {
+          svg: 'image/svg+xml',
+          png: 'image/png',
+          webp: 'image/webp',
+          jpg: 'image/jpeg',
+          gif: 'image/gif',
+        };
+        return { content, mimeType: mimeTypes[ext] || 'application/octet-stream' };
+      }
     }
 
-    const extension = metadata.mimeType.includes('svg') ? 'svg' : 'png';
-    const filePath = join(ASSETS_DIR, projectId, `${assetId}.${extension}`);
-    
-    if (!existsSync(filePath)) {
-      throw new Error('Asset file not found');
-    }
-
-    const content = await readFile(filePath);
-    return {
-      content: Buffer.from(content),
-      mimeType: metadata.mimeType,
-    };
+    throw new Error('Asset file not found on disk');
   }
 
-  async deleteAsset(projectId: string, assetId: string): Promise<boolean> {
-    const metadata = await this.getAsset(projectId, assetId);
-    if (!metadata) {
-      return false;
-    }
+  async generateAsset(
+    projectId: string,
+    type: AssetType,
+    prompt: string,
+    options?: {
+      style?: 'pixel' | 'vector' | 'hand-drawn' | 'cartoon' | 'realistic';
+      width?: number;
+      height?: number;
+      format?: 'svg' | 'png' | 'webp';
+      backgroundColor?: string;
+    },
+  ): Promise<{ generationId: string; metadata: AssetMetadata }> {
+    const style = options?.style || 'pixel';
+    const width = options?.width || 64;
+    const height = options?.height || 64;
+    const format = options?.format || 'svg';
 
-    const projectAssetsDir = join(ASSETS_DIR, projectId);
-    
-    try {
-      const extension = metadata.mimeType.includes('svg') ? 'svg' : 'png';
-      await unlink(join(projectAssetsDir, `${assetId}.${extension}`));
-      await unlink(join(projectAssetsDir, `${assetId}.json`));
-      this.cache.delete(assetId);
-      return true;
-    } catch (err) {
-      this.logger.error({ err }, `Failed to delete asset ${assetId}`);
-      return false;
-    }
+    // Call AI image generation (with fallback)
+    const result: GenerationResult = await this.aiImageService.generateAsset({
+      type,
+      prompt,
+      style,
+      width,
+      height,
+      format,
+      backgroundColor: options?.backgroundColor,
+    });
+
+    // Save the generated content
+    const projectAssetsDir = await ensureAssetsDir(projectId);
+    const extension = 'svg';
+    const assetId = result.metadata.id;
+
+    // Save SVG content
+    await writeFile(
+      join(projectAssetsDir, `${assetId}.${extension}`),
+      result.content,
+      'utf-8',
+    );
+
+    // Create metadata
+    const metadata: AssetMetadata = {
+      id: assetId,
+      projectId,
+      name: `${type.charAt(0).toUpperCase() + type.slice(1)} - ${prompt.substring(0, 30)}`,
+      type,
+      prompt,
+      url: `/api/projects/${projectId}/assets/${assetId}`,
+      size: result.content.length,
+      mimeType: 'image/svg+xml',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      tags: [type, style, 'ai-generated'],
+      status: 'generated',
+      generationData: {
+        model: result.metadata.aiGeneration.model,
+        confidence: 0.85,
+        parameters: { style, width, height, format },
+      },
+      aiGeneration: {
+        model: result.metadata.aiGeneration.model,
+        style,
+        prompt,
+        duration: result.metadata.generationTime,
+      },
+    };
+
+    // Save metadata
+    await writeFile(
+      join(projectAssetsDir, `${assetId}.json`),
+      JSON.stringify(metadata, null, 2),
+      'utf-8',
+    );
+
+    this.cache.set(assetId, metadata);
+
+    this.logger.info({
+      projectId,
+      assetId,
+      type,
+      prompt: prompt.substring(0, 50),
+      duration: metadata.aiGeneration?.duration,
+    }, 'AI-generated asset created');
+
+    return { generationId: assetId, metadata };
   }
 
   async uploadAsset(
@@ -168,19 +217,16 @@ export class AssetService {
     name: string,
     type: AssetType,
     content: Buffer,
-    mimeType: string
+    mimeType: string,
   ): Promise<AssetMetadata> {
-    const assetId = Math.random().toString(36).substring(2, 11);
     const projectAssetsDir = await ensureAssetsDir(projectId);
-    
-    const extension = mimeType.includes('svg') ? 'svg' : 
-                    mimeType.includes('png') ? 'png' : 
-                    mimeType.includes('jpeg') ? 'jpg' : 'png';
-    const filename = `${assetId}.${extension}`;
-    const filePath = join(projectAssetsDir, filename);
-    
-    await writeFile(filePath, content);
-    
+    const assetId = `upload_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+
+    const extension = mimeType.includes('svg') ? 'svg' : mimeType.includes('webp') ? 'webp' : mimeType.includes('png') ? 'png' : 'bin';
+
+    // Save file
+    await writeFile(join(projectAssetsDir, `${assetId}.${extension}`), content);
+
     const metadata: AssetMetadata = {
       id: assetId,
       projectId,
@@ -191,188 +237,81 @@ export class AssetService {
       mimeType,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      tags: [type, 'uploaded'],
       status: 'uploaded',
     };
-    
-    const metadataPath = join(projectAssetsDir, `${assetId}.json`);
-    await writeFile(metadataPath, JSON.stringify(metadata, null, 2), 'utf-8');
-    
+
+    // Save metadata
+    await writeFile(
+      join(projectAssetsDir, `${assetId}.json`),
+      JSON.stringify(metadata, null, 2),
+      'utf-8',
+    );
+
     this.cache.set(assetId, metadata);
-    
     return metadata;
   }
 
-  /**
-   * Generate asset using AI image generation service
-   */
-  async generateAsset(projectId: string, type: AssetType, prompt: string, options?: {
-    style?: 'pixel' | 'vector' | 'hand-drawn' | 'cartoon' | 'realistic';
-    width?: number;
-    height?: number;
-    format?: 'svg' | 'png' | 'webp';
-    backgroundColor?: string;
-  }): Promise<{ generationId: string; metadata: AssetMetadata }> {
-    const requestId = options?.style || 'pixel';
-    const width = options?.width || 64;
-    const height = options?.height || 64;
-    const format = options?.format || 'svg';
-    const backgroundColor = options?.backgroundColor || '';
+  async deleteAsset(projectId: string, assetId: string): Promise<boolean> {
+    const metadata = await this.getAsset(projectId, assetId);
+    if (!metadata) return false;
 
-    // Create generation request
-    const generationRequest: AIImageGenerationRequest = {
-      type,
-      prompt,
-      style: requestId,
-      width,
-      height,
-      format,
-      backgroundColor,
-    };
+    const projectAssetsDir = join(ASSETS_DIR, projectId);
 
-    // Start AI generation
-    const generationStatus = await this.aiImageService.generateImage(projectId, generationRequest);
-    const generationId = generationStatus.id;
-
-    // Store generation reference for tracking
-    this.ongoingGenerations.set(generationId, generationStatus);
-
-    // If generation is immediate and successful, create the asset immediately
-    if (generationStatus.status === 'completed' && generationStatus.result?.svg) {
-      try {
-        const metadata = await this.createAssetFromGeneration(projectId, type, prompt, generationStatus);
-        return { generationId, metadata };
-      } catch (error) {
-        this.logger.error({ error, generationId }, 'Failed to create asset from generation');
-        throw error;
+    // Delete files
+    const extensions = ['svg', 'png', 'webp', 'jpg', 'gif', 'json', 'bin'];
+    for (const ext of extensions) {
+      const filePath = join(projectAssetsDir, `${assetId}.${ext}`);
+      if (existsSync(filePath)) {
+        await unlink(filePath).catch(() => {});
       }
     }
 
-    // Return generation ID for async tracking
-    const metadata = this.createAssetMetadataFromGeneration(projectId, type, prompt, generationStatus);
-    return { generationId, metadata };
+    this.cache.delete(assetId);
+    return true;
   }
 
   /**
-   * Get generation status by ID
+   * Get generation status — now returns immediately since generation is synchronous
    */
-  async getGenerationStatus(projectId: string, generationId: string): Promise<GenerationStatus | null> {
-    return this.aiImageService.getGenerationStatus(projectId, generationId);
-  }
-
-  /**
-   * List all ongoing generations for a project
-   */
-  async getGenerations(projectId: string): Promise<GenerationStatus[]> {
-    return this.aiImageService.getGenerations(projectId);
-  }
-
-  /**
-   * Poll for completed generations and create assets
-   */
-  async pollAndCreateAssets(projectId: string): Promise<{ created: string[], errors: string[] }> {
-    const created: string[] = [];
-    const errors: string[] = [];
-
-    const generations = await this.aiImageService.getGenerations(projectId);
-    
-    for (const generation of generations) {
-      if (generation.status === 'completed' && generation.result?.svg && !this.ongoingGenerations.get(generation.id)) {
-        try {
-          const asset = await this.createAssetFromGeneration(projectId, generation.type, generation.prompt, generation);
-          created.push(asset.id);
-          this.ongoingGenerations.delete(generation.id);
-        } catch (error: any) {
-          errors.push(generation.id);
-          this.logger.error({ error, generationId: generation.id }, 'Failed to create asset from completed generation');
-        }
-      } else if (generation.status === 'failed') {
-        errors.push(generation.id);
-      }
-    }
-
-    return { created, errors };
-  }
-
-  /**
-   * Create asset metadata from generation result
-   */
-  private createAssetMetadataFromGeneration(
-    projectId: string, 
-    type: AssetType, 
-    prompt: string, 
-    generation: GenerationStatus
-  ): AssetMetadata {
+  async getGenerationStatus(projectId: string, generationId: string): Promise<any | null> {
+    // Generation is now synchronous, so just check if the asset exists
+    const asset = await this.getAsset(projectId, generationId);
+    if (!asset) return null;
     return {
-      id: `ai_${generation.id.substring(4)}`, // Strip 'gen_' prefix
+      id: generationId,
       projectId,
-      name: `${type.charAt(0).toUpperCase() + type.slice(1)} - ${prompt.substring(0, 20)}`,
-      type,
-      prompt,
-      url: `/api/projects/${projectId}/assets/ai_${generation.id.substring(4)}`,
-      size: generation.result?.svg?.length || 0,
-      mimeType: 'image/svg+xml',
-      createdAt: generation.createdAt,
-      updatedAt: generation.updatedAt,
-      tags: [type, 'ai-generated'],
-      status: generation.result?.success ? 'generated' : 'error',
-      generationData: {
-        model: 'qwen/qwen3.6-plus:free',
-        confidence: 0.85,
-        parameters: {
-          style: generation.type,
-          width: 64,
-          height: 64,
-          format: 'svg',
-        },
-      },
-      aiGeneration: {
-        generationId: generation.id,
-        style: generation.type,
-        prompt,
-        duration: generation.result?.generationTime || 0,
-      },
+      status: 'completed',
+      progress: 100,
+      createdAt: asset.createdAt,
+      updatedAt: asset.updatedAt,
     };
   }
 
   /**
-   * Create actual asset files from generation result
+   * List generations — returns all AI-generated assets as completed generations
    */
-  private async createAssetFromGeneration(
-    projectId: string, 
-    type: AssetType, 
-    prompt: string, 
-    generation: GenerationStatus
-  ): Promise<AssetMetadata> {
-    if (!generation.result?.svg) {
-      throw new Error('Generation result does not contain SVG');
-    }
+  async getGenerations(projectId: string): Promise<any[]> {
+    const assets = await this.listAssets(projectId);
+    return assets
+      .filter(a => a.status === 'generated' && a.aiGeneration)
+      .map(a => ({
+        id: a.id,
+        projectId,
+        type: a.type,
+        prompt: a.prompt || '',
+        status: 'completed' as const,
+        progress: 100,
+        createdAt: a.createdAt,
+        updatedAt: a.updatedAt,
+      }));
+  }
 
-    const assetId = `ai_${generation.id.substring(4)}`;
-    const projectAssetsDir = await ensureAssetsDir(projectId);
-    
-    // Save SVG content
-    const svgContent = generation.result.svg;
-    const svgPath = join(projectAssetsDir, `${assetId}.svg`);
-    await writeFile(svgPath, svgContent, 'utf-8');
-    
-    // Create metadata
-    const metadata: AssetMetadata = this.createAssetMetadataFromGeneration(projectId, type, prompt, generation);
-    metadata.size = svgContent.length;
-    
-    const metadataPath = join(projectAssetsDir, `${assetId}.json`);
-    await writeFile(metadataPath, JSON.stringify(metadata, null, 2), 'utf-8');
-    
-    this.cache.set(assetId, metadata);
-    
-    this.logger.info({ 
-      projectId, 
-      assetId, 
-      type, 
-      prompt: prompt.substring(0, 50),
-      duration: metadata.aiGeneration?.duration 
-    }, 'AI-generated asset created');
-    
-    return metadata;
+  /**
+   * Poll and create assets — now a no-op since generation is synchronous
+   */
+  async pollAndCreateAssets(projectId: string): Promise<{ created: string[]; errors: string[] }> {
+    return { created: [], errors: [] };
   }
 
   async getAssetStats(projectId: string): Promise<{
@@ -382,32 +321,20 @@ export class AssetService {
     aiGenerated: number;
   }> {
     const assets = await this.listAssets(projectId);
-    
+
     const byType: Record<AssetType, number> = {
-      sprite: 0,
-      tileset: 0,
-      texture: 0,
-      icon: 0,
-      audio: 0,
-      background: 0,
+      sprite: 0, tileset: 0, texture: 0, icon: 0, audio: 0, background: 0,
     };
-    
+
     let totalSize = 0;
     let aiGenerated = 0;
-    
+
     for (const asset of assets) {
       byType[asset.type]++;
       totalSize += asset.size;
-      if (asset.aiGeneration) {
-        aiGenerated++;
-      }
+      if (asset.aiGeneration) aiGenerated++;
     }
-    
-    return {
-      total: assets.length,
-      byType,
-      totalSize,
-      aiGenerated,
-    };
+
+    return { total: assets.length, byType, totalSize, aiGenerated };
   }
 }

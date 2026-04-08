@@ -1,282 +1,131 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { buildApp } from './helpers';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AIImageGenerationService } from '../services/aiImageGenerationService';
 import type { AIImageGenerationRequest } from '../services/aiImageGenerationService';
 
-describe('AI Image Generation Service', () => {
-  let app: any;
-  let service: AIImageGenerationService;
-  let mockLogger: any;
+// Mock logger
+const mockLogger = {
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  debug: vi.fn(),
+  fatal: vi.fn(),
+  trace: vi.fn(),
+  child: vi.fn(() => mockLogger),
+} as any;
 
-  beforeEach(async () => {
-    app = await buildApp();
-    mockLogger = {
-      info: vi.fn(),
-      error: vi.fn(),
-      warn: vi.fn(),
-    };
+describe('AIImageGenerationService', () => {
+  let service: AIImageGenerationService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
     service = new AIImageGenerationService(mockLogger);
   });
 
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
+  describe('generateAsset', () => {
+    const baseRequest: AIImageGenerationRequest = {
+      type: 'sprite',
+      prompt: 'blue knight character',
+      style: 'pixel',
+      width: 32,
+      height: 32,
+      format: 'svg',
+    };
 
-  describe('generateImage', () => {
-    it('should generate an image with valid request', async () => {
-      const request: AIImageGenerationRequest = {
-        type: 'sprite',
-        prompt: 'a red pixel art sword',
-        style: 'pixel',
-        width: 64,
-        height: 64,
-        format: 'svg',
-      };
+    it('should return a generation result with metadata and content', async () => {
+      const result = await service.generateAsset(baseRequest);
 
-      const result = await service.generateImage('test-project', request);
+      expect(result).toBeDefined();
+      expect(result.metadata).toBeDefined();
+      expect(result.metadata.id).toMatch(/^gen-/);
+      expect(result.metadata.type).toBe('sprite');
+      expect(result.metadata.prompt).toBe('blue knight character');
+      expect(result.metadata.style).toBe('pixel');
+      expect(result.metadata.width).toBe(32);
+      expect(result.metadata.height).toBe(32);
+      expect(result.metadata.format).toBe('svg');
+      expect(result.metadata.generationTime).toBeGreaterThanOrEqual(0);
+      expect(result.metadata.aiGeneration).toBeDefined();
+      expect(result.content).toBeDefined();
+      expect(result.content).toContain('<svg');
+    });
 
-      expect(result).toMatchObject({
-        projectId: 'test-project',
-        type: 'sprite',
-        prompt: 'a red pixel art sword',
-        status: 'completed',
-        progress: 100,
-        result: expect.objectContaining({
-          success: true,
-          svg: expect.stringContaining('<svg'),
-          generationTime: expect.any(Number),
-        }),
+    it('should generate a valid SVG with viewBox', async () => {
+      const result = await service.generateAsset(baseRequest);
+      expect(result.content).toContain('viewBox="0 0 32 32"');
+    });
+
+    it('should generate player sprite when prompt mentions player/hero/character', async () => {
+      const result = await service.generateAsset({
+        ...baseRequest,
+        prompt: 'player character hero',
       });
-
-      expect(mockLogger.info).toHaveBeenCalled();
+      expect(result.content).toContain('<svg');
+      // Player sprites have specific structure
+      expect(result.content.length).toBeGreaterThan(100);
     });
 
-    it('should handle generation failures gracefully', async () => {
-      // Test with a request that might fail (if API is not available)
-      const request: AIImageGenerationRequest = {
-        type: 'invalid-type' as any,
-        prompt: 'test',
-        style: 'pixel',
-        width: 64,
-        height: 64,
-        format: 'svg',
-      };
-
-      const result = await service.generateImage('test-project', request);
-
-      expect(result.status).toBe('failed');
-      expect(result.error).toBeDefined();
-      expect(mockLogger.error).toHaveBeenCalled();
-    });
-
-    it('should handle different asset types', async () => {
-      const types: AIImageGenerationRequest['type'][] = ['sprite', 'tileset', 'texture', 'icon', 'audio', 'background'];
-      
-      for (const type of types) {
-        const request: AIImageGenerationRequest = {
-          type,
-          prompt: `a ${type} asset`,
-          style: 'pixel',
-          width: 64,
-          height: 64,
-          format: 'svg',
-        };
-
-        const result = await service.generateImage('test-project', request);
-        
-        expect(result.type).toBe(type);
-        expect(result.prompt).toBe(`a ${type} asset`);
-      }
-    });
-
-    it('should handle different art styles', async () => {
-      const styles: AIImageGenerationRequest['style'][] = ['pixel', 'vector', 'hand-drawn', 'cartoon', 'realistic'];
-      
-      for (const style of styles) {
-        const request: AIImageGenerationRequest = {
-          type: 'sprite',
-          prompt: 'test asset',
-          style,
-          width: 64,
-          height: 64,
-          format: 'svg',
-        };
-
-        const result = await service.generateImage('test-project', request);
-        
-        expect(result).toBeDefined();
-        expect(mockLogger.info).toHaveBeenCalled();
-      }
-    });
-  });
-
-  describe('getGenerationStatus', () => {
-    it('should return generation status by ID', async () => {
-      const request: AIImageGenerationRequest = {
-        type: 'sprite',
-        prompt: 'test',
-        style: 'pixel',
-        width: 64,
-        height: 64,
-        format: 'svg',
-      };
-
-      const generation = await service.generateImage('test-project', request);
-      const status = await service.getGenerationStatus('test-project', generation.id);
-
-      expect(status).toMatchObject({
-        id: generation.id,
-        projectId: 'test-project',
-        type: 'sprite',
-        prompt: 'test',
-        status: 'completed',
-        progress: 100,
+    it('should generate enemy sprite when prompt mentions enemy/monster', async () => {
+      const result = await service.generateAsset({
+        ...baseRequest,
+        prompt: 'zombie enemy monster',
       });
+      expect(result.content).toContain('<svg');
+      expect(result.content.length).toBeGreaterThan(100);
     });
 
-    it('should return null for invalid generation ID', async () => {
-      const status = await service.getGenerationStatus('test-project', 'invalid-id');
-      expect(status).toBeNull();
-    });
-
-    it('should return null for wrong project ID', async () => {
-      const request: AIImageGenerationRequest = {
-        type: 'sprite',
-        prompt: 'test',
-        style: 'pixel',
-        width: 64,
-        height: 64,
-        format: 'svg',
-      };
-
-      const generation = await service.generateImage('test-project', request);
-      const status = await service.getGenerationStatus('wrong-project', generation.id);
-
-      expect(status).toBeNull();
-    });
-  });
-
-  describe('getGenerations', () => {
-    it('should list all generations for a project', async () => {
-      // Create multiple generations
-      await service.generateImage('test-project', {
-        type: 'sprite',
-        prompt: 'first',
-        style: 'pixel',
-        width: 64,
-        height: 64,
-        format: 'svg',
-      });
-
-      await service.generateImage('test-project', {
-        type: 'tileset',
-        prompt: 'second',
-        style: 'vector',
-        width: 64,
-        height: 64,
-        format: 'svg',
-      });
-
-      await service.generateImage('other-project', {
+    it('should generate icon for icon type', async () => {
+      const result = await service.generateAsset({
+        ...baseRequest,
         type: 'icon',
-        prompt: 'third',
-        style: 'cartoon',
-        width: 64,
-        height: 64,
-        format: 'svg',
+        prompt: 'health potion',
       });
-
-      const generations = await service.getGenerations('test-project');
-
-      expect(generations).toHaveLength(2);
-      expect(generations.every(g => g.projectId === 'test-project')).toBe(true);
-      expect(generations.some(g => g.prompt === 'first')).toBe(true);
-      expect(generations.some(g => g.prompt === 'second')).toBe(true);
+      expect(result.content).toContain('<svg');
     });
 
-    it('should return empty array for project with no generations', async () => {
-      const generations = await service.getGenerations('empty-project');
-      expect(generations).toEqual([]);
-    });
-  });
-
-  describe('cleanupOldGenerations', () => {
-    it('should remove old completed generations', async () => {
-      // Create a completed generation
-      const request: AIImageGenerationRequest = {
-        type: 'sprite',
-        prompt: 'old',
-        style: 'pixel',
-        width: 64,
-        height: 64,
-        format: 'svg',
-      };
-
-      const generation = await service.generateImage('test-project', request);
-      
-      // Simulate it being old
-      (service as any).pendingGenerations.get(generation.id)!.createdAt = new Date(Date.now() - 2 * 3600000).toISOString();
-      (service as any).pendingGenerations.get(generation.id)!.status = 'completed';
-
-      // Create a recent generation
-      await service.generateImage('test-project', {
-        type: 'sprite',
-        prompt: 'recent',
-        style: 'pixel',
-        width: 64,
-        height: 64,
-        format: 'svg',
+    it('should generate background for background type', async () => {
+      const result = await service.generateAsset({
+        ...baseRequest,
+        type: 'background',
+        prompt: 'forest landscape',
+        width: 800,
+        height: 600,
       });
-
-      expect((service as any).pendingGenerations.size).toBe(2);
-
-      // Cleanup generations older than 1 hour
-      service.cleanupOldGenerations(3600000);
-
-      expect((service as any).pendingGenerations.size).toBe(1);
-      expect((service as any).pendingGenerations.has(generation.id)).toBe(false);
+      expect(result.content).toContain('<svg');
     });
 
-    it('should keep recent completed generations', async () => {
-      // Create a completed generation
-      const request: AIImageGenerationRequest = {
-        type: 'sprite',
-        prompt: 'recent',
-        style: 'pixel',
-        width: 64,
-        height: 64,
-        format: 'svg',
-      };
-
-      const generation = await service.generateImage('test-project', request);
-
-      // Simulate it being recent
-      (service as any).pendingGenerations.get(generation.id)!.createdAt = new Date(Date.now() - 1000).toISOString();
-      (service as any).pendingGenerations.get(generation.id)!.status = 'completed';
-
-      expect((service as any).pendingGenerations.size).toBe(1);
-
-      // Cleanup generations older than 1 hour
-      service.cleanupOldGenerations(3600000);
-
-      expect((service as any).pendingGenerations.size).toBe(1);
-      expect((service as any).pendingGenerations.has(generation.id)).toBe(true);
-    });
-  });
-
-  describe('healthCheck', () => {
-    it('should return health status', async () => {
-      const health = await service.healthCheck();
-
-      expect(health).toMatchObject({
-        status: expect.stringMatching(/^(ok|error)$/),
-        service: 'ai-image-generation',
-        model: expect.any(String),
-        features: expect.any(Array),
+    it('should generate tileset for tileset type', async () => {
+      const result = await service.generateAsset({
+        ...baseRequest,
+        type: 'tileset',
+        prompt: 'grass and stone tiles',
+        width: 128,
+        height: 128,
       });
+      expect(result.content).toContain('<svg');
+    });
 
-      expect(health.features.length).toBeGreaterThan(0);
-      expect(health.features).toContain('real-time SVG generation from text prompts');
+    it('should work with different art styles', async () => {
+      for (const style of ['pixel', 'vector', 'hand-drawn', 'cartoon', 'realistic'] as const) {
+        const result = await service.generateAsset({
+          ...baseRequest,
+          style,
+        });
+        expect(result.content).toContain('<svg');
+        expect(result.metadata.style).toBe(style);
+      }
+    });
+
+    it('should generate unique IDs for each generation', async () => {
+      const result1 = await service.generateAsset(baseRequest);
+      const result2 = await service.generateAsset(baseRequest);
+      expect(result1.metadata.id).not.toBe(result2.metadata.id);
+    });
+
+    it('should track generation time', async () => {
+      const start = Date.now();
+      const result = await service.generateAsset(baseRequest);
+      const elapsed = Date.now() - start;
+      expect(result.metadata.generationTime).toBeLessThanOrEqual(elapsed + 10);
     });
   });
 });

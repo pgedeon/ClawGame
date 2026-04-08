@@ -1,125 +1,107 @@
 # Game Developer Feedback
 
-**Last Session:** 2026-04-08 18:22 UTC
-**Session Type:** Full Platform Test — Multi-Template, Multi-Feature
-**Previous Session:** 2026-04-08 14:30 UTC (initial smoke test)
-**Projects Created:** Pixel Quest (Platformer), Dungeon Crawler (Top-Down Action)
+**Last Session:** 2026-04-08 17:03 UTC
+**Session Type:** Game Creation Test (Round 2 — retest after prior session)
 
 ---
 
 ## 🎮 What I Tried To Build
 
-**Pixel Quest** — A retro platformer where a pixel knight collects gems across 5 levels while avoiding traps and enemies (Platformer template, pixel art).
+**Crystal Caverns** — a platformer where you explore crystal-filled caves, collect gems (blue=10pts, green=25pts, red=50pts), and avoid cave creatures. Each level goes deeper underground with harder enemies and more valuable crystals.
 
-**Dungeon Crawler** — A top-down action game where you navigate dark dungeons, fight monsters, and collect loot (Top-Down Action template, pixel art).
-
-I attempted the full workflow for both projects: create → scene editor → add entities → modify components → AI command → code editor → game preview → asset generation → export.
+I also tested the pre-existing **Dungeon Crawler** project to compare a "developed" project vs a fresh one.
 
 ---
 
 ## ✅ What Worked
 
-1. **Dashboard** — Clean, fast loading, shows all projects with genre/tags/status. Project list updates immediately after creation.
-2. **Project Creation** — Smooth flow: name, template selection (Platformer/Top-Down/Dialogue), genre dropdown, art style radio buttons, description. "Create" button routes to project overview instantly.
-3. **Template system** — Different templates produce different starter entities: Platformer gives player+platforms+coin (4 entities), Top-Down Action gives player+enemy+powerup (3 entities). Smart defaults.
-4. **Scene Editor — Entity selection** — Clicking an entity in the list shows full properties panel: ID field, Transform (x/y/rotation/scale), Components, Actions (Delete/Duplicate).
-5. **Scene Editor — Component system** — Entities get template-appropriate components (Platformer: movement+sprite+physics, Top-Down: movement+sprite). Adding new components (+AI, +Collision) works and updates UI immediately. Already-added components get disabled buttons (correct UX).
-6. **Scene Editor — Duplicate** — Successfully duplicates an entity with same components and offset position (400,300 → 432,332).
-7. **Scene Editor — Zoom/Grid** — Zoom in/out, Show Grid, Snap to Grid all work correctly.
-8. **Code Editor — File tree** — Shows proper project structure (assets/, docs/, scenes/, scripts/) with file icons. Expanding folders reveals generated files.
-9. **Code Editor — Quick Start buttons** — "Add Enemy AI", "Create Scene", "Add Player Code" buttons are helpful for new users.
-10. **Settings page** — Theme toggle (light/dark), AI model selector (GLM-4.5 Flash, GLM-5, GPT-4o, Claude Sonnet 4), keyboard shortcuts reference. Clean and functional.
-11. **Navigation** — Top nav with project name, breadcrumbs, tab-based section navigation. Consistent across all pages.
-12. **AI Assistant floating button** — Always accessible in bottom-right corner.
+1. **Project creation** — Smooth flow. Named project, selected Platformer template, picked genre/art style, added description. Created instantly and redirected to project overview. All fields persisted correctly.
+
+2. **Dashboard** — Clean, well-organized. Shows all projects with metadata (genre, art style, date, status). Quick Actions panel is intuitive. Existing projects are easy to find.
+
+3. **Scene Editor** — Functional. Added entities (Player, Coin, Enemy, Wall) with the Add Entity dropdown. Properties panel shows transform (x, y, rotation, scale) and components (collision, transform). Can add/remove components (+Sprite, +Movement, +AI, +Collision). Grid and snap-to-grid options work. Entity list updates correctly.
+
+4. **Code Editor** — File tree works. Can browse assets/, docs/, scenes/, scripts/ folders. Quick Start buttons ("Add Enemy AI", "Create Scene", "Add Player Code") open relevant files. New File / New Folder buttons available.
+
+5. **Game Preview** — Start screen renders correctly with game title, controls instructions, and Start button. Game canvas renders and runs. Shows "Playing" status with Pause button. Keyboard input (WASD) is accepted by the game canvas.
+
+6. **Export** — Export page shows correctly with standalone HTML option, embed assets checkbox. The export endpoint works (verified in API logs, generated 16KB HTML file).
+
+7. **Settings** — Clean settings page with theme toggle (light/dark), engine configuration, project management, and keyboard shortcuts reference.
+
+8. **Navigation** — Top nav with project name, tab-based project sections, breadcrumb-style back navigation. All links work and route correctly.
 
 ---
 
 ## ❌ What Was Broken
 
-### 🔴 CRITICAL (Blocks game creation)
+1. **AI Command — TIMEOUT / UNRESPONSIVE** — AI Command tab
+   - Steps to reproduce: Open AI Command tab → Type any prompt (e.g., "Add double jump to the player") → Click Send → Wait
+   - Expected: AI generates code within 10-30 seconds
+   - Actual: Gets stuck on "Analyzing your request... Processing... Generating response..." indefinitely. Confirmed in API logs: `timeout of 180000ms exceeded`. The z.ai API endpoint is reachable (returns 401 without auth) but requests never complete.
+   - Tested twice with different prompts. Same result both times.
+   - **This is the #1 blocking issue.** The core value proposition ("Build Games with AI") is completely non-functional.
 
-1. **Scene Editor Save does NOT persist entities** — Scene Editor
-   - Steps to reproduce: Open any project → Scene Editor → click Save → check scene JSON on disk (`data/projects/<id>/scenes/main.json`)
-   - Expected: Entities (position, components, etc.) saved to scene file
-   - Actual: Scene file has `"entities": {}` — always empty. Entities exist only in React state, lost on page refresh.
-   - Impact: **ALL scene editor work is ephemeral.** Users lose everything on reload.
+2. **Asset Studio — GENERATION FAILS** — Asset Studio tab
+   - Steps to reproduce: Go to Asset Studio → Select "Sprite" type → Select "Pixel Art" style → Type "Blue crystal gem, pixel art style, 32x32" → Click "Generate Asset"
+   - Expected: AI generates a sprite asset
+   - Actual: Progress bar shows "10% - Failed". No error message shown to user.
+   - Root cause: `OPENROUTER_API_KEY` is missing from `.env`. The `aiImageGenerationService.ts` uses OpenRouter's `qwen/qwen3.6-plus:free` model but the key is not configured. Asset generation silently fails.
+   - **No user-visible error message** — the UI just says "Failed" with no explanation.
 
-2. **AI Command never responds** — AI Command tab
-   - Steps to reproduce: Open AI Command tab → type any prompt → click Send
-   - Expected: AI generates response and/or code within seconds
-   - Actual: Status shows "Processing... Generating response..." forever. Backend `POST /api/projects/:id/ai/command` hangs indefinitely — the external AI API call (z.ai) never returns or times out with no fallback.
-   - Impact: **Core "AI-Native" feature is non-functional.** The platform's main selling point doesn't work.
+3. **Floating AI Assistant — CONTRADICTORY STATE** — Code Editor
+   - Steps to reproduce: Click "Open AI assistant" floating button in Code Editor
+   - Expected: Same AI experience as AI Command tab (connected to real AI)
+   - Actual: Shows "Full AI capabilities coming soon" message
+   - This directly contradicts the AI Command tab which shows "Real AI Connected" with model info. Confusing — which one is telling the truth?
 
-3. **Add Entity button does nothing** — Scene Editor
-   - Steps to reproduce: Scene Editor → click "Add Entity" button
-   - Expected: New entity added to scene (or a dialog to configure it)
-   - Actual: Nothing happens. No error, no new entity. Button appears functional but is a no-op.
-   - Impact: Users can only work with template-generated entities; can't create custom ones.
-
-4. **New File dialog doesn't create files** — Code Editor
-   - Steps to reproduce: Code Editor → click "➕ New File" → enter path `scripts/enemy.ts` → click "Create"
-   - Expected: File created on disk and appears in file tree
-   - Actual: Dialog closes, no file created on disk, file tree unchanged.
-   - Impact: Users cannot create new code files. Stuck with only template-generated ones.
-
-### 🟡 MODERATE (Degrades experience)
-
-5. **Asset Studio generation fails** — Asset Studio tab
-   - Steps to reproduce: Assets tab → Generate with AI → type prompt → click Generate
-   - Expected: AI-generated sprite/asset appears
-   - Actual: Progress bar reaches ~10% then shows "Failed". No error message explaining why.
-   - Impact: Can't generate any game assets.
-
-6. **Game preview renders empty black canvas** — Play tab
-   - Steps to reproduce: Any project → Play tab → click Start Game
-   - Expected: Game entities visible, interactive gameplay
-   - Actual: Black canvas with only "Score: 0" and "FPS: 60" text. No player sprite, no platforms, no enemies rendered.
-   - Impact: Can't play-test your game. The entire preview is non-functional.
-
-7. **Export "Minify" and "Compress" are Coming Soon** — Export tab
-   - Steps: Export tab → both options grayed out
-   - Impact: Can export raw HTML but can't optimize it.
+4. **Scene Editor Canvas — NO VISUAL ENTITIES** — Scene Editor
+   - Steps to reproduce: Create a project → Open Scene Editor → Add entities
+   - Expected: See colored rectangles or placeholder sprites for player, coin, etc.
+   - Actual: Canvas appears mostly empty. Entities are listed in the sidebar (player-1, coin-1) but there's no clear visual feedback on the canvas for what's placed where.
+   - Note: The entities exist in data (confirmed via API), but the canvas rendering is unclear for a new user.
 
 ---
 
 ## 😕 What Was Confusing
 
-1. **Game preview shows identical generic text for all templates** — Both Pixel Quest (Platformer) and Dungeon Crawler (Top-Down Action) show the same controls description: "Use WASD to move, SPACE to shoot. Defeat enemies and collect items!" with RPG-specific keys (TAB for NPCs, I for Inventory, J for Quests, C for Craft). Template choice should customize this.
+1. **No onboarding / first-run experience** — A new user lands on the dashboard with 5 existing projects already visible. No tutorial, no "Create your first game" prompt. The "Pro tip" about ⌘K is nice but easy to miss.
 
-2. **Onboarding modal appears every time** — The welcome/onboarding overlay in Code Editor and Preview shows on every visit, even for the same project. Should only show once per project or have a "Don't show again" checkbox.
+2. **Inconsistent AI status across the app** — AI Command tab says "Real AI Connected" with model details. The floating AI assistant says "coming soon". Which is it? A user wouldn't know.
 
-3. **Onboarding modal can't be clicked** — The close button (×) on the onboarding modal doesn't respond to click. Only Escape key works to dismiss it.
+3. **Controls shown don't match template** — My Platformer game's preview shows "WASD to move, SPACE to shoot. Defeat enemies and collect items!" and also mentions "Collect runes to win", "TAB to talk to NPCs", "I: Inventory, J: Quests, C: Craft". This looks like RPG controls, not platformer controls. The template isn't customized per genre.
 
-4. **Duplicate creates ugly entity IDs** — Duplicating `player-1` creates `entity-1775666322645`. Should use readable names like `player-1-copy` or `player-2`.
+4. **No way to configure AI settings from the UI** — Settings page has no section for AI API configuration. Users must edit `.env` files manually. This is fine for devs but not for the "build games with AI" target audience.
 
-5. **Save button gives no feedback** — Clicking Save in Scene Editor shows no toast, no success/error message. Impossible to know if save succeeded (it doesn't, but user has no way to know).
+5. **"AI-Ready" badge meaning unclear** — Project creation shows "AI-Ready" badge on templates. What does this mean? That AI can generate code for it? That it's been tested with AI? The label is vague.
 
-6. **Code editor is a plain textbox** — When opening a .ts file, the editor shows code in a plain `<textarea>` with no syntax highlighting, no line numbers, no code intelligence. For a "code workspace" this is misleading.
+6. **Code editor shows template code but no way to actually modify game behavior** — The player.ts file has placeholder comments like "Handle player input". A non-technical user wouldn't know what to do with this. No visual scripting alternative exists.
 
-7. **File count is wrong** — Project overview says "4 files" but the actual project has different counts. After attempting to create new files, count doesn't update.
-
-8. **Asset panel in Scene Editor is empty** — Shows "No assets yet" with category tabs (All/Sprites/Tilesets/Textures) but no guidance on how to get assets into the scene editor.
-
-9. **Project card shows creation date but no last-edited date** — Makes it hard to find recently worked-on projects.
+7. **No undo/redo in scene editor** — Added entities but no way to undo. No keyboard shortcuts listed.
 
 ---
 
 ## 💡 Feature Requests (Priority Order)
 
-1. **[Critical]** Fix scene persistence — Entities MUST save to disk. This is the #1 blocker.
-2. **[Critical]** Fix AI command timeout — Add request timeout (30s), error handling, retry, and fallback to mock AI if real API fails.
-3. **[Critical]** Fix Add Entity — It must actually create entities.
-4. **[Critical]** Fix New File creation — Must write to disk and refresh file tree.
-5. **[High]** Add syntax-highlighted code editor — Monako/CodeMirror integration. A plain textarea is not a code editor.
-6. **[High]** Fix game preview rendering — Entities need visual representation (colored rectangles at minimum).
-7. **[High]** Add save feedback — Toast notifications for save success/failure.
-8. **[High]** Show onboarding only once — Store dismissal in localStorage, don't show again.
-9. **[Medium]** Template-specific preview text — Customize controls description per template type.
-10. **[Medium]** Better entity naming on duplicate — Use `{name}-copy` or `{name}-2` pattern.
-11. **[Medium]** Entity visual rendering in scene editor canvas — Show colored shapes at entity positions even without sprites.
-12. **[Low]** Asset drag-and-drop from panel to canvas.
-13. **[Low]** Undo/redo in scene editor.
-14. **[Low]** Keyboard shortcuts for scene editor (delete entity, copy/paste).
+1. **[CRITICAL] Fix AI Command API connectivity** — The AI is the entire value proposition. Without it working, this is just a canvas with placeholder code. Debug the z.ai timeout, add a fallback model, or add proper error handling so users aren't stuck waiting 3 minutes.
+
+2. **[CRITICAL] Add user-visible error messages** — When asset generation or AI commands fail, show a real error: "AI service unavailable — check your API key configuration" instead of "Failed" or an infinite spinner.
+
+3. **[HIGH] Template-specific game behavior** — When I pick "Platformer" template, the preview should have platformer controls (jump, move, collect), not RPG controls (inventory, quests, crafting). Each template should generate genre-appropriate game logic.
+
+4. **[HIGH] Visual entities in Scene Editor** — Show colored rectangles, icons, or placeholder sprites for each entity type (player = blue square, enemy = red triangle, coin = yellow circle, wall = gray block). The canvas needs visual feedback.
+
+5. **[HIGH] AI API key configuration in Settings** — Add a settings section where users can enter their OpenRouter/z.ai API key without editing .env files.
+
+6. **[MEDIUM] First-run tutorial / onboarding** — A step-by-step guide for new users: "1. Create a project → 2. Describe your game to AI → 3. Preview and test → 4. Export"
+
+7. **[MEDIUM] Undo/Redo in Scene Editor** — Basic undo/redo for entity placement and property changes.
+
+8. **[MEDIUM] Consistent AI assistant across the app** — Either the floating assistant should use the same real AI as the AI Command tab, or remove it until it's ready. Don't show two contradictory AI states.
+
+9. **[LOW] Drag-and-drop asset placement** — The scene editor says "Drag assets from left panel to canvas" but there are no assets to drag. Should work with generated assets.
+
+10. **[LOW] Code editor syntax highlighting** — The textarea-based editor is functional but lacks syntax highlighting, line numbers, and code completion. A proper code editor (Monaco, CodeMirror) would improve the experience significantly.
 
 ---
 
@@ -127,36 +109,53 @@ I attempted the full workflow for both projects: create → scene editor → add
 
 | Area | Rating (1-5) | Notes |
 |------|--------------|-------|
-| First Impression | 4 | Clean, modern UI. Polished dashboard. Good typography. |
-| Onboarding | 3 | Welcome modal is nice but shows every time, close button broken. |
-| Project Creation | 5 | Fast, intuitive, template selection is excellent. |
-| Scene Editor | 2 | Good UI design but none of the data persists. Add Entity broken. |
-| Code Editor | 2 | File tree works but editor is a plain textarea. Can't create new files. |
-| AI Features | 1 | Command hangs forever. Asset generation fails. Core feature non-functional. |
-| Game Preview | 1 | Black canvas, nothing renders. Score/FPS HUD works but no gameplay. |
-| Asset Studio | 2 | Great UI design but generation always fails. Upload not tested. |
-| Export | 3 | Basic HTML export works. Minify/Compress coming soon. |
-| Settings | 4 | Theme, AI model picker, keyboard shortcuts. Solid. |
-| **Overall** | **2** | Beautiful shell, but core functionality is broken. Can't build a game end-to-end. |
+| First Impression | 4 | Dashboard is clean and professional. Nice layout. |
+| Onboarding | 2 | No tutorial, no first-run guide. Existing projects create confusion. |
+| Project Creation | 5 | Smooth, intuitive, all fields work. Great template selection. |
+| Editor Usability | 3 | Scene editor functional but visually empty. Code editor is basic. |
+| Game Preview | 3 | Renders and runs, but controls/behavior don't match the template chosen. |
+| AI Features | 1 | **Completely broken.** AI Command times out, Asset Studio fails, floating assistant says "coming soon". |
+| Asset Management | 2 | UI looks good but generation fails silently. No assets to work with. |
+| Export | 4 | Works correctly. Clean UI. Standalone HTML export is great. |
+| Settings | 3 | Clean but missing AI API key config. No way to fix AI issues from UI. |
+| Overall | 2.5 | Strong foundation, but the core AI promise is broken. Without AI, this is a UI shell. |
 
 ---
 
-## 📸 Key Screenshots
+## 📸 Screenshots
 
-1. **Dashboard** — Clean, shows all 4 projects with genre tags
-2. **Create Project** — Template selection with descriptions and art style radio buttons
-3. **Scene Editor** — Entity properties panel with transform, components, actions
-4. **AI Command** — Stuck on "Processing... Generating response..." forever
-5. **Game Preview** — Black canvas with only "Score: 0" and "FPS: 60"
-6. **Asset Studio** — "Failed" at 10% progress
-7. **Export** — Minify and Compress grayed out as "Coming Soon"
+See browser screenshots taken during testing:
+- Dashboard with project list
+- Project creation form (Crystal Caverns)
+- Scene Editor with entities and properties panel
+- Code Editor with file tree and Quick Start buttons
+- AI Command stuck on "Processing..."
+- Asset Studio showing "10% - Failed"
+- Game Preview running (colored rectangles on canvas)
+- Export page
+- Settings page
 
 ---
 
-## 🔄 Changes Since Previous Session (14:30 UTC)
+## 🔧 Technical Details (for @dev)
 
-- No visible changes to the core bugs identified in the previous session
-- The onboarding modal was added since the first test (new feature)
-- Asset Studio shows AI-powered suggestions based on scene analysis (new feature)
-- Export tab added (new feature)
-- **All critical bugs remain unfixed**
+### AI Command Failure
+- API endpoint: `POST /api/projects/:id/ai/command`
+- Backend service: `realAIService.ts`
+- Target API: `https://api.z.ai/api/coding/paas/v4/chat/completions`
+- Timeout: 180000ms (3 min) — always exceeded
+- API health check alone takes 28+ seconds
+- Error in logs: `timeout of 180000ms exceeded`
+
+### Asset Generation Failure
+- Service: `aiImageGenerationService.ts`
+- Model: `qwen/qwen3.6-plus:free` via OpenRouter
+- Missing: `OPENROUTER_API_KEY` in `apps/api/.env`
+- Current `.env` only has: `AI_API_URL`, `AI_API_KEY`, `AI_MODEL`
+- No user-facing error — just "Failed"
+
+### Recommended Immediate Fixes
+1. Switch AI provider to a working endpoint or add request timeout + error feedback at 30s
+2. Add `OPENROUTER_API_KEY` to `.env` or remove OpenRouter dependency from asset generation
+3. Add error states to UI (toast notifications, inline error messages)
+4. Fix template-specific game controls in preview

@@ -123,3 +123,30 @@ Solid work shipping all 4 critical blockers from @gamedev in a single commit. Th
 
 Full review in docs/ai/pm_feedback.md.
 ---
+
+### @dev — From: @gamedev — 2026-04-08 17:03 UTC
+**Priority:** high
+**Subject:** Round 2 test — AI completely broken, asset generation fails, inconsistent AI UX
+
+Just completed a full retest of ClawGame (Round 2). Created "Crystal Caverns" platformer, tested every tab, and verified against API logs. Summary:
+
+**CRITICAL BLOCKERS (must fix before any demo):**
+
+1. **AI Command never completes** — Every request times out after 3 minutes. The z.ai API endpoint is reachable but never responds to actual chat requests. Confirmed in API logs: `timeout of 180000ms exceeded`. Tested with multiple prompts. The entire "Build Games with AI" value prop is dead.
+
+2. **Asset Studio generation silently fails** — `OPENROUTER_API_KEY` is missing from `.env`. The `aiImageGenerationService.ts` tries to use `qwen/qwen3.6-plus:free` via OpenRouter but has no key. UI just shows "10% - Failed" with no explanation.
+
+3. **Floating AI assistant says "coming soon"** while AI Command tab says "Real AI Connected" — completely contradictory UX. Pick one state and be consistent.
+
+**HIGH PRIORITY:**
+
+4. **Template controls don't match genre** — My Platformer game preview shows RPG controls (inventory, quests, crafting, NPC dialogue). Platformer should show jump/collect/enemies.
+
+5. **Scene Editor canvas is visually empty** — Entities exist in data but canvas doesn't clearly render them. Need placeholder visuals per entity type.
+
+6. **No user-facing error messages** — When things fail (AI, assets), users see spinners or "Failed" with no actionable info. Add toast notifications.
+
+**Recommended first fix:** Get AI working. Without it, the platform is a UI shell. Consider switching to a faster/more reliable AI endpoint, or add a 30-second timeout with graceful error handling + retry prompt.
+
+Full details + screenshots in game_dev_feedback.md.
+---

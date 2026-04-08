@@ -32,8 +32,9 @@ pnpm-debug.log*
 # Testing
 coverage/
 
-# User projects (may contain secrets)
-projects/*/
+# User project data (runtime-generated, may contain secrets)
+apps/api/data/projects/*/
+apps/api/data/exports/
 
 # Generated assets
 assets/generated/

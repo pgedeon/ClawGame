@@ -9,38 +9,70 @@ const USE_REAL_AI = process.env.USE_REAL_AI === 'true' || process.env.USE_REAL_A
 let realAIServiceInstance: RealAIService | null = null;
 
 export async function aiRoutes(app: FastifyInstance) {
-  app.log.info(`AI Routes initialized: ${USE_REAL_AI ? 'Real AI (OpenRouter)' : 'Mock AI (Preview Mode)'}`);
+  app.log.info(`AI Routes initialized: ${USE_REAL_AI ? 'Real AI (z.ai + fallback)' : 'Mock AI (Preview Mode)'}`);
 
   // Initialize real AI service with logger on first use
   if (USE_REAL_AI && !realAIServiceInstance) {
     realAIServiceInstance = new RealAIService(app.log);
   }
 
-  // Process an AI command
+  // Process an AI command (standard JSON response)
   app.post<{ Body: any; Params: { projectId: string } }>(
     '/api/projects/:projectId/ai/command',
     async (request, reply) => {
       const { projectId } = request.params;
       const body = request.body as any;
 
+      // Check if client wants streaming
+      const wantsStreaming = body.stream === true;
+
       try {
-        let response: any;
-
         if (USE_REAL_AI && realAIServiceInstance) {
-          response = await realAIServiceInstance.processCommand({
-            projectId,
-            command: body.command,
-            context: body.context,
-          });
-        } else {
-          response = await mockAiService.aiService.processCommand({
-            projectId,
-            command: body.command,
-            context: body.context,
-          });
-        }
+          if (wantsStreaming) {
+            // Stream the response as SSE
+            reply.raw.writeHead(200, {
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+              'Connection': 'keep-alive',
+              'X-Accel-Buffering': 'no',
+            });
 
-        return { response };
+            let fullContent = '';
+            const response = await realAIServiceInstance.processCommandStream(
+              {
+                projectId,
+                command: body.command,
+                context: body.context,
+              },
+              (chunk) => {
+                fullContent += chunk;
+                const sseData = JSON.stringify({ type: 'chunk', content: chunk });
+                reply.raw.write(`data: ${sseData}\n\n`);
+              },
+            );
+
+            // Send the final structured response
+            const finalData = JSON.stringify({ type: 'done', response });
+            reply.raw.write(`data: ${finalData}\n\n`);
+            reply.raw.end();
+            return;
+          }
+
+          // Standard non-streaming response
+          const response = await realAIServiceInstance.processCommand({
+            projectId,
+            command: body.command,
+            context: body.context,
+          });
+          return { response };
+        } else {
+          const response = await mockAiService.aiService.processCommand({
+            projectId,
+            command: body.command,
+            context: body.context,
+          });
+          return { response };
+        }
       } catch (err: any) {
         app.log.error('AI command processing failed:', err);
         reply.code(500);
@@ -49,7 +81,7 @@ export async function aiRoutes(app: FastifyInstance) {
           details: err.message,
         };
       }
-    }
+    },
   );
 
   // Get command history for a project
@@ -67,7 +99,7 @@ export async function aiRoutes(app: FastifyInstance) {
       }
 
       return { history };
-    }
+    },
   );
 
   // Get details of a specific command
@@ -94,7 +126,7 @@ export async function aiRoutes(app: FastifyInstance) {
       }
 
       return { command };
-    }
+    },
   );
 
   // Health check for AI service

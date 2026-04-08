@@ -7,6 +7,7 @@ const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:300
 
 interface RequestOptions extends RequestInit {
   query?: Record<string, string>;
+  timeoutMs?: number;
 }
 
 async function request<T>(path: string, options?: RequestOptions): Promise<T> {
@@ -21,17 +22,32 @@ async function request<T>(path: string, options?: RequestOptions): Promise<T> {
     });
   }
 
-  const res = await fetch(url.toString(), {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  });
+  // Client-side timeout via AbortController
+  const controller = new AbortController();
+  const timeoutMs = options?.timeoutMs || 60_000; // default 60s
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || `API error ${res.status}`);
+  try {
+    const res = await fetch(url.toString(), {
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      ...options,
+    });
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || body.details || `API error ${res.status}`);
+    }
+
+    return res.json();
+  } catch (err: any) {
+    if (err.name === 'AbortError') {
+      throw new Error('Request timed out. The AI service is taking too long to respond. Please try again.');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
   }
-
-  return res.json();
 }
 
 // ─── Project types (mirror shared) ───
@@ -227,6 +243,7 @@ export interface AICommandResponse {
   estimatedTime?: number;
   riskLevel: 'low' | 'medium' | 'high';
   errors?: string[];
+  fromFallback?: boolean;
 }
 
 export interface AICommandHistory {
@@ -344,6 +361,7 @@ export const api = {
     request<{ generationId: string; metadata: AssetMetadata; status: string }>(`/api/projects/${projectId}/assets/generate`, {
       method: 'POST',
       body: JSON.stringify(assetReq),
+      timeoutMs: 90_000, // AI generation can take longer
     }),
 
   getGenerationStatus: (projectId: string, generationId: string) =>
@@ -381,11 +399,12 @@ export const api = {
   getSceneAnalysis: (projectId: string) =>
     request<SceneAnalysis>(`/api/projects/${projectId}/scene-analysis`),
 
-  // AI Command operations
+  // AI Command operations — 90s timeout (backend has 30s × 2 retries)
   processAICommand: (projectId: string, command: AICommandRequest) =>
     request<{ response: AICommandResponse }>(`/api/projects/${projectId}/ai/command`, {
       method: 'POST',
       body: JSON.stringify(command),
+      timeoutMs: 90_000,
     }),
 
   getAIHistory: (projectId: string, limit?: number) => {
