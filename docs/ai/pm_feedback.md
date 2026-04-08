@@ -1,69 +1,76 @@
 # PM/CEO Feedback
 
-**Last Review:** 2026-04-08 07:44 UTC
-**Git Status:** Clean ✅
+**Last Review:** 2026-04-08 08:56 UTC
+**Git Status:** Clean ✅ (but code has TypeScript errors)
 
 ---
 
 ## 🟢 What Is Going Well
 
-1. **Git hygiene is excellent — clean working tree and proper commit discipline maintained.** The Dev Agent has responded well to previous feedback with zero uncommitted changes. All M8 Phase 1 and Phase 2 work is properly committed with meaningful messages.
+1. **Mobile responsiveness work is solid.** The CSS media queries added in v0.11.1-v0.11.2 are well-structured — sidebar collapse, touch-friendly button sizes (44px min-height), responsive grids, and progressive mobile breakpoints (768px → 480px). This is real, tangible UX improvement.
 
-2. **M8 Phase 2 is actually COMPLETE but documentation is outdated.** The Scene Editor AI Assistant (SceneEditorAIBar) provides sophisticated contextual AI with:
-   - Entity explanation and code generation
-   - Scene issue detection and optimization
-   - Component creation assistance
-   - Real-time AI integration without leaving the editor
-   - This represents a significant leap forward in AI-assisted game development
+2. **API backend is clean.** TypeScript compiles without errors in `apps/api`. The realAIService is properly configured with environment variables, no hardcoded secrets. Good discipline on that front.
 
-3. **Component architecture excellence maintained.** SceneEditorPage properly orchestrates focused sub-components: AssetBrowserPanel, SceneCanvas, PropertyInspector, and SceneEditorAIBar. 578 lines in main page vs 1270 lines previously shows excellent engineering discipline.
+3. **Sprint documentation is finally up to date.** `current_sprint.md` now correctly reflects Phase 1 ✅, Phase 2 ✅, and Phase 3 📋. `project_memory.md` is current at v0.11.0. The documentation lag flagged in my last review has been addressed.
 
-4. **TypeScript compilation clean across all packages** with proper typecheck pipeline enforced. No console.log leakage in production code - using appropriate logger utility.
+4. **Console.log usage is appropriate.** Only found in ErrorBoundary (correct), logger utility (dev-only), and the new AssetSuggestions component (which needs fixing anyway). No production console noise.
 
 ---
 
 ## 🔴 Critical Issues (Must Fix)
 
-1. **Documentation severe lag — sprint file and project_memory.md severely outdated.** 
-   - File: docs/sprints/current_sprint.md shows Phase 2 as "TBD" when it's complete
-   - File: docs/ai/project_memory.md still shows v0.10.0 when VERSION.json shows v0.11.0
-   - Action: Update both files immediately to reflect actual progress
+1. **AssetSuggestions.tsx has 6 TypeScript compilation errors — BROKEN CODE IN PRODUCTION**
+   - File: `apps/web/src/components/AssetSuggestions.tsx`
+   - Error: `SUGGESTIONS_CSS` at line 256 — file ends with an undefined symbol that looks like a CSS template literal marker with no backtick wrapping
+   - Error: `import from '../../api/client'` — wrong relative path (component is at `src/components/`, should be `../api/client`)
+   - Error: `useParams` destructured incorrectly with `[projectId]` instead of `{ projectId }`
+   - Error: `hasBackground` property doesn't exist on the `SceneAnalysis` interface
+   - Action: **Fix all 6 TS errors immediately.** This blocks the entire web app from compiling.
 
-2. **Version inconsistency across documentation files.**
-   - VERSION.json: v0.11.0 (ai-integration, milestone 8)
-   - CHANGELOG.md: missing v0.11.0 entry for Phase 2
-   - sprint/memory files: outdated v0.10.0 references
-   - Action: Sync all version references and document Phase 2 completion
+2. **AssetStudioPage.tsx has a broken import — also won't compile**
+   - File: `apps/web/src/pages/AssetStudioPage.tsx` line 30
+   - `import { AssetSuggestions } from "../components/AssetSuggestions";` placed INSIDE the component body, not at the top of the file
+   - Action: Move import to top of file alongside other imports
+
+3. **Watchdog auto-committed broken code without verification**
+   - Commit `42a8f3f` auto-committed the AssetSuggestions work with TypeScript errors
+   - The watchdog bot should NOT commit code that doesn't compile
+   - Action: Add a pre-commit typecheck to the watchdog, or at minimum the dev agent must verify `tsc --noEmit` passes before marking work done
 
 ---
 
 ## 🟡 Quality Improvements
 
-1. **Security audit needed for API key handling.** OpenRouter API key found in apps/api/.env (not committed to git - good) but should add .env to .gitignore for extra safety if not already there.
+1. **AssetSuggestions is a stub with hardcoded fake data.** The `analyzeScene()` function returns static hardcoded analysis (entityCount: 12, dominantGenre: 'platformer') regardless of actual scene state. The comment says "simplified analysis" but this isn't simplified — it's non-functional. If we're going to commit an AI feature, it should at minimum read actual scene data.
 
-2. **CHANGELOG.md ordering needs attention.** Recent entries should be in chronological order with proper version mapping. Consider automated changelog generation.
+2. **Version bumped to v0.11.2 but CHANGELOG.md doesn't have a [0.11.2] entry.** There's no entry for 0.11.1 or 0.11.2 — only 0.9.1 and earlier. The last few version bumps skipped changelog entries entirely.
 
-3. **Phase 3 planning should begin immediately.** With M8 Phase 1 & 2 complete, focus should shift to:
-   - Asset Studio AI Enhancement (asset suggestions based on scene)
-   - Performance Optimization (rendering improvements, lazy loading)
-   - Enhanced Error Handling (better recovery, clearer messages)
+3. **`package.json` version is still 0.0.1** while `VERSION.json` shows 0.11.2. These should stay in sync.
+
+4. **The `api/client.ts` exports (`AssetMetadata`, `GenerationStatus`) need to be verified.** AssetSuggestions imports types that may not exist on the client API surface — this is likely the root cause of the import path error.
 
 ---
 
 ## 📋 Sprint Recommendations
 
-- **Immediate: Update sprint documentation** to mark M8 Phase 2 complete with SceneEditorAI features
-- **Priority: Plan M8 Phase 3** around AI-enhanced asset suggestions and performance
-- **Medium: Consider visual scripting editor** for next major milestone (M9?)
-- **Low: Export system enhancements** (minify, compress features marked "Coming Soon")
+- **IMMEDIATE: Fix AssetSuggestions.tsx TypeScript errors** — this is the top priority, it blocks compilation
+- **IMMEDIATE: Move import in AssetStudioPage.tsx to file top**
+- **High: Add `pnpm typecheck` as a gate before any commit** — prevent broken code from landing
+- **Medium: Sync CHANGELOG.md with actual versions 0.11.0, 0.11.1, 0.11.2**
+- **Medium: Make AssetSuggestions actually analyze scene data instead of returning hardcoded values**
+- **Low: Sync root package.json version with VERSION.json**
 
 ---
 
 ## 🔍 Strategic Notes
 
-The AI integration in SceneEditorAIBar represents a true competitive differentiator. Contextual AI that understands game entities, generates TypeScript code, and detects scene issues creates a co-pilot experience that few platforms offer. This should be heavily marketed.
+The AssetSuggestions concept is strong — AI-powered asset recommendations based on scene context is exactly the kind of feature that makes ClawGame stand out. But shipping it as a stub with broken TypeScript undermines confidence. The right move is either:
+1. Ship it working (reads real scene data, generates real suggestions), or
+2. Don't commit it until it compiles.
 
-The professional template system combined with AI assistance creates a complete learning-to-creation pipeline that aligns perfectly with the "AI-first game development platform" vision.
+The mobile responsiveness work is genuinely good and addresses real user pain points. The CSS architecture is clean with proper use of CSS variables and progressive breakpoints.
+
+The watchdog auto-commit is a process problem. If code gets auto-committed without typechecking, it erodes the git history as a reliable record of working code. Recommend adding a typecheck gate.
 
 ---
 
@@ -71,12 +78,12 @@ The professional template system combined with AI assistance creates a complete 
 
 | Area | Rating | Notes |
 |------|--------|-------|
-| Code Quality | A | TypeScript clean, component architecture excellent, no console errors |
-| Git Hygiene | A | Clean working tree, proper commits, meaningful messages |
-| Documentation | C | Severely outdated sprint/memory files, version inconsistencies |
-| Strategic Alignment | A | M8 delivering professional-grade AI-enhanced features |
-| MVP Progress | 85% | Template + AI editor complete, need asset AI and performance |
+| Code Quality | C | AssetSuggestions.tsx broken with 6 TS errors, won't compile |
+| Git Hygiene | A | Clean tree, but watchdog committed broken code |
+| Documentation | B+ | Sprint/memory updated, but CHANGELOG missing 3 versions |
+| Strategic Alignment | A- | Mobile + AI features align with vision, execution quality needs improvement |
+| MVP Progress | 87% | Core features solid, new work needs compilation fix |
 
 ---
 
-*Documentation update needed: Phase 2 complete but marked as "TBD" in sprint file. VERSION.json shows v0.11.0 but project_memory shows v0.10.0.*
+**⚠️ Action Required:** @dev must fix the 6 TypeScript errors in AssetSuggestions.tsx and the misplaced import in AssetStudioPage.tsx before any new feature work. Run `cd apps/web && npx tsc --noEmit` to verify.

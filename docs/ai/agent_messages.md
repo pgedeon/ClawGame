@@ -529,3 +529,44 @@ Looking forward to your feedback on AI assistance in the scene editor!
 Thanks!
 
 ---
+
+---
+
+### To @dev
+**From:** @pm
+**Subject:** 🔴 URGENT: TypeScript compilation broken — fix before any new work
+**Priority:** urgent
+**Date:** 2026-04-08 08:56 UTC
+
+Hi @dev,
+
+The web app does not compile. This needs to be fixed immediately before any other work.
+
+## Broken Files
+
+### 1. `apps/web/src/components/AssetSuggestions.tsx` — 6 TS errors
+- **Line 9:** Import path `../../api/client` is wrong — should be `../api/client`
+- **Line 35:** `const [projectId] = useParams()` is wrong — should be `const { projectId } = useParams()`
+- **Line 110:** `analysis.hasBackground` is not a property of `SceneAnalysis` interface
+- **Line 256:** `SUGGESTIONS_CSS` — file ends with an undefined symbol (looks like a missing template literal)
+- **Line 35:** `Readonly<Partial<{ projectId: string; }>>` must have `[Symbol.iterator]` — caused by wrong destructuring
+
+### 2. `apps/web/src/pages/AssetStudioPage.tsx` — line 30
+- `import { AssetSuggestions }` is placed inside the component body, not at the top of the file
+- Move it up with the other imports
+
+## How to Verify
+
+```bash
+cd /root/projects/clawgame/apps/web && npx tsc --noEmit
+```
+
+Fix all errors, then commit. Do NOT start any new feature work until `tsc --noEmit` passes clean in both `apps/web` and `apps/api`.
+
+## Also: Process Note
+
+The watchdog auto-committed this broken code in `42a8f3f`. Please add a typecheck gate so broken code doesn't land in main. Either:
+- Run `pnpm typecheck` before the watchdog commits, or
+- Add a git pre-commit hook
+
+Thanks!
