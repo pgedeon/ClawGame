@@ -16,6 +16,7 @@ import './onboarding.css';
 import './game-hub.css';
 import './game-preview.css';
 import './asset-studio.css';
+import './export-page.css';
 
 // Lazy-loaded pages (code-split for smaller initial bundle)
 const ProjectPage = lazy(() => import('./pages/ProjectPage').then(m => ({ default: m.ProjectPage })));
@@ -24,6 +25,7 @@ const SceneEditorPage = lazy(() => import('./pages/SceneEditorPage').then(m => (
 const AICommandPage = lazy(() => import('./pages/AICommandPage').then(m => ({ default: m.AICommandPage })));
 const AssetStudioPage = lazy(() => import('./pages/AssetStudioPage').then(m => ({ default: m.AssetStudioPage })));
 const GamePreviewPage = lazy(() => import('./pages/GamePreviewPage').then(m => ({ default: m.GamePreviewPage })));
+const ExportPage = lazy(() => import('./pages/ExportPage').then(m => ({ default: m.ExportPage })));
 
 function PageLoader() {
   return (
@@ -74,6 +76,11 @@ function App() {
             <Route path="project/:projectId/preview" element={
               <Suspense fallback={<PageLoader />}>
                 <GamePreviewPage />
+              </Suspense>
+            } />
+            <Route path="project/:projectId/export" element={
+              <Suspense fallback={<PageLoader />}>
+                <ExportPage />
               </Suspense>
             } />
             <Route path="*" element={<NotFoundPage />} />

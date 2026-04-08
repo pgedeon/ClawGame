@@ -17,6 +17,7 @@ import {
   Sparkles,
   ChevronRight,
   Gamepad2,
+  Download,
 } from 'lucide-react';
 import '../game-hub.css';
 import { logger } from '../utils/logger';
@@ -136,6 +137,13 @@ export function ProjectPage() {
       icon: <Play size={18} />,
       description: 'Run your game',
     },
+    {
+      id: 'export',
+      path: `/project/${projectId}/export`,
+      label: 'Export',
+      icon: <Download size={18} />,
+      description: 'Export to HTML',
+    },
   ];
 
   // Determine active tab
@@ -222,7 +230,7 @@ function ProjectOverview({ project, projectId }: { project: ProjectDetail; proje
     },
     {
       label: 'AI Command',
-      description: 'Describe what you want and let AI generate the code',
+      description: 'Describe what you want and let AI generate code',
       icon: <Sparkles size={28} />,
       path: `/project/${projectId}/ai`,
       color: '#06b6d4',
@@ -248,11 +256,20 @@ function ProjectOverview({ project, projectId }: { project: ProjectDetail; proje
     },
     {
       label: 'Play Game',
-      description: 'Run and test your game in the built-in preview',
+      description: 'Run and test your game in built-in preview',
       icon: <Play size={28} />,
       path: `/project/${projectId}/preview`,
       color: '#ef4444',
       gradient: 'linear-gradient(135deg, #ef4444, #dc2626)',
+    },
+    {
+      label: 'Export Game',
+      description: 'Export your game as a standalone HTML file',
+      icon: <Download size={28} />,
+      path: `/project/${projectId}/export`,
+      color: '#8b5cf6',
+      gradient: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
+      badge: 'New',
     },
   ];
 

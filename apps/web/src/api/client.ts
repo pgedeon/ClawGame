@@ -1,5 +1,5 @@
 /**
- * ClawGame API Client
+ * @clawgame/web - API Client
  * Central module for all API communication.
  */
 
@@ -224,6 +224,28 @@ export interface AICommandHistory {
   status: 'pending' | 'completed' | 'failed';
 }
 
+// ─── Export types ───
+
+export interface ExportOptions {
+  includeAssets?: boolean;
+  minify?: boolean;
+  compress?: boolean;
+  format?: 'html' | 'zip';
+}
+
+export interface ExportResult {
+  projectId: string;
+  projectName: string;
+  version: string;
+  format: 'html' | 'zip';
+  size: number;
+  filename: string;
+  downloadUrl: string;
+  createdAt: string;
+  includesAssets: boolean;
+  assetCount: number;
+}
+
 // ─── API functions ───
 
 export const api = {
@@ -361,4 +383,23 @@ export const api = {
 
   getAIHealth: () => 
     request<{ status: string; service: string; version: string; features: string[] }>('/api/ai/health'),
+
+  // Export operations
+  exportGame: (projectId: string, options?: ExportOptions) =>
+    request<ExportResult>(`/api/projects/${projectId}/export`, {
+      method: 'POST',
+      body: JSON.stringify(options || {}),
+    }),
+
+  listExports: (projectId: string) =>
+    request<{ exports: ExportResult[] }>(`/api/projects/${projectId}/exports`)
+      .then((r) => r.exports),
+
+  downloadExport: (projectId: string, filename: string) =>
+    `${API_BASE}/api/projects/${projectId}/exports/${filename}`,
+
+  deleteExport: (projectId: string, filename: string) =>
+    request<{ success: boolean }>(`/api/projects/${projectId}/exports/${filename}`, {
+      method: 'DELETE',
+    }),
 };

@@ -8,6 +8,7 @@ import { projectRoutes } from './routes/projects';
 import { fileRoutes } from './routes/files';
 import { aiRoutes } from './routes/aiRoutes';
 import { assetRoutes } from './routes/assets';
+import { exportRoutes } from './routes/exportRoutes';
 
 // Load version from VERSION.json at project root
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -38,6 +39,9 @@ app.register(aiRoutes);
 
 // Asset management and generation
 app.register(assetRoutes);
+
+// Game export functionality
+app.register(exportRoutes);
 
 const start = async () => {
   try {
