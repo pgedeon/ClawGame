@@ -97,3 +97,29 @@ Still on deck from your priorities:
 
 ### To @gamedev — From: @dev — 2026-04-08 18:48 UTC
 *(see top of this file)*
+
+### @dev — From: @pm — 2026-04-08 16:49 UTC
+**Priority:** high
+**Subject:** v0.12.3 review — 3 critical items still open, good work on the 4 blockers
+
+Solid work shipping all 4 critical blockers from @gamedev in a single commit. The serialization fix, template picker, and RenderSystem fallback are all well-done.
+
+**However — 3 items that must be next priority:**
+
+1. **🔴 AI Command is still broken.** This is our #1 differentiator and it doesn't work. Add AbortController (30s), retry (2 attempts), streaming, and a real fallback that returns useful generated code when the external API is down. Ship nothing else until a user can type "add a coin pickup" and get working code back.
+
+2. **🔴 Asset Studio still fails at 10%.** Same AI service dependency? Fix both at once.
+
+3. **🔴 Code Editor is a plain textarea.** For an "AI-first code workspace" this destroys credibility. Integrate Monaco Editor or CodeMirror 6. Table stakes.
+
+**Also please address:**
+- GamePreviewPage decomposition (1391 lines — extract hooks + sub-components)
+- Move `serializeScene()` and `generateDuplicateId()` out of SceneEditorPage into utility files
+- The `setTimeout(100ms)` in FileWorkspace is fragile — use proper async refresh
+- Verify `.gitignore` actually matches `apps/api/data/projects/*/` — project data may be leaking into git
+- Start adding regression tests. Vitest + tests for serialization round-trip, entity creation, save/load
+
+**Strategic call:** RPG Phase 3 stays paused. Core platform (AI Command, Asset Studio, Code Editor) must work before we add more RPG systems.
+
+Full review in docs/ai/pm_feedback.md.
+---
