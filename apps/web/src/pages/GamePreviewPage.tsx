@@ -131,12 +131,32 @@ const GamePreviewContent: React.FC = () => {
         try {
           const sceneData = await api.readFile(projectId, 'scenes/main-scene.json');
           const parsed = JSON.parse(sceneData.content);
-          const validatedEntities = (parsed.entities || []).map((e: any) => ({
-            id: e.id || `e-${Math.random().toString(36).substr(2, 9)}`,
-            type: e.type || 'unknown',
-            transform: e.transform || { x: 400, y: 300, scaleX: 1, scaleY: 1, rotation: 0 },
-            components: e.components || {},
-          }));
+          // Handle both array format (new) and object format (legacy/broken saves)
+          let rawEntities: any[] = [];
+          if (Array.isArray(parsed.entities)) {
+            rawEntities = parsed.entities;
+          } else if (parsed.entities && typeof parsed.entities === 'object') {
+            // Convert keyed object to array
+            rawEntities = Object.values(parsed.entities);
+          }
+          const validatedEntities = rawEntities.map((e: any) => {
+            // Infer type from components if not explicitly set
+            const comps = e.components || {};
+            let inferredType = e.type || 'unknown';
+            if (inferredType === 'unknown') {
+              if (comps.playerInput || comps.movement?.speed >= 150) inferredType = 'player';
+              else if (comps.ai) inferredType = 'enemy';
+              else if (comps.collision?.type === 'collectible') inferredType = 'collectible';
+              else if (comps.collision?.type === 'wall') inferredType = 'obstacle';
+              else if (comps.collision?.type === 'player') inferredType = 'player';
+            }
+            return {
+              id: e.id || `e-${Math.random().toString(36).substr(2, 9)}`,
+              type: inferredType,
+              transform: e.transform || { x: 400, y: 300, scaleX: 1, scaleY: 1, rotation: 0 },
+              components: comps,
+            };
+          });
           setProjectScene({
             name: parsed.name || 'Main Scene',
             description: parsed.description,
@@ -171,19 +191,29 @@ const GamePreviewContent: React.FC = () => {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    /* Init entities */
+    /* Init entities with type-based defaults */
     const entities = new Map<string, any>();
+    const TYPE_COLORS: Record<string, string> = {
+      player: '#3b82f6', enemy: '#ef4444', collectible: '#f59e0b',
+      obstacle: '#64748b', npc: '#22c55e', unknown: '#8b5cf6',
+    };
+    const TYPE_SIZES: Record<string, [number, number]> = {
+      player: [32, 48], enemy: [32, 32], collectible: [16, 16],
+      obstacle: [32, 32], npc: [32, 48], unknown: [32, 32],
+    };
     for (const entity of projectScene.entities) {
       const t = entity.transform || { x: 400, y: 300, scaleX: 1, scaleY: 1, rotation: 0 };
+      const eType = entity.type || 'unknown';
+      const defaultSize = TYPE_SIZES[eType] || [32, 32];
       entities.set(entity.id, {
         id: entity.id,
-        type: entity.type || 'unknown',
+        type: eType,
         transform: { ...t },
         components: entity.components || {},
         vx: 0, vy: 0,
-        color: entity.components.sprite?.color || '#8b5cf6',
-        width: entity.components.sprite?.width || 32,
-        height: entity.components.sprite?.height || 32,
+        color: entity.components.sprite?.color || TYPE_COLORS[eType] || '#8b5cf6',
+        width: entity.components.sprite?.width || defaultSize[0],
+        height: entity.components.sprite?.height || defaultSize[1],
         health: entity.components.stats?.hp || 30,
         maxHealth: entity.components.stats?.maxHp || 30,
         damage: entity.components.stats?.damage || 10,

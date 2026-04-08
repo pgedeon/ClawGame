@@ -17,11 +17,12 @@ export interface Transform {
  * Sprite component - renders an image at the entity's position
  */
 export interface Sprite {
-  image: HTMLImageElement;
+  image?: HTMLImageElement;
   width: number;
   height: number;
   offsetX?: number;
   offsetY?: number;
+  color?: string;
 }
 
 /**

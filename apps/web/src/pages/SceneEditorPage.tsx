@@ -1,9 +1,15 @@
 /**
  * @clawgame/web - Scene Editor Page
  * Main orchestrator page using decomposed components: AssetBrowserPanel, SceneCanvas, PropertyInspector
+ *
+ * v0.12.3 fixes:
+ * - Scene Save: properly serializes Map→Array (was saving {} for entities)
+ * - Add Entity: shows template picker dropdown instead of being a no-op
+ * - Duplicate: generates readable entity names (player-1-copy instead of entity-1775666322645)
+ * - Save feedback: shows toast on success/failure
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { api, type AssetMetadata } from '../api/client';
 import { Entity, Scene, Transform, Component, Sprite } from '@clawgame/engine';
@@ -12,6 +18,7 @@ import { SceneCanvas } from '../components/scene-editor/SceneCanvas';
 import { PropertyInspector } from '../components/scene-editor/PropertyInspector';
 import { SceneEditorAIBar } from '../components/scene-editor/SceneEditorAIBar';
 import { ToolMode, ENTITY_TEMPLATES } from '../components/scene-editor/types';
+import { useToast } from '../components/Toast';
 import { logger } from '../utils/logger';
 import '../scene-editor.css';
 import '../scene-editor-ai.css';
@@ -21,10 +28,72 @@ import {
   ZoomIn,
   ZoomOut,
   Plus,
+  X,
+  Check,
 } from 'lucide-react';
+
+/**
+ * Serialize scene for JSON storage.
+ * Converts Map<string, Entity> → Entity[] with plain-object components.
+ * Also strips non-serializable fields like Image objects.
+ */
+function serializeScene(scene: Scene): string {
+  const entities: any[] = [];
+  
+  scene.entities.forEach((entity, _key) => {
+    // Convert components Map to plain object, stripping non-serializable fields
+    const componentsObj: Record<string, any> = {};
+    entity.components.forEach((value, key) => {
+      if (key === 'sprite') {
+        // Strip Image objects — save dimensions and color only
+        const sprite = value as any;
+        componentsObj[key] = {
+          width: sprite.width || 32,
+          height: sprite.height || 32,
+          offsetX: sprite.offsetX || 0,
+          offsetY: sprite.offsetY || 0,
+          color: sprite.color || undefined,
+        };
+      } else if (key === 'transform') {
+        // Skip — transform is stored at entity level
+      } else if (value && typeof value === 'object' && value instanceof Image) {
+        // Skip raw Image objects
+      } else {
+        componentsObj[key] = value;
+      }
+    });
+
+    entities.push({
+      id: entity.id,
+      transform: entity.transform,
+      components: componentsObj,
+    });
+  });
+
+  return JSON.stringify({
+    name: scene.name,
+    entities,
+  }, null, 2);
+}
+
+/**
+ * Generate a readable entity name on duplicate.
+ * "player-1" → "player-1-copy", "player-1-copy" → "player-1-copy-2"
+ */
+function generateDuplicateId(originalId: string, existingIds: Set<string>): string {
+  const base = `${originalId}-copy`;
+  if (!existingIds.has(base)) return base;
+  
+  let counter = 2;
+  while (existingIds.has(`${base}-${counter}`)) {
+    counter++;
+  }
+  return `${base}-${counter}`;
+}
 
 function SceneEditorContent() {
   const { projectId } = useParams<{ projectId: string }>();
+  const { showToast } = useToast();
   
   // Main state
   const [scene, setScene] = useState<Scene | null>(null);
@@ -32,6 +101,7 @@ function SceneEditorContent() {
   const [projectName, setProjectName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   // Editor state
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
@@ -42,12 +112,29 @@ function SceneEditorContent() {
   // Tool mode and template
   const [toolMode, setToolMode] = useState<ToolMode>('select');
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
+  
+  // Template picker dropdown state
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const templatePickerRef = useRef<HTMLDivElement>(null);
 
   // Asset cache - map of asset ID to loaded image
   const [assetCache, setAssetCache] = useState<Map<string, HTMLImageElement>>(new Map());
 
   // Helper to convert entities Map to array for components
   const entitiesArray = scene ? Array.from(scene.entities.values()) : [];
+
+  // Close template picker on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (templatePickerRef.current && !templatePickerRef.current.contains(e.target as Node)) {
+        setShowTemplatePicker(false);
+      }
+    };
+    if (showTemplatePicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showTemplatePicker]);
 
   // Load project info
   useEffect(() => {
@@ -68,60 +155,64 @@ function SceneEditorContent() {
         const sceneData = await api.readFile(id, 'scenes/main-scene.json');
         const sceneContent = JSON.parse(sceneData.content) as any;
         
-        // Convert JSON object to Map for entities
+        // Convert JSON to Map for entities
         if (sceneContent && sceneContent.entities) {
           const entities = new Map<string, Entity>();
           const entitiesObj = sceneContent.entities;
-          if (entitiesObj instanceof Map) {
-            setScene({ name: sceneContent.name || 'Main Scene', entities: entitiesObj });
-          } else if (Array.isArray(entitiesObj)) {
+          
+          if (Array.isArray(entitiesObj)) {
+            // Preferred format: entities as array
             entitiesObj.forEach((entity: any) => {
-              if (entity.id && entity.components) {
-                let components: Map<string, Component>;
-                if (entity.components instanceof Map) {
-                  components = entity.components;
-                } else {
-                  // Create new Map from object entries
-                  components = new Map();
+              if (entity && entity.id) {
+                const components = new Map<string, Component>();
+                if (entity.components && typeof entity.components === 'object') {
                   for (const [key, value] of Object.entries(entity.components)) {
                     components.set(key, value as Component);
                   }
                 }
-                entities.set(entity.id, { ...entity, components });
+                const transform: Transform = entity.transform || { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 };
+                entities.set(entity.id, { 
+                  id: entity.id, 
+                  transform,
+                  components 
+                });
               }
             });
-            setScene({ name: sceneContent.name || 'Main Scene', entities });
-          } else if (typeof entitiesObj === 'object') {
-            const entities = new Map<string, Entity>();
+          } else if (typeof entitiesObj === 'object' && !(entitiesObj instanceof Map)) {
+            // Legacy format: entities as keyed object
             for (const [key, entity] of Object.entries(entitiesObj as Record<string, any>)) {
-              if (entity.id && entity.components) {
-                let components: Map<string, Component>;
-                if (entity.components instanceof Map) {
-                  components = entity.components;
-                } else {
-                  components = new Map();
+              if (entity && entity.id) {
+                const components = new Map<string, Component>();
+                if (entity.components && typeof entity.components === 'object') {
                   for (const [compKey, compValue] of Object.entries(entity.components)) {
                     components.set(compKey, compValue as Component);
                   }
                 }
-                entities.set(key, { ...entity, components });
+                const transform: Transform = entity.transform || { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 };
+                entities.set(key, { ...entity, transform, components });
               }
             }
+          }
+          
+          if (entities.size > 0) {
             setScene({ name: sceneContent.name || 'Main Scene', entities });
           }
         }
       } catch (sceneErr) {
         logger.warn('No existing scene found, creating default:', sceneErr);
-        // Create default scene with player entity
+      }
+      
+      // If no scene was loaded, create a default one
+      if (!scene) {
         const transform: Transform = { x: 400, y: 300, scaleX: 1, scaleY: 1, rotation: 0 };
         
         const playerComponents = new Map<string, Component>();
         playerComponents.set('transform', transform);
         playerComponents.set('movement', { vx: 0, vy: 0, speed: 200 });
         playerComponents.set('sprite', { 
-          image: new Image(),
           width: 32, 
-          height: 48 
+          height: 48,
+          color: '#3b82f6',
         });
         playerComponents.set('collision', { 
           width: 32, 
@@ -151,15 +242,21 @@ function SceneEditorContent() {
   const saveScene = async () => {
     if (!projectId || !scene) return;
 
+    setSaving(true);
     try {
       await api.createDirectory(projectId, 'scenes');
-      const sceneContent = JSON.stringify(scene, null, 2);
+      const sceneContent = serializeScene(scene);
       await api.writeFile(projectId, 'scenes/main-scene.json', sceneContent);
       
       logger.info('Scene saved successfully');
+      showToast({ type: 'success', message: `Scene saved — ${scene.entities.size} entities persisted` });
     } catch (err) {
       logger.error('Error saving scene:', err);
-      setError(err instanceof Error ? err.message : 'Failed to save scene');
+      const msg = err instanceof Error ? err.message : 'Failed to save scene';
+      setError(msg);
+      showToast({ type: 'error', message: `Save failed: ${msg}` });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -246,9 +343,13 @@ function SceneEditorContent() {
     const entity = scene.entities.get(entityId);
     if (!entity) return;
     
+    // Generate readable name
+    const existingIds = new Set(scene.entities.keys());
+    const newId = generateDuplicateId(entityId, existingIds);
+    
     const newEntity: Entity = {
       ...entity,
-      id: `entity-${Date.now()}`,
+      id: newId,
       transform: { 
         ...entity.transform, 
         x: entity.transform.x + 32, 
@@ -267,36 +368,18 @@ function SceneEditorContent() {
     try {
       const asset = await api.getAsset(projectId || '', assetId);
       
-      // Create sprite component from asset
-      const image = new Image();
-      image.src = asset.url;
-      
-      const sprite: Sprite = {
-        image,
-        width: 32,
-        height: 32,
-        offsetX: 0,
-        offsetY: 0
-      };
-      
-      const collision = { 
-        width: 32, 
-        height: 32, 
-        type: 'wall' as const 
-      };
-      
       const transform: Transform = { 
         x: viewport.x + 400, 
         y: viewport.y + 300, 
-        scaleX:1, 
+        scaleX: 1, 
         scaleY: 1, 
         rotation: 0 
       };
       
       const components = new Map<string, Component>();
       components.set('transform', transform);
-      components.set('sprite', sprite);
-      components.set('collision', collision);
+      components.set('sprite', { width: 32, height: 32, color: '#8b5cf6' });
+      components.set('collision', { width: 32, height: 32, type: 'wall' });
 
       const newEntity: Entity = {
         id: `entity-${Date.now()}`,
@@ -315,9 +398,44 @@ function SceneEditorContent() {
     }
   }, [projectId, viewport, scene]);
 
-  // Add simple entity from template
-  const handleAddSimpleEntity = useCallback((templateId: string) => {
-    if (!scene) return;
+  // Add entity from template — actually creates the entity immediately
+  const handleAddEntityFromTemplate = useCallback((templateId: string) => {
+    if (!scene) {
+      // If no scene exists, create one
+      const template = ENTITY_TEMPLATES.find(t => t.id === templateId);
+      if (!template) return;
+
+      const transform: Transform = {
+        x: 400,
+        y: 300,
+        scaleX: 1,
+        scaleY: 1,
+        rotation: 0
+      };
+
+      const components = new Map<string, Component>();
+      template.components.forEach((value, key) => {
+        components.set(key, value);
+      });
+      // Always add transform
+      components.set('transform', transform);
+
+      const newEntity: Entity = {
+        id: `${templateId}-1`,
+        transform,
+        components
+      };
+
+      setScene({
+        name: 'Main Scene',
+        entities: new Map([[newEntity.id, newEntity]])
+      });
+      setSelectedEntityId(newEntity.id);
+      setShowTemplatePicker(false);
+      setToolMode('select');
+      showToast({ type: 'success', message: `Added ${template.name} to scene` });
+      return;
+    }
 
     const template = ENTITY_TEMPLATES.find(t => t.id === templateId);
     if (!template) return;
@@ -334,9 +452,20 @@ function SceneEditorContent() {
     template.components.forEach((value, key) => {
       components.set(key, value);
     });
+    // Always add transform to the entity
+    components.set('transform', transform);
+
+    // Generate readable ID
+    const existingIds = new Set(scene.entities.keys());
+    let entityId = `${templateId}-1`;
+    let counter = 1;
+    while (existingIds.has(entityId)) {
+      counter++;
+      entityId = `${templateId}-${counter}`;
+    }
 
     const newEntity: Entity = {
-      id: `entity-${Date.now()}`,
+      id: entityId,
       transform,
       components
     };
@@ -345,7 +474,10 @@ function SceneEditorContent() {
     newEntities.set(newEntity.id, newEntity);
     setScene({ ...scene, entities: newEntities });
     setSelectedEntityId(newEntity.id);
-  }, [scene, viewport]);
+    setShowTemplatePicker(false);
+    setToolMode('select');
+    showToast({ type: 'success', message: `Added ${template.name} (${entityId}) to scene` });
+  }, [scene, viewport, showToast]);
 
   // Get default component values
   const getComponentDefault = (type: string): Component => {
@@ -354,11 +486,11 @@ function SceneEditorContent() {
         return { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 };
       case 'sprite':
         return { 
-          image: new Image(),
           width: 32, 
           height: 32,
           offsetX: 0,
-          offsetY: 0
+          offsetY: 0,
+          color: '#8b5cf6',
         };
       case 'movement':
         return { vx: 0, vy: 0, speed: 200 };
@@ -380,10 +512,11 @@ function SceneEditorContent() {
     
     // Determine type based on components
     const comps = entity.components || new Map();
+    if (comps.has('playerInput')) return 'Player';
     if (comps.has('movement')) return 'Player';
+    if (comps.has('ai')) return 'Enemy';
     if (comps.has('collision') && (comps.get('collision') as any)?.type === 'wall') return 'Platform';
     if (comps.has('collision') && (comps.get('collision') as any)?.type === 'collectible') return 'Collectible';
-    if (comps.has('ai')) return 'Enemy';
     if (comps.has('sprite')) return 'Sprite';
     return 'Entity';
   };
@@ -442,10 +575,11 @@ function SceneEditorContent() {
           <button
             className="action-btn"
             onClick={saveScene}
-            title="Save scene"
+            disabled={saving}
+            title="Save scene (⌘S)"
           >
             <SaveIcon size={18} />
-            <span>Save</span>
+            <span>{saving ? 'Saving...' : 'Save'}</span>
           </button>
 
           <div className="zoom-controls">
@@ -495,15 +629,40 @@ function SceneEditorContent() {
             <span>Snap to Grid</span>
           </label>
         </div>
-        <div className="entity-actions">
+        <div className="entity-actions" ref={templatePickerRef} style={{ position: 'relative' }}>
           <button
-            className={`action-btn ${toolMode === 'add-entity' ? 'active' : ''}`}
-            onClick={() => setToolMode(toolMode === 'add-entity' ? 'select' : 'add-entity')}
-            title="Add entity mode"
+            className={`action-btn ${showTemplatePicker ? 'active' : ''}`}
+            onClick={() => setShowTemplatePicker(!showTemplatePicker)}
+            title="Add entity from template"
           >
             <Plus size={16} />
             <span>Add Entity</span>
           </button>
+          
+          {/* Template picker dropdown */}
+          {showTemplatePicker && (
+            <div className="template-picker-dropdown">
+              <div className="template-picker-header">
+                <span>Add Entity</span>
+                <button className="template-picker-close" onClick={() => setShowTemplatePicker(false)}>
+                  <X size={14} />
+                </button>
+              </div>
+              {ENTITY_TEMPLATES.map((template) => (
+                <button
+                  key={template.id}
+                  className="template-picker-item"
+                  onClick={() => handleAddEntityFromTemplate(template.id)}
+                  title={`Add ${template.name}`}
+                >
+                  <span className="template-name">{template.name}</span>
+                  <span className="template-meta">
+                    {Array.from(template.components.keys()).join(', ')}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

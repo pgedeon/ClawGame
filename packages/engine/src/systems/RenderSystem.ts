@@ -76,8 +76,13 @@ export class RenderSystem {
       this.ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
       this.ctx.fillRect(-width / 2 + 4, -height / 2 + 4, width, height);
 
-      // Draw sprite
-      this.ctx.drawImage(sprite.image, -width / 2, -height / 2, width, height);
+      // Draw sprite (use image if available, otherwise colored rect)
+      if (sprite.image) {
+        this.ctx.drawImage(sprite.image, -width / 2, -height / 2, width, height);
+      } else {
+        this.ctx.fillStyle = sprite.color || '#8b5cf6';
+        this.ctx.fillRect(-width / 2, -height / 2, width, height);
+      }
 
       // Draw border/highlight
       this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';

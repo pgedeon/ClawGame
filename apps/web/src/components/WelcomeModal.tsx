@@ -35,7 +35,15 @@ const steps = [
 ];
 
 export function WelcomeModal({ projectId, projectName }: WelcomeModalProps) {
-  const [visible, setVisible] = useState(true);
+  // Only show once per project — track dismissal in localStorage
+  const storageKey = `clawgame_welcome_dismissed_${projectId}`;
+  const [visible, setVisible] = useState(() => {
+    try {
+      return !localStorage.getItem(storageKey);
+    } catch {
+      return true;
+    }
+  });
   const [currentStep, setCurrentStep] = useState(0);
   const navigate = useNavigate();
 
@@ -52,6 +60,9 @@ export function WelcomeModal({ projectId, projectName }: WelcomeModalProps) {
 
   const dismiss = () => {
     setVisible(false);
+    try {
+      localStorage.setItem(storageKey, '1');
+    } catch { /* ignore */ }
   };
 
   const handleNext = () => {

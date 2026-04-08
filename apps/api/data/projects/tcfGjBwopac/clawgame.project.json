@@ -1,0 +1,33 @@
+{
+  "version": "0.1.0",
+  "project": {
+    "id": "tcfGjBwopac",
+    "name": "Dungeon Crawler",
+    "displayName": "Dungeon Crawler",
+    "genre": "action",
+    "artStyle": "pixel",
+    "description": "Navigate dark dungeons, fight monsters, collect loot",
+    "status": "draft",
+    "createdAt": "2026-04-08T16:37:09.302Z",
+    "updatedAt": "2026-04-08T16:37:09.302Z"
+  },
+  "engine": {
+    "version": "1.0.0",
+    "runtimeTarget": "browser",
+    "renderBackend": "canvas"
+  },
+  "assets": {
+    "baseDir": "./assets",
+    "formats": [
+      "png",
+      "jpg",
+      "svg",
+      "webp"
+    ]
+  },
+  "ai": {
+    "enabled": true,
+    "provider": "openrouter",
+    "model": "qwen/qwen3.6-plus:free"
+  }
+}
