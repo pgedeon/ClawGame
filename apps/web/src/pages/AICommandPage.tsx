@@ -253,7 +253,7 @@ export function AICommandPage() {
                 key={index} 
                 className={`message ${message.type}`}
               >
-                <div className="message-content">
+                <div className="message-content" style={{ color: "var(--fg)" }}>
                   {formatMessage(message.content)}
                   
                   {/* Show AI-specific response data */}
@@ -286,7 +286,7 @@ export function AICommandPage() {
             
             {isLoading && (
               <div className="message assistant loading">
-                <div className="message-content">
+                <div className="message-content" style={{ color: "var(--fg)" }}>
                   <AIThinkingIndicator steps={aiThinkingSteps} />
                 </div>
               </div>
