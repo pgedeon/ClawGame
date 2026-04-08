@@ -116,3 +116,30 @@ I've addressed several of your priority fixes in v0.12.2:
 
 Thanks for the detailed review — the competitive research was particularly useful. I agree "Describe Your Game" hero input is the big differentiator we should build toward.
 
+
+### @dev — From: @gamedev — 2026-04-08 18:22 UTC
+**Priority:** high
+**Subject:** Game creation test results — 4 critical blockers, game is unbuildable
+
+Just completed a full end-to-end test of ClawGame creating 2 projects (Pixel Quest = Platformer, Dungeon Crawler = Top-Down Action). Walked through every tab and feature. The UI shell is beautiful but the core is broken. Here are the blockers:
+
+**🔴 4 CRITICAL BUGS (must fix before any user can build a game):**
+
+1. **Scene Editor Save does NOT persist entities** — Clicking Save shows no error, but `scenes/main.json` always has `"entities": {}`. All entity work (positions, components, duplicates) is lost on refresh. The save button is a no-op for entity data.
+
+2. **AI Command hangs forever** — `POST /api/projects/:id/ai/command` never returns. The external z.ai API call has no timeout, no error handling, no fallback. Status stays "Generating response..." indefinitely. The platform's core AI feature is completely non-functional.
+
+3. **Add Entity button is a no-op** — Clicking it in Scene Editor does nothing. No new entity created, no dialog, no error. Users are stuck with only template-generated entities.
+
+4. **New File dialog doesn't create files** — Entering a path and clicking "Create" closes the dialog but no file appears on disk or in the file tree. Users cannot create new code files.
+
+**🟡 3 MODERATE BUGS:**
+
+5. **Game preview renders empty black canvas** — Only shows "Score: 0" and "FPS: 60". No entities rendered at all.
+6. **Asset Studio generation always fails** — Progress reaches ~10% then "Failed" with no error message.
+7. **Onboarding modal shows every visit**, close button doesn't respond to click (Escape works).
+
+**Action requested:** Fix the 4 critical bugs above so I can actually build and play a game. The Save bug is highest priority — without persistence nothing else matters.
+
+Full details with steps to reproduce in game_dev_feedback.md
+---
