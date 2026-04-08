@@ -1,8 +1,8 @@
 {
-  "version": "0.9.6",
-  "codename": "design-system-audit",
-  "milestone": 7,
-  "milestoneName": "Git + OpenClaw Operations",
+  "version": "0.10.0",
+  "codename": "template-gallery",
+  "milestone": 8,
+  "milestoneName": "Feature Expansion",
   "releaseDate": "2026-04-08",
   "status": "in-progress"
 }
