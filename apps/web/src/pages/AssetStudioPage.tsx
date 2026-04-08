@@ -27,6 +27,7 @@ const AssetStudioPage = () => {
   const [assets, setAssets] = useState<AssetMetadata[]>([]);
   const [selectedAsset, setSelectedAsset] = useState<AssetMetadata | null>(null);
   const [loading, setLoading] = useState(true);
+import { AssetSuggestions } from "../components/AssetSuggestions";
   const [filter, setFilter] = useState<AssetType | ''>('');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -165,6 +166,8 @@ const AssetStudioPage = () => {
           </button>
         </div>
       </header>
+      {/* AI-powered asset suggestions */}
+      <AssetSuggestions />
 
       <div className="asset-studio-container">
         {/* Left Sidebar: Generation + Filters */}

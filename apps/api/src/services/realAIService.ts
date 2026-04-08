@@ -68,7 +68,7 @@ export class RealAIService {
         'HTTP-Referer': 'https://github.com/pgedeon/ClawGame',
         'X-Title': 'ClawGame AI-Powered Game Engine',
       },
-      timeout: 60000, // 60 second timeout
+      timeout: 120000, // 60 second timeout
     });
   }
 
@@ -93,7 +93,7 @@ export class RealAIService {
           { role: 'user', content: userPrompt },
         ],
         temperature: 0.7,
-        max_tokens: 2048,
+        max_tokens: 8192,
       });
 
       const aiResponse = response.data.choices[0].message.content;

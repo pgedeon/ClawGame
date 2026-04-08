@@ -1902,3 +1902,190 @@ kbd:hover {
     display: none;
   }
 }
+
+/* ═══════════════════════════════════════════════════════
+   AI Asset Suggestions Component
+   ═══════════════════════════════════════════════════════ */
+
+.asset-suggestions {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  margin: var(--space-lg) 0;
+}
+
+.suggestions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+
+.suggestions-header h3 {
+  margin: 0;
+  color: var(--fg);
+  font-size: var(--text-lg);
+}
+
+.ai-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--ai-glow);
+  color: var(--ai-primary);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.suggestions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+
+.suggestion-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.suggestion-card:hover {
+  background: var(--card-hover);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glow);
+}
+
+.suggestion-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+.suggestion-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-lg);
+  background: var(--ai-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.suggestion-meta h4 {
+  margin: 0 0 var(--space-xs);
+  color: var(--fg);
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.confidence-badge {
+  padding: 2px var(--space-xs);
+  border-radius: 9999px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.confidence-badge.priority-high {
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.confidence-badge.priority-medium {
+  background: var(--info-light);
+  color: var(--info);
+}
+
+.confidence-badge.priority-low {
+  background: var(--warning-light);
+  color: var(--warning);
+}
+
+.suggestion-desc {
+  margin: 0 0 var(--space-sm);
+  color: var(--fg-secondary);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.suggestion-prompt {
+  margin: var(--space-sm) 0;
+  padding: var(--space-sm);
+  background: var(--surface-alt);
+  border-radius: var(--radius-sm);
+}
+
+.suggestion-prompt code {
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.suggestion-actions {
+  margin-top: var(--space-md);
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--accent);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Existing assets section */
+.existing-assets {
+  margin-top: var(--space-xl);
+  padding-top: var(--space-xl);
+  border-top: 1px solid var(--border);
+}
+
+.existing-assets h4 {
+  margin: 0 0 var(--space-sm);
+  color: var(--fg);
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.assets-count {
+  color: var(--fg-secondary);
+  font-size: var(--text-sm);
+}
+
+/* Mobile responsiveness for suggestions */
+@media (max-width: 768px) {
+  .suggestions-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .suggestion-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+  }
+
+  .suggestion-meta h4 {
+    font-size: var(--text-sm);
+  }
+
+  .ai-badge {
+    width: fit-content;
+  }
+}
+
