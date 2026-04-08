@@ -1,8 +1,8 @@
 {
-  "version": "0.12.0",
+  "version": "0.12.1",
   "codename": "rpg-foundation",
   "milestone": 8,
   "milestoneName": "Feature Expansion",
   "releaseDate": "2026-04-08",
-  "status": "in-progress"
+  "status": "released"
 }

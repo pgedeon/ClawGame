@@ -5,6 +5,30 @@ All notable changes to ClawGame will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.1] - 2026-04-08
+
+#### Fixed
+- **Game Preview Page** — Hardcoded "Eclipse of Runes" title now displays actual project name
+  - Added `projectName` state variable
+  - Load project name from API on component mount
+  - Replace all hardcoded references with dynamic `{projectName}`
+- **AI Command Timeout** — Increased API timeout from 120s to 180s (3 minutes) to prevent timeout errors
+  - Added cancel button during AI processing for user control
+  - Input stays enabled after timeout errors (previously disabled)
+  - Added retry button to resubmit failed prompts
+- **Export Page** — Download trigger now properly triggers file download after export completes
+  - Added toast notifications for success/error states
+  - Improved error handling with user feedback
+- **Settings Page** — Replaced stub with full-featured settings interface
+  - Appearance: Theme toggle (dark/light/system) with localStorage persistence
+  - AI: Default AI Model selector (dropdown with GLM, GPT-4o, Claude options), Auto-suggestions toggle
+  - Keyboard Shortcuts: Reference table showing all shortcuts (⌘K, ⌘S, ⌘W, etc.)
+  - About: Version info, links to GitHub, bug reports, changelog
+  - Added full CSS styling for all settings components
+- **Accessibility** — Fixed WCAG AA contrast failures and added reduced motion support
+  - `--text-muted` increased from `#64748b` to `#7c8ca0` for better contrast on cards
+  - Added `@media (prefers-reduced-motion: reduce)` to disable animations for `.hero-orb`, `.ai-fab-pulse`, `.build-spinner`, `.pulse-ring`
+
 
 ## [0.12.0] - 2026-04-08
 
