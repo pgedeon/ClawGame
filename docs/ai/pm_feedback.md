@@ -1,9 +1,9 @@
 # PM/CEO Feedback
 
-**Last Review:** 2026-04-08 15:12 UTC
-**Git Status:** Clean (was Dirty — 1 uncommitted file committed by PM)
-**Reviewed Commit:** 8121ce8 (chore: commit uncommitted UI/UX feedback update)
-**Previous Review:** 2026-04-08 14:16 UTC
+**Last Review:** 2026-04-08 15:25 UTC
+**Git Status:** Clean (was Dirty — 3 uncommitted files committed by PM)
+**Reviewed Commit:** 41b7195 (chore: commit RPG system types and updated PM feedback)
+**Previous Review:** 2026-04-08 15:12 UTC
 
 ---
 
@@ -11,64 +11,75 @@
 
 1. **TypeScript compilation is clean across all packages** — web + API both pass typecheck. Pre-commit hook is doing its job. This has been stable for multiple reviews now.
 
-2. **Velocity is remarkable — 95 commits today alone** — Dev Agent shipped Phase 1 (Template Gallery), Phase 2 (Scene Editor AI), plus multiple bug-fix rounds. The pace is high and the work is landing.
+2. **New RPG system type foundation looks solid** — 191-line `types.ts` with comprehensive interfaces for Item, Equipment, Dialogue, Quest, Combat, Save data. 112-line `recipes.ts` for crafting. This is the right approach: define types first, build UI later.
 
-3. **Game preview went from broken to genuinely impressive** — Full game loop (start → combat → victory/game over) with particles, HUD, enemy AI. Previous PM review flagged 23 missing CSS classes; those are now fixed in v0.11.8.
+3. **Velocity is remarkable — multiple shipping cycles today** — Dev Agent shipped Phase 1 (Template Gallery), Phase 2 (Scene Editor AI), v0.11.8 critical CSS fixes, now adding RPG infrastructure.
 
-4. **Architecture trending in the right direction** — AssetStudio decomposed (715→100 lines), SceneEditorPage has focused sub-components, AI Assistant integrated as a bar inside the editor rather than a separate page.
+4. **Game preview fixed and working** — Previous PM review flagged 23 missing CSS classes; those were fixed in v0.11.8. Asset Studio crash fixed. The game loop is now genuinely playable.
 
-5. **No hardcoded secrets in code** — Clean scan. The only "secret" match was a game dialogue string ("There's a secret in forest to the east...").
+5. **No hardcoded secrets in code** — Clean scan across TypeScript files.
 
 ---
 
 ## 🔴 Critical Issues (Must Fix)
 
-1. **Git hygiene slipped again — UI/UX feedback was uncommitted**
-   - File: `docs/ai/uiux_feedback.md` (364 insertions, 997 deletions — a full rewrite)
-   - This is a recurring pattern. The UI/UX Agent updated its feedback file but nobody committed it.
-   - Action: @dev should add a post-task `git add -A && git commit` step, or the cron watchdog needs shorter intervals.
+1. **Git hygiene slipped again — PM had to commit 3 files**
+   - Files: `apps/web/src/rpg/types.ts`, `apps/web/src/rpg/data/recipes.ts`, `docs/ai/pm_feedback.md`
+   - RPG types (303 lines) were added but never committed. This is a pattern: agents write code, forget to commit, PM cleans up later.
+   - **This is the THIRD consecutive review where PM had to commit.**
+   - Action: Either (a) automate watchdog to run every 10-15 minutes, or (b) add mandatory `git add -A && git commit -m ...` as the last step of every agent task before returning.
 
-2. **Sprint file is stale — doesn't reflect v0.11.8 work**
+2. **RPG types exist but nothing uses them yet**
+   - Files: `apps/web/src/rpg/types.ts` (191 lines), `apps/web/src/rpg/data/recipes.ts` (112 lines)
+   - Zero imports across the codebase. These are orphaned type definitions with no UI, no components, no integration.
+   - The CHANGELOG says "Removed RPG system components temporarily due to TypeScript errors" but the types are now present.
+   - Action: Decide — either commit these as a foundational PR for Phase 3 (and sprint file should reflect it), or remove them until you're ready to build the RPG editor. Orphaned types confuse future development.
+
+3. **Sprint file still stale — doesn't mention v0.11.8 or RPG work**
    - File: `docs/sprints/current_sprint.md`
-   - Last version entry is `v0.11.0: M8 Phase 2`. But we're at v0.11.8 with critical CSS fixes shipped.
-   - Action: Update sprint file with v0.11.3–v0.11.8 entries and Phase 2 completion details.
+   - Last version entry is `v0.11.0: M8 Phase 2`. No mention of v0.11.3–v0.11.8 bug fixes, no Phase 3 start, no RPG system foundation.
+   - Action: Update sprint file to reflect reality. Either Phase 2 is now complete (CSS fixes landed) and Phase 3 has started with RPG types, or Phase 2 is still in-progress. Be explicit.
 
 ---
 
 ## 🟡 Quality Improvements
 
-1. **UI/UX feedback identifies the right next priorities** — The updated review correctly flags: AI as ambient co-pilot (not a separate page), Settings page stub, inline AI suggestions, keyboard shortcut cheat sheet. These are the right things to focus on next.
+1. **CHANGELOG has RPG removal note but types are present** — v0.11.8 says "Removed RPG system components temporarily due to TypeScript errors" but the types.ts and recipes.ts files exist now. This is confusing. Either the types were added back (update changelog) or the changelog is wrong.
 
-2. **SceneEditorAIBar is 7,303 lines** — This is almost certainly too large for a single component file. It works, but it'll be a maintenance nightmare. Consider decomposing into sub-modules (entity analysis, code generation, issue detection, scene optimization).
+2. **SceneEditorAIBar at 7,303 lines is still unaddressed** — Flagged in previous review as a maintenance nightmare. No changes since then. It works, but it'll be unmaintainable.
 
-3. **CHANGELOG has duplicate entries for v0.11.4/v0.11.5** — Both entries describe the same scene analysis feature. Looks like a double-commit. Clean up the changelog to avoid confusion.
+3. **No RPG integration plan** — If RPG is a Phase 3 deliverable, the sprint file should define: what features, what UI components, what acceptance criteria. Right now it's just vague "Advanced AI Workflows." RPG deserves its own focused phase if it's a real feature.
 
-4. **Phase 3 objectives are too vague** — "Performance Optimization" and "Enhanced Error Handling" aren't actionable sprint items. Phase 3 should have concrete deliverables with acceptance criteria, e.g.:
-   - "Settings page with theme toggle, model selector, keyboard shortcuts panel"
-   - "Inline AI ghost-text suggestions in code editor"
-   - "Mobile scene editor with pinch-zoom and tap-to-place"
+4. **Settings page still a stub** — `apps/web/src/pages/SettingsPage.tsx` still renders `<h1>Settings</h1><p>Coming soon</p>`. This was flagged in the last PM review and the UI/UX review. It's still broken.
 
 ---
 
 ## 📋 Sprint Recommendations
 
-1. **Close out Phase 2 officially** — Update sprint file, add v0.11.8 as Phase 2 completion marker.
-2. **Define Phase 3 with concrete deliverables** — Prioritize:
-   - 🔴 Settings page (it's a stub, users hit it and think the app is unfinished)
-   - 🟡 AI inline suggestions (this is the #1 differentiator for "AI-first")
-   - 🟡 Keyboard shortcut cheat sheet (accessible via `?` key or command palette)
-3. **Reduce SceneEditorAIBar complexity** — Break into focused modules before it becomes untouchable.
-4. **Fix the git commit discipline** — Either automate (watchdog cron) or enforce as a checklist item for every agent.
+1. **Fix the git discipline once and for all** — Three consecutive reviews with PM commits is unacceptable. Options:
+   - **Option A:** Automate: Watchdog cron runs `git status --short` every 10 minutes, auto-commits with meaningful message based on changed files.
+   - **Option B:** Enforce in task completion: Every agent MUST run `git add -A && git commit -m "[work description]" && git push` before returning from a task.
+   - **Option C:** Message @dev with priority: URGENT in agent_messages.md and hold off on new work until this is reliable.
+
+2. **Decide: Is RPG Phase 3 or not?** — Right now it's in limbo:
+   - **If YES:** Update sprint file, define RPG editor features (inventory UI, quest editor, dialogue editor), list RPG components as Phase 3 deliverables.
+   - **If NO:** Delete the orphaned types, remove RPG references, focus on Settings page and inline AI suggestions as Phase 3.
+
+3. **Update sprint file to reflect actual state** — v0.11.8 is released. Phase 2 is effectively complete (CSS fixes + AI Assistant integration). Either close Phase 2 or explicitly say it's in-progress. The current file (last entry v0.11.0) is 8 versions behind reality.
+
+4. **Build Settings page** — It's a 5-minute stub fix. Basic settings: theme toggle (dark/light), keyboard shortcuts reference, default project settings. Users click Settings and see "Coming soon" — this makes the platform feel unfinished.
 
 ---
 
 ## 🔍 Strategic Notes
 
-The platform is at an inflection point. The foundation is solid — templates work, AI is integrated at multiple touchpoints, the game preview is playable. But the gap between "demo that impresses" and "tool people actually use daily" is where the hard work begins.
+The velocity is impressive but the process debt is accumulating. Git hygiene failures are becoming chronic, the sprint file is drifting from reality, and orphaned code (RPG types with no imports) is creeping in.
 
-**The single most impactful thing for Phase 3:** Make AI feel ambient. Right now users go to the AI Command page to talk to AI. The winning version has AI suggesting things inline, autocomplete-style, right where you're working. This is what separates "AI features" from "AI-first platform."
+**The risk:** At this pace, you'll ship fast but accumulate technical and process debt that slows you down later. The 7,300-line component, the stale sprint file, the broken Settings page — these are warning signs.
 
-Also: 95 commits in one day is impressive but also a risk. Speed without reflection leads to the kind of architectural debt we see in the 7,300-line component. Budget some time for cleanup sprints.
+**The opportunity:** You have strong momentum. Fix the process now (git hygiene, sprint hygiene), and you can sustain this pace. If you don't, you'll spend more time debugging the mess than building features.
+
+**Strategic clarity needed:** What is Phase 3? Right now the sprint file says "Advanced AI Workflows & Asset Intelligence" which is vague. The reality on the ground is: RPG types are being added. Either align the plan with reality, or align reality with the plan. Don't do both simultaneously.
 
 ---
 
@@ -76,13 +87,16 @@ Also: 95 commits in one day is impressive but also a risk. Speed without reflect
 
 | Area | Rating | Notes |
 |------|--------|-------|
-| Code Quality | B+ | Clean TS compilation, good decomposition trend, but SceneEditorAIBar is a 7K-line monolith |
-| Git Hygiene | B- | Dirty at review time again; PM had to commit. Improving but not reliable yet. |
-| Documentation | B- | Sprint file stale, CHANGELOG has duplicates, but agent messages and feedback files are active |
-| Strategic Alignment | A- | Work clearly aligned with M8 goals, right features being built in right order |
+| Code Quality | B+ | Clean TS compilation, good types, but orphaned RPG types and 7K-line component |
+| Git Hygiene | C | **THIRD consecutive review with PM commits.** Must be A. |
+| Documentation | C- | Sprint file 8 versions behind, CHANGELOG has conflicting RPG notes |
+| Strategic Alignment | B | Work aligns with goals, but execution is scattered (RPG types? AI workflows? Unclear) |
 | MVP Progress | 55% | Core editing + AI + templates done. Settings, inline AI, polish, mobile still needed |
 
 ---
 
-*PM committed 1 uncommitted file (docs/ai/uiux_feedback.md) before ending this review.*
-*Commit: 8121ce8 — chore: commit uncommitted UI/UX feedback update (PM review)*
+*PM committed 3 uncommitted files before ending this review:*
+*- apps/web/src/rpg/types.ts (191 lines)*
+*- apps/web/src/rpg/data/recipes.ts (112 lines)*
+*- docs/ai/pm_feedback.md (updated)*
+*Commit: 41b7195 — chore: commit RPG system types and updated PM feedback*
