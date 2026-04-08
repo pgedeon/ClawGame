@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.11.4] - 2026-04-08
+
+#### Added
+- **Scene analysis API endpoint** (/api/projects/:id/scene-analysis) — reads actual scene files to analyze entity composition
+- **SceneAnalysis interface** — entityTypes, entityCount, player/enemies/platforms/collectibles/sprites/background flags, dominantGenre inference
+- **Genre-specific AI suggestions** — Platformer backgrounds, RPG tilesets, context-aware prompts based on game type
+- **Real-time scene detection** — AssetSuggestions now fetches real scene data from API instead of hardcoded values
+
+#### Changed
+- AssetSuggestions uses actual project scene data for recommendations
+- Scene analysis reads all .scene.json files in project's scenes directory
+- Entity type detection based on component composition (movement → player, ai → enemy, collision:wall → platform, etc.)
+
+#### Fixed
+- Type error: projectId may be undefined, now handled with non-null assertion
+- Pre-commit hook passes typecheck cleanly
+
+
 ## [0.11.3] - 2026-04-08
 
 #### Fixed
