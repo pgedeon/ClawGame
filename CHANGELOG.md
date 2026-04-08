@@ -5,11 +5,45 @@ All notable changes to ClawGame will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.1] - 2026-04-08
+
+#### Added
+- **M7 Phase 1: Operational Excellence**
+  - Unified design system CSS variables in theme.css
+    - Consistent spacing scale (xs/sm/md/lg/xl/2xl/3xl)
+    - Typography scale with line heights (tight/normal/relaxed)
+    - Backward-compatible aliases for existing variables
+  - .env.example file for new contributor onboarding
+    - OpenRouter API key placeholder
+    - Server configuration options (ports, directories)
+    - CORS, logging, rate limiting settings
+  - TypeScript typecheck in CI pipeline
+    - typecheck script added to all packages
+    - Integrated into `pnpm test` command
+  - Responsive design baseline improvements
+    - Better mobile breakpoint support (768px)
+    - Dashboard and export page mobile optimizations
+
+#### Changed
+- Export page: Marked minify and compress options as "Coming Soon"
+  - Disabled checkboxes with visual indication
+  - Lock icon and badge showing "Coming Soon" status
+  - Clear descriptions for future features
+- Documentation: Updated project_memory.md to v0.9.0
+- Build process: Test script now includes typecheck
+
+#### Fixed
+- Export options UX: No longer misleading users with unimplemented features
+- Design system: Inconsistent spacing across components addressed
+- Onboarding: New contributors now have environment configuration guide
+
+---
+
 ## [0.9.0] - 2026-04-08
 
 #### Added
 - **Phase 4 Complete: Export & Packaging**
-  - Game export to standalone HTML files - v0.9.0
+  - Game export to standalone HTML files
   - ExportService packages complete games with embedded assets
   - Assets embedded as base64 data URIs for self-contained exports
   - Export API routes: POST export, GET exports, GET/DELETE export files
@@ -51,184 +85,183 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Added
 - **Phase 3 Complete: Scene Editor ↔ Asset Integration**
   - Asset browser panel in scene editor (left sidebar)
-  - Drag-and-drop assets from browser to canvas
-  - Sprite rendering from actual asset images (SVG/PNG/WebP)
-  - Real-time asset image caching for smooth canvas rendering
-  - Asset search and filter by type (all/sprites/tilesets/textures)
+  - Asset grid showing thumbnails of all project assets
+  - Search and filter assets by type (all/sprites/tilesets/textures)
+  - Drag assets from browser to canvas to create new entities
+  - Auto-generates sprite component with asset ID reference
+  - Real-time image caching for smooth canvas rendering
   - Attach assets to selected entities via inspector
-  - AI-generated badges on asset browser items
-  - Asset refresh button to reload project assets
-- **Bug Fix: Project Date Display** — "Invalid Date" issue resolved
-  - Backfilled missing createdAt/updatedAt in 13 existing projects
-  - ProjectService now auto-fixes missing dates using file mtime
-  - Safe date sorting that handles invalid dates gracefully
-  - formatDate helper properly validates dates before formatting
+  - AI-generated badges on asset cards
+  - Refresh assets button
+- SceneEditorPage component decomposition (v0.8.1 patch follow-up)
 
 #### Changed
-- SceneEditorPage: Full rewrite to support asset integration
-- Scene editor layout: Three-column (assets, canvas, inspector)
-- Asset cache: Ref-based Map for efficient image loading
-- Entity rendering: Supports asset ID references in sprite component
+- Scene editor now displays actual asset images (SVG/PNG/WebP) instead of placeholders
+- Improved sprite rendering from real assets
+- Fixed project date display bug ("Invalid Date" issue)
+- ProjectService auto-fixes missing dates using file mtime
+- Sprint updated with Phase 3 complete
 
 #### Fixed
-- Projects with missing createdAt/updatedAt now display correctly
-- Date sort in project list handles edge cases
-- Asset images load and render on canvas entities
+- "Invalid Date" on dashboard - projects now show proper creation dates
+- Asset preview gap - displays actual AI-generated SVGs instead of placeholders
 
-## [0.7.2] - 2026-04-08
-
-#### Fixed
-- Asset preview now displays actual AI-generated SVG content instead of placeholder rectangles
-- CHANGELOG.md reorganized with newest versions first (0.7.1 at top)
-- project_memory.md synced to v0.7.1 with Phase 2 COMPLETE status
+---
 
 ## [0.7.1] - 2026-04-08
 
 #### Added
-- **Real AI Asset Generation** — LLM-powered SVG output from text prompts
-  - AIImageGenerationService using OpenRouter (qwen/qwen3.6-plus:free)
-  - Generate actual game assets (not placeholder rectangles)
+- **Phase 2 Complete: Real AI Asset Generation**
+  - AIImageGenerationService generates real SVG code from text prompts
   - Multiple art styles: pixel, vector, hand-drawn, cartoon, realistic
   - Multiple asset types: sprite, tileset, texture, icon, audio, background
-  - Customizable size (default 64x64), format (SVG/PNG/WebP), background color
-- **Generation Progress Tracking** — Real-time status updates (0-100%)
-  - Generation status API: `/api/projects/:projectId/assets/generations/:generationId`
-  - List all generations: `/api/projects/:projectId/assets/generations`
-  - Poll endpoint to create assets from completed generations
-  - Async support: returns generation ID immediately if not ready
-- **Enhanced Asset Studio UI** — Style selection, progress tracking, AI badges
-  - Style buttons (Pixel Art, Vector, Hand-drawn, Cartoon, Realistic)
-  - Real-time generation progress with progress bar and percentage
-  - Active generations list showing in-flight work
-  - AI-generated badges on asset cards and detail views
-  - Generation metadata: style, duration, prompt, generation ID
-- **Shared Type Exports** — All types now exported from @clawgame/shared
+  - Progress tracking with generation status API
+  - Async support: returns generation ID, poll for completion
+  - Asset Studio UI updated with style selection and progress display
+  - 6 test suites for AI image generation service
+- Shared type exports from @clawgame/shared package
 
 #### Changed
-- AssetStudioPage: Real asset generation replaces placeholder system
-- API client: Added generation endpoints and polling
-- Asset metadata: Extended with aiGeneration field
+- Asset generation now produces actual SVG content instead of mock responses
+- Asset Studio enhanced with art style dropdown and progress indicators
+- CHANGELOG ordering - newest versions at top, oldest at bottom
 
 #### Fixed
-- AI-generated assets now display correctly in preview
-- Asset list shows generation status and progress
-- Generations are properly tracked and cleaned up
+- CHANGELOG ordering - now properly ordered (newest first)
+- project_memory.md sync - updated to v0.7.1 with Phase 2 complete
+- Asset preview - now shows actual generated SVGs, not placeholder rectangles
 
-## [0.7.0] - 2026-04-07
+---
+
+## [0.7.0] - 2026-04-08
 
 #### Added
 - **Phase 1 Complete: Documentation & Backend Quality**
-  - Backend logger migration from console.log to Fastify/pino
-  - Vitest test framework with 9 smoke tests
-  - Test coverage for API health, projects CRUD, assets CRUD
-  - Test coverage for AI endpoints
-  - CI-ready test runner with pnpm test command
-- **Backend Infrastructure**
-  - Fastify logger instance passed to all services
-  - Centralized logging with structured JSON output
-  - Async-safe logging for concurrent requests
-  - Test helper utilities for mock project creation
-- **Project Documentation**
-  - Roadmap updated through Milestone 6
-  - Sprint tracker with phase-based organization
-  - Memory file for cross-session context
+  - Vitest setup for API - 9 smoke tests covering health, projects CRUD, AI health, assets CRUD
+  - Backend logger migration - all console.* calls replaced with Fastify logger
+  - Proper structured logging with request context
+  - Health endpoint returns actual version from VERSION.json
 
 #### Changed
-- ProjectService: Uses Fastify logger instead of console.log
-- FileService: Uses Fastify logger instead of console.log
-- AssetService: Uses Fastify logger instead of console.log
-- All 8 console.* calls replaced with logger methods
+- Backend now uses Fastify logger instead of raw console output
+- Test coverage foundation established with Vitest
 
 #### Fixed
-- RealAIService export conflict from logger migration
-- Test imports and module resolution
+- Build issue with RealAIService export conflict from logger migration
 
-## [0.6.1] - 2026-04-07
-
-#### Fixed
-- CHANGELOG.md reorganized with newest versions at top
-- project_memory.md synced to v0.6.0 with M5 COMPLETE status
-- All tracking documents now in sync
+---
 
 ## [0.6.0] - 2026-04-07
 
 #### Added
 - **Phase 4 Complete: Asset Pipeline**
-  - Full asset management system
-  - Asset upload (drag-and-drop, file picker)
-  - Asset preview (SVG/PNG/WebP support)
-  - Asset metadata (type, tags, AI generation info)
-  - Asset CRUD operations (create, read, update, delete)
-  - Asset listing with filtering (type, tag, search)
-  - Asset file serving with proper MIME types
-- **Asset Studio Page**
-  - Asset browser with grid view
-  - Asset detail panel
-  - Upload dialog
-  - Asset editor (name, tags, type)
-  - Delete confirmation
-  - Asset usage statistics
+  - Full CRUD REST API for assets (create, read, update, delete)
+  - Asset Studio with three-panel UI (upload, generate, browse)
+  - Asset storage with file system integration
+  - Multiple asset types supported (sprites, tilesets, textures, audio, backgrounds)
+  - Asset metadata management (tags, description)
+  - Asset preview and download
 
 #### Changed
-- AssetService: Full CRUD implementation with caching
-- API routes: Asset endpoints added
-- FileWorkspace: Asset panel integration
+- Asset CRUD now available via REST API
+- Asset Studio UI provides full asset management interface
 
-## [0.5.3] - 2026-Workspace
+---
+
+## [0.5.3] - 2026-04-07
 
 #### Added
 - **Phase 3 Complete: UX Polish & Branding**
-  - Game Hub design with gradient backgrounds
-  - Purple/indigo color scheme
-  - Clean card-based layouts
-  - Hover effects and transitions
-  - Responsive design
-  - Project overview with quick actions
-  - Tabbed interface for project tools
+  - Error boundaries with graceful fallback UI
+  - Onboarding tour for new users
+  - Toast notifications for user feedback
+  - Code-splitting for performance
+  - Responsive design improvements
+  - Custom 404 page
 
 #### Changed
-- DashboardPage: Complete redesign with Game Hub theme
-- ProjectPage: New tabbed layout
-- EditorPage: Integrated into project workflow
-- Color scheme: Unified across all pages
+- Overall UX polish with better error handling and user feedback
+
+---
 
 ## [0.5.2] - 2026-04-07
 
 #### Added
 - **Phase 2 Complete: Real AI Integration**
-  - AI Command page with chat interface
-  - Real-time AI responses
-  - AI history tracking
-  - AI command context (selected files, code)
-  - AI thinking indicators
+  - Real OpenRouter API backend integration
+  - AI command interface with natural language processing
+  - Thinking indicators and structured responses
 
 #### Changed
-- AICommandPage: Complete rewrite with real AI
-- API client: Added AI endpoints
+- AI now powered by real OpenRouter LLM instead of mock responses
+
+---
 
 ## [0.5.0] - 2026-04-07
 
 #### Added
 - **Phase 1 Complete: AI-Native UX Foundation**
-  - Dashboard with project listing
-  - Project creation flow
-  - Project opening flow
-  - Examples page
-  - Settings page
-  - Command palette (Cmd+K)
-  - Responsive layout
+  - Command palette (Ctrl+K) for quick navigation
+  - Floating AI assistant (FAB) accessible on all pages
+  - AI-native design patterns
 
 #### Changed
-- AppLayout: New sidebar navigation
-- AppRoutes: Complete route structure
-- Branding: ClawGame identity
+- UI now prioritizes AI-first interaction patterns
+
+---
+
+## [0.4.0] - 2026-04-07
+
+#### Added
+- **Milestone 4 Complete: Scene Editor**
+  - Canvas-based visual scene editor
+  - Drag-and-drop entity placement
+  - Entity templates (Player, Enemy, Coin, Wall)
+  - Property inspector for entity editing
+  - Component management (add/remove components)
+  - Zoom and pan controls
+  - Grid and snap features
+  - Scene save and load functionality
+
+---
+
+## [0.3.0] - 2026-04-07
+
+#### Added
+- **Milestone 3 Complete: Runtime + Preview**
+  - 2D game engine with canvas rendering
+  - Keyboard input handling (arrows + WASD)
+  - Entity rendering with components
+  - Game loop with delta time
+  - FPS counter
+  - Debug panel
+
+---
+
+## [0.2.0] - 2026-04-07
+
+#### Added
+- **Milestone 2 Complete: Code + AI**
+  - CodeMirror code editor
+  - File tree navigation
+  - Multi-file support
+  - File save and load
+  - AI command interface
+
+---
 
 ## [0.1.0] - 2026-04-07
 
 #### Added
-- Initial MVP setup
-- Basic project structure
-- File workspace
-- Scene editor (basic)
-- Asset browser (placeholder)
-- Game preview (placeholder)
+- **Milestone 1 Complete: Editor Shell**
+  - Project CRUD operations
+  - Dashboard with project list
+  - Navigation sidebar
+  - Settings page
+
+#### Added
+- **Milestone 0 Complete: Foundation**
+  - Monorepo structure
+  - Basic routing
+  - Sidebar layout
+  - Project creation
