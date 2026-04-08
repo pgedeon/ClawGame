@@ -199,3 +199,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ARIA accessibility: role="tablist"/"tab" on project hub tabs, aria-selected state
 - aria-live="polite" on AI thinking indicator for screen reader announcements
 - sidebar-section-title CSS styling with uppercase label, muted color, border separator
+
+### 0.12.3 - 2026-04-08
+
+#### Fixed
+- **CRITICAL: Scene Editor Save now persists entities** — Map→Array serialization (was saving `{}`)
+- **CRITICAL: Add Entity button now works** — shows template picker dropdown with Player/Enemy/Coin/Wall
+- **CRITICAL: Game Preview renders entities** — handles array+object formats, infers type from components
+- **CRITICAL: WelcomeModal shows only once per project** — localStorage tracked per project ID
+- Entity duplicate names are readable (e.g., `player-1-copy` instead of `entity-1775666322645`)
+- Save shows toast feedback with entity count on success, error message on failure
+- RenderSystem draws colored rectangles as fallback when no sprite image is loaded
+- Sprite type: `image` is now optional, added `color` field for rendering without assets
+
+#### Changed
+- Template picker dropdown replaces mode-toggle for Add Entity button
+- Entity type inference: uses components (playerInput, ai, collision.type) to classify entities
+- Type-based colors: player=blue, enemy=red, collectible=amber, obstacle=gray, npc=green
