@@ -1,8 +1,8 @@
 {
-  "version": "0.9.0",
-  "codename": "export-packaging",
-  "milestone": 6,
-  "milestoneName": "Real AI Assets + Quality + Integration",
+  "version": "0.9.1",
+  "codename": "operational-excellence",
+  "milestone": 7,
+  "milestoneName": "Git + OpenClaw Operations",
   "releaseDate": "2026-04-08",
   "status": "released"
 }
