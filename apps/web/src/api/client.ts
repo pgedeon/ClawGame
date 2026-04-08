@@ -100,6 +100,20 @@ export interface FileWriteResult {
   created: boolean;
 }
 
+// ─── Scene analysis types ───
+
+export interface SceneAnalysis {
+  entityTypes: string[];
+  entityCount: number;
+  hasPlayer: boolean;
+  hasEnemies: boolean;
+  hasPlatforms: boolean;
+  hasCollectibles: boolean;
+  hasSprites: boolean;
+  hasBackground: boolean;
+  dominantGenre: string | null;
+}
+
 // ─── Asset types ───
 
 export type AssetType = 'sprite' | 'tileset' | 'texture' | 'icon' | 'audio' | 'background';
@@ -362,6 +376,10 @@ export const api = {
 
   getAssetStats: (projectId: string) =>
     request<AssetStats>(`/api/projects/${projectId}/assets/stats`),
+
+  // Scene analysis
+  getSceneAnalysis: (projectId: string) =>
+    request<SceneAnalysis>(`/api/projects/${projectId}/scene-analysis`),
 
   // AI Command operations
   processAICommand: (projectId: string, command: AICommandRequest) =>

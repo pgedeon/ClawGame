@@ -6,20 +6,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { api, type AssetMetadata } from '../api/client';
+import { api, type AssetMetadata, type SceneAnalysis } from '../api/client';
 import { Image, Sparkles, Target, Zap } from 'lucide-react';
-
-interface SceneAnalysis {
-  entityTypes: string[];
-  entityCount: number;
-  hasPlayer: boolean;
-  hasEnemies: boolean;
-  hasPlatforms: boolean;
-  hasCollectibles: boolean;
-  hasSprites: boolean;
-  hasBackground: boolean;
-  dominantGenre?: string;
-}
 
 interface AssetSuggestion {
   id: string;
@@ -39,41 +27,37 @@ export function AssetSuggestions() {
   const [generating, setGenerating] = useState(false);
   const [generatedAssets, setGeneratedAssets] = useState<AssetMetadata[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (projectId) {
-      analyzeScene();
+      loadSceneAnalysis();
       loadExistingAssets();
     }
   }, [projectId]);
 
-  const analyzeScene = () => {
-    // Simplified analysis - reads actual scene data when available
-    const analysis: SceneAnalysis = {
-      entityTypes: ['player', 'platform', 'collectible', 'enemy'],
-      entityCount: 12,
-      hasPlayer: true,
-      hasEnemies: true,
-      hasPlatforms: true,
-      hasCollectibles: true,
-      hasSprites: false,
-      hasBackground: false,
-      dominantGenre: 'platformer',
-    };
-
-    setSceneAnalysis(analysis);
-    generateSuggestions(analysis);
+  const loadSceneAnalysis = async () => {
+    try {
+      const analysis = await api.getSceneAnalysis(projectId!);
+      setSceneAnalysis(analysis);
+      generateSuggestions(analysis);
+    } catch (error: any) {
+      console.error('Failed to load scene analysis:', error);
+      setLoadError(error?.message || 'Failed to analyze scene');
+      setLoading(false);
+    }
   };
 
   const generateSuggestions = (analysis: SceneAnalysis) => {
     const newSuggestions: AssetSuggestion[] = [];
 
+    // Based on entity types, suggest relevant assets
     if (analysis.hasPlayer && !analysis.hasSprites) {
       newSuggestions.push({
         id: 'player-sprite',
         title: 'Player Character',
-        description: 'A heroic character for your platformer game',
-        prompt: 'Pixel art side-view character with sword, standing pose, platformer game style',
+        description: 'A heroic character for your game',
+        prompt: 'Pixel art side-view character, standing pose, game sprite',
         icon: <Image size={18} />,
         type: 'sprite',
         confidence: 0.9,
@@ -86,7 +70,7 @@ export function AssetSuggestions() {
         id: 'enemy-sprite',
         title: 'Enemy Characters',
         description: 'Creatures to challenge the player',
-        prompt: 'Pixel art enemy characters, platformer enemies, slime, bat, crab',
+        prompt: 'Pixel art enemy characters, slime, bat, crab, monster',
         icon: <Target size={18} />,
         type: 'sprite',
         confidence: 0.8,
@@ -99,7 +83,7 @@ export function AssetSuggestions() {
         id: 'collectible',
         title: 'Collectible Items',
         description: 'Items for players to gather',
-        prompt: 'Pixel art collectible coins, stars, gems, sparkly treasures',
+        prompt: 'Pixel art collectible coins, stars, gems, treasures',
         icon: <Sparkles size={18} />,
         type: 'sprite',
         confidence: 0.7,
@@ -112,7 +96,7 @@ export function AssetSuggestions() {
         id: 'background',
         title: 'Game Background',
         description: 'Environment to bring your world to life',
-        prompt: 'Pixel art game background, sky clouds, mountains, platformer level',
+        prompt: 'Pixel art game background, sky, landscape, scene background',
         icon: <Zap size={18} />,
         type: 'background',
         confidence: 0.6,
@@ -120,19 +104,45 @@ export function AssetSuggestions() {
       });
     }
 
+    // Genre-specific suggestions
+    if (analysis.dominantGenre === 'platformer' && !analysis.hasBackground) {
+      newSuggestions.push({
+        id: 'platformer-background',
+        title: 'Platformer Background',
+        description: 'Classic platform game environment',
+        prompt: 'Pixel art platformer background, hills, clouds, castle',
+        icon: <Zap size={18} />,
+        type: 'background',
+        confidence: 0.75,
+        priority: 'medium',
+      });
+    }
+
+    if (analysis.dominantGenre === 'rpg') {
+      newSuggestions.push({
+        id: 'rpg-tileset',
+        title: 'RPG Tileset',
+        description: 'Tiles for dungeon and town exploration',
+        prompt: 'Pixel art RPG tileset, dungeon walls, floor, grass, water',
+        icon: <Target size={18} />,
+        type: 'tileset',
+        confidence: 0.85,
+        priority: 'high',
+      });
+    }
+
     setSuggestions(newSuggestions);
+    setLoading(false);
   };
 
   const loadExistingAssets = async () => {
     try {
       if (projectId) {
-        const assets = await api.listAssets(projectId);
+        const assets = await api.listAssets(projectId!);
         setGeneratedAssets(assets);
       }
     } catch (error) {
       console.error('Failed to load assets:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -183,7 +193,24 @@ export function AssetSuggestions() {
     );
   }
 
-  if (sceneAnalysis && suggestions.length > 0) {
+  if (loadError) {
+    return (
+      <div className="asset-suggestions">
+        <div className="suggestions-header">
+          <h3>AI Asset Suggestions</h3>
+        </div>
+        <p className="error-message" style={{ color: 'var(--error, #ef4444)' }}>
+          Failed to load scene analysis: {loadError}
+        </p>
+      </div>
+    );
+  }
+
+  if (!sceneAnalysis) {
+    return null;
+  }
+
+  if (suggestions.length === 0) {
     return (
       <div className="asset-suggestions">
         <div className="suggestions-header">
@@ -192,64 +219,79 @@ export function AssetSuggestions() {
             <span>AI Suggestions</span>
           </div>
           <p style={{ fontSize: 'var(--text-sm, 0.875rem)', color: 'var(--text-muted, #94a3b8)' }}>
-            Based on your {sceneAnalysis.dominantGenre} scene with {sceneAnalysis.entityCount} entities
+            Scene analyzed: {sceneAnalysis.entityCount} entities across {sceneAnalysis.entityTypes.length} types
           </p>
         </div>
-
-        <div className="suggestions-grid">
-          {suggestions.map((suggestion) => (
-            <div
-              key={suggestion.id}
-              className="suggestion-card"
-              onClick={() => generateAsset(suggestion)}
-              style={{ cursor: 'pointer' }}
-            >
-              <div className="suggestion-header">
-                <div className="suggestion-icon">
-                  {suggestion.icon}
-                </div>
-                <div className="suggestion-meta">
-                  <h4>{suggestion.title}</h4>
-                  <span className={`confidence-badge priority-${suggestion.priority}`}>
-                    {suggestion.confidence * 100}% match
-                  </span>
-                </div>
-              </div>
-
-              <p className="suggestion-desc">{suggestion.description}</p>
-              <div className="suggestion-prompt">
-                <code>
-                  {suggestion.prompt.substring(0, 60)}...
-                </code>
-              </div>
-
-              <div className="suggestion-actions">
-                <button
-                  className={`btn btn-ai ${generating ? 'disabled' : ''}`}
-                  disabled={generating}
-                >
-                  {generating ? 'Generating...' : 'Generate →'}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="existing-assets">
-          <h4>Existing Assets</h4>
-          {generatedAssets.length > 0 ? (
-            <div className="assets-count">
-              You have {generatedAssets.length} assets. View them in your asset library.
-            </div>
-          ) : (
-            <p style={{ color: 'var(--text-muted, #94a3b8)', fontSize: 'var(--text-sm, 0.875rem)' }}>
-              No assets yet. Start generating with AI suggestions!
-            </p>
-          )}
-        </div>
+        <p style={{ color: 'var(--text-muted, #94a3b8)', fontSize: 'var(--text-sm, 0.875rem)' }}>
+          Your scene looks complete! No specific asset suggestions at this time.
+        </p>
       </div>
     );
   }
 
-  return null;
+  return (
+    <div className="asset-suggestions">
+      <div className="suggestions-header">
+        <div className="ai-badge">
+          <Sparkles size={14} />
+          <span>AI Suggestions</span>
+        </div>
+        <p style={{ fontSize: 'var(--text-sm, 0.875rem)', color: 'var(--text-muted, #94a3b8)' }}>
+          Based on your {sceneAnalysis.dominantGenre || 'game'} with {sceneAnalysis.entityCount} entities
+        </p>
+      </div>
+
+      <div className="suggestions-grid">
+        {suggestions.map((suggestion) => (
+          <div
+            key={suggestion.id}
+            className="suggestion-card"
+            onClick={() => generateAsset(suggestion)}
+            style={{ cursor: 'pointer' }}
+          >
+            <div className="suggestion-header">
+              <div className="suggestion-icon">
+                {suggestion.icon}
+              </div>
+              <div className="suggestion-meta">
+                <h4>{suggestion.title}</h4>
+                <span className={`confidence-badge priority-${suggestion.priority}`}>
+                  {suggestion.confidence * 100}% match
+                </span>
+              </div>
+            </div>
+
+            <p className="suggestion-desc">{suggestion.description}</p>
+            <div className="suggestion-prompt">
+              <code>
+                {suggestion.prompt.substring(0, 60)}...
+              </code>
+            </div>
+
+            <div className="suggestion-actions">
+              <button
+                className={`btn btn-ai ${generating ? 'disabled' : ''}`}
+                disabled={generating}
+              >
+                {generating ? 'Generating...' : 'Generate →'}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="existing-assets">
+        <h4>Existing Assets</h4>
+        {generatedAssets.length > 0 ? (
+          <div className="assets-count">
+            You have {generatedAssets.length} assets. View them in your asset library.
+          </div>
+        ) : (
+          <p style={{ color: 'var(--text-muted, #94a3b8)', fontSize: 'var(--text-sm, 0.875rem)' }}>
+            No assets yet. Start generating with AI suggestions!
+          </p>
+        )}
+      </div>
+    </div>
+  );
 }
