@@ -481,6 +481,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced component prop flow between SceneEditorPage and sub-components
 - Improved error handling for AI assistant responses
 
+### 0.11.2 - 2026-04-08
+
 ### 0.11.1 - 2026-04-08
 
 #### Added
@@ -503,3 +505,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation sync: project_memory.md version mismatch resolved
 - Addressed Game Dev feedback: "No clear starting point after project creation" with guided onboarding
 - Addressed UI/UX feedback: "Inconsistent component styling" with unified button system
+
+#### Added (0.11.2)
+- Enhanced mobile responsiveness: sidebar auto-collapses to icon-only on mobile (768px)
+- Touch-friendly buttons with 44px minimum height
+- Responsive onboarding guide that stacks vertically on mobile
+- Extra small breakpoint (480px) for compact layouts
+
+#### Changed (0.11.2)
+- Dashboard hero scales properly on small screens
+- Project cards go single-column on mobile
+- Scene editor layout goes vertical on mobile
