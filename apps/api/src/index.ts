@@ -1,17 +1,31 @@
 import 'dotenv/config';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import { readFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { projectRoutes } from './routes/projects';
 import { fileRoutes } from './routes/files';
 import { aiRoutes } from './routes/aiRoutes';
 import { assetRoutes } from './routes/assets';
+
+// Load version from VERSION.json at project root
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const versionPath = join(__dirname, '../../VERSION.json');
+let version = '0.0.0-dev';
+try {
+  const versionData = JSON.parse(readFileSync(versionPath, 'utf-8'));
+  version = versionData.version || version;
+} catch {
+  // VERSION.json not found, use fallback
+}
 
 const app = Fastify({ logger: true });
 
 app.register(cors, { origin: '*' });
 
 // Health check
-app.get('/health', async () => ({ status: 'ok', version: '0.1.0' }));
+app.get('/health', async () => ({ status: 'ok', version }));
 
 // Project CRUD
 app.register(projectRoutes);
@@ -29,7 +43,7 @@ const start = async () => {
   try {
     const port = parseInt(process.env.PORT || '3000', 10);
     await app.listen({ port, host: '0.0.0.0' });
-    app.log.info(`ClawGame API running on http://localhost:${port}`);
+    app.log.info(`ClawGame API v${version} running on http://localhost:${port}`);
   } catch (err) {
     app.log.error(err);
     process.exit(1);
