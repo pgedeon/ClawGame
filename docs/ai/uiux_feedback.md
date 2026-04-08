@@ -1,487 +1,258 @@
 # UI/UX Review Feedback
 
-**Last Review:** 2026-04-08 12:56 UTC
-**Reviewed Version:** 9eb815d (feat: Rune Rush game preview with combat, collectibles, win/loss conditions)
-**Status:** needs-improvement
+**Last Review:** 2026-04-08 16:47 UTC
+**Reviewed Version:** ebc8f47 (docs: update sprint file with v0.11.8)
+**Previous Review:** 2026-04-08 12:56 UTC (9eb815d)
+**Status:** on-track — significant improvements since last review, key gaps remain
 
 ---
 
 ## 🎯 Alignment with Goal
 
-**How current UI/UX supports making the best AI-first game dev platform:**
+**Goal:** Make the best web-based AI-first game development platform that exists.
 
-✅ **Strengths:**
-- Solid dark studio theme with professional color palette
-- AI-first design thinking evident (AI Command, AI Studio, AI thinking indicators)
-- Command palette for power users (⌘K)
-- Responsive mobile layout with collapsible sidebar
-- Clear separation between dashboard, project hub, and tools
+**How current UI/UX supports this:**
 
-⚠️ **Gaps:**
-- AI features feel bolted on rather than integrated throughout
-- No visual hierarchy showing AI's central role in workflows
-- Missing AI-native patterns (e.g., AI suggestions inline, intelligent autocomplete)
-- Onboarding doesn't showcase AI-first workflow effectively
-- Scene editor lacks AI-assisted features visible in UI
+✅ **Strong foundation now in place:**
+- Dark studio theme is professional and game-dev appropriate (not a generic SaaS look)
+- AI is present at every level: command palette (⌘K), AI FAB, AI Command page, Scene Editor AI bar, Asset Studio generation
+- Onboarding tour + welcome modal + project onboarding guide = layered first-time experience
+- Game preview now has full game loop (start screen → gameplay → victory/game over with HUD, health, score)
+- Template-first project creation gets users to a playable game fast
+- Code-split lazy loading shows performance awareness
 
-**Overall Assessment:** Strong foundation with professional design system, but AI integration needs deeper visual and experiential embedding to achieve "best AI-first platform" goal.
+⚠️ **Critical gaps to close:**
+- AI still feels like a separate destination (AI Command page) rather than an ambient co-pilot woven into every surface
+- No inline AI suggestions or "ghost text" in the code editor
+- Settings page is a stub (`<h1>Settings</h1><p>Coming soon</p>`)
+- No undo/redo visual indicators, no keyboard shortcut cheat sheet accessible from UI
+- Mobile layout works but feels like a concession, not a designed experience
 
 ---
 
 ## 🎨 Overall Design Direction
 
-**Current Style:**
-- Dark studio theme (`#0f172a` background, `#6366f1` accent)
-- Professional game development aesthetic
-- Purple/cyan AI branding (`#8b5cf6`, `#22d3ee`)
-- Clean Inter + JetBrains Mono typography
-- Well-structured design system with CSS variables
+**Current Style:** Dark studio theme with purple (#6366f1/#8b5cf6) as primary accent, cyan (#22d3ee) as secondary, slate backgrounds (#0f172a → #1e293b). Inter for UI, JetBrains Mono for code. Glassmorphism touches (backdrop-filter: blur) in headers.
 
-**Recommended Direction:**
-1. **Elevate AI to first-class citizen** - Make AI presence visible everywhere, not just in dedicated AI pages
-2. **Simplify visual complexity** - Too many borders, panels, and controls competing for attention
-3. **Create clear action hierarchy** - Primary AI actions should visually dominate secondary options
-4. **Enhance discoverability** - Make it obvious what to do first, second, third for new users
-5. **Reduce cognitive load** - Progressive disclosure for advanced features
+**Recommended Direction:** Continue refining the dark studio aesthetic but push toward a **"creative IDE"** feel — think Figma meets VS Code meets a game engine. The platform should feel like a professional tool that happens to have AI superpowers, not a consumer app.
 
-**Brand Personality:**
-- **Should feel:** Intelligent, empowering, magical-but-grounded, fast, joyful
-- **Keywords:** AI-powered, creative, studio-quality, accessible, modern
-- **Tone:** Confident but not overpromising, professional yet playful
+**Brand Personality:** Confident, precise, slightly magical. The AI should feel like a brilliant collaborator sitting next to you, not a chatbot you visit in another room.
 
 ---
 
 ## ✨ What Looks Great
 
-1. **Design System (theme.css)**
-   - Well-structured CSS custom properties
-   - Comprehensive color palette with accessible contrast ratios
-   - Consistent spacing scale (4px to 64px)
-   - Light/dark mode support
-   - Professional typography stack (Inter + JetBrains Mono)
+1. **Dashboard Hero Section** (`DashboardPage.tsx` → `.dashboard-hero`) — The gradient background with floating orbs, the "AI-Native Platform" badge, the gradient text on the headline. This is a strong first impression. The animated orbs add life without being distracting.
 
-2. **AI Command Interface (AICommandPage.tsx)**
-   - Clean chat-style interface
-   - Excellent AI thinking indicator with pulse animations
-   - Structured response types (explanation, change, fix, analysis)
-   - Risk badges and confidence scores on changes
-   - Timestamps and good message organization
+2. **Game Preview HUD** (`GamePreviewPage.tsx`) — Health bar, score display, collected runes counter, start/victory/game-over screens with proper overlay styling. This now feels like a real game preview, not a bare canvas. The particle system and combat effects are impressive.
 
-3. **Command Palette (CommandPalette.tsx)**
-   - Keyboard-first design (⌘K)
-   - Category grouping (navigation, AI, action)
-   - Keyboard navigation support
-   - Context-aware commands based on project state
-   - Clean overlay design
+3. **Command Palette** (`CommandPalette.tsx`) — Categorized results (Navigate, AI Commands, Actions), keyboard navigation, footer with shortcuts. Clean implementation. The `cmd-overlay` → `cmd-palette` pattern is well-executed.
 
-4. **Dashboard Hero Section**
-   - Engaging gradient background
-   - Clear value proposition ("Build Games with AI")
-   - Floating orbs animation adds polish
-   - Strong CTAs with keyboard hints
+4. **Design System Foundation** (`theme.css`) — Comprehensive CSS custom properties covering colors, spacing, typography, radii, shadows, z-index layers, game-specific vars. The light mode override via `prefers-color-scheme` is forward-thinking.
 
-5. **Game Preview Page**
-   - Full-screen canvas with immersive experience
-   - Game states (paused, game over, victory) well-designed
-   - Score, health, and time display visible
-   - Keyboard controls clearly shown
+5. **Project Hub Tab Bar** (`ProjectPage.tsx` → `.project-hub-tabs`) — Clean tab navigation with icons, active state highlighting, horizontal scroll on overflow. The gradient text on the project name is a nice touch.
 
-6. **Project Hub Tabs**
-   - Clear tab navigation with icons
-   - Active state visually distinct
-   - Good horizontal scrolling on mobile
-   - Descriptive tooltips on hover
+6. **Template Selection** (`CreateProjectPage.tsx`) — Three distinct game templates (Platformer, Top-Down, Dialogue) with meaningful default scenes and scripts. Each template creates actual runnable game files. This is the right approach for an AI-first platform.
 
-7. **Mobile Responsiveness**
-   - Collapsible sidebar navigation
-   - Touch-friendly button sizes
-   - Responsive grid layouts
-   - Bottom navigation on mobile
+7. **Onboarding Tour** (`OnboardingTour.tsx`) — Version-tracked (`TOUR_VERSION`), localStorage-gated, step-dots progress indicator. Shows awareness that onboarding needs to evolve with the product.
 
-8. **Unified Button System**
-   - Consistent button variants (primary, secondary, ghost, danger, success, AI)
-   - Size variations (sm, lg, icon, block)
-   - Proper hover/focus states
-   - Disabled states handled
-
-9. **Onboarding Guide**
-   - Step-by-step guidance
-   - Visual number indicators
-   - Clear descriptions
-   - Dismissible option
+8. **AI Thinking Indicator** (`AICommandPage.tsx` → `.ai-thinking-indicator`) — Pulsing rings with Sparkles icon and step labels ("Analyzing...", "Processing...", "Generating..."). This sets expectations well during AI wait times.
 
 ---
 
 ## 🐛 What Needs Improvement
 
-### High Priority Issues
+### 1. **Settings Page is a Stub**
+- **Location:** `apps/web/src/pages/SettingsPage.tsx`
+- **Problem:** Only renders `<h1>Settings</h1><p>Coming soon</p>`. Users who click Settings feel like the app is unfinished.
+- **Solution:** Build a minimal but functional settings page with:
+  - Theme toggle (dark/light/system)
+  - AI model selection (when real AI connected)
+  - Keyboard shortcuts reference
+  - Default project settings (genre, art style)
 
-1. **Visual Noise in Scene Editor**
-   - Location: `apps/web/src/scene-editor.css`, `apps/web/src/components/scene-editor/`
-   - Problem: Too many borders, panels, and controls creating visual clutter. Three panels (Asset Browser, Canvas, Property Inspector) plus header, tool options, AI bar = 6+ competing visual areas
-   - Solution: Reduce border opacity, increase whitespace, use background colors to distinguish panels rather than borders, collapse次要 panels when not in use
-   - Code:
-   ```css
-   /* Reduce visual noise in scene editor */
-   .scene-editor-container {
-     border: none; /* Remove outer border */
-     gap: 0; /* Use background colors instead */
-   }
+```tsx
+// Suggested structure for SettingsPage.tsx
+export function SettingsPage() {
+  return (
+    <div className="settings-page">
+      <header className="page-header">
+        <h1>Settings</h1>
+        <p>Configure your development environment</p>
+      </header>
 
-   .scene-canvas {
-     border: 1px solid rgba(71, 85, 105, 0.15); /* Low-opacity borders */
-     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2); /* Subtle inset shadow */
-   }
+      <div className="settings-grid">
+        <section className="settings-section">
+          <h2>Appearance</h2>
+          <div className="setting-item">
+            <label>Theme</label>
+            <ThemeToggle /> {/* dark | light | system */}
+          </div>
+        </section>
 
-   .asset-browser-panel,
-   .property-inspector {
-     background: var(--surface-alt);
-     border-right: 1px solid rgba(71, 85, 105, 0.15);
-   }
-   ```
+        <section className="settings-section">
+          <h2>AI</h2>
+          <div className="setting-item">
+            <label>Default AI Model</label>
+            <select>{/* model options */}</select>
+          </div>
+          <div className="setting-item">
+            <label>AI Auto-suggestions</label>
+            <Toggle />
+          </div>
+        </section>
 
-2. **AI First-Class Status Not Visually Evident**
-   - Location: Multiple pages - Dashboard, Project Hub, Scene Editor
-   - Problem: AI features (AI Command, AI Studio) are just another tab/button rather than prominently featured. Dashboard has "AI-Native Platform" badge but AI actions aren't visually dominant
-   - Solution: Add prominent AI action areas with distinctive styling, use AI badge/gradient throughout, make AI suggestions inline in workflows
-   - Code:
-   ```css
-   /* AI-first visual prominence */
-   .ai-primary-action {
-     background: var(--ai-gradient);
-     box-shadow: 0 4px 15px rgba(139, 92, 246, 0.35);
-     border: none;
-     position: relative;
-     overflow: hidden;
-   }
+        <section className="settings-section">
+          <h2>Keyboard Shortcuts</h2>
+          <ShortcutTable />
+        </section>
+      </div>
+    </div>
+  );
+}
+```
 
-   .ai-primary-action::before {
-     content: '';
-     position: absolute;
-     top: -50%;
-     left: -50%;
-     width: 200%;
-     height: 200%;
-     background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
-     animation: ai-shine 3s infinite;
-   }
+### 2. **AI Command Page is Isolated, Not Integrated**
+- **Location:** `apps/web/src/pages/AICommandPage.tsx`
+- **Problem:** The AI lives on its own page. Users must navigate away from their work to ask AI for help. This breaks flow state. The AIFAB exists but returns "Preview Mode" responses — it's essentially decorative.
+- **Solution:** Make AI ambient. Three levels:
+  - **Level 1 (Quick):** AIFAB should open a proper context-aware panel that knows what file/scene is open
+  - **Level 2 (Inline):** Code editor should have inline AI (type a comment → AI completes the function)
+  - **Level 3 (Deep):** Keep the AI Command page for complex multi-step operations, but rename it to "AI Studio" and make it feel like a workspace, not a chatbot
 
-   @keyframes ai-shine {
-     0% { transform: translateX(-100%) translateY(-100%); }
-     100% { transform: translateX(100%) translateY(100%); }
-   }
+```css
+/* AIFAB panel should be wider and positioned better */
+.ai-panel {
+  position: fixed;
+  bottom: 80px;
+  right: 24px;
+  width: 420px;        /* wider than current ~320px */
+  max-height: 500px;
+  /* ... */
+}
+```
 
-   /* AI badge inline */
-   .ai-badge-inline {
-     display: inline-flex;
-     align-items: center;
-     gap: 4px;
-     padding: 2px 8px;
-     background: var(--ai-primary);
-     color: white;
-     border-radius: 12px;
-     font-size: 11px;
-     font-weight: 600;
-     animation: ai-pulse 2s infinite;
-   }
+### 3. **GamePreviewPage.tsx is a 900+ Line Monolith**
+- **Location:** `apps/web/src/pages/GamePreviewPage.tsx` (925 lines)
+- **Problem:** The entire game engine (physics, combat, particles, HUD, input handling, collision detection) lives in one React component. This is fragile, hard to debug, and impossible to reuse.
+- **Solution:** Decompose into:
+  - `hooks/useGameEngine.ts` — game loop, update/render cycle
+  - `hooks/usePhysics.ts` — gravity, velocity, collision
+  - `hooks/useCombat.ts` — enemies, projectiles, damage
+  - `components/game/HUD.tsx` — health, score, runes overlay
+  - `components/game/StartScreen.tsx` — pre-game screen
+  - `components/game/VictoryScreen.tsx` — win/lose screens
+  - `GamePreviewPage.tsx` — orchestration only
 
-   @keyframes ai-pulse {
-     0%, 100% { transform: scale(1); }
-     50% { transform: scale(1.05); }
-   }
-   ```
+### 4. **No Visual Undo/Redo or Change Tracking**
+- **Problem:** Users can edit scenes, code, and assets but there's no visible undo/redo stack, no change indicators, no dirty state warnings. If a user makes a mistake, there's no safety net visible in the UI.
+- **Solution:**
+  - Add undo/redo buttons to the editor toolbar
+  - Show a "unsaved changes" dot indicator in the tab bar
+  - Add a change history panel accessible via sidebar
 
-3. **First-Time User Onboarding Lacks AI Workflow Demo**
-   - Location: `apps/web/src/components/OnboardingTour.tsx`, `apps/web/src/components/ProjectOnboarding.tsx`
-   - Problem: Onboarding shows steps but doesn't demonstrate AI-first workflow. Should show: "Describe your game → AI generates → Review → Play"
-   - Solution: Add interactive demo showing AI generating a simple game, with live code changes visible
-   - Code:
-   ```tsx
-   // Enhanced onboarding with AI demo
-   function AIDemoTour() {
-     const [step, setStep] = useState(0);
-     const [prompt, setPrompt] = useState('');
-     const [generated, setGenerated] = useState(false);
+```css
+/* Dirty state indicator */
+.project-hub-tab.dirty::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--warning);
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+```
 
-     const steps = [
-       { title: "1. Describe Your Game", desc: "Tell AI what you want to build" },
-       { title: "2. Watch AI Generate", desc: "AI creates game code in real-time" },
-       { title: "3. Review & Customize", desc: "Edit what AI created or ask for changes" },
-       { title: "4. Play & Share", desc: "Test your game instantly in browser" }
-     ];
+### 5. **Sidebar Navigation is Confusing When Switching Contexts**
+- **Location:** `apps/web/src/components/AppLayout.tsx`
+- **Problem:** The sidebar shows global nav (Dashboard, Create, Open, Examples, Settings) always. When inside a project, project-specific nav (Editor, Scene Editor, AI, Assets, Preview) gets appended below. This creates a long, undifferentiated list.
+- **Solution:** Use a two-level sidebar:
+  - Top section: Project context (collapsible when not in project)
+  - Bottom section: Global navigation
+  - Add section dividers with labels
 
-     return (
-       <div className="ai-demo-tour">
-         <div className="demo-steps">
-           {steps.map((s, i) => (
-             <div key={i} className={`demo-step ${i === step ? 'active' : ''}`}>
-               <span className="step-number">{i + 1}</span>
-               <span className="step-title">{s.title}</span>
-             </div>
-           ))}
-         </div>
-         {step === 0 && (
-           <div className="demo-input-area">
-             <textarea
-               placeholder="Make a platformer where a robot jumps over obstacles..."
-               onChange={(e) => setPrompt(e.target.value)}
-             />
-             <button
-               className="ai-primary-action"
-               onClick={() => { setGenerated(true); setStep(1); }}
-             >
-               <Sparkles /> Generate with AI
-             </button>
-           </div>
-         )}
-         {step === 1 && <AIGeneratingAnimation />}
-         {step === 2 && <GeneratedCodeReview />}
-         {step === 3 && <GamePreviewDemo />}
-       </div>
-     );
-   }
-   ```
+```tsx
+// Sidebar should have clear sections
+<nav className="sidebar-nav">
+  {isInProjectContext && (
+    <>
+      <div className="sidebar-section-title">Project</div>
+      {projectNavItems.map(item => <NavItem ... />)}
+      <div className="sidebar-divider" />
+    </>
+  )}
+  <div className="sidebar-section-title">Platform</div>
+  {globalNavItems.map(item => <NavItem ... />)}
+</nav>
+```
 
-4. **Color Contrast Issues in AI Command Messages**
-   - Location: `apps/web/src/ai-command.css`
-   - Problem: Assistant messages have white text on light background (`.message.assistant .message-content { background: white; }`) which violates WCAG AA for dark mode
-   - Solution: Ensure proper contrast ratios for both light and dark themes
-   - Code:
-   ```css
-   /* Fix contrast for AI messages */
-   @media (prefers-color-scheme: dark) {
-     .message.assistant .message-content {
-       background: var(--surface, #273548);
-       color: var(--fg, #f1f5f9);
-       border-color: var(--border, #475569);
-     }
+### 6. **CSS is Fragmented Across 20+ Files Without Consistent Patterns**
+- **Location:** All `*.css` files in `apps/web/src/`
+- **Problem:** Styles are split across `App.css` (800+ lines), `index.css`, `theme.css`, `game-hub.css`, `game-preview.css`, `scene-editor.css`, `ai-command.css`, `ai-fab.css`, `command-palette.css`, etc. Many have overlapping concerns (`.project-card` is styled in both `index.css` and `App.css`). The `.btn-*` unified system in `App.css` coexists with `.primary-button`, `.cta-button`, `.secondary-button` in `index.css`.
+- **Solution:** 
+  - Consolidate button variants — use `.btn-primary`, `.btn-secondary`, `.btn-ghost` everywhere
+  - Create `components.css` for shared component styles
+  - Keep page-specific CSS files but ensure no cross-file selector conflicts
+  - Audit and remove dead CSS (`.demo-create`, `.demo-hint` appear unused)
 
-     .ai-response h3 {
-       color: var(--fg, #f1f5f9);
-     }
+### 7. **Accessibility Gaps**
+- **Location:** Throughout
+- **Problems:**
+  - Hero orbs (`hero-orb-1/2/3`) have `aria-hidden="true"` ✅ but no `prefers-reduced-motion` respect — they animate forever
+  - Color contrast: `--text-muted: #64748b` on `--bg: #0f172a` = 4.8:1 (passes AA for normal text) ✅ but `--fg-secondary: #94a3b8` on `--surface: #1e293b` = 5.5:1 ✅
+  - `--text-muted: #64748b` on `--card: #1e293b` = only 3.7:1 — **fails WCAG AA** for small text
+  - The AI thinking indicator uses only color/animation to convey state — needs `aria-live="polite"` and text announcements
+  - Tab navigation (`project-hub-tabs`) uses `<Link>` but has no `role="tablist"` / `role="tab"` ARIA
 
-     .response-body p {
-       color: var(--fg-secondary, #cbd5e1);
-     }
-   }
-   ```
+```css
+/* Fix: respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .hero-orb,
+  .ai-fab-pulse,
+  .build-spinner,
+  .pulse-ring {
+    animation: none !important;
+  }
+}
 
-5. **Missing Loading States for AI Operations**
-   - Location: `apps/web/src/pages/AICommandPage.tsx`
-   - Problem: Only has thinking animation but no progress indicator for long operations (e.g., "Generating 5 sprites...")
-   - Solution: Add progress bar or step-by-step status updates
-   - Code:
-   ```css
-   .ai-progress-container {
-     width: 100%;
-     max-width: 320px;
-     background: var(--surface-alt);
-     border-radius: var(--radius-sm);
-     overflow: hidden;
-   }
+/* Fix: text-muted contrast */
+:root {
+  --text-muted: #7c8ca0; /* bumped from #64748b for better contrast on cards */
+}
+```
 
-   .ai-progress-bar {
-     height: 4px;
-     background: var(--ai-primary);
-     animation: ai-progress 2s ease-in-out;
-   }
+```tsx
+// Fix: ARIA on thinking indicator
+<div className="ai-thinking-indicator" role="status" aria-live="polite">
+  <span className="sr-only">AI is thinking...</span>
+  {/* visual elements */}
+</div>
+```
 
-   @keyframes ai-progress {
-     0% { width: 0%; }
-     100% { width: 100%; }
-   }
+### 8. **Error States Are Functional But Not Helpful**
+- **Location:** `App.css` → `.error-state`, `DashboardPage.tsx` error handling
+- **Problem:** Error messages show raw error text. No suggested actions, no context about what went wrong, no links to relevant help.
+- **Solution:** Add error categorization and actionable suggestions:
 
-   .ai-progress-steps {
-     display: flex;
-     flex-direction: column;
-     gap: 0.5rem;
-     padding: 1rem;
-   }
-
-   .ai-progress-step {
-     display: flex;
-     align-items: center;
-     gap: 0.5rem;
-     font-size: 0.85rem;
-     color: var(--text-muted);
-   }
-
-   .ai-progress-step.completed {
-     color: var(--success);
-   }
-
-   .ai-progress-step.active {
-     color: var(--ai-primary);
-   }
-   ```
-
-### Medium Priority Issues
-
-6. **Scene Editor Canvas Grid Lines Too Distractions**
-   - Location: `apps/web/src/scene-editor.css`
-   - Problem: Grid lines have high opacity and distract from entities
-   - Solution: Make grid subtle and optional by default
-   - Code:
-   ```css
-   .scene-canvas-grid {
-     stroke: rgba(99, 102, 241, 0.08); /* Very subtle */
-     stroke-width: 0.5;
-   }
-   ```
-
-7. **No Visual Feedback for AI-Generated Content**
-   - Location: Multiple pages - Scene Editor, Asset Studio, Code Editor
-   - Problem: When AI generates something (code, sprite, scene), there's no special indicator showing "AI created this"
-   - Solution: Add AI badge or glow effect on AI-generated content
-   - Code:
-   ```css
-   .ai-generated {
-     position: relative;
-   }
-
-   .ai-generated::after {
-     content: 'AI';
-     position: absolute;
-     top: -8px;
-     right: -8px;
-     width: 24px;
-     height: 24px;
-     background: var(--ai-gradient);
-     border-radius: 50%;
-     display: flex;
-     align-items: center;
-     justify-content: center;
-     font-size: 10px;
-     font-weight: 700;
-     color: white;
-     box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
-     animation: ai-badge-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-   }
-
-   @keyframes ai-badge-pop {
-     0% { transform: scale(0); opacity: 0; }
-     100% { transform: scale(1); opacity: 1; }
-   }
-   ```
-
-8. **Project Cards Lack Visual Hierarchy**
-   - Location: `apps/web/src/App.css`, DashboardPage.tsx
-   - Problem: All project cards look the same regardless of importance (recently worked on vs older)
-   - Solution: Highlight active/recent projects with larger size or special styling
-   - Code:
-   ```css
-   .project-card.recent {
-     border: 2px solid var(--ai-primary);
-     box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
-     transform: scale(1.02);
-   }
-
-   .project-card.recent::before {
-     content: 'Recent';
-     position: absolute;
-     top: -10px;
-     right: 10px;
-     padding: 2px 8px;
-     background: var(--ai-primary);
-     color: white;
-     font-size: 10px;
-     font-weight: 600;
-     border-radius: 12px;
-   }
-   ```
-
-9. **Command Palette Lacks Contextual AI Suggestions**
-   - Location: `apps/web/src/components/CommandPalette.tsx`
-   - Problem: Commands are static, no AI-powered suggestions based on what user is currently doing
-   - Solution: Add AI suggestion section that appears based on context (e.g., editing scene → suggests "Generate enemy pattern")
-   - Code:
-   ```tsx
-   // Add AI suggestions to command palette
-   const aiSuggestions = [
-     { id: 'ai.enemies', label: 'Generate: Enemy AI patterns', icon: Sparkles },
-     { id: 'ai.levels', label: 'Generate: Level layouts', icon: Layers },
-     { id: 'ai.bugfix', label: 'AI: Fix current errors', icon: Wrench },
-   ];
-
-   // Show when appropriate context
-   {currentContext === 'scene-editor' && (
-     <div className="command-section ai-suggestions">
-       <div className="section-header">
-         <Sparkles size={14} />
-        AI Suggestions
-       </div>
-       {aiSuggestions.map(s => (
-         <button key={s.id} className="command-item ai-suggestion">
-           <s.icon size={16} />
-           {s.label}
-         </button>
-       ))}
-     </div>
-   )}
-   ```
-
-10. **Error Messages Too Technical for New Users**
-    - Location: Multiple pages - generic error states
-    - Problem: Error messages show technical details without helpful next steps
-    - Solution: Add user-friendly error descriptions with actionable suggestions
-    - Code:
-    ```tsx
-    function UserFriendlyError({ error }: { error: Error }) {
-      const errorSuggestions: Record<string, { title: string; suggestion: string }> = {
-        'Failed to load project': {
-          title: 'Project Loading Failed',
-          suggestion: 'The project file may be corrupted. Try opening a different project or create a new one.'
-        },
-        'Network error': {
-          title: 'Connection Lost',
-          suggestion: 'Check your internet connection and try again.'
-        },
-      };
-
-      const info = errorSuggestions[error.message] || {
-        title: 'Something Went Wrong',
-        suggestion: 'Please try again or contact support if the issue persists.'
-      };
-
-      return (
-        <div className="error-message user-friendly">
-          <div className="error-title">{info.title}</div>
-          <p className="error-suggestion">{info.suggestion}</p>
-          <details className="error-details">
-            <summary>Technical Details</summary>
-            <pre>{error.message}</pre>
-          </details>
-        </div>
-      );
-    }
-    ```
-
-### Low Priority Issues
-
-11. **Scrollbars Not Styled Consistently**
-    - Location: `apps/web/src/index.css` (has some scrollbar styling but incomplete)
-    - Problem: Custom scrollbars only on some elements, inconsistent styling
-    - Solution: Apply consistent custom scrollbar styling globally
-
-12. **Hover States Inconsistent**
-    - Location: Multiple CSS files
-    - Problem: Some elements use `transform: translateY(-2px)`, others don't transform
-    - Solution: Standardize hover behavior - transform for cards, color change for text/buttons
-
-13. **No Empty State Illustrations**
-    - Location: Multiple pages (empty project lists, empty scene, etc.)
-    - Problem: Empty states show generic text/icons, no visual interest
-    - Solution: Add SVG illustrations for empty states
-
-14. **Badge Styles Scattered**
-    - Location: Multiple CSS files
-    - Problem: Badge styles duplicated in different files
-    - Solution: Consolidate into utility class in design system
-
-15. **Loading Spinner Variations**
-    - Location: Multiple components have different spinner implementations
-    - Problem: Inconsistent loading animation styles
-    - Solution: Create unified loading component with variants
+```tsx
+// Structured error component
+function ErrorState({ error, onRetry, context }: ErrorProps) {
+  const guidance = getErrorGuidance(error); // network? auth? not-found?
+  return (
+    <div className="error-state" role="alert">
+      <div className="error-icon">{guidance.icon}</div>
+      <h3>{guidance.title}</h3>
+      <p>{guidance.description}</p>
+      <div className="error-actions">
+        {onRetry && <button onClick={onRetry}>Try Again</button>}
+        {guidance.link && <Link to={guidance.link.href}>{guidance.link.text}</Link>}
+      </div>
+    </div>
+  );
+}
+```
 
 ---
 
@@ -489,210 +260,29 @@
 
 ### Navigation
 
-**Current:**
-- Left sidebar with project-specific items appearing dynamically
-- Command palette accessible via ⌘K
-- Bottom navigation on mobile
+**Current:** Left sidebar (240px), sticky, full height. On mobile: bottom tab bar.
 
 **Recommendations:**
-1. **Add "Quick AI" section to sidebar** - Always-visible AI actions regardless of context
-2. **Contextual breadcrumbs** - Show "Home > Project > Scene Editor" with ability to jump back
-3. **Mini-map for large projects** - Collapsible panel showing project structure overview
-4. **Tab grouping** - Group related tabs (Editor, Scene, Assets) with visual separator
-
-**Code:**
-```tsx
-// Enhanced sidebar with AI quick actions
-<nav className="sidebar">
-  <div className="sidebar-header">
-    <h1>🎮 ClawGame</h1>
-    <button className="sidebar-cmd-btn" onClick={cmdPalette.open}>
-      <span>Search...</span>
-      <kbd>⌘K</kbd>
-    </button>
-  </div>
-
-  {/* Quick AI Actions - Always visible */}
-  <div className="sidebar-ai-section">
-    <div className="sidebar-section-title">
-      <Sparkles size={14} />
-      AI Quick Actions
-    </div>
-    <Link to={`/project/${projectId}/ai`} className="nav-item ai-action">
-      <Bot size={18} />
-      <span>AI Command</span>
-    </Link>
-    <Link to={`/project/${projectId}/assets`} className="nav-item ai-action">
-      <Palette size={18} />
-      <span>Generate Assets</span>
-    </Link>
-  </div>
-
-  {/* Navigation */}
-  <div className="sidebar-nav">
-    {dynamicSidebarItems.map((item) => (...))}
-  </div>
-
-  {/* Context-sensitive suggestions */}
-  {isInProjectContext && (
-    <div className="sidebar-suggestions">
-      <div className="sidebar-section-title">
-        <Lightbulb size={14} />
-        Suggestions
-      </div>
-      <button className="nav-item suggestion">
-        "Generate enemy AI"
-      </button>
-      <button className="nav-item suggestion">
-        "Create level layout"
-      </button>
-    </div>
-  )}
-</nav>
-```
+1. Add a **sidebar collapse toggle** (already have `--sidebar-collapsed-width: 64px` defined but unused in the main layout). Show icon-only mode for power users who want more canvas space.
+2. Add **breadcrumb navigation** inside the project hub header (`Dashboard → My Game → Scene Editor`) for spatial orientation.
+3. Consider a **top bar** for the project hub that combines the header + tabs into a single compact strip (saves ~40px vertical space).
 
 ### Main Content Area
 
-**Current:**
-- Full-width content with padding
-- Different layouts per page (dashboard hero, project tabs, scene editor 3-panel)
-- Responsive grids
+**Current:** Full-width content below sidebar, scrollable.
 
 **Recommendations:**
-1. **Consistent content wrapper** - Apply max-width and centering consistently
-2. **Adaptive layouts** - Scene editor should collapse panels on smaller screens
-3. **Floating action bar** - Persistent AI actions floating bottom-right
-4. **Context toolbar** - Show relevant actions based on current selection
-
-**Code:**
-```css
-/* Consistent content wrapper */
-.content-wrapper {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: var(--space-lg);
-}
-
-/* Floating AI action bar */
-.floating-ai-bar {
-  position: fixed;
-  bottom: var(--space-lg);
-  right: var(--space-lg);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  z-index: var(--z-fab);
-}
-
-.floating-ai-bar .fab {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--ai-gradient);
-  color: white;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
-  transition: all var(--transition-fast);
-}
-
-.floating-ai-bar .fab:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
-}
-
-/* Adaptive scene editor layout */
-@media (max-width: 1200px) {
-  .scene-editor-layout {
-    flex-direction: column;
-  }
-
-  .asset-browser-panel {
-    display: none; /* Collapsible via toggle */
-  }
-
-  .property-inspector {
-    position: fixed;
-    right: 0;
-    top: 60px;
-    height: calc(100vh - 60px);
-    transform: translateX(100%);
-    transition: transform var(--transition-normal);
-  }
-
-  .property-inspector.open {
-    transform: translateX(0);
-  }
-}
-```
+1. The dashboard hero takes ~300px of vertical space. On repeat visits this is wasted. Add a **compact mode** that shows just the hero title + actions in one line after the first visit.
+2. Project overview page (`ProjectOverview`) shows 6 action cards — these duplicate the sidebar navigation. Consider replacing with a **recent activity feed** + project stats, since the sidebar already provides navigation.
 
 ### Panels/Sidebars
 
-**Current:**
-- Scene editor has 3 fixed panels (Asset Browser, Canvas, Property Inspector)
-- Project hub has tab-based navigation
-- File tree in code editor
+**Current:** Scene editor has right-side property inspector. AI panel floats bottom-right.
 
 **Recommendations:**
-1. **Collapsible panels** - Add minimize/maximize for all panels
-2. **Drag-to-resize** - Allow users to resize panel widths
-3. **Panel presets** - Save/load panel configurations (e.g., "Art Focus", "Code Focus", "Preview Focus")
-4. **AI panel suggestions** - Inline AI suggestions within panels (e.g., Property Inspector shows "AI: Suggest physics values")
-
-**Code:**
-```tsx
-// Collapsible panel component
-interface CollapsiblePanelProps {
-  title: string;
-  defaultOpen?: boolean;
-  children: React.ReactNode;
-  onToggle?: (open: boolean) => void;
-}
-
-function CollapsiblePanel({ title, defaultOpen = true, children, onToggle }: CollapsiblePanelProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-
-  const handleToggle = () => {
-    const newState = !isOpen;
-    setIsOpen(newState);
-    onToggle?.(newState);
-  };
-
-  return (
-    <div className={`collapsible-panel ${isOpen ? 'open' : 'collapsed'}`}>
-      <button className="panel-header" onClick={handleToggle}>
-        <span className="panel-title">{title}</span>
-        <ChevronDown
-          size={16}
-          className="panel-toggle-icon"
-          style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
-        />
-      </button>
-      {isOpen && <div className="panel-content">{children}</div>}
-    </div>
-  );
-}
-
-// Usage in Property Inspector
-function PropertyInspector({ scene, selectedEntityId, ... }) {
-  return (
-    <div className="property-inspector">
-      <CollapsiblePanel title="Transform" defaultOpen={true}>
-        <TransformProperties {...} />
-      </CollapsiblePanel>
-      <CollapsiblePanel title="Components" defaultOpen={true}>
-        <ComponentsList {...} />
-      </CollapsiblePanel>
-      <CollapsiblePanel title="AI Suggestions" defaultOpen={false}>
-        <AISuggestionsPanel entityId={selectedEntityId} />
-      </CollapsiblePanel>
-    </div>
-  );
-}
-```
+1. Add **resizable panel borders** — the scene editor panels should be draggable (CodeMirror-style).
+2. The AI panel (AIFAB) should dock to the right side when opened from within the code editor or scene editor, not float over content.
+3. Add a **bottom panel** concept (terminal output, build logs, console) that can be toggled — game devs expect this pattern from every IDE.
 
 ---
 
@@ -700,114 +290,60 @@ function PropertyInspector({ scene, selectedEntityId, ... }) {
 
 ### Colors
 
-**Current palette is solid. Recommended enhancements:**
+The current palette is solid. Here are refinements:
 
 ```css
-/* Enhanced palette - maintain existing, add semantic colors */
-
-/* Keep existing */
---accent: #6366f1;
---accent-hover: #4f46e5;
---ai-primary: #8b5cf6;
---ai-secondary: #06b6d4;
-
-/* Add semantic state colors */
---ai-thinking: #a78bfa; /* Lighter purple for active AI */
---ai-complete: #8b5cf6; /* Normal purple for completed AI */
---ai-error: #ef4444; /* Red for AI errors */
---ai-warning: #f59e0b; /* Amber for AI warnings */
-
-/* Add AI content highlighting */
---ai-generated-bg: rgba(139, 92, 246, 0.08);
---ai-generated-border: rgba(139, 92, 246, 0.2);
---ai-suggestion-bg: rgba(34, 211, 238, 0.08);
---ai-suggestion-border: rgba(34, 211, 238, 0.2);
-
-/* Add focus colors for better accessibility */
---focus-ring: rgba(99, 102, 241, 0.4);
---focus-ring-thick: rgba(99, 102, 241, 0.6);
-
-/* Enhance status colors for AI operations */
---ai-status-generating: linear-gradient(90deg, #8b5cf6, #06b6d4);
---ai-status-processing: #a78bfa;
---ai-status-ready: #10b981;
-
-/* Success/error with AI branding */
---ai-success: linear-gradient(135deg, #10b981, #06b6d4);
---ai-error: linear-gradient(135deg, #ef4444, #8b5cf6);
+/* Recommended adjustments */
+:root {
+  /* Fix contrast issue */
+  --text-muted: #7c8ca0;          /* was #64748b — fails AA on cards */
+  
+  /* Add semantic surface variants */
+  --surface-elevated: #273548;     /* for dropdowns, popovers */
+  --surface-sunken: #0c1222;       /* for canvas areas, code bg */
+  
+  /* Strengthen AI brand differentiation */
+  --ai-gradient: linear-gradient(135deg, #6366f1 0%, #a78bfa 50%, #c084fc 100%);
+  --ai-glow-strong: 0 0 30px rgba(139, 92, 246, 0.4);
+  
+  /* Add warm accent for highlights/notifications */
+  --warm-accent: #f59e0b;
+  --warm-accent-light: rgba(245, 158, 11, 0.15);
+}
 ```
 
 ### Typography
 
-**Current fonts are excellent. Add font weights/sizes for AI content:**
-
 ```css
-/* Enhanced typography scale for AI content */
-
-/* Keep existing */
---font-sans: 'Inter', ...;
---font-mono: 'JetBrains Mono', ...;
-
-/* Add AI-specific typography */
---font-ai-mono: 'Fira Code', 'JetBrains Mono', monospace; /* For AI-generated code */
-
-/* Enhanced heading scale */
---text-hero-ai: 2.5rem; /* Larger for AI-focused hero text */
---text-heading-ai: 1.5rem; /* For AI feature sections */
---text-body-ai: 1rem; /* For AI explanations */
-
-/* AI content specific */
---text-ai-prompt: 1.05rem; /* Slightly larger for prompt inputs */
---text-ai-response: 0.95rem; /* For AI-generated text */
---text-ai-code: 0.85rem; /* For AI-generated code snippets */
-
-/* Add emphasis classes */
-.text-ai-accent {
-  background: var(--ai-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  font-weight: 700;
+/* Current is good. Add these utility sizes */
+:root {
+  --text-display: 3rem;       /* hero only */
+  --text-title: 2rem;         /* page headers */
+  --text-section: 1.35rem;    /* section titles */
 }
 
-.text-ai-generated {
-  color: var(--ai-primary);
-  font-style: italic;
-}
+/* Consider adding a display/brand font for the logo */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap');
 
-.text-ai-suggestion {
-  color: var(--ai-secondary);
-  font-weight: 500;
+.sidebar-header h1 {
+  font-family: 'Space Grotesk', var(--font-sans);
+  /* Gives the brand a distinct feel from the UI font */
 }
 ```
 
 ### Spacing
 
-**Current spacing scale is good. Add AI-specific spacing:**
-
 ```css
-/* Enhanced spacing for AI interactions */
-
---space-ai-compact: 2px; /* For inline AI suggestions */
---space-ai-tight: 6px; /* For AI chat messages */
---space-ai-comfortable: 20px; /* For AI input areas */
---space-ai-generative: 32px; /* For AI generation results */
---space-ai-hero: 48px; /* For AI-focused hero sections */
-
-/* AI container spacing */
-.ai-message-spacing {
-  gap: var(--space-ai-comfortable);
-  padding: var(--space-ai-tight);
+/* Current scale is comprehensive. One addition: */
+:root {
+  --space-gutter: 2rem;    /* consistent page-level padding */
 }
 
-.ai-suggestion-spacing {
-  gap: var(--space-ai-compact);
-  padding: var(--space-sm);
-}
-
-.ai-result-spacing {
-  gap: var(--space-ai-generative);
-  padding: var(--space-lg);
+/* Use it consistently */
+.dashboard-page,
+.project-overview-page,
+.settings-page {
+  padding: var(--space-gutter);
 }
 ```
 
@@ -815,71 +351,75 @@ function PropertyInspector({ scene, selectedEntityId, ... }) {
 
 ## 🔍 Competitive Research
 
-**Note: Web search was rate-limited during this review. Research based on general knowledge of industry leaders.**
-
 | Platform | What They Do Well | What We Can Learn |
-|-----------|-------------------|-------------------|
-| **Unity** | - Comprehensive editor with customizable layout<br>- Asset store integration<br>- Scene hierarchy visualization<br>- Play mode with pause/resume | - Implement customizable panel layouts<br>- Add drag-to-resize panels<br>- Create project structure visualization (scene/entity tree)<br>- Improve preview mode with debugging tools |
-| **Construct 3** | - Visual event sheet programming<br>- Browser-based with no installation<br>- Drag-and-drop simplicity<br>- Strong mobile export | - Consider visual scripting overlay for code editor<br>- Emphasize "no installation needed"<br>- Make object placement intuitive<br>- Add export options prominently |
-| **GDevelop** | - Free and open source<br>- Event-based logic system<br>- Extensive template library<br>- Built-in physics engine | - Add more game templates<br>- Create visual behavior editor (event sheet)<br>- Emphasize free/open-source aspect<br>- Show physics collision visualizers |
-| **PlayCanvas** | - Real-time collaboration<br>- WebGL performance optimization<br>- Clean, modern UI<br>- Good documentation | - Consider real-time collaboration features<br>- Optimize canvas performance<br>- Maintain clean, minimal UI<br>- Provide in-editor docs/tutorials |
-| **Godot** | - Node-based visual programming<br>- Free and lightweight<br>- Customizable editor<br>- Strong community | - Add node-based scripting (Blueprints-style)<br>- Allow theme customization<br>- Support plugins/extensions<br>- Build community features |
+|----------|-------------------|-------------------|
+| **Construct 3** | Fully browser-based, event-sheet visual scripting, instant preview, properties panel with visual editors | The event sheet is their killer feature — we should offer an AI-powered equivalent: describe behavior in natural language → AI generates the event logic |
+| **GDevelop** | Free/open source, visual scripting with conditions/actions, one-click export to multiple platforms, extensibility | Their "no-code" approach reaches non-programmers. Our AI is our "no-code" — we should market it that way and make the code editor optional/hidden for beginners |
+| **Unity** | Panel-based layout with drag-to-resize, inspector hierarchy, asset store integration, play/edit mode toggle | The play/edit mode toggle is essential. Our preview works but the transition back to editing should be seamless — consider live-editing during preview |
+| **Godot** | Node-based scene system, GDScript is beginner-friendly, built-in animation editor, lightweight | Their node-based scene composition is intuitive. Our entity/component system is similar but the UI doesn't make the parent-child relationship visible |
+| **PlayCanvas** | Real-time collaboration, cloud-based asset management, web-first architecture | Real-time collab is a future feature for us, but cloud asset management (shareable sprite libraries) would be valuable now |
+| **Rosebud AI** | AI-first game creation from text prompts, instant visual output, chat-based editing | This is our closest competitor. They lead on "type a prompt → get a game." We need to match that speed AND provide deeper editing capabilities they lack |
+| **Cursor/VS Code** | Inline AI with ghost text, Ctrl+K for inline edit, tab to accept suggestions, diff view for AI changes | The ghost text / inline AI pattern is the gold standard. Our code editor (CodeMirror) should support this natively |
+| **Figma** | Canvas + panels layout, selection-based property editing, plugin ecosystem | Their canvas interaction model (select → properties appear) is exactly what our scene editor should feel like |
 
-**Key Insights:**
-1. **Visual programming systems** are popular for new users (Unity Blueprints, Godot nodes, Construct events)
-2. **Panel customization** is expected in professional tools (draggable, resizable, savable layouts)
-3. **Template libraries** dramatically lower onboarding friction
-4. **Real-time collaboration** is becoming table stakes for modern dev tools
-5. **Performance optimization** visibility (FPS, draw calls, memory) is expected
-6. **Browser-first** approach is gaining traction (no install = lower friction)
+### Key Insights
 
-**Features to Consider:**
-1. **Visual scripting overlay** - Node-based logic editor on top of code editor
-   - Why: Makes game logic accessible to non-programmers
-   - Priority: Medium (differentiator for AI-first approach)
-2. **Behavior templates** - Pre-built enemy AI, player movement, collision patterns
-   - Why: Reduces time from idea to playable game
-   - Priority: High (leverages AI to generate these)
-3. **Panel presets** - Save/load panel configurations
-   - Why: Power users want customized layouts for different workflows
-   - Priority: Medium
-4. **Performance profiler** - Show FPS, entity count, memory usage
-   - Why: Users need to optimize their games
-   - Priority: Low (nice to have for advanced users)
-5. **Asset marketplace** - Community-generated sprites, sounds, music
-   - Why: Saves time and builds ecosystem
-   - Priority: Low (future growth feature)
-6. **Collaborative editing** - Multiple users working on same project
-   - Why: Modern dev tool expectation
-   - Priority: Low (technical complexity high)
+1. **The "type → game" flow is table stakes now.** Rosebud AI has proven users want to describe a game and see it. Our AI Command page does this, but the path isn't obvious from the dashboard. The hero CTA should lead to "Describe your game → AI builds it" not just "New Project."
+
+2. **Visual scripting is still king for non-coders.** Every major browser game engine offers it. Our AI should *be* our visual scripting — but we need to make that equivalence clear in the UI.
+
+3. **The edit → preview → edit loop must be instant.** Construct 3's instant preview is consistently rated their #1 feature. Our game preview loads a new page — it should be a split-screen or overlay.
+
+4. **Panel-based layouts with resizable areas are expected.** Unity, Godot, Construct 3 all use this pattern. Our fixed-width panels feel rigid by comparison.
+
+### Features to Consider
+
+- **Live preview split-screen** — Show the game running alongside the editor, auto-refreshing on code changes. This is the single highest-impact UX improvement possible.
+- **AI inline suggestions in code editor** — Ghost text (grayed-out AI suggestions) that users can tab to accept. This is the Cursor pattern and it's transformative.
+- **Visual diff for AI changes** — When AI modifies code, show a red/green diff view instead of just replacing the file. Users need to trust AI changes.
+- **One-click "Describe → Build" flow** — A prominent input on the dashboard where new users can type a game idea and immediately see a result, no project creation form required.
+- **Contextual AI tooltips** — Hover over any entity in the scene editor → "Ask AI about this" button appears. Reduces the distance between question and answer.
+- **Export progress with shareable link** — After exporting, show a hosted preview URL. This turns users into advocates.
 
 ---
 
 ## 📋 Priority Fixes
 
-### High Priority
+### 🔴 High Priority (Next Sprint)
 
-1. **Reduce visual noise in scene editor** - Users can't focus on their content with so many borders and panels
-2. **Make AI first-class citizen visually** - Current UI treats AI as just another feature, not the foundation
-3. **Fix color contrast issues** - Accessibility violation in dark mode AI messages
-4. **Add AI workflow demo to onboarding** - New users don't understand AI-first approach
-5. **Add loading progress for AI operations** - Users don't know what's happening during long AI tasks
+1. **Fix text-muted contrast on cards** — `#64748b` on `#1e293b` fails WCAG AA (3.7:1). Bump to `#7c8ca0`. One-line CSS fix, massive accessibility improvement.
 
-### Medium Priority
+2. **Add `prefers-reduced-motion` support** — All animations (hero orbs, pulse, spinners, build-spinner) should stop for users who prefer reduced motion. Required for accessibility compliance.
 
-6. **Add AI-generated content indicators** - Users can't identify what AI created vs what they created
-7. **Highlight recent projects** - Users lose track of what they're working on
-8. **Add contextual AI suggestions** - AI suggestions should appear inline in workflows
-9. **Improve error messages** - Technical errors confuse new users
-10. **Make scene editor grid subtle** - Grid lines distract from game content
+3. **Build a real Settings page** — Even a minimal one with theme toggle and keyboard shortcuts. The current stub makes the platform feel incomplete.
 
-### Low Priority
+4. **Decompose GamePreviewPage.tsx** — The 900-line monolith is a maintenance nightmare and blocks UI iteration on the game preview. Extract hooks and sub-components.
 
-11. **Style scrollbars consistently** - Polish/detail issue
-12. **Standardize hover states** - Inconsistent behavior
-13. **Add empty state illustrations** - Visual interest
-14. **Consolidate badge styles** - Code cleanup
-15. **Unify loading spinners** - Code cleanup
+5. **Make AIFAB context-aware** — The floating AI button should know what file/scene/entity is active and pre-populate context. Currently returns canned "Preview Mode" responses.
+
+### 🟡 Medium Priority (Next 2-3 Sprints)
+
+6. **Add sidebar section dividers** — Separate global nav from project nav with labels ("Project" / "Platform"). Reduces cognitive load.
+
+7. **Consolidate button CSS** — Migrate all `.primary-button`, `.cta-button`, `.secondary-button` to the unified `.btn-*` system. Remove dead button variants.
+
+8. **Add dirty state indicators** — Show when files have unsaved changes. Add undo/redo visual affordance.
+
+9. **Improve AI Command page layout** — Rename to "AI Studio." Add a split view: left side shows context (current files, scene), right side is the AI conversation.
+
+10. **Add ARIA roles to tab navigation** — The project hub tabs need `role="tablist"`, `role="tab"`, and `role="tabpanel"` for screen reader support.
+
+### 🟢 Low Priority (Backlog)
+
+11. **Add breadcrumb navigation** in the project hub header for spatial orientation.
+
+12. **Create a keyboard shortcut cheat sheet** modal (accessible via `?` key, like GitHub).
+
+13. **Add resizable panels** to the scene editor.
+
+14. **Implement a bottom panel** for build logs and console output.
+
+15. **Dashboard compact mode** for returning users — collapse the hero section.
 
 ---
 
@@ -887,239 +427,66 @@ function PropertyInspector({ scene, selectedEntityId, ... }) {
 
 ### Innovations to Consider
 
-1. **AI Pair Programming Mode**
-   - Split-screen view with AI assistant visible alongside code editor
-   - AI suggests changes in real-time as you type
-   - Shows confidence scores and explains reasoning
-   - Differentiator: Other platforms don't have real-time AI pair programming
+1. **"Describe Your Game" Hero Input** — Replace the dashboard hero CTA with a large text input:
+   > 💬 _"Describe the game you want to build..."_
+   
+   Type a description → AI generates a playable prototype in 10 seconds → user is dropped into the project. This would be the #1 differentiator. Rosebud does this but their editor is limited — we'd combine instant AI generation with a real editor.
 
-2. **Game Idea Generator**
-   - Interactive tool that suggests game concepts based on preferences
-   - Shows genres, mechanics, art style combinations
-   - One-click to generate full project from selected idea
-   - Differentiator: Combines creativity with instant execution
+2. **Live AI Co-Pilot Mode** — A toggle that puts the AI in "watch mode." As you build, it suggests improvements in a subtle side panel: "I notice your player has no jump sound. Want me to add one?" "This collision detection could be more efficient. See suggestion →"
 
-3. **AI Code Review Assistant**
-   - Continuous analysis of game code as you edit
-   - Suggests performance optimizations
-   - Identifies potential bugs before running
-   - Explains game dev best practices
-   - Differentiator: Educational + practical value
+3. **Visual Scene Graph** — Instead of just a canvas, show a node tree (like Godot/Figma layers) alongside the scene editor. Each entity is a node. Drag to reparent. Click to select. This gives spatial structure that the flat canvas lacks.
 
-4. **Visual Entity Relationship Map**
-   - Shows how entities interact (collision, triggers, dependencies)
-   - AI highlights missing relationships or inconsistencies
-   - Click to navigate between connected entities
-   - Differentiator: Makes complex game logic visible
+4. **Screenshot-to-Game** — Upload a screenshot of any game → AI analyzes the screenshot and recreates a playable version. Wildly impressive demo feature.
 
-5. **Real-time Physics Debugger**
-   - Visual overlay showing collision boxes, velocities, forces
-   - AI suggests physics parameter adjustments
-   - Slow-motion replay of physics interactions
-   - Differentiator: Makes invisible game systems visible
+5. **AI Agent Mode** — Instead of single commands, let the user assign the AI an ongoing task: "Make the enemies progressively harder" or "Add particle effects to every collision." The AI works in the background, shows a diff, and asks for approval.
 
 ### AI-Specific UX
 
-**How should AI commands be presented?**
-1. **Prompt Input** - Large, inviting textarea with placeholder examples
-2. **Context Awareness** - Show AI what's currently selected/visible
-3. **Result Preview** - Side-by-side "before" and "after" when possible
-4. **Confidence Display** - Show AI's confidence in its suggestions
-5. **One-click Apply** - Make it easy to accept/reject AI changes
-6. **Undo/Redo** - Track AI changes separately for easy rollback
+**How AI commands should be presented:**
+- Primary: Inline ghost text in the code editor (Cursor pattern)
+- Secondary: Contextual "Ask AI" button in property inspectors, scene canvas, file tree
+- Tertiary: The full AI Command page for complex multi-step operations
 
-**Code:**
-```tsx
-function AICommandInput({ context }: { context: AIContext }) {
-  return (
-    <div className="ai-command-wrapper">
-      {/* Context display */}
-      <div className="ai-context-bar">
-        <span className="context-label">AI Context:</span>
-        <span className="context-value">{context.description}</span>
-        {context.entityId && (
-          <span className="context-entity">
-            Selected: {context.entityName}
-          </span>
-        )}
-      </div>
+**How to show AI progress/thinking:**
+- Current pulse animation is good but add **step indicators with real labels**: "Reading game.ts..." → "Analyzing collision logic..." → "Generating fix..." → "Reviewing for safety..."
+- Show a **mini diff preview** while generating so users can see changes forming in real-time
+- Add a **cancel button** during generation
 
-      {/* Main input */}
-      <div className="ai-input-area">
-        <textarea
-          className="ai-prompt-input"
-          placeholder={
-            context.entityId
-              ? `Edit ${context.entityName} to...`
-              : "Describe what you want to build or change..."
-          }
-        />
-        <button className="ai-submit-btn">
-          <Sparkles size={18} />
-          Generate
-        </button>
-      </div>
-
-      {/* Quick examples */}
-      <div className="ai-examples">
-        <span className="examples-label">Try:</span>
-        {context.entityId ? (
-          <>
-            <button>"Make it patrol back and forth"</button>
-            <button>"Add a jump animation"</button>
-            <button>"Make it shoot projectiles"</button>
-          </>
-        ) : (
-          <>
-            <button>"Create a platformer with double jump"</button>
-            <button>"Generate 5 enemy AI patterns"</button>
-            <button>"Build a top-down shooter"</button>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-```
-
-**How to show AI progress/thinking?**
-1. **Step-by-step animation** - Show AI's thought process (e.g., "Analyzing scene...", "Generating code...", "Optimizing...")
-2. **Progress bar** - For multi-step operations (generating multiple assets)
-3. **Live preview** - Show results as they're generated (not wait for completion)
-4. **Thinking log** - Expandable details showing AI's reasoning
-5. **Cancel button** - Allow users to stop long operations
-
-**Code:**
-```tsx
-function AIProgressView({ steps, currentStep }: { steps: string[]; currentStep: number }) {
-  return (
-    <div className="ai-progress-view">
-      {/* Overall progress bar */}
-      <div className="ai-progress-bar-container">
-        <div
-          className="ai-progress-bar-fill"
-          style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
-        />
-      </div>
-
-      {/* Step-by-step list */}
-      <div className="ai-progress-steps">
-        {steps.map((step, index) => (
-          <div
-            key={index}
-            className={`progress-step ${
-              index < currentStep ? 'completed' :
-              index === currentStep ? 'active' :
-              'pending'
-            }`}
-          >
-            {index < currentStep && <Check size={16} />}
-            {index === currentStep && <RefreshCw size={16} className="spinning" />}
-            {index > currentStep && <Clock size={16} />}
-            <span className="step-label">{step}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Expandable details */}
-      <details className="ai-progress-details">
-        <summary>View AI Reasoning</summary>
-        <div className="ai-reasoning-log">
-          <div className="log-entry">
-            <span className="log-timestamp">12:34:56</span>
-            <span className="log-message">Analyzing user request...</span>
-          </div>
-          <div className="log-entry">
-            <span className="log-timestamp">12:34:57</span>
-            <span className="log-message">Identifying relevant components...</span>
-          </div>
-          {/* More log entries */}
-        </div>
-      </details>
-    </div>
-  );
-}
-```
-
-**How to handle AI-generated content?**
-1. **Visual badges** - Mark AI-generated items with distinctive indicator
-2. **Edit protection** - Option to lock AI-generated content to prevent accidental edits
-3. **Version tracking** - Track AI-generated versions separately
-4. **Regenerate button** - Easy way to ask AI to try again
-5. **Edit feedback** - Ask AI "Why did you do this?" or "Change this to..."
-
-**Code:**
-```tsx
-function AIGeneratedItem({ item, onRegenerate, onEditFeedback }: AIGeneratedItemProps) {
-  const [showMenu, setShowMenu] = useState(false);
-
-  return (
-    <div className="ai-generated-item">
-      {/* AI badge */}
-      <div className="ai-badge" title="AI-generated">
-        <Sparkles size={12} />
-        AI
-      </div>
-
-      {/* Content */}
-      <div className="item-content">
-        {item.content}
-      </div>
-
-      {/* AI action menu */}
-      <button
-        className="ai-menu-btn"
-        onClick={() => setShowMenu(!showMenu)}
-      >
-        <MoreVertical size={16} />
-      </button>
-
-      {showMenu && (
-        <div className="ai-action-menu">
-          <button onClick={onRegenerate}>
-            <RefreshCw size={14} />
-            Regenerate
-          </button>
-          <button onClick={() => onEditFeedback('simpler')}>
-            <ThumbsDown size={14} />
-            Make simpler
-          </button>
-          <button onClick={() => onEditFeedback('explain')}>
-            <MessageCircle size={14} />
-            Explain reasoning
-          </button>
-          <button onClick={() => onEditFeedback('lock')}>
-            <Lock size={14} />
-            Lock edits
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-```
+**How to handle AI-generated content:**
+- Always show a diff view (red/green) before applying changes
+- Add an "Apply" / "Reject" / "Modify" button trio
+- Keep a generation history so users can revert to pre-AI state
+- Mark AI-generated code with a subtle purple left-border in the editor
+- Add a "Why did AI suggest this?" button that explains the reasoning
 
 ---
 
 ## 📊 UI/UX Score
 
-| Area | Current | Target | Gap | Key Issues |
-|------|---------|--------|-----|------------|
-| **Visual Design** | B | A | Minor | Strong design system, but visual noise in editor, AI not visually prominent |
-| **User Experience** | C+ | A | Major | Good foundation, but AI workflow not clear, onboarding weak, feedback missing |
-| **Accessibility** | B- | A | Minor | Good contrast ratios, but some dark mode violations, missing ARIA labels |
-| **Innovation** | B | A | Moderate | AI integration solid but not revolutionary, competitive features missing |
+| Area | Previous | Current | Target | Gap Analysis |
+|------|----------|---------|--------|--------------|
+| Visual Design | C+ | B | A | Strong theme system, needs contrast fixes and dead CSS cleanup |
+| User Experience | C | B- | A | Game loop works, but AI integration feels separate, not ambient |
+| Accessibility | C- | C+ | A | Contrast fix + reduced-motion + ARIA roles would get to B+ |
+| Innovation | B- | B | A | Game preview is impressive, need "describe → game" hero flow |
+| Information Architecture | C+ | B- | A | Sidebar needs section dividers, overview page duplicates nav |
+| Code Quality (UI) | C | C+ | A | GamePreviewPage monolith, CSS fragmentation, button system overlap |
+| Onboarding | B- | B | A | Tour + welcome modal + onboarding guide = good, needs "instant win" moment |
+| Mobile Experience | C- | C | B+ | Works but feels like desktop-first with mobile concessions |
 
-**Overall Score: B-**
+### Overall: **B-** (up from C+ in previous review)
 
-**Summary:**
-ClawGame has excellent foundations with a professional design system and solid implementation. The dark studio theme is appropriate for a game dev platform, and the AI features are technically well-executed. However, to truly be the "best web-based AI-first game development platform," the AI integration needs to be more prominent throughout the UX, not just in dedicated AI pages. The visual hierarchy should reflect AI as the primary way users interact with the platform. Onboarding should showcase the AI-first workflow from the start. With these strategic shifts, ClawGame can differentiate itself from competitors and achieve its ambitious goal.
+**Trajectory is positive.** The platform has moved from "promising but rough" to "solid foundation with clear gaps." The game preview improvement is the biggest visible leap. The next inflection point is making AI feel ambient rather than siloed.
 
-**Path to A:**
-1. Elevate AI to first-class citizen throughout UI (2-3 sprints)
-2. Improve onboarding with AI workflow demo (1-2 sprints)
-3. Reduce visual noise and improve information hierarchy (2 sprints)
-4. Add AI-native features (suggestions, inline generation, visual indicators) (3-4 sprints)
-5. Polish details (hover states, transitions, micro-interactions) (1 sprint)
+---
 
-**Total estimated effort: 9-12 sprints**
+## 🗓️ Recommended Sprint Sequence
+
+**Sprint 1 (Week 1):** Contrast fix + reduced-motion + Settings page + sidebar dividers  
+**Sprint 2 (Week 2):** Decompose GamePreviewPage + ARIA roles + consolidate button CSS  
+**Sprint 3 (Week 3):** Context-aware AIFAB + dirty state indicators  
+**Sprint 4 (Week 4):** "Describe Your Game" hero input (the big differentiator)  
+**Sprint 5-6 (Weeks 5-6):** Inline AI in code editor + live preview split-screen  
+**Sprint 7-8 (Weeks 7-8):** Visual scene graph + AI agent mode + resizable panels  
+
+**Estimated time to "A" grade: 8 sprints (8 weeks)**
