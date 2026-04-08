@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import type { AssetType } from '../../api/client';
 
-/** Asset type → icon mapping */
+/** Asset type to icon mapping */
 export const ASSET_TYPE_ICONS: Record<AssetType, React.ReactNode> = {
   sprite: <Image size={20} />,
   tileset: <Layers size={20} />,
@@ -22,7 +22,7 @@ export const ASSET_TYPE_ICONS: Record<AssetType, React.ReactNode> = {
   background: <Image size={20} />,
 };
 
-/** Asset type → color mapping */
+/** Asset type to color mapping */
 export const ASSET_TYPE_COLORS: Record<AssetType, string> = {
   sprite: '#8b5cf6',
   tileset: '#10b981',

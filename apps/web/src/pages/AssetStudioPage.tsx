@@ -10,14 +10,13 @@ import { api, type AssetMetadata, type AssetType, type GenerationStatus } from '
 import { useToast } from '../components/Toast';
 import { RefreshCw } from 'lucide-react';
 import { logger } from '../utils/logger';
-import { ASSET_TYPE_ICONS } from '../components/asset-studio/types';
-import { GeneratePanel } from './components/asset-studio/GeneratePanel';
-import { GenerationTracker } from './components/asset-studio/GenerationTracker';
-import { FilterPanel } from './components/asset-studio/FilterPanel';
-import { AssetGrid } from './components/asset-studio/AssetGrid';
-import { AssetDetailPanel } from './components/asset-studio/AssetDetailPanel';
+import { GeneratePanel } from '../components/asset-studio/GeneratePanel';
+import { GenerationTracker } from '../components/asset-studio/GenerationTracker';
+import { FilterPanel } from '../components/asset-studio/FilterPanel';
+import { AssetGrid } from '../components/asset-studio/AssetGrid';
+import { AssetDetailPanel } from '../components/asset-studio/AssetDetailPanel';
 
-const ASSET_TYPES = Object.keys(ASSET_TYPE_ICONS) as AssetType[];
+const ASSET_TYPES = ['sprite', 'tileset', 'texture', 'icon', 'audio', 'background'] as AssetType[];
 
 const AssetStudioPage = () => {
   const { projectId } = useParams<{ projectId: string }>();
