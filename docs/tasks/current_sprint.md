@@ -40,13 +40,26 @@
 
 ---
 
-## Phase 3: Scene Editor ↔ Asset Integration ⏳
+## Phase 3: Scene Editor ↔ Asset Integration ✅
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Asset browser panel in Scene Editor | ⏳ Not Started | Browse project assets alongside entities |
-| Drag assets into scene from library | ⏳ Not Started | Connect two powerful features |
-| Sprite rendering from actual assets | ⏳ Not Started | Replace color placeholders with real images |
+| Asset browser panel in Scene Editor | ✅ Done | Left sidebar shows all project assets |
+| Drag assets into scene from library | ✅ Done | Drag-and-drop creates entities with sprite component |
+| Sprite rendering from actual assets | ✅ Done | Real SVG/PNG images render on canvas entities |
+
+**Details:**
+- Asset browser panel on left side of scene editor
+- Asset grid showing thumbnails of all project assets
+- Search and filter assets by type (all/sprites/tilesets/textures)
+- Drag assets from browser to canvas to create new entities
+- Auto-generates sprite component with asset ID reference
+- Real-time image caching for smooth canvas rendering
+- Attach assets to selected entities via inspector
+- AI-generated badges on asset cards
+- Refresh assets button
+- Fixed project date display bug ("Invalid Date" issue)
+- ProjectService auto-fixes missing dates using file mtime
 
 ---
 
@@ -66,8 +79,11 @@
 - [x] Basic test coverage (9 smoke tests, vitest)
 - [x] Real AI asset generation working (OpenRouter LLM)
 - [x] Generation progress tracking (0-100%)
-- [x] **CRITICAL:** Asset preview shows actual SVG content (not placeholders)
+- [x] Asset preview shows actual SVG content (not placeholders)
 - [x] Documentation synced across all tracking files (CHANGELOG ordered, project_memory synced)
+- [x] Asset browser panel in scene editor
+- [x] Drag-and-drop assets to canvas
+- [x] Sprite rendering from actual assets
 - [x] Code compiles clean
 
 ---
@@ -76,7 +92,8 @@
 
 **AI generates real game assets from text descriptions. Scene editor integrates with asset library. Test coverage > 0.**
 
-**Phase 2 Complete ✅** — Real AI asset generation shipped in v0.7.1! Asset preview critical fix completed.
+**Phase 2 Complete ✅** — Real AI asset generation shipped in v0.7.1!
+**Phase 3 Complete ✅** — Scene Editor ↔ Asset Integration shipped in v0.8.0!
 
 ---
 
@@ -91,5 +108,5 @@ All 4 phases delivered:
 
 ---
 
-**Current Sprint:** Milestone 6 (Real AI Assets + Quality + Integration) — Phase 2 Complete ✅, Phase 3 Next
+**Current Sprint:** Milestone 6 (Real AI Assets + Quality + Integration) — Phase 3 Complete ✅, Phase 4 Next
 **Next Milestone:** M7 (Git + OpenClaw Operations)
