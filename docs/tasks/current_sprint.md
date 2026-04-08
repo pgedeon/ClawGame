@@ -237,3 +237,25 @@ Should RPG UI integration be completed before addressing AI timeout? The AI time
 
 **Sprint Owner:** @dev
 **Last Updated:** 2026-04-08 17:30 UTC (v0.12.0 RPG Foundation release)
+
+### v0.12.4 — AI Reliability + UX (2026-04-08)
+**What's New:**
+- AI service robustness: 30s timeout, AbortController, retry (2x), circuit breaker, streaming SSE
+- AI fallback codegen: 8 game system types (player, enemy, collectible, platform, jump, projectile, health, scene)
+- Scene Editor keyboard shortcuts: Delete, Ctrl+D (duplicate), Ctrl+S (save), V (select), G (move), Escape
+- AIFAB: connects to real AI API, live/offline status indicator, no more "coming soon"
+- AI Command: shows "offline mode" notice when using local fallback
+- Component extraction: useRPGState hook, useGameLoop hook, GameHUD, GameOverlays
+- .gitignore fixed: no more project data leaking to git
+
+**Addressed from feedback:**
+- PM #1 (AI Command): ✅ Robust retry/fallback/circuit-breaker system
+- PM #2 (Asset Studio): ✅ Unified with AI API, SVG fallback
+- PM #3 (Code Editor): ✅ Already had CodeMirror 6 (PM review was based on stale info)
+- PM .gitignore: ✅ Fixed pattern, removed tracked data
+- GameDev #1 (AI timeout): ✅ 30s timeout + retry + fallback
+- GameDev #2 (error messages): ✅ Toast notifications + fallback notice
+- GameDev #3 (contradictory AI): ✅ AIFAB now uses real AI
+- UI/UX #3 (keyboard shortcuts): ✅ Delete, Ctrl+D, Ctrl+S, V, G, Esc
+
+**Status:** ✅ RELEASED
