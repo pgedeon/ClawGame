@@ -87,6 +87,23 @@
 
 ---
 
+
+### Milestone 6.5: RPG Engine Systems ✅ (v0.12.0-rc.1)
+
+Built for Eclipse of Runes, reusable across all ClawGame projects.
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Save/Load System (API + UI) | ✅ Done | LocalStorage, 10 slots, quick save F5 |
+| Dialogue System (branching, choices, effects) | ✅ Done | Typewriter text, conditional lines, NPC portraits |
+| Quest System (tracking, objectives, rewards) | ✅ Done | Kill/collect/talk/explore, auto-progress, toasts |
+| Inventory System (grid, items, equip) | ✅ Done | 20 slots, stackable, 7 item types, drag-drop |
+| Spell Crafting System (3x3 rune grid) | ✅ Done | 6 recipes, 7 elements, hotkeys 1-8 |
+| RPG HUD (health, MP, gold, spells, quest) | ✅ Done | Canvas-based overlay |
+| RPG State Store (Zustand) | ✅ Done | Central state management |
+| GamePreviewPage RPG integration | ✅ Done | All systems wired into game loop |
+| End-to-end testing | ⏳ In Progress | Code compiles, manual browser test pending |
+
 ## Future Milestones
 
 ### Milestone 7: Git + OpenClaw Operations 🔄
@@ -117,6 +134,7 @@
 | ✅ User can visually edit a 2D scene | Complete | Scene editor with drag-drop |
 | ✅ User can describe feature and AI implements | Complete | OpenRouter API connected |
 | 🚧 User can generate an asset via AI | In Progress | Placeholder SVGs, ComfyUI next |
+| ✅ User can play an RPG with saves, quests, dialogue, inventory, spells | Complete | v0.12.0-rc.1, Eclipse of Runes demo |
 | ⏳ User can init and commit to Git | Future | M7 Git + OpenClaw |
 
 ---

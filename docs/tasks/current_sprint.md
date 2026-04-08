@@ -259,3 +259,19 @@ Should RPG UI integration be completed before addressing AI timeout? The AI time
 - UI/UX #3 (keyboard shortcuts): ✅ Delete, Ctrl+D, Ctrl+S, V, G, Esc
 
 **Status:** ✅ RELEASED
+
+### v0.12.5 — Decomposition + Test Infrastructure (2026-04-08)
+**What's Done:**
+- GamePreviewPage decomposition: RPGPanels component + useSceneLoader hook now wired in
+- GamePreviewPage: 1391 → 985 lines with real component integration (not dead code)
+- Vitest test infrastructure for web package (21 regression tests)
+- Regression tests for: Map→Array serialization, entity type inference, duplicate naming, AI circuit breaker
+- Scene parsing unit tests: array format, legacy object format, empty scenes, missing fields
+- FileWorkspace setTimeout hack removed
+
+**Addressed from PM feedback:**
+- PM Critical #1 (decomposition): ✅ Components now imported and used in GamePreviewPage
+- PM Critical #2 (tests): ✅ Vitest + 21 regression tests (up from 2 test files total)
+- PM Quality #1 (setTimeout hack): ✅ Replaced with immediate refresh
+
+**Status:** ✅ RELEASED

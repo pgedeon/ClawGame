@@ -245,3 +245,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - AI image generation test rewritten to match new service API
 - AIFAB no longer shows contradictory "coming soon" when AI Command shows "Real AI Connected"
 - User-facing error messages for AI timeout and failures in AIFAB
+
+### v0.12.5 - 2026-04-08
+
+#### Added
+- RPGPanels component: inventory, quests, spell crafting, save/load, dialogue UI (315 lines extracted)
+- useSceneLoader hook: scene loading, validation, entity type inference, legacy format handling
+- Vitest test infrastructure for web package (jsdom + React Testing Library)
+- 21 regression tests covering: Map→Array serialization, entity type inference, duplicate naming, AI circuit breaker, local codegen templates, scene parsing
+- Test script in web package.json (`pnpm test` / `pnpm test:watch`)
+
+#### Changed
+- GamePreviewPage: integrated extracted components (RPGPanels, useSceneLoader) — now an orchestrator
+- GamePreviewPage: 1391 → 985 lines (RPG panels + scene loading extracted to dedicated modules)
+- FileWorkspace: removed fragile setTimeout(100ms) hack after file creation — refreshes immediately
+
+#### Fixed
+- TypeScript compilation: fixed SpellRecipe pattern/grid interface mismatch
+- TypeScript compilation: fixed ElementType null handling in crafting grid

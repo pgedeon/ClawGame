@@ -142,11 +142,9 @@ export function FileWorkspace({ projectId, className }: FileWorkspaceProps) {
       await api.writeFile(projectId, cleanName, '');
       setShowNewFileDialog(false);
       setNewFileName('');
-      // Small delay to ensure filesystem has settled before refreshing tree
-      setTimeout(() => {
-        setRefreshKey(prev => prev + 1);
-        setSelectedFile(cleanName);
-      }, 100);
+      // Refresh immediately — the await already confirms the write completed
+      setRefreshKey(prev => prev + 1);
+      setSelectedFile(cleanName);
       showToast({ type: 'success', message: `File created: ${cleanName}` });
     } catch (err: any) {
       setNewFileError(err.message || 'Failed to create file');
