@@ -285,3 +285,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed UI stats from game preview to prevent performance issues
 - Improved keyboard shortcut handling across editors
 - Enhanced project creation experience with starter content
+
+### [0.9.3] - 2026-04-08
+
+#### Fixed
+- Fixed "Invalid Date" bug in dashboard display
+- Fixed missing project status field for old projects (now defaults to 'draft')
+- Fixed missing project name field for old projects (falls back to displayName)
+- Added automatic data migration for existing project files
+- Fixed API service to gracefully handle missing fields with defaults
+- Improved project dashboard reliability
+
+#### Improved  
+- Enhanced error handling in project listing
+- Better backward compatibility for legacy project files
+- More robust project data validation
+- Updated VERSION.json to 0.9.3
+
