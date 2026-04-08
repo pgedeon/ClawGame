@@ -5,6 +5,22 @@ All notable changes to ClawGame will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.1] - 2026-04-08
+
+#### Fixed
+- **Health endpoint version** — Now returns actual version from VERSION.json instead of hardcoded '0.1.0'
+- **SceneEditorPage monolith** — Decomposed from 1270 lines to 528 lines orchestrator
+  - Extracted AssetBrowserPanel (207 lines) for asset browsing, search, filter, drag-and-drop
+  - Extracted SceneCanvas (332 lines) for canvas rendering, entity manipulation, viewport controls
+  - Extracted PropertyInspector (167 lines) for entity property editing, component management
+  - Created shared types.ts for scene editor state and constants
+- **project_memory.md sync** — Updated to v0.8.0 with Phase 3 COMPLETE status
+
+#### Changed
+- SceneEditorPage now orchestrates three focused components (AssetBrowserPanel, SceneCanvas, PropertyInspector)
+- Component architecture improved for Phase 4 export workflow integration
+- Clean separation of concerns across scene editor UI
+
 ## [0.8.0] - 2026-04-08
 
 #### Added
