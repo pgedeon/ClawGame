@@ -10,9 +10,9 @@ import { getFileTree, readFileContent } from './fileService';
 import { FastifyLoggerInstance } from 'fastify';
 
 // OpenRouter API configuration
-const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
-const DEFAULT_MODEL = 'qwen/qwen3.6-plus:free';
+const AI_API_URL = process.env.AI_API_URL || 'https://api.z.ai/api/coding/paas/v4/chat/completions';
+const AI_API_KEY = process.env.AI_API_KEY || '';
+const AI_MODEL = process.env.AI_MODEL || 'glm-4.5-flash';
 
 // Types
 export interface AICommandRequest {
@@ -61,9 +61,9 @@ export class RealAIService {
   constructor(logger: FastifyLoggerInstance) {
     this.logger = logger;
     this.axios = axios.create({
-      baseURL: OPENROUTER_API_URL,
+      baseURL: AI_API_URL,
       headers: {
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Authorization': `Bearer ${AI_API_KEY}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': 'https://github.com/pgedeon/ClawGame',
         'X-Title': 'ClawGame AI-Powered Game Engine',
@@ -87,7 +87,7 @@ export class RealAIService {
     try {
       // Call OpenRouter API
       const response = await this.axios.post('', {
-        model: DEFAULT_MODEL,
+        model: AI_MODEL,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
@@ -390,7 +390,7 @@ Structure your responses with these sections:
     try {
       // Test API with minimal request
       await this.axios.post('', {
-        model: DEFAULT_MODEL,
+        model: AI_MODEL,
         messages: [{ role: 'user', content: 'test' }],
         max_tokens: 1,
       });
@@ -398,7 +398,7 @@ Structure your responses with these sections:
       return {
         status: 'ok',
         service: 'real-ai-openrouter',
-        model: DEFAULT_MODEL,
+        model: AI_MODEL,
         features: [
           'real-time code generation',
           'code explanation',
@@ -413,7 +413,7 @@ Structure your responses with these sections:
       return {
         status: 'error',
         service: 'real-ai-openrouter',
-        model: DEFAULT_MODEL,
+        model: AI_MODEL,
         features: [],
       };
     }

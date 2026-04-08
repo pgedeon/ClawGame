@@ -22,6 +22,7 @@ import {
 import '../game-hub.css';
 import { logger } from '../utils/logger';
 import { WelcomeModal } from '../components/WelcomeModal';
+import { ProjectOnboarding } from '../components/ProjectOnboarding';
 
 interface ProjectTab {
   id: string;
@@ -293,6 +294,9 @@ function ProjectOverview({ project, projectId }: { project: ProjectDetail; proje
             </button>
           </span>
         </div>
+
+      {/* Onboarding Guide for new users */}
+      <ProjectOnboarding />
       </div>
 
       {/* Quick Actions Grid */}
