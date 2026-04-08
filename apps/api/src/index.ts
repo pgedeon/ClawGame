@@ -9,6 +9,7 @@ import { fileRoutes } from './routes/files';
 import { aiRoutes } from './routes/aiRoutes';
 import { assetRoutes } from './routes/assets';
 import { exportRoutes } from './routes/exportRoutes';
+import { sceneAnalysisRoutes } from './routes/sceneAnalysis';
 
 // Load version from VERSION.json at project root
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -42,6 +43,9 @@ app.register(assetRoutes);
 
 // Game export functionality
 app.register(exportRoutes);
+
+// Scene analysis for AI context
+app.register(sceneAnalysisRoutes);
 
 const start = async () => {
   try {

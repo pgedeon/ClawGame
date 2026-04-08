@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.11.5] - 2026-04-08
+
+#### Added
+- **Scene analysis API endpoint** — POST /api/projects/:id/scene-analysis reads actual scene.json files
+- **SceneAnalysis interface** — captures entity composition, flags (player/enemies/platforms/etc), dominantGenre inference
+- **Genre-specific AI asset suggestions** — Platformer backgrounds, RPG tilesets based on detected game type
+- **Real-time scene detection** — AssetSuggestions analyzes scene composition instead of hardcoded values
+
+#### Changed
+- Scene analysis reads all .scene.json files in project's scenes directory
+- Entity type detection: movement→player, ai→enemy, collision:wall→platform, collision:collectible→collectible
+- Genre inference based on entity composition (player+platforms=platformer, player+enemies=action, collectibles+noEnemies=puzzle)
+- Fallback to project.genre metadata when scene analysis insufficient
+
+#### Fixed
+- TypeScript null-safety: projectId non-null assertion in API calls
+- AssetSuggestions: Added error handling for scene analysis failures
+
+
 ## [0.11.4] - 2026-04-08
 
 #### Added
