@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Sparkles } from 'lucide-react';
 import { api } from '../api/client';
 import { FileWorkspace } from '../components/FileWorkspace';
+import { ContextualAIAssistant } from '../components/ContextualAIAssistant';
+import '../contextual-ai.css';
 import { logger } from '../utils/logger';
 
 interface EditorPageProps {
@@ -13,6 +16,7 @@ function EditorPageContent({ projectId }: EditorPageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [buildStatus, setBuildStatus] = useState<'idle' | 'building' | 'success' | 'error'>('idle');
   const [buildMessage, setBuildMessage] = useState<string | null>(null);
+  const [aiContext, setAiContext] = useState<string>('code editor');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -23,6 +27,7 @@ function EditorPageContent({ projectId }: EditorPageProps) {
     try {
       const project = await api.getProject(projectId);
       setProjectName(project?.name || 'Unknown Project');
+      setAiContext(project?.genre || 'code editor');
     } catch (err) {
       logger.error('Failed to load project:', err);
     } finally {
@@ -67,7 +72,10 @@ function EditorPageContent({ projectId }: EditorPageProps) {
   if (isLoading) {
     return (
       <div className="editor-page">
-        <div className="loading">Loading project...</div>
+        <div className="loading">
+          <div className="loading-spinner" />
+          <p>Loading project...</p>
+        </div>
       </div>
     );
   }
@@ -77,7 +85,12 @@ function EditorPageContent({ projectId }: EditorPageProps) {
       <header className="page-header">
         <div className="project-info">
           <h1>Code Workspace</h1>
-          <p>Project: <span className="project-name">{projectName}</span></p>
+          <p>Project: <span className="project-name">{projectName}</span>
+            <span className="ai-badge-inline">
+              <Sparkles size={10} />
+              AI-Ready
+            </span>
+          </p>
         </div>
 
         <div className="page-actions">
@@ -103,6 +116,18 @@ function EditorPageContent({ projectId }: EditorPageProps) {
         </div>
       </header>
 
+      {/* AI Assistant Bar */}
+      <div className="editor-ai-bar">
+        <ContextualAIAssistant
+          projectId={projectId}
+          context={aiContext}
+          currentFile={undefined}
+        />
+        <div className="editor-ai-shortcuts">
+          <kbd>⌘K</kbd> <span>for full AI commands</span>
+        </div>
+      </div>
+
       <FileWorkspace projectId={projectId} />
     </div>
   );
@@ -114,9 +139,13 @@ export function EditorPage() {
   if (!projectId) {
     return (
       <div className="editor-page">
-        <div className="error">
+        <div className="error-state">
+          <div className="error-icon">📁</div>
           <h2>No Project Selected</h2>
           <p>Please open a project first to access the code workspace.</p>
+          <button className="action-btn" onClick={() => window.history.back()}>
+            ← Go Back
+          </button>
         </div>
       </div>
     );

@@ -1239,3 +1239,229 @@ kbd:hover {
 .not-found-actions .btn-secondary:hover {
   background: var(--hover-bg);
 }
+
+/* ── Editor AI Bar ── */
+.editor-ai-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  gap: var(--space-md);
+}
+
+.editor-ai-shortcuts {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.editor-ai-shortcuts kbd {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+/* ── AI Badge Inline ── */
+.ai-badge-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  background: var(--ai-primary);
+  color: white;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: var(--space-sm);
+  vertical-align: middle;
+}
+
+.ai-badge-inline svg {
+  animation: ai-sparkle 3s infinite;
+}
+
+@keyframes ai-sparkle {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+/* ── Build Feedback ── */
+.build-feedback {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  transition: all var(--transition-normal);
+}
+
+.build-feedback.building {
+  background: var(--info-light);
+  color: var(--info);
+}
+
+.build-feedback.success {
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.build-feedback.error {
+  background: var(--error-light);
+  color: var(--error);
+}
+
+.build-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* ── Improved Responsive Design ── */
+@media (max-width: 768px) {
+  .app-layout {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100% !important;
+    height: auto !important;
+    max-height: 60px;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    z-index: var(--z-sidebar);
+    border-top: 1px solid var(--border);
+    border-right: none;
+    padding: 0;
+  }
+
+  .sidebar-header,
+  .sidebar-section-title,
+  .sidebar-footer {
+    display: none;
+  }
+
+  .sidebar-nav {
+    display: flex;
+    flex-direction: row;
+    gap: 0;
+    padding: 0;
+    width: 100%;
+  }
+
+  .nav-item {
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    padding: var(--space-xs);
+    font-size: 10px;
+    min-height: 56px;
+    border-radius: 0;
+    gap: 2px;
+  }
+
+  .nav-item span:not(.nav-icon) {
+    font-size: 10px;
+  }
+
+  .main-content {
+    margin-left: 0 !important;
+    padding-bottom: 60px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+  }
+
+  .page-actions {
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+  }
+
+  .editor-ai-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .editor-ai-shortcuts {
+    justify-content: center;
+  }
+
+  /* Dashboard responsive */
+  .dashboard-hero {
+    padding: var(--space-lg) var(--space-md) !important;
+  }
+
+  .dashboard-hero h1 {
+    font-size: var(--text-2xl) !important;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+  }
+
+  .action-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .projects-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* File workspace responsive */
+  .file-workspace-layout {
+    flex-direction: column !important;
+  }
+
+  .file-tree-panel {
+    max-height: 200px;
+    overflow-y: auto;
+    border-right: none !important;
+    border-bottom: 1px solid var(--border);
+    width: 100% !important;
+    min-width: 100% !important;
+  }
+
+  /* Scene editor responsive */
+  .scene-editor-layout {
+    flex-direction: column !important;
+  }
+
+  .scene-canvas {
+    min-height: 300px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-hero h1 {
+    font-size: var(--text-xl) !important;
+  }
+
+  .hero-subtitle {
+    font-size: var(--text-sm) !important;
+  }
+
+  .action-btn {
+    padding: var(--space-xs) var(--space-sm) !important;
+    font-size: var(--text-sm) !important;
+  }
+}

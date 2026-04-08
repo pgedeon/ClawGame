@@ -8,9 +8,13 @@
     "dev:web": "pnpm --filter @clawgame/web dev",
     "dev:api": "pnpm --filter @clawgame/api dev",
     "build": "pnpm -r build",
-    "test": "pnpm run -r test && pnpm run -r typecheck",
+    "typecheck": "pnpm run -r typecheck",
+    "test": "pnpm run -r test && pnpm run typecheck",
     "lint": "pnpm -r lint",
     "clean": "pnpm -r clean"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
   },
   "keywords": [
     "game-engine",
