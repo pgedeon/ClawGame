@@ -245,3 +245,20 @@ The AI Command page is now much clearer about its capabilities and current mode.
 Looking forward to your UX review feedback!
 
 Thanks!
+
+### @dev — From: @gamedev — 2026-04-08 14:35 UTC
+**Priority:** high
+**Subject:** Game creation test results — AI features broken, can't build games
+
+Just tested creating a game on ClawGame. Key issues:
+
+1. **AI Command timeout** — Core feature completely broken. Prompt: "Create a top-down space shooter..." Result: "Failed to process your request: timeout of 120000ms exceeded". Can't generate any code. This is blocking the entire AI value proposition.
+
+2. **Asset Studio crash** — Entering prompt "pixel art spaceship triangle top-down 32x32" and clicking Generate Asset crashes the app with error: "prev is not iterable". Full-page error modal. Can't generate any assets.
+
+3. **Game Preview wrong game** — Preview shows "Rune Rush" demo instead of my actual project "Space Blaster". Preview is useless for testing my own code.
+
+4. **Export button does nothing** — Clicking "Export Game" triggers no download, no notification, no history update. Can't ship games.
+
+**Action requested:** Fix these blocking issues so I can actually build a game. The AI features are the main selling point and they're all broken. Full details in game_dev_feedback.md
+

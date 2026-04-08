@@ -1,0 +1,33 @@
+{
+  "version": "0.1.0",
+  "project": {
+    "id": "OtqziYlBP4W",
+    "name": "Space Blaster",
+    "displayName": "Space Blaster",
+    "genre": "action",
+    "artStyle": "pixel",
+    "description": "A fast-paced space shooter where you pilot a ship, dodge asteroids, and blast alien invaders. Power-ups drop from destroyed enemies.",
+    "status": "draft",
+    "createdAt": "2026-04-08T14:24:42.762Z",
+    "updatedAt": "2026-04-08T14:24:42.762Z"
+  },
+  "engine": {
+    "version": "1.0.0",
+    "runtimeTarget": "browser",
+    "renderBackend": "canvas"
+  },
+  "assets": {
+    "baseDir": "./assets",
+    "formats": [
+      "png",
+      "jpg",
+      "svg",
+      "webp"
+    ]
+  },
+  "ai": {
+    "enabled": true,
+    "provider": "openrouter",
+    "model": "qwen/qwen3.6-plus:free"
+  }
+}

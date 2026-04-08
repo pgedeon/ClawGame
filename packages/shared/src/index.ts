@@ -373,3 +373,5 @@ export const animations = {
   smoothFrameRate: 60,
   quickFrameRate: 15,
 };
+// RPG system types
+export * from './rpg/types';
