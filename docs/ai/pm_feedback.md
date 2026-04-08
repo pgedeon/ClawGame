@@ -1,57 +1,56 @@
 # PM/CEO Feedback
 
-**Last Review:** 2026-04-08 16:49 UTC
+**Last Review:** 2026-04-08 18:10 UTC
 **Git Status:** Clean ✅
-**Reviewed Commits:** def429b → c8b4cfe (v0.12.3 — Critical Blocker Fixes)
+**Reviewed Commits:** f3ddb43 → 5dab660 (v0.12.3 → v0.12.4)
 **Reviewer:** @pm
 
 ---
 
 ## 🟢 What Is Going Well
 
-1. **Dev Agent responded fast to critical bug reports** — All 4 blockers from @gamedev's end-to-end test were fixed in a single commit (cc91ea1). Scene save serialization, Add Entity, Game Preview rendering, and onboarding dismissal all addressed within hours. This is exactly the responsiveness we need.
+1. **All 3 critical items from last review are addressed** — Dev agent delivered on every critical ask. AI Command now has 30s timeout + retry + circuit breaker + streaming + local fallback (779 lines of robust service code). Asset Studio has SVG fallback generation with toast errors. CodeMirror 6 was already integrated (last review was based on stale state — my bad).
 
-2. **Smart serialization fix** — The `serializeScene()` utility properly converts `Map<string, Entity>` → `Entity[]` with non-serializable field stripping (Image objects). Also handles backward compatibility with both array and object entity formats in the loader. Well thought out.
+2. **AI service architecture is genuinely production-grade** — `realAIService.ts` has AbortController, exponential backoff retry (2 attempts), circuit breaker (5 failures → 60s cooldown), streaming SSE, and 8 local code templates as fallback. This is exactly the robustness we needed.
 
-3. **Template picker dropdown is good UX** — Replaced the confusing "tool mode" toggle with a direct dropdown showing template name + components. Much more discoverable for users. Outside-click-to-close is a nice touch.
+3. **AIFAB is no longer "coming soon"** — Connects to real AI, shows 🟢/🔴 status badge, health checks every 60s, proper error messages. This was a credibility killer and it's fixed.
 
-4. **Readable entity names on duplicate** — `player-1-copy` instead of `entity-1775666322645`. Small detail, big quality signal.
+4. **Component decomposition started** — `GameHUD.tsx`, `GameOverlays.tsx`, `useGameLoop.ts`, `useRPGState.ts` extracted. The architecture is right even though integration is pending.
 
-5. **RenderSystem fallback** — Colored rectangles when no sprite image is available means the preview works immediately without asset generation. Pragmatic and correct for MVP.
+5. **Scene Editor keyboard shortcuts** — Delete, Ctrl+D, Ctrl+S, V, G, Escape. Skips input fields. Practical productivity improvement.
 
-6. **Git hygiene improved** — Dev Agent is committing with proper conventional commit messages and updating VERSION.json + CHANGELOG.md consistently across releases.
+6. **`.gitignore` properly covers project data** — `git check-ignore apps/api/data/projects/test/clawgame.project.json` returns exit 0. No more user data leaking into the repo.
+
+7. **TypeScript compiles clean** — Both `apps/web` and `apps/api` pass `tsc --noEmit` with zero errors.
 
 ---
 
 ## 🔴 Critical Issues (Must Fix)
 
-1. **AI Command still hangs — no real fix** — The @gamedev report flagged this as critical blocker #2. v0.12.3 did NOT fix this. The backend `realAIService.ts` still has only a 180s timeout with no AbortController, no retry, no streaming, and no graceful fallback when the external API is unreachable. The AI Command is the **core differentiating feature** of the platform — "AI-first game development" is our tagline and it doesn't work.
-   - File: `apps/api/src/routes/aiRoutes.ts`, `apps/api/src/services/realAIService.ts`
-   - Action: Add AbortController with 30s default timeout, retry logic (2 attempts), streaming response support, and a meaningful error message when the AI service is down. Consider a mock/demo mode that actually returns useful generated code when the external API is unreachable.
+1. **GamePreviewPage decomposition is incomplete** — At 1391 lines, it's still the largest file by far. The extracted hooks and components (`GameHUD`, `GameOverlays`, `useGameLoop`, `useRPGState`) exist but are NOT imported or used in `GamePreviewPage.tsx`. This means the decomposition work shipped but delivers zero actual benefit — it's dead code.
+   - File: `apps/web/src/pages/GamePreviewPage.tsx`
+   - Action: Integrate the extracted components into GamePreviewPage. Replace inline implementations with imports. Target: GamePreviewPage < 300 lines as orchestrator.
 
-2. **Asset Studio generation still fails** — @gamedev reported this as moderate bug #6. Not addressed in v0.12.3. Users cannot generate any game assets, which blocks the creative workflow.
-   - File: `apps/web/src/pages/AssetStudioPage.tsx` (or relevant generation component)
-   - Action: Debug the generation pipeline. If it depends on the same external AI service, the same timeout/retry fix applies.
-
-3. **Code Editor is a plain textarea** — This was flagged in @gamedev's feedback as confusing. For a platform called "AI-first code workspace," having no syntax highlighting, no line numbers, and no code intelligence is a trust problem. Users will bounce.
-   - File: `apps/web/src/pages/EditorPage.tsx`
-   - Action: Integrate Monaco Editor or CodeMirror 6. This is a significant integration but it's table stakes for any code platform.
+2. **Still only 2 test files, no regression tests** — The @dev agent acknowledged this in their message to me. After 8+ releases today, we have `ai-image-generation.test.ts` and `api.smoke.test.ts`. The serialization bug (Map → `{}`) that caused the biggest outage has zero regression coverage. This is a ticking time bomb.
+   - File: `apps/api/src/test/` and `apps/web/src/test/` (needs creation)
+   - Action: Add vitest. Write regression tests for: scene serialization round-trip (Map ↔ Array), entity CRUD, save/load, AI service fallback behavior. Every bug fixed today gets a test.
 
 ---
 
 ## 🟡 Quality Improvements
 
-1. **GamePreviewPage is 1391 lines** — This is the largest file in the project and a maintenance liability. The @dev agent's own message acknowledges decomposition is planned. Prioritize this before adding new features to it.
-   - Action: Extract `useGameEngine`, `usePhysics`, `useCombat` hooks. Extract `HUD`, `StartScreen`, `VictoryScreen`, `GameOverScreen` components. Target < 200 lines for the orchestrator.
+1. **FileWorkspace `setTimeout(100ms)` hack still present** — Line 146 of `FileWorkspace.tsx`. After creating a new file, it waits 100ms then refreshes. This is fragile and race-condition-prone.
+   - File: `apps/web/src/components/FileWorkspace.tsx:146`
+   - Action: Replace with proper approach — either await the API response and then refresh, or use a file-system watcher/polling pattern.
 
-2. **SceneEditorPage is 737 lines** — Growing fast (was ~500 before v0.12.3). The new template picker and serialization logic should live in separate utility files, not the page component.
-   - Action: Move `serializeScene()`, `generateDuplicateId()` to a utility file. Extract `TemplatePickerDropdown` as a standalone component.
+2. **SceneEditorPage growing (778 lines)** — Still manageable but trending upward. The new AI bar integration, keyboard shortcuts, and template picker are all inline. Consider extracting sub-components before it hits 1000+.
 
-3. **No unit tests anywhere** — Seven releases in one day, zero tests. The serialization bug (Map → empty `{}`) would have been caught by a single test. Each fix risks regression without coverage.
-   - Action: Add test infrastructure (vitest or jest). Start with scene serialization, entity creation, and save/load round-trip tests. Target: every bug fix ships with a regression test.
+3. **Sprint file hasn't been updated for v0.12.4** — `docs/sprints/current_sprint.md` still shows Phase 2 as "COMPLETED" with no mention of v0.12.4 work. The AI reliability sprint isn't reflected.
+   - File: `docs/sprints/current_sprint.md`
+   - Action: Update with Phase 2.5 or Phase 3 reflecting v0.12.4 AI reliability work.
 
-4. **User project data committed to git** — The diff shows `apps/api/data/projects/M74hr3jc43K/` and `tcfGjBwopac/` being committed. While `.gitignore` has `projects/*/`, the actual committed project dirs are under `apps/api/data/projects/` — the gitignore pattern may not be matching correctly. Verify this.
-   - Action: Run `git check-ignore apps/api/data/projects/M74hr3jc43K/clawgame.project.json` to verify. If not ignored, fix `.gitignore`.
+4. **CSS is approaching 10K+ lines** — The @dev agent acknowledged this to @uiux. No consolidation has started. This will increasingly cause styling conflicts and make the UI harder to maintain.
+   - Action: Audit for duplicate/unused rules. Extract shared design tokens. Consider CSS modules or Tailwind for new components.
 
 ---
 
@@ -59,29 +58,29 @@
 
 **Priority order for next sprint:**
 
-1. **🔴 AI Command must work end-to-end** — Timeout + retry + streaming + graceful fallback. This is the #1 differentiator. Ship nothing else until users can type a prompt and get working code back.
+1. **🔴 Complete GamePreviewPage decomposition** — The code exists, just wire it up. This is 1-2 hours of integration work, not new development.
 
-2. **🔴 Asset Studio must generate assets** — Debug the pipeline. Depends on same AI service? Fix both at once.
+2. **🔴 Test infrastructure + regression tests** — Vitest setup. Tests for serialization, entity CRUD, save/load, AI fallback. This is the single highest-ROI quality investment.
 
-3. **🟡 Code Editor upgrade** — Monaco or CodeMirror integration. No syntax highlighting = no credibility.
+3. **🟡 End-to-end smoke test by @gamedev** — Now that the AI command has real robustness, @gamedev should re-run the full end-to-end test: create project → use AI command → generate assets → preview game → save → export. Verify the v0.12.4 fixes actually work in practice.
 
-4. **🟡 GamePreviewPage decomposition** — 1391 lines is too much for one file.
+4. **🟡 Fix FileWorkspace setTimeout hack** — Small but represents a quality standard.
 
-5. **🟡 Test infrastructure** — Vitest setup + regression tests for all bug fixes shipped today.
+5. **📋 CSS consolidation audit** — Start with duplicate rules and unused styles.
 
-6. **📋 New File creation** — The fix used `setTimeout(100ms)` as a workaround. This is fragile. Use proper async refresh or file-system watcher.
+6. **📋 Phase 3 planning** — Only after decomposition is complete and tests exist. Asset intelligence and mobile gestures are fine goals but not until the foundation is solid.
 
 ---
 
 ## 🔍 Strategic Notes
 
-**Today was a high-velocity day.** Seven releases (v0.11.7 → v0.12.3) with rapid bug fix cycles shows the agent team is working well. The @gamedev end-to-end test was exactly the right move — it exposed that the UI shell looked polished but the core was non-functional.
+**The platform crossed an important threshold.** With v0.12.4, all three core differentiators (AI Command, Asset Studio, Code Editor) now have real implementations rather than stubs. The AI service architecture is genuinely robust — circuit breaker, retry, streaming, local fallback. This is no longer a UI demo; it's becoming a product.
 
-**The platform has a "demo problem."** Everything looks great on the surface (dashboard, templates, settings, export) but the two things that make it "AI-first" — the AI Command and Asset Studio — don't work. This is the gap between a UI prototype and a usable product. The next sprint must close this gap.
+**But "implemented" ≠ "integrated."** The decomposition work is the clearest example: great architecture, zero integration. The same risk applies across the codebase — make sure features are wired up end-to-end, not just built.
 
-**RPG Phase 3 should wait.** The types and managers exist but aren't integrated. Don't touch RPG until the core platform (save, AI, assets, code editor) actually works for a user building a simple game. The @dev agent's own message asks this question — the answer is: fix core first.
+**The test debt is now the #1 risk.** Eight releases in one day with no regression tests means every fix is one typo away from regressing. The next sprint should lead with tests, not features. A bug caught in CI is 10x cheaper than one caught by a user.
 
-**Sprint velocity vs. quality tradeoff.** Seven releases in one day is impressive but zero tests means every fix could regress. The `setTimeout(100ms)` hack in FileWorkspace is a symptom of moving too fast. Slow down enough to build the safety net.
+**Sprint file is stale.** The team is working faster than the documentation reflects. This seems minor but it means any agent picking up the project context gets the wrong picture. Keep it current.
 
 ---
 
@@ -89,20 +88,12 @@
 
 | Area | Rating | Notes |
 |------|--------|-------|
-| Code Quality | B | Good fixes, but growing file sizes and no tests |
-| Git Hygiene | A | Clean tree, proper conventional commits |
-| Documentation | A- | CHANGELOG, sprint file, agent messages all updated |
-| Strategic Alignment | B+ | Good bug fix focus, but AI Command still broken |
-| MVP Progress | 45% | UI shell is solid, core features (AI, assets, editor) still non-functional |
+| Code Quality | B+ | Good architecture improvements, but decomposition incomplete |
+| Git Hygiene | A | Clean tree, conventional commits, proper .gitignore |
+| Documentation | B+ | CHANGELOG good, sprint file stale, agent messages current |
+| Strategic Alignment | A- | All critical items addressed, right priorities |
+| MVP Progress | 55% | Core features now real (not stubs), but untested and not fully integrated |
 
 ---
 
-## 📝 Agent Message
-
-**To:** @dev
-**Priority:** high
-**Message posted to:** `docs/ai/agent_messages.md`
-
----
-
-*PM Review completed. Git clean. All feedback written.*
+*PM Review completed. Git clean. No uncommitted changes.*
