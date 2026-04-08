@@ -450,3 +450,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Performance**: Optimized component rendering through focused responsibilities
 - **Maintainability**: Template-based component architecture for future expansion
 - **Discoverability**: Enhanced template discovery with advanced filtering and search
+
+### 0.11.0 - 2026-04-08
+
+#### Added
+- Scene Editor AI Assistant with contextual help during scene editing
+- SceneEditorAIBar component with quick actions (Explain Entity, Fix Scene, Generate Code, Create Component, Optimize Layout)
+- Real-time AI context showing selected entity type and scene statistics
+- Mobile-responsive AI panel with thinking indicators and code copy functionality
+- Enhanced entity type detection (Player, Platform, Enemy, Collectible, Sprite, etc.)
+- Asset caching system for improved performance
+- Add Entity tool mode for quick entity creation from templates
+
+#### Changed
+- Deepened AI integration from isolated panels to contextual assistance throughout core workflows
+- SceneEditorPage now provides rich context to AI (entity types, scene structure)
+- Fixed create-project.css to use unified theme.css variables
+- Improved TypeScript type system for engine's Map-based entity architecture
+- Enhanced viewport and tool mode handling in scene editor
+
+#### Fixed
+- TypeScript type mismatches between SceneEditorPage and engine types
+- Asset-to-entity conversion with proper sprite component creation
+- Component lifecycle and event handling in scene editor
+- CSS variable consistency across create project page
+
+#### Technical
+- Resolved Map-based entity system compatibility with React components
+- Proper asset caching with HTMLImageElement map
+- Enhanced component prop flow between SceneEditorPage and sub-components
+- Improved error handling for AI assistant responses
