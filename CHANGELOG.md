@@ -480,3 +480,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Proper asset caching with HTMLImageElement map
 - Enhanced component prop flow between SceneEditorPage and sub-components
 - Improved error handling for AI assistant responses
+
+### 0.11.1 - 2026-04-08
+
+#### Added
+- Unified button system CSS classes: .btn, .btn-primary, .btn-secondary, .btn-ghost, .btn-danger, .btn-success, .btn-ai with size variants (sm, lg, icon, block)
+- Utility classes: .card, .card-hover, .badge-* (primary/success/warning/error/info/ai), .text-* (muted/secondary/accent/success/error/warning), .flex utilities, .gap-* scale, .empty-state
+- ProjectOnboarding component: 5-step guided onboarding panel shown when users first enter a project
+  - Step 1: Ask AI to Build → AI Command
+  - Step 2: Create Assets → Asset Studio
+  - Step 3: Design Scenes → Scene Editor
+  - Step 4: Write Code → Code Editor
+  - Step 5: Play & Test → Game Preview
+- Dismissible onboarding with localStorage persistence
+
+#### Changed
+- AI model switched from qwen3.6-plus:free to qwen3.6-plus for improved reliability
+- project_memory.md synced to v0.11.0 (was outdated at v0.10.0)
+- ProjectPage now shows ProjectOnboarding guide in overview section
+
+#### Fixed
+- Documentation sync: project_memory.md version mismatch resolved
+- Addressed Game Dev feedback: "No clear starting point after project creation" with guided onboarding
+- Addressed UI/UX feedback: "Inconsistent component styling" with unified button system
