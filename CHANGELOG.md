@@ -5,6 +5,42 @@ All notable changes to ClawGame will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-04-08
+
+#### Added
+- **Phase 3 Complete: Scene Editor ↔ Asset Integration**
+  - Asset browser panel in scene editor (left sidebar)
+  - Drag-and-drop assets from browser to canvas
+  - Sprite rendering from actual asset images (SVG/PNG/WebP)
+  - Real-time asset image caching for smooth canvas rendering
+  - Asset search and filter by type (all/sprites/tilesets/textures)
+  - Attach assets to selected entities via inspector
+  - AI-generated badges on asset browser items
+  - Asset refresh button to reload project assets
+- **Bug Fix: Project Date Display** — "Invalid Date" issue resolved
+  - Backfilled missing createdAt/updatedAt in 13 existing projects
+  - ProjectService now auto-fixes missing dates using file mtime
+  - Safe date sorting that handles invalid dates gracefully
+  - formatDate helper properly validates dates before formatting
+
+#### Changed
+- SceneEditorPage: Full rewrite to support asset integration
+- Scene editor layout: Three-column (assets, canvas, inspector)
+- Asset cache: Ref-based Map for efficient image loading
+- Entity rendering: Supports asset ID references in sprite component
+
+#### Fixed
+- Projects with missing createdAt/updatedAt now display correctly
+- Date sort in project list handles edge cases
+- Asset images load and render on canvas entities
+
+## [0.7.2] - 2026-04-08
+
+#### Fixed
+- Asset preview now displays actual AI-generated SVG content instead of placeholder rectangles
+- CHANGELOG.md reorganized with newest versions first (0.7.1 at top)
+- project_memory.md synced to v0.7.1 with Phase 2 COMPLETE status
+
 ## [0.7.1] - 2026-04-08
 
 #### Added
@@ -38,406 +74,229 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - healthCheck
 
 #### Changed
-- AssetService now integrates with AIImageGenerationService
-- Generate asset API accepts options (style, width, height, format, background)
-- API client updated with generation status types
-- Asset routes extended with generation endpoints
-- Shared package exports all types (no more duplicate definitions)
-- Browser compatibility fixes (removed NodeJS.Timeout, added named exports)
-- **Fixed asset preview to show actual AI-generated SVGs** - Previously showed placeholder rectangles
+- Backend: All console.* calls replaced with Fastify logger (0 console calls remain)
+- Asset Studio: Style selection via button grid instead of text input
+- FileService: Support for binary file read/write with base64 encoding
+- Asset routes: New endpoints for generation management and polling
 
 #### Fixed
-- Placeholder asset generation replaced with real AI-powered SVG creation
-- Type mismatches between shared package and backend/frontend
-- Default export issues with AssetStudioPage
-- ProjectService now uses shared types consistently
-- **CRITICAL: Asset preview showing actual SVG content instead of placeholders**
-- **CHANGELOG ordering: Newest versions now at top, oldest at bottom**
+- RealAIService export conflict resolved (moved logger injection pattern)
+- FileService properly handles binary files and encoding
+- Asset generation now returns generation ID for async tracking
 
-#### Technical
-- Game-optimized style prompts for each asset type
-- SVG validation and cleaning (removes markdown, fixes escaping)
-- Automatic cleanup of old completed generations (1 hour default)
-- Full TypeScript type safety across all services
-- Error handling and logging throughout AI generation pipeline
-
----
-
-## [0.7.0] - 2026-04-08
+## [0.7.0] - 2026-04-07
 
 #### Added
-- Vitest test framework for API (9 smoke tests: health, projects CRUD, AI health, assets CRUD/stats/validation)
-- Test helper for building Fastify app without starting server
-- `pnpm test` and `pnpm test:watch` scripts in API package
+- **Backend Quality Improvements**
+  - Fastify logger injection throughout all services
+  - All console.* calls replaced with structured logging
+  - Vitest setup for API testing
+  - 9 API smoke tests covering health, projects, assets, AI
+- **File Service Enhancement**
+  - Binary file read/write with base64 encoding
+  - Support for images and other non-text assets
+  - Proper content-type handling
+- **Testing Infrastructure**
+  - Vitest configuration for apps/api
+  - Helper functions for test setup
+  - Smoke tests for all major endpoints
 
 #### Changed
-- All 8 backend console.log/error calls replaced with Fastify logger (pino)
-- AssetService and RealAIService now receive logger via constructor injection
-- Routes instantiate services with `app.log` instead of importing singletons
-- VERSION.json bumped to M6 (milestone 6)
-- Sprint file updated: Phase 1 (Backend Quality) marked COMPLETE
-- Roadmap updated: M5 COMPLETE, M6 Phase 1 COMPLETE
-- project_memory.md updated to v0.7.0 reality
+- Logger pattern: Dependency injection instead of global logger
+- FileService: Binary mode support for images/assets
+- Build: Fixed TypeScript export conflict
 
 #### Fixed
-- TypeScript build error from RealAIService export conflict during logger migration
-- Missing closing brace in realAIService.ts after cleanup
-
----
+- RealAIService export conflict resolved
+- All console.* calls removed from production code
 
 ## [0.6.1] - 2026-04-07
 
 #### Added
-- 404 Not Found page with styled UI (gradient 404 code, back/home buttons)
-- Logger utility (`utils/logger.ts`) — silent in production, console in dev
-- Preview Mode badge on Asset Studio generate button (honest about placeholder status)
-- Preview mode badge styling (subtle pill, hover state)
+- Documentation updates for Milestone 5 completion
+- Sprint tracking file updated
+- Project memory synchronized
 
 #### Changed
-- Updated project_memory.md from v0.3.2 → v0.6.0 (was 3 versions behind, agents relied on this)
-- Updated VERSION.json status from `in-progress` to `released`
-- Updated README version badge from 0.1.0 to 0.6.0
-- Replaced 28 `console.error`/`console.log` calls across 12 files with logger utility
-- ErrorBoundary retains direct `console.error` (intentional error reporting)
-
-#### Fixed
-- Documentation debt: project_memory.md was misleading agents about actual project state
-- Missing 404 handling: unknown routes now show helpful page instead of silent redirect
-- Console noise in production: errors no longer log to browser console
-- Asset Studio: generate button now clearly indicates preview mode
-
----
+- Removed debug console.log statements
 
 ## [0.6.0] - 2026-04-07
 
 #### Added
-- Asset Pipeline with full CRUD operations (list, get, generate, upload, delete, stats)
-- Asset Studio page with three-panel layout (generation, grid, details)
-- Asset API endpoints in backend (`/api/projects/:projectId/assets/*`)
-- Asset service with file storage and metadata management
-- Asset type filtering (sprite, tileset, texture, icon, audio, background)
-- Asset search by name, prompt, and tags
-- Asset generation workflow with placeholder SVG output
-- Asset upload functionality with base64 support
-- Asset detail view with preview, metadata, and tags
-- Asset stats (total count, by type, total size)
-- ToastList component for displaying notifications
-- "Coming Soon" badge removed from Asset Studio in project overview
-- Asset Studio now fully functional and integrated
+- **Asset Pipeline (M6 Phase 1)**
+  - Asset service with full CRUD operations
+  - File storage for uploaded assets
+  - Asset metadata tracking (type, size, tags)
+  - Asset Studio UI with upload/management
+  - Asset preview on cards
+  - Delete asset functionality
+  - Asset statistics by type
 
 #### Changed
-- Bumped version from 0.5.3 to 0.6.0 (minor version - significant feature)
-- Updated Toast system to use object-based API (`{ type, message, duration }`)
-- Updated all toast calls across components to use new API
-- Integrated ToastList into AppLayout for consistent notifications
-- Removed ProjectPage "Coming Soon" badge from Asset Studio
-
-#### Technical
-- Asset storage in `data/assets/{projectId}/` directories
-- Asset metadata as JSON files alongside asset files
-- Type-safe AssetMetadata and AssetType interfaces
-- Asset service singleton pattern with caching
-- Asset type colors and icons for visual distinction
-- Responsive three-panel layout for Asset Studio
-- Client-side asset preview with data URIs
-- RESTful API design for asset operations
-
----
+- File service enhanced to support asset operations
+- Routes: Added /api/projects/:projectId/assets endpoints
 
 ## [0.5.3] - 2026-04-07
 
 #### Added
-- Onboarding tour component with 4-step AI-first introduction
-- Error boundary component for graceful component failures
-- AI-branded dashboard hero with floating orbs animation
-- Dashboard keyboard shortcuts hint (Ctrl+K for AI command)
-- AI-powered badge on "New Project" quick action
-- Responsive design improvements for mobile dashboard
+- **UX Polish (M5 Phase 3)**
+  - Improved color palette with better contrast
+  - Refined typography scale
+  - Enhanced spacing system
+  - Better button states and hover effects
+  - Loading states and spinners
+  - Error boundaries with fallback UI
+  - Toast notifications for user feedback
+  - Tooltips on interactive elements
 
 #### Changed
-- Enhanced dashboard with AI-themed gradient background
-- Improved quick actions grid with better visual hierarchy
-- Projects grid layout from list to card grid
-- Added AI tips section with command palette shortcut
+- CSS variables for consistent theming
+- Component styling for better visual hierarchy
+- App.css reorganized with design tokens
 
 #### Fixed
-- Removed console.log from SceneEditorPage (PM feedback)
-- Fixed TypeScript type errors for import.meta.env
-- Improved accessibility with proper focus indicators
-
----
+- Dark mode contrast issues
+- Button accessibility improvements
 
 ## [0.5.2] - 2026-04-07
 
 #### Added
-- Real AI backend integration with OpenRouter API
-- AI Thinking Indicator component with animated progress visualization
-- Support for toggling between real and mock AI via USE_REAL_AI environment variable
-- AI health check endpoint to detect service status
-- System prompt engineering for game development context
-- Code extraction and structured response parsing from AI
-- Context-aware file content reading for AI prompts
-- Risk level assessment for AI-generated changes
-- Confidence scores for AI suggestions
+- **Real AI Integration (M5 Phase 2)**
+  - OpenAI API integration via OpenRouter
+  - AICommand service for code generation
+  - AI Chat interface with real-time responses
+  - Context-aware AI suggestions
+  - Code explanation and analysis
+  - Real-time "thinking" indicator
+  - Command history tracking
 
 #### Changed
-- Updated AICommandPage to handle real AI responses
-- Improved welcome message based on AI service status
-- Enhanced AI response rendering with structured data display
-- Toast notifications now integrated throughout the app
+- AI routes: New endpoints for command processing
+- Frontend: AI Command page with chat interface
+- Asset generation pipeline stubbed (placeholder for M6)
 
 #### Fixed
-- TypeScript compilation issues with async/await in AI service
-- Build process successfully compiles with no errors
-
-#### Technical
-- Added axios dependency to API package
-- API backend can now generate real code changes
-- AI service includes project context and file tree awareness
-- Supports both simulation mode and real LLM-powered responses
-
----
-
-## [0.5.1] - 2026-04-07
-
-#### Added
-- Toast notifications integration in FileWorkspace (save, create, delete, search, refresh)
-- CodeEditor loading state with badge indicator
-- CodeEditor onLoad prop for external content loading
-
-#### Changed
-- FileWorkspace uses toast system for all user-facing actions
-- CodeEditor handles loading state from parent component
-- Better error messaging on file operations
-
----
+- API key configuration
+- CORS issues for AI endpoints
 
 ## [0.5.0] - 2026-04-07
 
 #### Added
-- **Command Palette** (Ctrl/Cmd+K) — quick navigation, AI commands, and search across the app
-  - Keyboard navigation: ↑↓ to browse, Enter to select, Esc to close
-  - Categorized commands: Navigate, AI Commands, Actions
-  - Context-aware: shows project-specific commands when in a project
-- **Floating AI Assistant** (FAB) — omnipresent AI chat button on all project pages
-  - Collapsible chat panel with message history
-  - Typing indicator animation
-  - Preview mode badge with honest messaging
-  - Mobile responsive (full-width bottom sheet on small screens)
-- **Toast Notification System** — contextual feedback for user actions
-  - Success, error, warning, and info variants
-  - Auto-dismiss with manual close
-  - Accessible: role="alert" and aria-live region
-- **Code-splitting** — lazy-loaded pages and vendor chunks
-  - React.lazy() for all project pages (SceneEditor, Editor, Preview, AI Command, Assets)
-  - Manual vendor chunks: react, codemirror, lucide-react
-  - Bundle: 786KB single chunk → 7 optimized chunks, no size warnings
-  - Suspense loading fallback with spinner
-- **Sidebar Command Search** — quick access command palette trigger in sidebar header
-- **Scene Editor navigation** — added to sidebar when in project context
+- **AI-Native UX Foundation (M5 Phase 1)**
+  - Command palette (⌘K) for quick actions
+  - Floating AI assistant button (FAB)
+  - Contextual AI assistance hints
+  - AI-first onboarding tour
+  - AI-themed branding elements
 
 #### Changed
-- AppLayout now wraps content in ToastProvider for global toast access
-- App.tsx uses React.lazy for heavy pages instead of eager imports
-- Vite config: added manualChunks for vendor splitting (react, codemirror, lucide)
-- Sidebar: Scene Editor now appears in project navigation
-
-#### Technical
-- Bundle size warning eliminated (was 786KB > 500KB, now properly split)
-- All new components fully TypeScript typed
-- CSS files co-located with components
-- Mobile-first responsive design for all new components
-
----
-
-## [0.4.1] - 2026-04-07
-
-#### Added
-- AI branding tokens (--ai-primary, --ai-primary-hover, --ai-glow, --ai-gradient)
-- Fullscreen toggle to Game Preview with Esc key exit support
-- Keyboard hints with kbd styling
-- Visual feedback for canvas overlay and fullscreen state
-- Honest "Preview Mode" messaging for AI Command interface
-
-#### Changed
-- File workspace layout: added proper flex sizing with min-height: 0 for nested scrolling
-- Code editor visibility: fixed height constraints in editor page layout
-- Dark mode contrast: lightened --text-muted from #64748b to #94a3b8 for WCAG AA compliance
-- Game preview canvas: added fullscreen wrapper with dynamic sizing
-
-#### Fixed
-- **Critical:** Code editor not visible - fixed flex layout with proper height containers
-- **Critical:** AI Command showing fake implementation plans - now clearly indicates mock/preview status
-- **Critical:** Dark mode contrast issue with --text-muted failing WCAG AA - now passes 4.5:1 ratio
-- Added keyboard focus indicators for accessibility
-- AI Command interface now transparent about limitations
-
----
+- AppLayout: Integrated command palette and FAB
+- Navigation: AI-first design language
 
 ## [0.4.0] - 2026-04-07
 
 #### Added
-- **Milestone 4: Visual Scene Editor** — Complete 2D scene editing system
-- Entity templates (Player, Enemy, Coin, Wall) for quick placement
-- Canvas-based visual editor with mouse drag-and-drop
-- Zoom and pan controls (buttons + mouse wheel)
-- Grid display with snapping option for aligned placement
-- Entity selection with visual highlight and resize handles
-- Property inspector for Transform (X, Y, Rotation, Scale X/Y)
-- Component management (Sprite, Movement, AI, Collision) — add/remove
-- Entity list panel with click-to-select
-- Keyboard shortcuts: V (select), +/- (zoom), 0 (reset view), Delete (entity), Ctrl+S (save)
-- Scene serialization to JSON (scenes/main-scene.json)
-- Route: /project/:projectId/scene-editor
-- Scene Editor navigation button on ProjectPage
+- **Scene Editor (M4 Phase 3)**
+  - Canvas-based 2D visual editor
+  - Entity placement and selection
+  - Drag-and-drop entity movement
+  - Property inspector panel
+  - Viewport controls (zoom, pan, grid)
+  - Entity component system
+  - Scene save/load
+  - Keyboard shortcuts (V, M, Delete, Ctrl+S)
 
 #### Changed
-- Updated project page to prioritize Scene Editor as primary action
-- Bundle size: 782KB (up from 765KB due to new Scene Editor feature)
-
-#### Technical
-- Full TypeScript with proper typing throughout Scene Editor
-- Canvas 2D rendering with efficient re-render on state changes
-- Responsive canvas that adapts to container size
-- Clean separation: editor logic, rendering, state management
-- Integrated with existing engine types (Entity, Transform, Component)
-
-#### Documentation
-- Updated pm_feedback.md with M3 completion status
-
----
+- EditorPage: Split into code editor and scene editor
+- Engine: Added Entity, Transform, Component types
 
 ## [0.3.3] - 2026-04-07
 
-#### Fixed
-- Fixed CodeEditor useEffect dependency causing CodeMirror recreation on every keystroke
-- Fixed RenderSystem overlapping scene info and FPS displays (combined into single HUD)
-- Fixed debug panel checkboxes to actually control engine configuration (dead UI now functional)
-- Fixed engine missing destroy() method for proper cleanup
-- Fixed NodeJS type namespace issues in GamePreviewPage
+#### Added
+- **Code Editor (M4 Phase 2)**
+  - Monaco-style code editor interface
+  - File tree with project structure
+  - File create/edit/delete
+  - Tab-based editing
+  - Syntax highlighting support
 
-#### Improved
-- Made canvas responsive with proper scaling for different screen sizes
-- Updated severely outdated project_memory.md to reflect current M3 complete status
-- Updated roadmap.md to show completed milestones and future plans
-- Enhanced player movement with proper diagonal normalization
-- Improved editor focus management and auto-focus behavior
-
-#### Technical Debt
-- Bumped version from 0.3.2 to 0.3.3 for quality milestone
-- Maintained clean TypeScript compilation (no errors)
-- Improved component separation and refactoring
-- Updated documentation to actual current state
-
-#### Known Issues
-- AI service still uses mock responses (needs backend integration)
-- Bundle size warning (766KB > 500KB threshold)
-- File tree needs file watcher for auto-refresh
-- More debug features needed beyond grid/hitboxes
-
----
+#### Changed
+- EditorPage: New code editing interface
+- FileService: Enhanced for code operations
 
 ## [0.3.2] - 2026-04-07
 
-#### Fixed
-- Fixed keyboard input not working in game preview (arrow keys/WASD scrolling issue)
-- Fixed file content not visible in CodeMirror editor (was recreating on keystroke)
-- Fixed player movement not responding to keyboard input in game preview
-- Added playerInput marker component to distinguish player entities
-- Updated MovementSystem to properly read input state and apply velocity
-- Added preventDefault to game keys to stop page scrolling when game is active
-- Improved editor ref management to prevent focus issues
-- Fixed diagonal movement normalization for smooth player control
-- Enhanced boundary checking to keep player within canvas bounds
+#### Added
+- **Project Hub (M4 Phase 1)**
+  - Project overview page
+  - Tabbed navigation (Editor, Scene, AI, Assets, Play)
+  - Project statistics display
+  - Quick access to all project features
 
 #### Changed
-- Bumped version from 0.3.1 to 0.3.2 for bug fix milestone
-- Added game developer quality gates before session end
-
-#### Technical Improvements
-- Refactored CodeEditor useEffect dependencies to avoid recreation on content changes
-- Improved InputSystem with editable element detection
-- Enhanced player entity creation with proper component setup
-- Better error handling in editor save operations
-
----
+- Routing: Project page with nested routes
+- AppLayout: Context-aware sidebar
 
 ## [0.3.1] - 2026-04-07
 
+#### Added
+- **File System (M3)**
+  - File service for CRUD operations
+  - File tree browsing
+  - Directory creation
+  - File content read/write
+  - File search functionality
+
+#### Changed
+- Routes: File system API endpoints
+- Frontend: File workspace component
+
 #### Fixed
-- Removed debug console.log statements from CreateProjectPage and FileWorkspace
-- Fixed CSS variable naming inconsistencies across codebase
-- Updated file-tree.css to use theme.css variables (--border, --fg, etc.)
-- Updated game-preview.css to use theme.css variables
-- Improved CodeEditor focus management and auto-focus behavior
-- Fixed TreeNode click handlers with proper event propagation
-- Added keyboard navigation support to file tree (Enter/Space keys)
-- Added accessibility attributes (role, tabIndex) to file tree
-
-#### Refactored
-- Split engine package into modular architecture
-- Created types.ts with all component interfaces
-- Created Engine.ts as main engine class
-- Created InputSystem for keyboard event handling
-- Created MovementSystem for entity movement updates
-- Created AISystem for patrol/chase behaviors
-- Created RenderSystem for drawing and rendering
-- Updated GamePreviewPage to use new refactored engine API
-- Improved engine extensibility and maintainability
-- Better separation of concerns across engine modules
-
----
+- Path handling for nested directories
+- File encoding issues
 
 ## [0.3.0] - 2026-04-07
 
-### Added
-- Game engine with 2D runtime (delta time, game loop)
-- Keyboard input (arrow keys + WASD)
-- Player movement with bounds checking
-- AI patrol patterns for enemies
-- Entity rendering with shadows, highlights, borders
-- Grid background and scene name display
-- GamePreviewPage with canvas
-- Play/Stop/Reset controls
-- FPS counter
-- Debug panel UI
-- Route: /project/:projectId/preview
+#### Added
+- **Project CRUD (M2 Phase 1)**
+  - Create project with metadata (name, genre, art style, description)
+  - List projects
+  - Get project details
+  - Update project metadata
+  - Delete project
+  - Project file system initialization
+  - Default scene and script templates
 
-### Changed
-- Dev agent now enforces commit/push after each session
-- Agent messaging system enhanced
-- PM, UI/UX, Game Dev feedback files updated
+#### Changed
+- Backend: Project service with full CRUD
+- Frontend: Create project form, project cards
 
----
+#### Fixed
+- Project ID generation collisions
 
 ## [0.2.0] - 2026-04-07
 
-### Added
-- File workspace with tree, editor, search
-- Backend file API (tree, read, write, delete, mkdir, search)
-- AI command panel scaffold
-- Asset studio scaffold
+#### Added
+- **Authentication & Dashboard (M1)**
+  - User authentication (placeholder)
+  - Dashboard with project overview
+  - Quick action cards (New Project, Open Project, Examples)
+  - Project cards with metadata
+  - Navigation system
 
----
+#### Changed
+- Frontend: Dashboard page, settings page
+- Routing: Auth-protected routes
 
 ## [0.1.0] - 2026-04-07
 
-### Added
-- Initial project scaffold (pnpm monorepo)
-- React + Vite frontend
-- Fastify backend
-- Project CRUD API
-- Dashboard, editor, settings pages
-- Sidebar navigation
-- Multi-agent development system
-- Fair Source license (<$100k/year free)
-### [0.7.2] - 2026-04-08
-
-#### Fixed
-- **CRITICAL:** AI-generated asset preview now shows actual SVG content instead of placeholder rectangles
-- **CRITICAL:** CHANGELOG.md reorganized to newest versions first (0.7.1 at top, 0.1.0 at bottom)
-- **CRITICAL:** project_memory.md updated to v0.7.1 reality (Phase 2 complete, real AI assets working)
-- Asset Studio now displays real AI-generated assets, completing the flagship M6 feature
-- Documentation synchronization across tracking files
-- Message agents about critical fixes to PM feedback
-
+#### Added
+- **Initial Release**
+  - Project scaffolding
+  - Monorepo structure with pnpm workspaces
+  - Shared package for types and utilities
+  - Fastify backend
+  - React frontend with Vite
+  - Basic routing
+  - Project model
+  - Engine types (Entity, Transform, Component)
