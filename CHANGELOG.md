@@ -5,6 +5,26 @@ All notable changes to ClawGame will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [0.11.3] - 2026-04-08
+
+#### Fixed
+- **Critical: 6 TypeScript compilation errors in AssetSuggestions.tsx** — web app would not compile
+  - Wrong import path (`../../api/client` → `../api/client`)
+  - Wrong useParams destructuring (`const [projectId]` → `const { projectId }`)
+  - Missing `hasBackground` property on `SceneAnalysis` interface
+  - Stray `SUGGESTIONS_CSS` symbol at end of file (removed)
+  - Unused `GenerationStatus` import removed
+- **Broken import placement in AssetStudioPage.tsx** — `import { AssetSuggestions }` was inside component body, moved to top-level imports
+- **Synced package.json version** (was `0.0.1`, now matches VERSION.json at `0.11.3`)
+
+#### Added
+- **Pre-commit typecheck hook** (.git/hooks/pre-commit) — runs `tsc --noEmit` on both apps before allowing commits, preventing broken TypeScript from landing in main
+- Proper type safety on AssetSuggestions: `suggestion.type` cast to specific union instead of `any`
+
+#### Changed
+- AssetSuggestions now uses CSS variable fallbacks for inline styles (e.g., `var(--text-sm, 0.875rem)`)
+
 ## [0.9.1] - 2026-04-08
 
 #### Added

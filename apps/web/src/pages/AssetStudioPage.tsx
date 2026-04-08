@@ -15,6 +15,7 @@ import { GenerationTracker } from '../components/asset-studio/GenerationTracker'
 import { FilterPanel } from '../components/asset-studio/FilterPanel';
 import { AssetGrid } from '../components/asset-studio/AssetGrid';
 import { AssetDetailPanel } from '../components/asset-studio/AssetDetailPanel';
+import { AssetSuggestions } from '../components/AssetSuggestions';
 
 const ASSET_TYPES = ['sprite', 'tileset', 'texture', 'icon', 'audio', 'background'] as AssetType[];
 
@@ -27,7 +28,6 @@ const AssetStudioPage = () => {
   const [assets, setAssets] = useState<AssetMetadata[]>([]);
   const [selectedAsset, setSelectedAsset] = useState<AssetMetadata | null>(null);
   const [loading, setLoading] = useState(true);
-import { AssetSuggestions } from "../components/AssetSuggestions";
   const [filter, setFilter] = useState<AssetType | ''>('');
   const [searchQuery, setSearchQuery] = useState('');
 

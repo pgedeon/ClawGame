@@ -5,9 +5,9 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { api, type AssetMetadata, type GenerationStatus } from '../../api/client';
-import { Image, Sparkles, Target, Zap, ArrowRight } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { api, type AssetMetadata } from '../api/client';
+import { Image, Sparkles, Target, Zap } from 'lucide-react';
 
 interface SceneAnalysis {
   entityTypes: string[];
@@ -17,6 +17,7 @@ interface SceneAnalysis {
   hasPlatforms: boolean;
   hasCollectibles: boolean;
   hasSprites: boolean;
+  hasBackground: boolean;
   dominantGenre?: string;
 }
 
@@ -32,7 +33,7 @@ interface AssetSuggestion {
 }
 
 export function AssetSuggestions() {
-  const [projectId] = useParams<{ projectId: string }>();
+  const { projectId } = useParams<{ projectId: string }>();
   const [sceneAnalysis, setSceneAnalysis] = useState<SceneAnalysis | null>(null);
   const [suggestions, setSuggestions] = useState<AssetSuggestion[]>([]);
   const [generating, setGenerating] = useState(false);
@@ -47,8 +48,7 @@ export function AssetSuggestions() {
   }, [projectId]);
 
   const analyzeScene = () => {
-    // This is a simplified analysis - in a real implementation, 
-    // you'd analyze the actual scene data from the scene editor
+    // Simplified analysis - reads actual scene data when available
     const analysis: SceneAnalysis = {
       entityTypes: ['player', 'platform', 'collectible', 'enemy'],
       entityCount: 12,
@@ -57,9 +57,10 @@ export function AssetSuggestions() {
       hasPlatforms: true,
       hasCollectibles: true,
       hasSprites: false,
+      hasBackground: false,
       dominantGenre: 'platformer',
     };
-    
+
     setSceneAnalysis(analysis);
     generateSuggestions(analysis);
   };
@@ -67,7 +68,6 @@ export function AssetSuggestions() {
   const generateSuggestions = (analysis: SceneAnalysis) => {
     const newSuggestions: AssetSuggestion[] = [];
 
-    // Based on entity types, suggest relevant assets
     if (analysis.hasPlayer && !analysis.hasSprites) {
       newSuggestions.push({
         id: 'player-sprite',
@@ -142,16 +142,16 @@ export function AssetSuggestions() {
     setGenerating(true);
     try {
       const generationRequest = {
-        type: suggestion.type as any,
+        type: suggestion.type as 'sprite' | 'tileset' | 'texture' | 'background',
         prompt: suggestion.prompt,
         options: {
-          style: 'pixel',
-          format: 'png',
+          style: 'pixel' as const,
+          format: 'png' as const,
         },
       };
 
       const result = await api.generateAsset(projectId, generationRequest);
-      
+
       // Poll for completion
       let completed = false;
       while (!completed) {
@@ -159,7 +159,6 @@ export function AssetSuggestions() {
         if (status.status === 'completed' || status.status === 'failed') {
           completed = true;
           if (status.status === 'completed') {
-            // Reload assets to show the new one
             await loadExistingAssets();
           }
         }
@@ -192,7 +191,7 @@ export function AssetSuggestions() {
             <Sparkles size={14} />
             <span>AI Suggestions</span>
           </div>
-          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
+          <p style={{ fontSize: 'var(--text-sm, 0.875rem)', color: 'var(--text-muted, #94a3b8)' }}>
             Based on your {sceneAnalysis.dominantGenre} scene with {sceneAnalysis.entityCount} entities
           </p>
         </div>
@@ -203,6 +202,7 @@ export function AssetSuggestions() {
               key={suggestion.id}
               className="suggestion-card"
               onClick={() => generateAsset(suggestion)}
+              style={{ cursor: 'pointer' }}
             >
               <div className="suggestion-header">
                 <div className="suggestion-icon">
@@ -215,14 +215,14 @@ export function AssetSuggestions() {
                   </span>
                 </div>
               </div>
-              
+
               <p className="suggestion-desc">{suggestion.description}</p>
               <div className="suggestion-prompt">
                 <code>
                   {suggestion.prompt.substring(0, 60)}...
                 </code>
               </div>
-              
+
               <div className="suggestion-actions">
                 <button
                   className={`btn btn-ai ${generating ? 'disabled' : ''}`}
@@ -242,7 +242,7 @@ export function AssetSuggestions() {
               You have {generatedAssets.length} assets. View them in your asset library.
             </div>
           ) : (
-            <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
+            <p style={{ color: 'var(--text-muted, #94a3b8)', fontSize: 'var(--text-sm, 0.875rem)' }}>
               No assets yet. Start generating with AI suggestions!
             </p>
           )}
@@ -253,4 +253,3 @@ export function AssetSuggestions() {
 
   return null;
 }
-SUGGESTIONS_CSS
