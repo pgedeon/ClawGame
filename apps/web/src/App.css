@@ -1790,3 +1790,115 @@ kbd:hover {
   margin-top: var(--space-md);
   text-align: right;
 }
+
+/* ═══════════════════════════════════════════════════════
+   Enhanced Mobile Responsiveness — v0.11.1
+   ═══════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* Onboarding guide stacks vertically */
+  .onboarding-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .onboarding-guide {
+    padding: var(--space-md);
+    margin: var(--space-md) 0;
+  }
+
+  .onboarding-guide-header {
+    flex-wrap: wrap;
+  }
+
+  /* Dashboard improvements */
+  .dashboard-page {
+    padding: var(--space-md);
+  }
+
+  .dashboard-hero {
+    padding: var(--space-lg) var(--space-md);
+  }
+
+  .dashboard-hero h1 {
+    font-size: 1.5rem;
+  }
+
+  .dashboard-hero .hero-subtitle {
+    font-size: var(--text-sm);
+  }
+
+  /* Project cards stack */
+  .projects-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Scene editor mobile */
+  .scene-editor-layout {
+    flex-direction: column;
+  }
+
+  /* Sidebar collapsed on mobile */
+  .sidebar {
+    width: var(--sidebar-collapsed-width);
+  }
+
+  .sidebar .nav-text {
+    display: none;
+  }
+
+  .sidebar-header {
+    padding: var(--space-sm);
+    text-align: center;
+  }
+
+  .sidebar-header h1 {
+    font-size: 1rem;
+  }
+
+  .sidebar-header p {
+    display: none;
+  }
+
+  .nav-item {
+    justify-content: center;
+    padding: var(--space-sm);
+    margin: 2px;
+  }
+
+  .nav-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .main-content {
+    width: calc(100% - var(--sidebar-collapsed-width));
+  }
+
+  /* Button sizes for touch */
+  .btn {
+    min-height: 44px;
+  }
+
+  .btn-sm {
+    min-height: 36px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-hero {
+    padding: var(--space-md) var(--space-sm);
+  }
+
+  .action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .onboarding-step {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .onboarding-step-desc {
+    display: none;
+  }
+}
