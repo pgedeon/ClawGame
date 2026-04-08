@@ -302,3 +302,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - More robust project data validation
 - Updated VERSION.json to 0.9.3
 
+
+## [0.9.4] - 2026-04-08
+
+#### Added
+- **M7 Phase 2 Complete: AI Contextual Integration & Mobile Experience**
+  - Contextual AI Assistant component with 4 quick actions
+    - Explain: Get code explanations
+    - Fix: Find and fix bugs
+    - Improve: Refactor and optimize code
+    - Generate: Create new code from prompts
+  - Enhanced EditorPage with AI-ready status bar
+    - Context-aware AI assistant based on project genre
+    - Quick access keyboard shortcuts (⌘K for full AI)
+    - AI-ready badge indicating AI availability
+  - Comprehensive mobile responsive design
+    - Bottom navigation bar for mobile devices
+    - Touch-friendly controls and buttons
+    - Collapsible sidebars and improved mobile layouts
+    - Responsive breakpoints at 768px and 480px
+
+#### Changed
+- EditorPage: Now includes contextual AI assistant integration
+  - AI context changes based on project type (genre)
+  - Build feedback enhanced with visual indicators
+  - Improved mobile layout with stacked header
+- FileWorkspace: Improved mobile responsiveness
+  - File tree collapses to drawer on mobile
+  - Touch-optimized button sizes
+- Root package.json: Added TypeScript and typecheck script
+  - Typecheck now runs: `pnpm run typecheck`
+  - Integrated into CI/CD pipeline
+- App.css: Added comprehensive mobile styles
+  - Sidebar transforms to bottom nav on mobile
+  - Scene editor and workspace adapt to touch
+  - Dashboard hero and grids stack vertically
+
+#### Fixed
+- TypeScript compilation: Root-level typecheck now works
+  - Previously: `npx tsc --noEmit` failed (TypeScript not found)
+  - Now: TypeScript installed at root, script works correctly
+- Sprint documentation: Phase 2 Definition of Done marked complete
+  - All checkboxes ticked for Phase 2 items
+  - Added detailed feature list for v0.9.4
+- Mobile experience: Fixed navigation issues on small screens
+  - Sidebar now accessible via bottom navigation
+  - Content area properly sized for mobile
+
+#### Technical Improvements
+- Design system consistency: All components use CSS spacing variables
+- Error handling: Enhanced with better visual feedback
+- Accessibility: Improved focus indicators and keyboard navigation
+- Performance: Optimized re-renders in AI assistant component
