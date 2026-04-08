@@ -344,8 +344,14 @@ function SceneEditorContent() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't fire shortcuts when typing in input fields
+      const target = e.target as HTMLElement;
+      const isInputFocused = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable;
+
+      if (isInputFocused) return;
       // Delete selected entity
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedEntityId && scene) {
+        e.preventDefault();
         handleDeleteEntity(selectedEntityId);
       }
 
@@ -407,7 +413,7 @@ function SceneEditorContent() {
         <div className="project-info">
           <h1>🎨 Scene Editor</h1>
           <p>Project: <span className="project-name">{projectName}</span></p>
-0        </div>
+        </div>
 
         <div className="editor-controls">
           <div className="tool-bar">

@@ -25,7 +25,55 @@ export function CreateProjectPage() {
     
     try {
       const response = await api.createProject(formData);
-      // Navigate to the new project
+      
+      // Add default game template files
+      try {
+        // Default player script
+        await api.writeFile(response.id, 'scripts/player.ts', `// Player controls
+export function update(deltaTime) {
+  const speed = 200;
+  
+  // Movement
+  if (keys['ArrowLeft'] || keys['a']) entity.vx = -speed;
+  else if (keys['ArrowRight'] || keys['d']) entity.vx = speed;
+  else entity.vx *= 0.8;
+  
+  if (keys['ArrowUp'] || keys['w']) entity.vy = -speed;
+  else if (keys['ArrowDown'] || keys['s']) entity.vy = speed;
+  else entity.vy *= 0.8;
+}
+
+export function render(ctx) {
+  ctx.fillStyle = '#3b82f6';
+  ctx.fillRect(-16, -16, 32, 32);
+  ctx.strokeStyle = '#60a5fa';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(-16, -16, 32, 32);
+}`);
+
+        // Default scene with player
+        const sceneData = {
+          name: 'Main Scene',
+          entities: [{
+            id: 'player-1',
+            transform: { x: 400, y: 300, scaleX: 1, scaleY: 1, rotation: 0 },
+            components: {
+              playerInput: true,
+              movement: { vx: 0, vy: 0, speed: 200 },
+              sprite: { width: 32, height: 32, color: '#3b82f6' }
+            }
+          }]
+        };
+        
+        await api.createDirectory(response.id, 'scenes');
+        await api.writeFile(response.id, 'scenes/main-scene.json', JSON.stringify(sceneData, null, 2));
+        
+        console.log('Default template added to project', response.id);
+      } catch (err) {
+        console.error('Template creation failed:', err);
+        // Don't block project creation
+      }
+      
       navigate(`/project/${response.id}/editor`);
     } catch (err) {
       logger.error('Error creating project:', err);

@@ -99,7 +99,7 @@ function EditorPageContent({ projectId }: EditorPageProps) {
           <button className="action-btn play" onClick={handlePlay}>
             ▶️ Play
           </button>
-          <button className="action-btn">📤 Export</button>
+          <button className="action-btn" onClick={() => navigate(`/project/${projectId}/export`)}>📤 Export</button>
         </div>
       </header>
 
