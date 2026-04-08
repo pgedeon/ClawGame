@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api, type ExportResult, type ExportOptions } from '../api/client';
 import { logger } from '../utils/logger';
+import { useToast } from '../components/Toast';
 import { 
   Download, 
   Play, 
@@ -22,6 +23,7 @@ import '../export-page.css';
 export function ExportPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const [project, setProject] = useState<any>(null);
   const [exports, setExports] = useState<ExportResult[]>([]);
@@ -57,6 +59,7 @@ export function ExportPage() {
     } catch (err) {
       logger.error('Failed to load project:', err);
       setError('Failed to load project');
+      showToast({ type: 'error', message: 'Failed to load project data' });
     } finally {
       setIsLoading(false);
     }
@@ -91,9 +94,11 @@ export function ExportPage() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      showToast({ type: 'success', message: 'Game exported successfully!' });
     } catch (err) {
       logger.error('Failed to export game:', err);
       setError('Failed to export game');
+      showToast({ type: 'error', message: 'Export failed — check that the server is running' });
     } finally {
       setIsExporting(false);
     }

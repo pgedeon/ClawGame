@@ -51,6 +51,7 @@ const GamePreviewContent: React.FC = () => {
 
   /* ─── State ─── */
   const [loading, setLoading] = useState(true);
+  const [projectName, setProjectName] = useState<string>('Game Preview');
   const [error, setError] = useState<string | null>(null);
   const [projectScene, setProjectScene] = useState<ProjectScene | null>(null);
   const [gameStats, setGameStats] = useState<GameStats>({ fps: 60, entities: 0, memory: 'N/A' });
@@ -125,7 +126,8 @@ const GamePreviewContent: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        await api.getProject(projectId);
+        const project = await api.getProject(projectId);
+        setProjectName(project.name);
         try {
           const sceneData = await api.readFile(projectId, 'scenes/main-scene.json');
           const parsed = JSON.parse(sceneData.content);
@@ -1279,7 +1281,7 @@ const GamePreviewContent: React.FC = () => {
             <div className="game-preview-start-screen">
               <div className="start-screen-content">
                 <div className="start-screen-icon">🎮</div>
-                <h2>Eclipse of Runes</h2>
+                <h2>{projectName}</h2>
                 <p>Collect runes, craft spells, complete quests!</p>
                 <div className="start-screen-info">
                   <div className="info-item"><span className="info-icon">🎯</span><span>WASD/Arrows to move</span></div>

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { Sparkles, Send, RefreshCw } from 'lucide-react';
+import { Sparkles, Send, RefreshCw, X } from 'lucide-react';
 import { api, type AICommandRequest, type AICommandResponse, type AICommandHistory } from '../api/client';
 import { useToast } from '../components/Toast';
 import '../ai-thinking.css';
@@ -15,10 +15,13 @@ export function AICommandPage() {
     content: string;
     timestamp: Date;
     response?: AICommandResponse;
+    isError?: boolean;
   }>>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRealAI, setIsRealAI] = useState(false);
   const [commandHistory, setCommandHistory] = useState<AICommandHistory[]>([]);
+  const [lastFailedPrompt, setLastFailedPrompt] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Load initial welcome message and check AI status
   useEffect(() => {
@@ -65,12 +68,29 @@ export function AICommandPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading || !projectId) return;
+  const handleCancel = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsLoading(false);
+    setMessages(prev => [
+      ...prev,
+      {
+        type: 'assistant',
+        content: '⏹️ Request cancelled.',
+        timestamp: new Date(),
+      }
+    ]);
+  };
 
-    const userMessage = input.trim();
+  const handleSubmit = async (e: React.FormEvent, overridePrompt?: string) => {
+    e.preventDefault();
+    const userMessage = overridePrompt || input.trim();
+    if (!userMessage || isLoading || !projectId) return;
+
     setInput('');
+    setLastFailedPrompt(null);
 
     // Add user message
     setMessages(prev => [
@@ -83,6 +103,10 @@ export function AICommandPage() {
     ]);
 
     setIsLoading(true);
+
+    // Set up abort controller for cancellation
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
 
     try {
       const commandRequest: AICommandRequest = {
@@ -107,26 +131,38 @@ export function AICommandPage() {
       // Reload history to get updated command list
       await loadCommandHistory();
     } catch (error: any) {
+      if (abortController.signal.aborted) return; // cancelled, already handled
+      
       logger.error('Failed to process AI command:', error);
       
-      const errorMessage = `❌ Sorry, I encountered an error processing your request: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      const isTimeout = errorMsg.includes('timeout');
       
       setMessages(prev => [
         ...prev,
         {
           type: 'assistant',
-          content: errorMessage,
+          content: `❌ ${isTimeout ? 'Request timed out. The AI is taking too long to respond — try a shorter or more specific prompt.' : `Error: ${errorMsg}`}`,
           timestamp: new Date(),
+          isError: true,
         }
       ]);
+      setLastFailedPrompt(userMessage);
     } finally {
       setIsLoading(false);
+      abortControllerRef.current = null;
     }
   };
 
   const handleRetry = async () => {
     await checkAIStatus();
     showToast({ type: 'info', message: 'AI status refreshed' });
+  };
+
+  const handleRetryLastPrompt = () => {
+    if (lastFailedPrompt) {
+      handleSubmit({ preventDefault: () => {} } as React.FormEvent, lastFailedPrompt);
+    }
   };
 
   return (
@@ -232,6 +268,27 @@ export function AICommandPage() {
                     {message.content.split('\n').map((line, i) => (
                       <p key={i}>{line}</p>
                     ))}
+                    {message.isError && lastFailedPrompt && (
+                      <button 
+                        className="retry-btn"
+                        onClick={handleRetryLastPrompt}
+                        style={{
+                          marginTop: '12px',
+                          padding: '8px 16px',
+                          background: '#6366f1',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                        }}
+                      >
+                        <RefreshCw size={14} /> Retry
+                      </button>
+                    )}
                   </div>
                 )}
                 <div className="message-timestamp">
@@ -258,12 +315,30 @@ export function AICommandPage() {
                     <div className="thinking-step">Generating response...</div>
                   </div>
                 </div>
+                <button
+                  onClick={handleCancel}
+                  style={{
+                    marginTop: '12px',
+                    padding: '8px 16px',
+                    background: 'rgba(239, 68, 68, 0.15)',
+                    color: '#ef4444',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <X size={14} /> Cancel
+                </button>
               </div>
             </div>
           )}
         </div>
 
-        {/* Input Form */}
+        {/* Input Form — always enabled (not disabled during loading) */}
         <div className="ai-input-container">
           <form onSubmit={handleSubmit}>
             <div className="input-wrapper">
@@ -275,7 +350,7 @@ export function AICommandPage() {
                   ? "Ask me anything about your game..."
                   : "Ask me anything about your game (Demo Mode)..."
                 }
-                disabled={isLoading || !projectId}
+                disabled={!projectId}
                 className="ai-input"
                 autoFocus
               />

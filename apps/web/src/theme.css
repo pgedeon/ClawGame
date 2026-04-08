@@ -31,7 +31,7 @@
   /* ── Text ── */
   --fg: #f1f5f9;
   --fg-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-muted: #7c8ca0;
 
   /* ── Borders ── */
   --border: #334155;
@@ -229,4 +229,15 @@ textarea:focus-visible,
 ::selection {
   background: var(--accent-light);
   color: var(--fg);
+}
+
+/* ── Reduced motion (accessibility) ── */
+@media (prefers-reduced-motion: reduce) {
+  .hero-orb,
+  .ai-fab-pulse,
+  .build-spinner,
+  .pulse-ring {
+    animation: none !important;
+    transition: none !important;
+  }
 }
