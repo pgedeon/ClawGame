@@ -157,7 +157,7 @@
 .option-item input[type="checkbox"] {
   width: 18px;
   height: 18px;
-  margin-top: 2px;
+  margin-top: var(--space-xs);
   accent-color: #8b5cf6;
   cursor: pointer;
 }
