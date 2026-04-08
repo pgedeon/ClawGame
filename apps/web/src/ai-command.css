@@ -1,3 +1,20 @@
+/* Critical fix: Text contrast in AI chat messages */
+.ai-command-page .ai-chat-container .chat-messages .message.assistant .message-content {
+  color: #f1f5f9 !important;
+}
+
+.ai-command-page .ai-chat-container .chat-messages .message.assistant .message-content * {
+  color: #f1f5f9 !important;
+}
+
+@media (prefers-color-scheme: light) {
+  .ai-command-page .ai-chat-container .chat-messages .message.assistant .message-content {
+    color: #0f172a !important;
+  }
+  .ai-command-page .ai-chat-container .chat-messages .message.assistant .message-content * {
+    color: #0f172a !important;
+  }
+}
 /* AI Command Page Styles */
 
 .ai-command-page {
