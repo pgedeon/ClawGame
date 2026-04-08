@@ -120,7 +120,7 @@ const AssetStudioPage = () => {
     if (!confirm(`Delete "${assetName}"? This cannot be undone.`)) return;
     try {
       await api.deleteAsset(projectId, assetId);
-      setAssets(prev => prev.filter(a => a.id !== assetId));
+      setAssets(currentAssets => currentAssets.filter(a => a.id !== assetId));
       if (selectedAsset?.id === assetId) setSelectedAsset(null);
       showToast({ type: 'success', message: `Deleted "${assetName}"` });
     } catch (error: any) {
@@ -135,7 +135,7 @@ const AssetStudioPage = () => {
   };
 
   const handleGenerationStarted = (gen: GenerationStatus) => {
-    setGenerations(prev => [gen, ...prev]);
+    setGenerations(prevGens => [gen, ...prevGens]);
     setActiveGeneration(gen);
   };
 
