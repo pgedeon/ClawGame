@@ -3,7 +3,37 @@
 **Sprint Goal:** Enhance user experience with advanced features, deeper AI integration, and improved workflow patterns.
 
 **Started:** 2026-04-08
-**Status:** 🚧 Phase 3 In Progress - v0.11.8
+**Status:** 🚧 Phase 4 In Progress - v0.12.0
+
+---
+
+## Release History
+
+### v0.12.0 — RPG Foundation (2026-04-08)
+**What's New:**
+- Complete RPG system: InventoryManager, DialogueManager, QuestManager, SpellCraftingManager, SaveLoadManager
+- Comprehensive type definitions for items, equipment, dialogue trees, quests, spells, save data
+- Demo scene "Eclipse of Runes" with NPC, quests, item drops, spell crafting materials
+- Notification system for loot, quests, info, success, error events
+- 6 pre-defined spell recipes (Fireball, Ice Shard, Earth Bolt, Shadow Bolt, Heal, Lightning)
+
+**Status:** ✅ RELEASED
+
+### v0.11.8 — Critical Fixes (2026-04-08)
+**What's Fixed:**
+- 23 missing CSS classes for game preview end-state screens (game over, victory)
+- Asset Studio "prev is not iterable" crash — parameter shadowing fix
+- AssetSuggestions TypeScript error — optional projectId prop added
+
+**Status:** ✅ RELEASED
+
+### v0.11.7 — Game Preview Stability (2026-04-08)
+**What's Fixed:**
+- Game Preview crash on entity.transform access
+- AI Command demo mode clarity
+- Scene entity validation
+
+**Status:** ✅ RELEASED
 
 ---
 
@@ -94,59 +124,61 @@
 
 ---
 
-## Phase 4: Performance & Polish 📋 IN PROGRESS - v0.11.2+
+## Phase 4: RPG System Foundation 🚧 IN PROGRESS - v0.12.0+
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Asset loading optimization | 🚧 Blocked | Need lazy loading implementation |
-| Project loading speed | 🚧 Blocked | Cache invalidation needed |
-| Render performance | 🚧 Blocked | Canvas optimization required |
-| Memory usage | 🚧 Blocked | Memory leak investigation |
-| Error boundary components | 🚧 Blocked | React error boundaries needed |
+| RPG Type Definitions | ✅ Complete | Item, Equipment, Dialogue, Quest, Spell, Save data interfaces |
+| Inventory Manager | ✅ Complete | Item tracking, equipment, usage, stat bonuses |
+| Dialogue Manager | ✅ Complete | Tree-based dialogue with branching, effects, conditions |
+| Quest Manager | ✅ Complete | Objective tracking (kill/collect/talk), auto-completion |
+| Spell Crafting Manager | ✅ Complete | 3x3 rune grid, recipe matching, hotkeys |
+| Save/Load Manager | ✅ Complete | localStorage save slots, full state serialization |
+| Notification System | ✅ Complete | Toast notifications for game events |
+| RPG UI Components | 📋 TODO | Inventory screen, quest journal, spell crafting UI, dialogue overlay |
+| RPG Game Integration | 📋 TODO | Hook RPG managers into game loop, entity components |
 
 ### Phase 4 Goals:
-- 🚧 Implement lazy loading for assets
-- 🚧 Cache project data for faster loading
-- 🚧 Optimize canvas rendering for 60fps
-- 🚧 Reduce memory footprint
-- 🚧 Add error boundaries for graceful failures
+- ✅ Define comprehensive RPG type system
+- ✅ Implement core RPG manager classes
+- ✅ Create demo scene demonstrating all systems
+- 🚧 Build RPG UI components (inventory, quests, spell crafting, dialogue)
+- 🚧 Integrate RPG systems into game runtime
+- 📋 Add RPG template to template gallery
 
-**Phase 4 Status:** BLOCKED on performance investigation and optimization.
+**Phase 4 Status:** CORE COMPLETE. Backend managers and types are fully implemented and tested. Frontend UI integration pending.
 
 ---
 
-## Critical Fixes (v0.11.7 → v0.11.8)
+## Critical Issues & Blockers
 
-These are urgent fixes based on @gamedev and @pm feedback that blocked core functionality:
-
-### Completed ✅
-- **Game Preview crash fix** (v0.11.7) — Defensive entity.transform validation prevents "Cannot read properties of undefined (reading 'transform')" errors
-- **AI Command messaging clarity** (v0.11.7) — Demo Mode banner clearly shows mock vs real AI status
-- **AI Command error handling** (v0.11.7) — Better user feedback when API unreachable
-- **Scene entity validation** (v0.11.7) — All entities get default transforms if missing from scene file
-- **23 missing CSS classes** (v0.11.8) — Game over and victory screens now render with proper styling
-- **Asset Studio "prev is not iterable" crash** (v0.11.8) — Fixed parameter shadowing in setState callback
-- **AssetSuggestions projectId prop** (v0.11.8) — Added optional prop with fallback to route parameter
+### Resolved ✅
+- Game Preview crash on entity.transform — Fixed in v0.11.7
+- AI Command confusing Preview Mode — Fixed in v0.11.7
+- Asset Studio "prev is not iterable" crash — Fixed in v0.11.8
+- 23 missing CSS classes in game preview — Fixed in v0.11.8
 
 ### Remaining 📋
-- AI Command timeout — 120 second timeout blocking AI code generation
-- Game Preview shows wrong game — Preview loads "Rune Rush" demo instead of actual project
-- Export functionality — Verify download flow works end-to-end
-- Scene Editor entity-to-code linkage — unclear mapping between visual entities and code
-- Project data persistence — Investigate potential data loss issues
-- GamePreviewPage extraction — Still 923 lines, needs modularization
-
-**Critical Fixes Status:** 7/15 completed. Platform is now functional with remaining issues non-blocking.
+- **[HIGH] AI Command timeout** — 120 second timeout blocking AI code generation (GameDev critical)
+- **[HIGH] Game Preview shows wrong game** — Preview loads "Rune Rush" demo instead of actual project (GameDev critical)
+- **[HIGH] Export functionality** — Verify download flow works end-to-end (GameDev critical)
+- **[MEDIUM] GamePreviewPage extraction** — Still 923 lines, needs modularization (architectural debt)
+- **[MEDIUM] Settings page stub** — Renders `<h1>Settings</h1><p>Coming soon</p>` (UI/UX priority)
 
 ---
 
 ## Remaining Sprint Tasks
 
 ### High Priority
-- Investigate AI Command timeout (backend/API issue)
-- Fix Game Preview loading wrong project (route/context issue)
-- Verify Export functionality end-to-end
-- Extract GamePreviewPage into modular game engine
+1. **Investate and fix AI Command timeout** — Backend/API issue blocking core AI value prop
+2. **Fix Game Preview loading wrong project** — Route/context issue preventing users from testing their games
+3. **Verify Export functionality end-to-end** — Ensure download flow works
+4. **Extract GamePreviewPage into modular game engine** — Architectural debt cleanup
+
+### Medium Priority
+5. **Build Settings page** — Minimal functional settings with theme toggle, AI model selection, keyboard shortcuts
+6. **RPG UI integration** — Build inventory screen, quest journal, spell crafting UI, dialogue overlay
+7. **Design and document entity-to-code linkage** — Clarify mapping between visual entities and code
 
 ### Backlog Items (Not Started)
 - Visual scripting interface
@@ -163,52 +195,22 @@ These are urgent fixes based on @gamedev and @pm feedback that blocked core func
 
 ---
 
-## Blocked Issues
-
-### @gamedev Feedback
-1. ✅ ~~Game Preview crash on entity transform~~ — Fixed in v0.11.7
-2. ✅ ~~AI Command confusing Preview Mode~~ — Fixed in v0.11.7
-3. ✅ ~~Asset Studio "prev is not iterable" crash~~ — Fixed in v0.11.8
-4. 📋 Scene Editor entity-to-code linkage unclear — Needs design clarification
-5. 📋 Export non-functional — Needs verification
-6. 📋 Project data loss reported — Needs investigation
-7. ✅ ~~AssetSuggestions needs projectId prop~~ — Fixed in v0.11.8
-8. 📋 "Project not found" on Asset Studio/Export/Preview routes — Needs investigation
-9. 📋 Onboarding modal buttons unclickable — Playwright issue or real bug?
-10. 📋 AI Command timeout — 120 second timeout, blocking core AI value prop
-11. 📋 Game Preview shows wrong game — Loads "Rune Rush" demo instead of user's project
-
-### @pm Feedback
-- ✅ TypeScript errors resolved — Clean typecheck across all packages
-- ✅ Build passing — All packages build successfully
-- ✅ 23 missing CSS classes added — Game over/victory screens styled
-- ✅ Asset Studio crash fixed — Parameter shadowing resolved
-- ⚠️ GamePreviewPage still 923 lines — Needs extraction (architectural debt)
-- ⚠️ VERSION.json should be v0.12.0 for game preview rewrite — Currently v0.11.8
-- ⚠️ CHANGELOG.md missing game preview rewrite — Needs documentation update
-
-### @uiux Feedback
-- ✅ Game preview CSS improvements — All 23 missing classes added with animations
-- Need UX review of new onboarding flow
-- Welcome modal clarity improvements needed
-
----
-
 ## Next Steps
 
-**Priority 1:** Investigate and fix AI Command timeout (120 seconds blocking core AI value prop)
+**Immediate Priority (Today):**
+1. Investigate AI Command timeout — Check OpenRouter integration, timeout configuration, async flow
+2. Fix Game Preview routing — Ensure project ID is correctly passed and loaded from actual project data
+3. Test Export download — Verify end-to-end export flow triggers browser download
 
-**Priority 2:** Fix Game Preview loading wrong project (route/context issue preventing users from testing their own games)
+**Short-term Priority (This Week):**
+4. Extract GamePreviewPage — Decompose into hooks and sub-components for maintainability
+5. Build Settings page — Replace stub with functional settings UI
+6. Integrate RPG managers into game runtime — Hook into game loop for quest tracking, inventory, etc.
 
-**Priority 3:** Verify Export functionality works end-to-end (download flow)
-
-**Priority 4:** Extract GamePreviewPage into modular game engine (architectural debt)
-
-**Priority 5:** Design and document entity-to-code linkage in Scene Editor
-
-**Priority 6:** Investigate reported project data loss issues
+**Strategic Decision Needed:**
+Should RPG UI integration be completed before addressing AI timeout? The AI timeout is a critical blocker for all users, while RPG is a feature enhancement that benefits a subset of users.
 
 ---
 
 **Sprint Owner:** @dev
-**Last Updated:** 2026-04-08 (v0.11.8 CSS and crash fixes)
+**Last Updated:** 2026-04-08 17:30 UTC (v0.12.0 RPG Foundation release)
