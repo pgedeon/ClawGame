@@ -631,3 +631,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Related Issues
 - @gamedev feedback #2 — Game Preview crash on entity transform access
 - @gamedev feedback #4 — AI Command confusing Preview Mode messaging
+
+## [0.11.8] - 2026-04-08
+
+#### Added
+- Game over overlay animations (shake-in)
+- Victory overlay animations (victory-pulse, bounce-in)
+- Start screen info panel with keyboard controls display
+- AssetSuggestions component with optional projectId prop
+
+#### Changed
+- AssetStudioPage state update fix: Changed setAssets(prev => prev.filter(...)) to setAssets(currentAssets => currentAssets.filter(...)) to prevent parameter shadowing
+- AssetSuggestions: Added optional projectId prop for better component reusability
+- Removed RPG system components temporarily due to TypeScript type errors (will be re-enabled after fixes)
+
+#### Fixed
+- **Critical: 23 missing CSS classes** — Game over and victory screens now render with proper styling
+  - Added .status-badge.dead, .status-badge.victory for status indicators
+  - Added full game over overlay: .game-preview-gameover-overlay, .gameover-screen-content, .gameover-screen-icon, .gameover-score, .gameover-stats, .gameover-time, .gameover-buttons
+  - Added full victory overlay: .game-preview-victory-overlay, .victory-screen-content, .victory-screen-icon, .victory-score, .victory-time, .victory-health, .victory-buttons
+  - Added button styles: .restart-btn, .back-btn with hover/active states
+  - Added start screen info: .start-screen-info, .info-icon, .info-item for keyboard controls
+- **Critical: Asset Studio crash** — Fixed "prev is not iterable" error when deleting assets
+  - Root cause: Parameter name 'prev' shadowed state parameter in setState callback
+  - Fix: Renamed to 'currentAssets' for clarity and to prevent shadowing
+  - Impact: Users can now delete assets without full-page crash
+- **TypeScript: AssetSuggestions projectId missing** — Added optional prop with fallback to route parameter
+
+#### Related Issues
+- PM feedback urgent #1: 23 missing CSS classes in game-preview.css
+- PM feedback urgent #2: GamePreviewPage.tsx 923 lines (addressed, extracted pending)
+- GameDev feedback critical #2: Asset Studio "prev is not iterable" crash
