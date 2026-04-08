@@ -354,3 +354,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Error handling: Enhanced with better visual feedback
 - Accessibility: Improved focus indicators and keyboard navigation
 - Performance: Optimized re-renders in AI assistant component
+
+### [0.9.5] - 2026-04-08
+
+#### Added
+- **Template System**: 3 game templates with auto-creation
+  - Platformer: Jump mechanics, platforms, collectibles
+  - Top-Down Action: Free movement, enemy AI, powerups
+  - Dialogue Adventure: NPCs with dialogue trees, signs
+- **Welcome Modal**: Post-creation guidance with 3-step onboarding
+  - Direct navigation to Code Editor, Scene Editor, or Play
+  - Auto-dismiss after 10 seconds if user doesn't interact
+- **Template Cards**: Visual template selection with icons and descriptions
+- **Responsive Template Grid**: Mobile-friendly template layout
+
+#### Changed
+- OnboardingTour version updated to v0.9.4 (sync with VERSION.json)
+- CreateProjectPage now requires template selection before creation
+- ProjectPage integrates WelcomeModal for new projects
+
+#### Fixed
+- **GamePreviewPage infinite re-render bug**: Removed gameStats from useEffect dependency array
+  - gameStats state now only updates every 30 frames (2x/sec)
+  - Uses useRef (gameStatsRef) for real-time stats without re-renders
+  - Stable game loop performance with no constant recreation
+
