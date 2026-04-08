@@ -1,6 +1,6 @@
 {
-  "name": "Rune Rush - Arena Challenge",
-  "description": "Collect runes while avoiding enemies in a dynamic arena",
+  "name": "Eclipse of Runes",
+  "description": "Collect runes, craft spells, complete quests, and defeat the darkness",
   "entities": [
     {
       "id": "player",
@@ -23,7 +23,8 @@
         "movement": { "vx": 0, "vy": 0, "speed": 80 },
         "collision": { "width": 32, "height": 32, "type": "enemy" },
         "stats": { "hp": 30, "maxHp": 30, "damage": 15 },
-        "sprite": { "width": 32, "height": 32, "color": "#ef4444" }
+        "sprite": { "width": 32, "height": 32, "color": "#ef4444" },
+        "enemyType": "slime"
       }
     },
     {
@@ -35,7 +36,8 @@
         "movement": { "vx": 0, "vy": 0, "speed": 100 },
         "collision": { "width": 32, "height": 32, "type": "enemy" },
         "stats": { "hp": 25, "maxHp": 25, "damage": 20 },
-        "sprite": { "width": 28, "height": 28, "color": "#f97316" }
+        "sprite": { "width": 28, "height": 28, "color": "#f97316" },
+        "enemyType": "slime"
       }
     },
     {
@@ -47,7 +49,8 @@
         "movement": { "vx": 0, "vy": 0, "speed": 120 },
         "collision": { "width": 32, "height": 32, "type": "enemy" },
         "stats": { "hp": 20, "maxHp": 20, "damage": 25 },
-        "sprite": { "width": 24, "height": 24, "color": "#dc2626" }
+        "sprite": { "width": 24, "height": 24, "color": "#dc2626" },
+        "enemyType": "slime"
       }
     },
     {
@@ -59,7 +62,8 @@
         "movement": { "vx": 0, "vy": 0, "speed": 60 },
         "collision": { "width": 32, "height": 32, "type": "enemy" },
         "stats": { "hp": 40, "maxHp": 40, "damage": 10 },
-        "sprite": { "width": 36, "height": 36, "color": "#991b1b" }
+        "sprite": { "width": 36, "height": 36, "color": "#991b1b" },
+        "enemyType": "slime"
       }
     },
     {
@@ -207,10 +211,164 @@
         "collision": { "width": 100, "height": 40, "type": "obstacle" },
         "sprite": { "width": 100, "height": 40, "color": "#475569" }
       }
+    },
+    {
+      "id": "npc-elder",
+      "type": "npc",
+      "transform": { "x": 120, "y": 260, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "npc": {
+          "name": "Elder Mira",
+          "portrait": "🧙",
+          "dialogueTreeId": "elder-mira"
+        },
+        "sprite": { "width": 32, "height": 32, "color": "#a78bfa" }
+      }
+    },
+    {
+      "id": "item-sword",
+      "type": "item",
+      "transform": { "x": 480, "y": 200, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "itemDrop": {
+          "itemId": "rusty-sword",
+          "name": "Rusty Sword",
+          "description": "A worn but functional blade. +10 damage.",
+          "type": "weapon",
+          "rarity": "common",
+          "icon": "🗡️",
+          "stackable": false,
+          "quantity": 1,
+          "maxStack": 1,
+          "stats": { "damage": 10 },
+          "usable": false,
+          "equippable": true,
+          "slot": "weapon",
+          "sellValue": 5
+        },
+        "sprite": { "width": 20, "height": 20, "color": "#94a3b8" }
+      }
+    },
+    {
+      "id": "item-potion",
+      "type": "item",
+      "transform": { "x": 340, "y": 180, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "itemDrop": {
+          "itemId": "health-potion",
+          "name": "Health Potion",
+          "description": "Restores 25 HP when used.",
+          "type": "potion",
+          "rarity": "common",
+          "icon": "🧪",
+          "stackable": true,
+          "quantity": 1,
+          "maxStack": 10,
+          "stats": { "heal": 25 },
+          "usable": true,
+          "equippable": false,
+          "sellValue": 3
+        },
+        "sprite": { "width": 18, "height": 18, "color": "#f472b6" }
+      }
+    },
+    {
+      "id": "item-rune-drop",
+      "type": "item",
+      "transform": { "x": 580, "y": 380, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "itemDrop": {
+          "itemId": "fire-rune-item",
+          "name": "Fire Rune Shard",
+          "description": "A small shard pulsing with fire energy. Used in spell crafting.",
+          "type": "rune",
+          "rarity": "uncommon",
+          "icon": "🔶",
+          "stackable": true,
+          "quantity": 1,
+          "maxStack": 99,
+          "stats": { "power": 5 },
+          "usable": false,
+          "equippable": false,
+          "sellValue": 15
+        },
+        "sprite": { "width": 16, "height": 16, "color": "#f97316" }
+      }
+    }
+  ],
+  "dialogueTrees": [
+    {
+      "id": "elder-mira",
+      "npcName": "Elder Mira",
+      "npcPortrait": "🧙",
+      "startLineId": "greeting",
+      "lines": {
+        "greeting": {
+          "id": "greeting",
+          "speaker": "Elder Mira",
+          "portrait": "🧙",
+          "text": "Welcome, young Rune Walker. The darkness grows stronger... Will you help us?",
+          "choices": [
+            { "text": "I'll help. What must I do?", "next": "accept" },
+            { "text": "Tell me more first.", "next": "info" },
+            { "text": "Not right now.", "next": "decline" }
+          ]
+        },
+        "info": {
+          "id": "info",
+          "speaker": "Elder Mira",
+          "portrait": "🧙",
+          "text": "Slimes have infested the arena. Defeat 3 of them and the path to the Shadow Rune will open.",
+          "choices": [
+            { "text": "I'll do it!", "next": "accept" },
+            { "text": "Sounds dangerous. Maybe later.", "next": "decline" }
+          ]
+        },
+        "accept": {
+          "id": "accept",
+          "speaker": "Elder Mira",
+          "portrait": "🧙",
+          "text": "Excellent! Go forth and defeat 3 Slimes. I'll reward you handsomely. Press J to track your quest!",
+          "next": null,
+          "effect": { "type": "startQuest", "payload": { "questId": "slime-slayer" } }
+        },
+        "decline": {
+          "id": "decline",
+          "speaker": "Elder Mira",
+          "portrait": "🧙",
+          "text": "I understand. Return when you're ready, Rune Walker.",
+          "next": null
+        },
+        "quest_complete": {
+          "id": "quest_complete",
+          "speaker": "Elder Mira",
+          "portrait": "🧙",
+          "text": "You've done it! The slimes are vanquished. Take this healing blessing as my thanks.",
+          "next": null,
+          "condition": { "type": "questComplete", "payload": { "questId": "slime-slayer" } },
+          "effect": { "type": "heal", "payload": { "amount": 50 } }
+        }
+      }
+    }
+  ],
+  "quests": [
+    {
+      "id": "slime-slayer",
+      "name": "Slime Slayer",
+      "description": "Defeat 3 Slimes terrorizing the arena.",
+      "status": "inactive",
+      "objectives": [
+        { "id": "kill-slimes", "type": "kill", "description": "Defeat Slimes", "targetId": "slime", "currentCount": 0, "requiredCount": 3 }
+      ],
+      "rewards": [
+        { "type": "xp", "amount": 100 },
+        { "type": "gold", "amount": 50 }
+      ],
+      "completionText": "The arena is safer now. Elder Mira thanks you!"
     }
   ],
   "metadata": {
     "createdAt": "2026-04-08T14:00:00.000Z",
-    "features": ["player-movement", "rune-collection", "enemies", "obstacles"]
+    "features": ["player-movement", "rune-collection", "enemies", "obstacles", "dialogue", "quests", "inventory", "spell-crafting", "save-load"]
   }
 }
