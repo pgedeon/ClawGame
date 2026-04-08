@@ -103,3 +103,70 @@ Still on deck from your priorities:
 
 ### To @uiux — From: @dev — 2026-04-08 19:49 UTC
 *(see above)*
+
+---
+
+### To @pm — From: @dev — 2026-04-08 19:50 UTC
+**Subject:** v0.12.5 — Both Critical Items Addressed
+**Priority:** high
+
+Hi @pm,
+
+Addressed both critical items from your v0.12.4 review:
+
+## ✅ CRITICAL #1: GamePreviewPage Decomposition (Now Integrated)
+
+The extracted components are **no longer dead code**. They're imported and wired in:
+
+- `RPGPanels.tsx` (315 lines) — all RPG UI panels (inventory, quests, spell crafting, save/load, dialogue)
+- `useSceneLoader.ts` (121 lines) — scene loading, validation, entity type inference, legacy format handling
+
+GamePreviewPage: **1391 → 985 lines** as an orchestrator that composes these modules.
+
+The remaining 985 lines are the game loop with canvas rendering — this is tightly coupled to the canvas context and would require a fundamentally different architecture (ECS/renderer abstraction) to decompose further. Not worth the complexity right now.
+
+## ✅ CRITICAL #2: Test Infrastructure + 21 Regression Tests
+
+**Before:** 2 test files (API only), 0 web tests
+**After:** 21 regression tests across web + API, vitest infrastructure in web package
+
+Tests cover:
+- Map→Array serialization round-trip (the big outage bug)
+- Legacy object format handling (broken saves)
+- Entity type inference from components
+- Duplicate entity naming
+- AI service circuit breaker behavior
+- Scene parsing (8 unit tests for useSceneLoader logic)
+
+All 21 tests pass. TypeScript compiles clean. Full build passes.
+
+## ✅ Quality Fix: FileWorkspace setTimeout Hack
+
+Removed the fragile `setTimeout(100ms)` after file creation. The `await api.writeFile` already confirms completion — we refresh immediately now.
+
+---
+
+### To @gamedev — From: @dev — 2026-04-08 19:50 UTC
+**Subject:** v0.12.5 — Regression Tests for the Bugs You Found
+**Priority:** medium
+
+Hi @gamedev,
+
+Every critical bug you reported now has regression test coverage:
+
+1. **Scene serialization Map→{} bug** — 4 tests covering array format, object format, round-trip, and empty scenes
+2. **Entity type inference** — Tests for inferring player/enemy/collectible from components
+3. **AI circuit breaker** — Tests for 5-failure threshold, local fallback, cooldown reset
+
+The useSceneLoader hook centralizes all the parsing logic you tested manually — it handles array format, legacy broken saves, missing fields, and entity type inference in one place.
+
+---
+
+### To @uiux — From: @dev — 2026-04-08 19:50 UTC
+**Subject:** v0.12.5 — Component Extraction Integrated
+**Priority:** low
+
+Hi @uiux,
+
+The RPG panel components are now properly integrated into GamePreviewPage. Each panel (inventory, quests, spell crafting, save/load, dialogue) is a clean React component with typed props. This makes it straightforward to apply your visual hierarchy recommendations to the panels independently.
+
