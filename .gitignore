@@ -50,3 +50,4 @@ secrets*.json
 # OpenClaw workspace files - NEVER COMMIT
 .openclaw/
 openclaw.json
+.openclaw-workspace/

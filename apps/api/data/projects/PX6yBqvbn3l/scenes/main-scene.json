@@ -1,69 +1,216 @@
 {
-  "name": "Eclipse of Runes - Starting Area",
-  "description": "The first area where players begin their journey",
+  "name": "Rune Rush - Arena Challenge",
+  "description": "Collect runes while avoiding enemies in a dynamic arena",
   "entities": [
     {
       "id": "player",
       "type": "player",
-      "transform": { "x": 160, "y": 160, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "transform": { "x": 400, "y": 300, "rotation": 0, "scaleX": 1, "scaleY": 1 },
       "components": {
         "playerInput": true,
+        "movement": { "vx": 0, "vy": 0, "speed": 250 },
+        "collision": { "width": 32, "height": 32, "type": "player" },
+        "stats": { "hp": 100, "maxHp": 100, "score": 0 },
+        "sprite": { "width": 32, "height": 32, "color": "#3b82f6" }
+      }
+    },
+    {
+      "id": "enemy-1",
+      "type": "enemy",
+      "transform": { "x": 600, "y": 200, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "ai": { "type": "patrol", "speed": 80, "patrolSpeed": 80 },
+        "movement": { "vx": 0, "vy": 0, "speed": 80 },
+        "collision": { "width": 32, "height": 32, "type": "enemy" },
+        "stats": { "hp": 30, "maxHp": 30, "damage": 15 },
+        "sprite": { "width": 32, "height": 32, "color": "#ef4444" }
+      }
+    },
+    {
+      "id": "enemy-2",
+      "type": "enemy",
+      "transform": { "x": 200, "y": 400, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "ai": { "type": "patrol", "speed": 100, "patrolSpeed": 100 },
+        "movement": { "vx": 0, "vy": 0, "speed": 100 },
+        "collision": { "width": 32, "height": 32, "type": "enemy" },
+        "stats": { "hp": 25, "maxHp": 25, "damage": 20 },
+        "sprite": { "width": 28, "height": 28, "color": "#f97316" }
+      }
+    },
+    {
+      "id": "enemy-3",
+      "type": "enemy",
+      "transform": { "x": 500, "y": 450, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "ai": { "type": "patrol", "speed": 120, "patrolSpeed": 120 },
         "movement": { "vx": 0, "vy": 0, "speed": 120 },
-        "collision": { "width": 24, "height": 24, "type": "player" },
-        "stats": {
-          "name": "Rune Walker",
-          "level": 1,
-          "hp": 100,
-          "maxHp": 100,
-          "mp": 50,
-          "maxMp": 50
-        }
+        "collision": { "width": 32, "height": 32, "type": "enemy" },
+        "stats": { "hp": 20, "maxHp": 20, "damage": 25 },
+        "sprite": { "width": 24, "height": 24, "color": "#dc2626" }
       }
     },
     {
-      "id": "tree-1",
-      "type": "decor",
-      "transform": { "x": 96, "y": 64, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "id": "enemy-4",
+      "type": "enemy",
+      "transform": { "x": 150, "y": 180, "rotation": 0, "scaleX": 1, "scaleY": 1 },
       "components": {
-        "sprite": { "width": 32, "height": 32, "tileId": 3 }
+        "ai": { "type": "patrol", "speed": 60, "patrolSpeed": 60 },
+        "movement": { "vx": 0, "vy": 0, "speed": 60 },
+        "collision": { "width": 32, "height": 32, "type": "enemy" },
+        "stats": { "hp": 40, "maxHp": 40, "damage": 10 },
+        "sprite": { "width": 36, "height": 36, "color": "#991b1b" }
       }
     },
     {
-      "id": "item-1",
+      "id": "rune-fire",
       "type": "collectible",
-      "transform": { "x": 320, "y": 160, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "transform": { "x": 700, "y": 350, "rotation": 0, "scaleX": 1, "scaleY": 1 },
       "components": {
-        "sprite": { "width": 16, "height": 16, "tileId": 4 },
-        "collision": { "width": 16, "height": 16, "type": "collectible" },
-        "collectible": { "type": "rune", "name": "Fire Rune Fragment", "value": 10 }
+        "collision": { "width": 20, "height": 20, "type": "collectible" },
+        "collectible": { "type": "rune", "name": "Fire Rune", "value": 25, "element": "fire" },
+        "sprite": { "width": 20, "height": 20, "color": "#fbbf24" }
       }
     },
     {
-      "id": "item-2",
+      "id": "rune-water",
       "type": "collectible",
-      "transform": { "x": 160, "y": 320, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "transform": { "x": 100, "y": 350, "rotation": 0, "scaleX": 1, "scaleY": 1 },
       "components": {
-        "sprite": { "width": 16, "height": 16, "tileId": 4 },
+        "collision": { "width": 20, "height": 20, "type": "collectible" },
+        "collectible": { "type": "rune", "name": "Water Rune", "value": 25, "element": "water" },
+        "sprite": { "width": 20, "height": 20, "color": "#60a5fa" }
+      }
+    },
+    {
+      "id": "rune-earth",
+      "type": "collectible",
+      "transform": { "x": 400, "y": 100, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "collision": { "width": 20, "height": 20, "type": "collectible" },
+        "collectible": { "type": "rune", "name": "Earth Rune", "value": 25, "element": "earth" },
+        "sprite": { "width": 20, "height": 20, "color": "#84cc16" }
+      }
+    },
+    {
+      "id": "rune-air",
+      "type": "collectible",
+      "transform": { "x": 400, "y": 500, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "collision": { "width": 20, "height": 20, "type": "collectible" },
+        "collectible": { "type": "rune", "name": "Air Rune", "value": 25, "element": "air" },
+        "sprite": { "width": 20, "height": 20, "color": "#e879f9" }
+      }
+    },
+    {
+      "id": "rune-shadow",
+      "type": "collectible",
+      "transform": { "x": 200, "y": 150, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "collision": { "width": 20, "height": 20, "type": "collectible" },
+        "collectible": { "type": "rune", "name": "Shadow Rune", "value": 50, "element": "shadow" },
+        "sprite": { "width": 20, "height": 20, "color": "#a78bfa" }
+      }
+    },
+    {
+      "id": "rune-light",
+      "type": "collectible",
+      "transform": { "x": 600, "y": 450, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "collision": { "width": 20, "height": 20, "type": "collectible" },
+        "collectible": { "type": "rune", "name": "Light Rune", "value": 50, "element": "light" },
+        "sprite": { "width": 20, "height": 20, "color": "#fef3c7" }
+      }
+    },
+    {
+      "id": "health-1",
+      "type": "collectible",
+      "transform": { "x": 300, "y": 250, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "collision": { "width": 24, "height": 24, "type": "collectible" },
+        "collectible": { "type": "health", "name": "Health Potion", "value": 30, "healAmount": 30 },
+        "sprite": { "width": 24, "height": 24, "color": "#22c55e" }
+      }
+    },
+    {
+      "id": "health-2",
+      "type": "collectible",
+      "transform": { "x": 550, "y": 300, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "collision": { "width": 24, "height": 24, "type": "collectible" },
+        "collectible": { "type": "health", "name": "Health Potion", "value": 30, "healAmount": 30 },
+        "sprite": { "width": 24, "height": 24, "color": "#22c55e" }
+      }
+    },
+    {
+      "id": "gold-1",
+      "type": "collectible",
+      "transform": { "x": 650, "y": 250, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
         "collision": { "width": 16, "height": 16, "type": "collectible" },
-        "collectible": { "type": "gold", "name": "Gold Coins", "value": 5 }
+        "collectible": { "type": "gold", "name": "Gold Coins", "value": 10 },
+        "sprite": { "width": 16, "height": 16, "color": "#f59e0b" }
+      }
+    },
+    {
+      "id": "gold-2",
+      "type": "collectible",
+      "transform": { "x": 150, "y": 450, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "collision": { "width": 16, "height": 16, "type": "collectible" },
+        "collectible": { "type": "gold", "name": "Gold Coins", "value": 10 },
+        "sprite": { "width": 16, "height": 16, "color": "#f59e0b" }
+      }
+    },
+    {
+      "id": "gold-3",
+      "type": "collectible",
+      "transform": { "x": 350, "y": 350, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "collision": { "width": 16, "height": 16, "type": "collectible" },
+        "collectible": { "type": "gold", "name": "Gold Coins", "value": 10 },
+        "sprite": { "width": 16, "height": 16, "color": "#f59e0b" }
+      }
+    },
+    {
+      "id": "wall-1",
+      "type": "obstacle",
+      "transform": { "x": 250, "y": 300, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "collision": { "width": 60, "height": 60, "type": "obstacle" },
+        "sprite": { "width": 60, "height": 60, "color": "#475569" }
+      }
+    },
+    {
+      "id": "wall-2",
+      "type": "obstacle",
+      "transform": { "x": 550, "y": 150, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "collision": { "width": 80, "height": 40, "type": "obstacle" },
+        "sprite": { "width": 80, "height": 40, "color": "#475569" }
+      }
+    },
+    {
+      "id": "wall-3",
+      "type": "obstacle",
+      "transform": { "x": 650, "y": 400, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "collision": { "width": 40, "height": 80, "type": "obstacle" },
+        "sprite": { "width": 40, "height": 80, "color": "#475569" }
+      }
+    },
+    {
+      "id": "wall-4",
+      "type": "obstacle",
+      "transform": { "x": 100, "y": 500, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "collision": { "width": 100, "height": 40, "type": "obstacle" },
+        "sprite": { "width": 100, "height": 40, "color": "#475569" }
       }
     }
   ],
-  "tilemap": {
-    "width": 20,
-    "height": 15,
-    "tileWidth": 32,
-    "tileHeight": 32,
-    "layers": ["ground", "collision", "decor"]
-  },
-  "viewport": {
-    "x": 0,
-    "y": 0,
-    "zoom": 1
-  },
   "metadata": {
-    "createdAt": "2026-04-08T11:07:37.828Z",
-    "phase": 1,
-    "features": ["player-movement", "tilemap-collision", "camera-follow"]
+    "createdAt": "2026-04-08T14:00:00.000Z",
+    "features": ["player-movement", "rune-collection", "enemies", "obstacles"]
   }
 }
