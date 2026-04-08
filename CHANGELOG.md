@@ -607,3 +607,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Responsive design** — Quick Start grid adapts to mobile screens
 - **Visual hierarchy** — Clear grouping, icons, and descriptions for actions
 - **Pause/Resume flow** — ESC key with visual overlay for quick game state toggling
+
+## [0.11.7] - 2026-04-08
+
+#### Added
+- **Game preview defensive validation** — Scene entities are validated on load to ensure proper structure
+- **AI Command clear demo mode banner** — Shows users whether mock or real AI is active
+- **AI Command status refresh button** — Allows users to re-check AI health status
+- **AI Command improved error handling** — Better try/catch and user-friendly error messages
+
+#### Changed
+- **Game Preview: ProjectScene interface** — `transform` now required after validation (was optional, causing crashes)
+- **Game Preview: Entity validation** — All scene entities get default transforms if missing (x: 400, y: 300, scale: 1, rotation: 0)
+- **AI Command: Welcome message** — Context-aware based on AI health (real vs demo)
+- **ai-thinking.css** — Comprehensive styles for AI Command page, dark mode support
+
+#### Fixed
+- **Critical: Game Preview crash** — "Cannot read properties of undefined (reading 'transform')" error when scene entities lacked transform objects
+- **Critical: Scene loading** — Defensive null checks prevent crashes on malformed scene files
+- **AI Command confusing messaging** — Clear banner shows Demo Mode vs Real AI status
+- **AI Command API unreachable** — Better error handling when API server is down
+
+#### Related Issues
+- @gamedev feedback #2 — Game Preview crash on entity transform access
+- @gamedev feedback #4 — AI Command confusing Preview Mode messaging
