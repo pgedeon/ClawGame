@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Bot, X, Send, Sparkles } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bot, X, Send, Sparkles, Wifi, WifiOff } from 'lucide-react';
 import { useToast } from './Toast';
+import { api } from '../api/client';
 import '../ai-fab.css';
 
 interface AIFABProps {
@@ -12,6 +13,7 @@ interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
+  fromFallback?: boolean;
 }
 
 export function AIFAB({ projectId }: AIFABProps) {
@@ -19,13 +21,30 @@ export function AIFAB({ projectId }: AIFABProps) {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isThinking, setIsThinking] = useState(false);
+  const [aiStatus, setAiStatus] = useState<'checking' | 'connected' | 'offline'>('checking');
   const { showToast } = useToast();
+
+  // Check AI health on mount
+  useEffect(() => {
+    const checkHealth = async () => {
+      try {
+        const health = await api.getAIHealth();
+        setAiStatus(health.status === 'ok' ? 'connected' : 'offline');
+      } catch {
+        setAiStatus('offline');
+      }
+    };
+    checkHealth();
+    // Recheck every 60s
+    const interval = setInterval(checkHealth, 60_000);
+    return () => clearInterval(interval);
+  }, []);
 
   const togglePanel = () => {
     setIsOpen(prev => !prev);
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const text = input.trim();
     if (!text) return;
 
@@ -40,18 +59,66 @@ export function AIFAB({ projectId }: AIFABProps) {
     setInput('');
     setIsThinking(true);
 
-    // Simulate AI thinking then show preview mode response
-    setTimeout(() => {
+    if (!projectId) {
       const aiMsg: ChatMessage = {
         id: `a-${Date.now()}`,
         role: 'assistant',
-        content: `I understand you want: "${text}"\n\nI'm currently in **Preview Mode**. Full AI capabilities are coming soon!\n\nSoon I'll be able to:\n• Generate game code from descriptions\n• Create and modify entities\n• Build complete game scenes\n• Optimize your game logic`,
+        content: "I'd love to help, but no project is open. Please open a project first so I can work with your game code.",
         timestamp: Date.now(),
       };
       setMessages(prev => [...prev, aiMsg]);
       setIsThinking(false);
-      showToast({ type: 'info', message: 'AI is in preview mode — full capabilities coming soon', duration: 4000 });
-    }, 1200);
+      return;
+    }
+
+    try {
+      const result = await api.processAICommand(projectId, {
+        command: text,
+        projectId,
+        
+      });
+
+      const isFallback = result.response?.fromFallback === true;
+      const content = isFallback
+        ? `⚠️ **Offline mode** — generated from local templates\n\n${result.response.content}\n\n_*The AI service is unavailable. This code was generated locally. Try specific commands like "add player movement" or "create enemy".*_`
+        : result.response.content;
+
+      const aiMsg: ChatMessage = {
+        id: `a-${Date.now()}`,
+        role: 'assistant',
+        content,
+        timestamp: Date.now(),
+        fromFallback: isFallback,
+      };
+      setMessages(prev => [...prev, aiMsg]);
+
+      if (isFallback) {
+        setAiStatus('offline');
+      } else {
+        setAiStatus('connected');
+      }
+    } catch (err: any) {
+      const errorMsg = err?.message || 'Unknown error';
+      const isTimeout = errorMsg.includes('abort') || errorMsg.includes('timeout') || errorMsg.includes('Timeout');
+
+      const aiMsg: ChatMessage = {
+        id: `a-${Date.now()}`,
+        role: 'assistant',
+        content: isTimeout
+          ? `⏱️ **AI request timed out**\n\nThe AI service is taking too long to respond. This could be due to high load or connectivity issues.\n\n**Suggestions:**\n• Try a shorter, more specific command\n• Wait a moment and try again\n• Use the Code Editor to make changes manually`
+          : `❌ **Error:** ${errorMsg}\n\nSomething went wrong. Please try again or use the Code Editor to make changes manually.`,
+        timestamp: Date.now(),
+      };
+      setMessages(prev => [...prev, aiMsg]);
+      setAiStatus('offline');
+      showToast({
+        type: 'error',
+        message: isTimeout ? 'AI request timed out — try a shorter command' : 'AI command failed',
+        duration: 5000,
+      });
+    } finally {
+      setIsThinking(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -84,7 +151,15 @@ export function AIFAB({ projectId }: AIFABProps) {
             <div className="ai-panel-title">
               <Sparkles size={16} />
               <span>AI Assistant</span>
-              <span className="ai-panel-badge">Preview</span>
+              <span className={`ai-panel-badge ${aiStatus}`}>
+                {aiStatus === 'connected' ? (
+                  <><Wifi size={10} /> Live</>
+                ) : aiStatus === 'offline' ? (
+                  <><WifiOff size={10} /> Offline</>
+                ) : (
+                  'Connecting...'
+                )}
+              </span>
             </div>
           </div>
 
@@ -95,8 +170,8 @@ export function AIFAB({ projectId }: AIFABProps) {
                 <p>Hi! I'm your AI game dev assistant.</p>
                 <p className="ai-panel-hint">
                   Ask me to generate code, create entities, or build scenes.
-                  <br />
-                  <small>Full AI capabilities coming soon.</small>
+                  {aiStatus === 'connected' && <><br /><small>🟢 Connected to AI — I can generate real code for your game.</small></>}
+                  {aiStatus === 'offline' && <><br /><small>🔴 AI offline — I'll use local templates. Specific commands work best.</small></>}
                 </p>
               </div>
             )}
@@ -124,7 +199,11 @@ export function AIFAB({ projectId }: AIFABProps) {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask AI anything..."
+              placeholder={
+                aiStatus === 'connected'
+                  ? "Ask me anything about your game..."
+                  : "Try 'add player movement' or 'create enemy'..."
+              }
               disabled={isThinking}
               autoFocus
             />

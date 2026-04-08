@@ -122,7 +122,9 @@ export function AICommandPage() {
         ...prev,
         {
           type: 'assistant',
-          content: result.response.content,
+          content: result.response.fromFallback
+            ? `⚠️ **AI service offline — using local code generation**\n\n${result.response.content}\n\n_*The external AI is currently unreachable. This response was generated locally with game-ready code templates. Try specific commands like "add player movement" or "create enemy patrol".*_`
+            : result.response.content,
           timestamp: new Date(),
           response: result.response,
         }

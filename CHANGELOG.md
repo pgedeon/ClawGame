@@ -216,3 +216,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Template picker dropdown replaces mode-toggle for Add Entity button
 - Entity type inference: uses components (playerInput, ai, collision.type) to classify entities
 - Type-based colors: player=blue, enemy=red, collectible=amber, obstacle=gray, npc=green
+
+### 0.12.4 - 2026-04-08
+
+#### Added
+- Scene Editor keyboard shortcuts: Delete, Ctrl+D (duplicate), Ctrl+S (save), V (select), G (move), Escape (deselect)
+- AI Command fallback notice: users see "AI offline — local code generation" banner when external API is unreachable
+- AIFAB (floating AI assistant) now connects to real AI API instead of showing "coming soon"
+- AIFAB shows live connection status (🟢 Live / 🔴 Offline) with periodic health checks
+- AI health badge on AIFAB panel header
+- Extracted hooks: useRPGState (RPG manager reactive state), useGameLoop (game loop engine)
+- Extracted components: GameHUD, GameOverlays (start/pause/gameover/victory screens)
+- Game loop render helpers: renderEntity, renderProjectile, renderParticle
+
+#### Changed
+- AI service: 30s timeout (was 180s), AbortController, 2 retries with exponential backoff
+- AI service: circuit breaker (5 failures → 60s cooldown, half-open recovery)
+- AI service: streaming SSE support for real-time AI responses
+- AI service: local fallback codegen for 8 game system types (player, enemy, collectible, etc.)
+- Asset image generation: unified with same AI API, SVG placeholder fallback
+- API client: 90s timeout for AI commands, 60s default for other endpoints
+- AI routes: SSE streaming endpoint for real-time command responses
+- AI Command response includes `fromFallback` flag for UI notification
+
+#### Fixed
+- .gitignore: properly excludes apps/api/data/projects/ and exports/ (was leaking user data)
+- Removed tracked project data from git history
+- AI image generation test rewritten to match new service API
+- AIFAB no longer shows contradictory "coming soon" when AI Command shows "Real AI Connected"
+- User-facing error messages for AI timeout and failures in AIFAB

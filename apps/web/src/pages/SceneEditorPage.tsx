@@ -136,6 +136,47 @@ function SceneEditorContent() {
     }
   }, [showTemplatePicker]);
 
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+      // Delete / Backspace — delete selected entity
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedEntityId) {
+        e.preventDefault();
+        handleDeleteEntity(selectedEntityId);
+        return;
+      }
+      // Ctrl/Cmd + D — duplicate selected entity
+      if ((e.metaKey || e.ctrlKey) && e.key === "d") {
+        e.preventDefault();
+        if (selectedEntityId) handleDuplicateEntity(selectedEntityId);
+        return;
+      }
+      // Ctrl/Cmd + S — save scene
+      if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+        e.preventDefault();
+        saveScene();
+        return;
+      }
+      // V — select tool
+      if (e.key === "v") { setToolMode("select"); return; }
+      // G — move tool
+      if (e.key === "g") { setToolMode("move"); return; }
+      // Escape — deselect
+      if (e.key === "Escape") {
+        setSelectedEntityId(null);
+        setToolMode("select");
+        return;
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [selectedEntityId, scene, showTemplatePicker]);
+
+
   // Load project info
   useEffect(() => {
     if (projectId) {
