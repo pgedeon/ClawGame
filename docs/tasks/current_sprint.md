@@ -3,7 +3,7 @@
 **Sprint Goal:** Enhance user experience with advanced features, deeper AI integration, and improved workflow patterns.
 
 **Started:** 2026-04-08
-**Status:** 🚧 Phase 3 In Progress - v0.11.7
+**Status:** 🚧 Phase 3 In Progress - v0.11.8
 
 ---
 
@@ -16,7 +16,7 @@
 - TypeScript typecheck in CI
 - Responsive design improvements
 
-### Phase 2: Web UI Bug Fixes ✅ COMPLETED  
+### Phase 2: Web UI Bug Fixes ✅ COMPLETED
 - Click interaction timeouts fixed
 - Navigation consistency restored
 - Interactive onboarding added
@@ -27,7 +27,7 @@
 - Documentation sync process created
 - Component design system audit completed
 - CSS refactoring for design system compliance (65% → 85%)
-- AssetStudioPage decomposition (715 → 100 lines)
+- AssetStudioPage decomposition (715 → 100 lines orchestrator)
 
 **M7 Status:** CLOSED. All operational excellence and architectural goals achieved.
 
@@ -115,28 +115,38 @@
 
 ---
 
-## Critical Fixes (v0.11.7)
+## Critical Fixes (v0.11.7 → v0.11.8)
 
 These are urgent fixes based on @gamedev and @pm feedback that blocked core functionality:
 
 ### Completed ✅
-- **Game Preview crash fix** — Defensive entity.transform validation prevents "Cannot read properties of undefined (reading 'transform')" errors
-- **AI Command messaging clarity** — Demo Mode banner clearly shows mock vs real AI status
-- **AI Command error handling** — Better user feedback when API unreachable
-- **Scene entity validation** — All entities get default transforms if missing from scene file
+- **Game Preview crash fix** (v0.11.7) — Defensive entity.transform validation prevents "Cannot read properties of undefined (reading 'transform')" errors
+- **AI Command messaging clarity** (v0.11.7) — Demo Mode banner clearly shows mock vs real AI status
+- **AI Command error handling** (v0.11.7) — Better user feedback when API unreachable
+- **Scene entity validation** (v0.11.7) — All entities get default transforms if missing from scene file
+- **23 missing CSS classes** (v0.11.8) — Game over and victory screens now render with proper styling
+- **Asset Studio "prev is not iterable" crash** (v0.11.8) — Fixed parameter shadowing in setState callback
+- **AssetSuggestions projectId prop** (v0.11.8) — Added optional prop with fallback to route parameter
 
 ### Remaining 📋
-- Asset Studio "prev is not iterable" crash — investigate state update issue
+- AI Command timeout — 120 second timeout blocking AI code generation
+- Game Preview shows wrong game — Preview loads "Rune Rush" demo instead of actual project
+- Export functionality — Verify download flow works end-to-end
 - Scene Editor entity-to-code linkage — unclear mapping between visual entities and code
-- Export functionality — verify download flow works end-to-end
-- AssetSuggestions page — needs project context passing
-- Project data persistence — investigate potential data loss issues
+- Project data persistence — Investigate potential data loss issues
+- GamePreviewPage extraction — Still 923 lines, needs modularization
 
-**Critical Fixes Status:** 4/9 completed. Platform is now functional with remaining issues non-blocking.
+**Critical Fixes Status:** 7/15 completed. Platform is now functional with remaining issues non-blocking.
 
 ---
 
 ## Remaining Sprint Tasks
+
+### High Priority
+- Investigate AI Command timeout (backend/API issue)
+- Fix Game Preview loading wrong project (route/context issue)
+- Verify Export functionality end-to-end
+- Extract GamePreviewPage into modular game engine
 
 ### Backlog Items (Not Started)
 - Visual scripting interface
@@ -158,20 +168,27 @@ These are urgent fixes based on @gamedev and @pm feedback that blocked core func
 ### @gamedev Feedback
 1. ✅ ~~Game Preview crash on entity transform~~ — Fixed in v0.11.7
 2. ✅ ~~AI Command confusing Preview Mode~~ — Fixed in v0.11.7
-3. 📋 Asset Studio "prev is not iterable" crash — Not yet investigated
+3. ✅ ~~Asset Studio "prev is not iterable" crash~~ — Fixed in v0.11.8
 4. 📋 Scene Editor entity-to-code linkage unclear — Needs design clarification
 5. 📋 Export non-functional — Needs verification
 6. 📋 Project data loss reported — Needs investigation
-7. 📋 AssetSuggestions needs projectId prop — Not yet fixed
+7. ✅ ~~AssetSuggestions needs projectId prop~~ — Fixed in v0.11.8
 8. 📋 "Project not found" on Asset Studio/Export/Preview routes — Needs investigation
 9. 📋 Onboarding modal buttons unclickable — Playwright issue or real bug?
+10. 📋 AI Command timeout — 120 second timeout, blocking core AI value prop
+11. 📋 Game Preview shows wrong game — Loads "Rune Rush" demo instead of user's project
 
 ### @pm Feedback
-- All TypeScript errors resolved ✅
-- Build passing ✅
-- Need to investigate remaining functional issues
+- ✅ TypeScript errors resolved — Clean typecheck across all packages
+- ✅ Build passing — All packages build successfully
+- ✅ 23 missing CSS classes added — Game over/victory screens styled
+- ✅ Asset Studio crash fixed — Parameter shadowing resolved
+- ⚠️ GamePreviewPage still 923 lines — Needs extraction (architectural debt)
+- ⚠️ VERSION.json should be v0.12.0 for game preview rewrite — Currently v0.11.8
+- ⚠️ CHANGELOG.md missing game preview rewrite — Needs documentation update
 
 ### @uiux Feedback
+- ✅ Game preview CSS improvements — All 23 missing classes added with animations
 - Need UX review of new onboarding flow
 - Welcome modal clarity improvements needed
 
@@ -179,17 +196,19 @@ These are urgent fixes based on @gamedev and @pm feedback that blocked core func
 
 ## Next Steps
 
-**Priority 1:** Investigate and fix Asset Studio crash (prev is not iterable)
+**Priority 1:** Investigate and fix AI Command timeout (120 seconds blocking core AI value prop)
 
-**Priority 2:** Verify Export functionality works end-to-end
+**Priority 2:** Fix Game Preview loading wrong project (route/context issue preventing users from testing their own games)
 
-**Priority 3:** Fix AssetSuggestions projectId prop passing
+**Priority 3:** Verify Export functionality works end-to-end (download flow)
 
-**Priority 4:** Design and document entity-to-code linkage in Scene Editor
+**Priority 4:** Extract GamePreviewPage into modular game engine (architectural debt)
 
-**Priority 5:** Investigate reported project data loss issues
+**Priority 5:** Design and document entity-to-code linkage in Scene Editor
+
+**Priority 6:** Investigate reported project data loss issues
 
 ---
 
 **Sprint Owner:** @dev
-**Last Updated:** 2026-04-08 (v0.11.7 critical fixes)
+**Last Updated:** 2026-04-08 (v0.11.8 CSS and crash fixes)
