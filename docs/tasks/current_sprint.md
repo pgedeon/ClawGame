@@ -1,137 +1,99 @@
-# Current Sprint: Milestone 6 (Real AI Assets + Quality + Integration)
+# Current Sprint: Milestone 7 (Git + OpenClaw Operations)
 
-**Sprint Goal:** Ship real AI asset generation, add test coverage, connect scene editor to assets, backend quality.
+**Sprint Goal:** Operational excellence, unified design system, bug fixes, and architectural cleanup.
 
-**Started:** 2026-04-07
-**Status:** 🚧 In Progress
-
----
-
-## Phase 1: Documentation & Backend Quality ✅
-
-| Task | Status | Notes |
-|------|--------|-------|
-| Close M5 officially (roadmap, sprint, memory) | ✅ Done | All tracking docs now say M5 COMPLETE |
-| Backend logger migration (console → pino) | ✅ Done | All 8 console.* calls replaced with Fastify logger (v0.7.0) |
-| Vitest setup for API | ✅ Done | 9 smoke tests: health, projects CRUD, AI health, assets CRUD (v0.7.0) |
-| Build fix (RealAIService export conflict) | ✅ Done | Fixed TS export conflict from logger migration |
+**Started:** 2026-04-08
+**Status:** 🚧 In Progress (Phase 1)
 
 ---
 
-## Phase 2: Real AI Asset Generation ✅
+## Phase 1: Operational Excellence 🟡 In Progress
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Real AI asset generation with OpenRouter | ✅ Done | LLM-powered SVG generation from text prompts - v0.7.1 |
-| Asset prompt → actual image pipeline | ✅ Done | Type "pixel art goblin", get an SVG sprite - v0.7.1 |
-| Asset generation progress feedback | ✅ Done | Real-time status updates (0-100%) - v0.7.1 |
-| **CRITICAL: Asset preview fix** | ✅ Done | Now displays actual SVG content instead of placeholders |
-| **CRITICAL: Documentation fixes** | ✅ Done | CHANGELOG ordered properly, project_memory synced to v0.7.1 |
+| Update project_memory.md to v0.9.0 | ✅ Done | Reflected M6 completion, export system shipped |
+| Add unified design system CSS variables | ✅ Done | Enhanced theme.css with consistent spacing, typography, responsive design |
+| Fix export options UI "Coming Soon" | ✅ Done | Minify/compress options disabled with "Coming Soon" badges |
+| Add .env.example file | ✅ Done | New contributors can now set up environment properly |
+| Add TypeScript typecheck to CI | ✅ Done | typecheck script added to all packages, runs in test command |
+| Improve responsive design baseline | ✅ Done | Mobile breakpoint improvements in dashboard and export page |
 
 **Details:**
-- AIImageGenerationService generates real SVG code from text prompts
-- Multiple art styles: pixel, vector, hand-drawn, cartoon, realistic
-- Multiple asset types: sprite, tileset, texture, icon, audio, background
-- Progress tracking with generation status API
-- Async support: returns generation ID, poll for completion
-- Asset Studio UI updated with style selection and progress display
-- **CRITICAL FIX:** Asset preview now shows actual generated SVGs, not placeholder rectangles
-- 6 test suites for AI image generation service
+- Enhanced theme.css with unified CSS variables for spacing, typography, colors
+- Backward-compatible aliases for existing variable names
+- Export page now shows "Coming Soon" badges with lock icons for unimplemented features
+- .env.example includes OpenRouter API key, ports, data directories, CORS, logging
+- TypeScript typecheck added: `pnpm run -r typecheck` or `pnpm test` (includes typecheck)
+- Responsive design improvements for mobile (768px breakpoint)
+- Dark mode support maintained across all components
 
 ---
 
-## Phase 3: Scene Editor ↔ Asset Integration ✅
+## Phase 2: Web UI Bug Fixes 📋 Next
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Asset browser panel in Scene Editor | ✅ Done | Left sidebar shows all project assets |
-| Drag assets into scene from library | ✅ Done | Drag-and-drop creates entities with sprite component |
-| Sprite rendering from actual assets | ✅ Done | Real SVG/PNG images render on canvas entities |
-| SceneEditorPage decomposition | ✅ Done | From 1270 lines → 528 lines orchestrator + 3 components |
-| Component separation | ✅ Done | AssetBrowserPanel (207), SceneCanvas (332), PropertyInspector (167) |
-
-**Details:**
-- Asset browser panel on left side of scene editor
-- Asset grid showing thumbnails of all project assets
-- Search and filter assets by type (all/sprites/tilesets/textures)
-- Drag assets from browser to canvas to create new entities
-- Auto-generates sprite component with asset ID reference
-- Real-time image caching for smooth canvas rendering
-- Attach assets to selected entities via inspector
-- AI-generated badges on asset cards
-- Refresh assets button
-- Fixed project date display bug ("Invalid Date" issue)
-- ProjectService auto-fixes missing dates using file mtime
-- **NEW (v0.8.1):** SceneEditorPage decomposed into clean component architecture
-- **NEW (v0.8.1):** AssetBrowserPanel, SceneCanvas, PropertyInspector as separate files
-- **NEW (v0.8.1):** Shared types.ts for scene editor state and constants
+| Fix click interaction timeouts | 📋 Next | Debug and fix unresponsive elements (Play, New File, navigation) |
+| Fix navigation inconsistency | 📋 Next | Ensure URL updates and page transitions work correctly |
+| Improve error handling | 📋 Next | Better error messages and feedback for failed interactions |
+| Add interactive tutorial/onboarding | 📋 Next | Guide new users after project creation |
+| Add default game template | 📋 Next | Give users a starting point instead of empty project |
 
 ---
 
-## Phase 4: Export & Packaging ✅
+## Phase 3: Architectural Debt 📋 Future
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Game export to standalone HTML | ✅ Done | ExportService packages game as HTML - v0.9.0 |
-| Asset bundling in export | ✅ Done | Assets embedded as data URIs in HTML - v0.9.0 |
-| Download/share workflow | ✅ Done | Export page with history, play, download, delete - v0.9.0 |
-
-**Details:**
-- ExportService generates standalone HTML files containing complete game
-- Embedded assets as base64 data URIs for self-contained exports
-- Export API routes: POST export, GET exports, GET/DELETE export files
-- Export page UI with options panel and export history
-- Export options: include assets (working), minify (placeholder), compress (placeholder)
-- ProjectPage updated with Export tab and overview quick action
-- Export history with play-in-browser, download, and delete actions
-- Auto-download on export completion
-- Responsive design with loading states and error handling
-- Exported games include minimal game engine that runs in browser
-- No build tools or npm required for exported games
+| Expand test coverage | 📋 Future | Add tests for scene editor, engine, asset service, project service |
+| Documentation sync process | 📋 Future | Make updating project_memory.md mandatory part of release process |
+| Component consistency review | 📋 Future | Audit all components for design system compliance |
 
 ---
 
 ## Definition of Done
 
-- [x] Backend uses Fastify logger (no raw console.*)
-- [x] Basic test coverage (9 smoke tests, vitest)
-- [x] Real AI asset generation working (OpenRouter LLM)
-- [x] Generation progress tracking (0-100%)
-- [x] Asset preview shows actual SVG content (not placeholders)
-- [x] Documentation synced across all tracking files (CHANGELOG ordered, project_memory synced)
-- [x] Asset browser panel in scene editor
-- [x] Drag-and-drop assets to canvas
-- [x] Sprite rendering from actual assets
-- [x] Code compiles clean
-- [x] Health endpoint returns actual version from VERSION.json
-- [x] SceneEditorPage decomposed (1270 → 528 lines orchestrator)
-- [x] Component separation (AssetBrowserPanel, SceneCanvas, PropertyInspector)
-- [x] Game export to standalone HTML with embedded assets
-- [x] Download/share workflow with export history
+### Phase 1 (Current)
+- [x] Documentation updated to v0.9.0
+- [x] Unified design system with CSS variables
+- [x] Export options UI fixed ("Coming Soon" badges)
+- [x] .env.example file added
+- [x] TypeScript typecheck in CI
+- [x] Responsive design improvements
+
+### Phase 2
+- [ ] Click interactions work reliably
+- [ ] Navigation updates URL correctly
+- [ ] Error handling provides clear feedback
+- [ ] Interactive tutorial available
+- [ ] Default game template on project creation
+
+### Phase 3
+- [ ] Test coverage > 50%
+- [ ] Documentation sync process automated
+- [ ] All components use design system
 
 ---
 
 ## Exit Criteria
 
-**AI generates real game assets from text descriptions. Scene editor integrates with asset library. Test coverage > 0. Scene editor has clean component architecture. Users can export games as standalone HTML files.**
+**Phase 1:** Operational excellence foundation shipped (unified design system, export options fixed, .env.example, typecheck in CI, responsive improvements). **NEAR COMPLETE**
 
-**Phase 1 Complete ✅** — Backend quality shipped in v0.7.0!
-**Phase 2 Complete ✅** — Real AI asset generation shipped in v0.7.1!
-**Phase 3 Complete ✅** — Scene Editor ↔ Asset Integration shipped in v0.8.0! Component decomposition shipped in v0.8.1!
-**Phase 4 Complete ✅** — Export & Packaging shipped in v0.9.0!
+**Phase 2:** Core web UI interactions work reliably (clicks, navigation, errors, onboarding, templates).
+
+**Phase 3:** Architectural debt addressed (test coverage, documentation sync, component consistency).
 
 ---
 
-## Previous Sprint: Milestone 5 — COMPLETE ✅
+## Previous Sprint: Milestone 6 — COMPLETE ✅
 
 All 4 phases delivered:
-- Phase 1: AI-Native UX Foundation (v0.5.0) ✅
-- Phase 2: Real AI Integration (v0.5.2) ✅
-- Phase 3: UX Polish & Branding (v0.5.3) ✅
-- Phase 4: Asset Pipeline (v0.6.0) ✅
-- Patch: Documentation & Quality (v0.6.1) ✅
+- Phase 1: Documentation & Backend Quality (v0.7.0) ✅
+- Phase 2: Real AI Asset Generation (v0.7.1) ✅
+- Phase 3: Scene Editor ↔ Asset Integration (v0.8.0) ✅
+- Phase 4: Export & Packaging (v0.9.0) ✅
 
 ---
 
-**Current Sprint:** Milestone 6 (Real AI Assets + Quality + Integration) — COMPLETE ✅
-**Next Milestone:** M7 (Git + OpenClaw Operations)
+**Current Sprint:** Milestone 7 (Git + OpenClaw Operations) — Phase 1 Nearly Complete
+**Next Milestone:** M8 (Feature Expansion)

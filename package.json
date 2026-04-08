@@ -8,11 +8,17 @@
     "dev:web": "pnpm --filter @clawgame/web dev",
     "dev:api": "pnpm --filter @clawgame/api dev",
     "build": "pnpm -r build",
-    "test": "pnpm -r test",
+    "test": "pnpm run -r test && pnpm run -r typecheck",
     "lint": "pnpm -r lint",
     "clean": "pnpm -r clean"
   },
-  "keywords": ["game-engine", "ai", "openclaw", "2d", "web"],
+  "keywords": [
+    "game-engine",
+    "ai",
+    "openclaw",
+    "2d",
+    "web"
+  ],
   "author": "Peter",
   "license": "MIT",
   "engines": {

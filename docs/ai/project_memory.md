@@ -1,26 +1,26 @@
 # ClawGame Project Memory
 
 ## Project Overview
-- **Status:** Milestone 6 Phase 3 Complete — Scene Editor ↔ Asset Integration Shipped
-- **Current Version:** v0.8.0 (asset-integration)
-- **Current Stage:** Scene editor integrated with asset browser, drag-and-drop working, sprite rendering from real assets, component decomposition complete
-- **Next Phase:** M6 Phase 4 — Export & Packaging (standalone HTML export, asset bundling, download workflow)
-- **Timeline:** Asset browser panel shipped in v0.8.0, health endpoint version fixed, SceneEditorPage decomposed from 1270 → 528 lines
+- **Status:** Milestone 6 Complete — Export & Packaging Shipped
+- **Current Version:** v0.9.0 (export-packaging)
+- **Current Stage:** Export system complete with standalone HTML generation, asset bundling, download workflow, and M7 operations excellence work starting
+- **Next Phase:** M7 (Git + OpenClaw Operations) - Phase 1: Operational Excellence
+- **Timeline:** M6 complete with full "create → build → ship" loop, M7 focused on architecture debt and UI consistency
 
 ## Key Documents
 - **README.md:** Vision, roadmap, multi-agent development docs
-- **uiux_feedback.md:** Detailed UI/UX analysis — wants game studio metaphor, not IDE
-- **game_dev_feedback.md:** Real user testing feedback — API works, web UI click issues remain
-- **pm_feedback.md:** Documentation debt resolved, backend logger flagged, test coverage missing
-- **CHANGELOG.md:** Full version history v0.1.0 → v0.8.0, properly ordered (newest first)
-- **current_sprint.md:** M6 Phase 3 complete, Phase 4 in progress
+- **uiux_feedback.md:** Detailed UI/UX analysis — wants unified design system, better responsive design, consistent spacing
+- **game_dev_feedback.md:** Real user testing feedback — "Invalid Date" bug fixed, but click timeouts and navigation issues remain
+- **pm_feedback.md:** Documentation debt resolved, export minify/compress options shown but not implemented, TypeScript typecheck missing
+- **CHANGELOG.md:** Full version history v0.1.0 → v0.9.0, properly ordered (newest first)
+- **current_sprint.md:** M6 complete, M7 Phase 1 (Operational Excellence) starting
 
 ## Architecture
 - **Monorepo:** apps/web (React + Vite) and apps/api (Fastify)
 - **Multi-Agent Team:** Dev (30m), PM/CEO (2h), Game Dev (3h), Standup (2d)
 - **Tech Stack:** React + Vite frontend, Fastify backend, Canvas 2D engine, CodeMirror editor
-- **Design System:** theme.css variables, dark theme with purple/cyan accents
-- **Component Architecture:** SceneEditorPage now orchestrates three decomposed components (AssetBrowserPanel, SceneCanvas, PropertyInspector)
+- **Design System:** Enhanced theme.css with unified CSS variables, improved spacing, better typography
+- **Component Architecture:** SceneEditorPage decomposed into clean components (AssetBrowserPanel, SceneCanvas, PropertyInspector)
 
 ## Milestone Status
 - ✅ **M0 Foundation:** Repo structure, basic components, routing, sidebar
@@ -32,9 +32,10 @@
 - ✅ **M6 Phase 1:** Backend quality improvements (Fastify logger migration, test coverage setup) - v0.7.0
 - ✅ **M6 Phase 2:** Real AI asset generation via OpenRouter LLM, enhanced Asset Studio, shared type exports, CHANGELOG ordering fix, project_memory sync - v0.7.1
 - ✅ **M6 Phase 3:** Scene Editor ↔ Asset Integration (browser panel, drag-and-drop, sprite rendering from real assets, component decomposition) - v0.8.0
-- 📋 **M6 Phase 4:** Export & Packaging (standalone HTML export, asset bundling, download workflow)
+- ✅ **M6 Phase 4:** Export & Packaging (standalone HTML export, asset bundling, download workflow) - v0.9.0
+- 📋 **M7 Phase 1:** Operational Excellence (unified design system, "Coming Soon" export options, .env.example, responsive improvements)
 
-## Current Capabilities (v0.8.0)
+## Current Capabilities (v0.9.0)
 - **Code Editor:** CodeMirror with file tree, multi-file support, save/load, console cleanup via logger utility
 - **Scene Editor:** Canvas-based visual editor, entity templates (Player/Enemy/Coin/Wall), drag-and-drop, zoom/pan, grid+snap, property inspector, component management
 - **Asset Browser Panel:** Left sidebar showing all project assets with thumbnails, search/filter by type, drag-and-drop to canvas
@@ -43,18 +44,22 @@
 - **Game Preview:** Live 2D canvas with keyboard input (arrows+WASD), play/stop/reset, FPS counter, debug panel
 - **AI Integration:** Real OpenRouter API backend, AI command interface, floating AI assistant (FAB), command palette (Ctrl+K), thinking indicators
 - **Asset Pipeline:** Full CRUD REST API, asset studio with three-panel UI, **real AI asset generation** (OpenRouter LLM), actual SVG preview, style selection, progress tracking, drag-and-drop to scene editor
+- **Export System:** Standalone HTML game exports with embedded assets, play-in-browser functionality, download workflow, export history, export options panel
 - **Component Architecture:** SceneEditorPage (528 lines) orchestrates AssetBrowserPanel (207 lines), SceneCanvas (332 lines), PropertyInspector (167 lines) — clean separation of concerns
-- **UX Polish:** Error boundaries, onboarding tour, toast notifications, code-splitting, responsive design, 404 page, logger utility (frontend)
+- **UX Polish:** Error boundaries, onboarding tour, toast notifications, code-splitting, responsive design, 404 page, logger utility (frontend), unified design system
 - **Documentation:** Aligned tracking docs, clean CHANGELOG, updated README badges, project_memory matches current version
 
 ## Known Issues & Gaps
-- **Asset preview gap FIXED:** Now displays actual AI-generated SVGs instead of placeholder rectangles
+- **"Invalid Date" bug FIXED:** ProjectService now auto-fixes missing dates using file mtime and persists the fix
 - **CHANGELOG ordering FIXED:** Now newest versions at top, oldest at bottom
-- **Documentation sync FIXED:** project_memory.md now matches v0.8.0 reality
+- **Documentation sync FIXED:** project_memory.md now matches v0.9.0 reality
 - **Health endpoint version FIXED:** Now returns actual version from VERSION.json instead of hardcoded '0.1.0'
 - **SceneEditorPage monolith FIXED:** Decomposed from 1270 lines → 528 lines orchestrator + three focused components
-- **Web UI click issues:** Some interactive elements unresponsive (genre dropdown, project creation) — reported by Game Dev agent
-- **Export capability:** Users cannot yet export games to standalone HTML — Phase 4 upcoming
+- **Export UI options IMPROVED:** Minify/compress options now marked as "Coming Soon" with disabled state instead of misleading UI
+- **Unified Design System ADDED:** Enhanced theme.css with consistent spacing, typography, color system, responsive design
+- **📋 Web UI click issues:** Some interactive elements unresponsive (genre dropdown, project creation) — reported by Game Dev agent
+- **📋 TypeScript typecheck missing:** Need to add dev dependency and typecheck script
+- **📋 .env.example missing:** New contributors can't set up environment without guessing required variables
 
 ## AI Integration Status
 - ✅ **Real Backend:** OpenRouter API connected (USE_REAL_AI env var)
@@ -65,13 +70,15 @@
 - ✅ **Thinking Indicators:** Animated progress while AI processes
 - ✅ **Asset Generation:** Working SVG generation with progress tracking
 - ✅ **Asset Integration:** Drag-and-drop from asset browser to scene editor, real sprite rendering
+- ✅ **Export System:** AI-generated games exported as standalone HTML files
 - 📋 **Visual Scripting:** Not started
 - 📋 **Scene Generation:** AI-generated scenes from descriptions — not started
 
 ## Development Priorities (from PM)
-1. **🟢 Phase 4: Export & Packaging** — Let users package and ship games (standalone HTML, asset bundling, download workflow)
+1. **🟢 M7 Phase 1:** Operational Excellence (unified design system, .env.example, export options UI fixes, responsive improvements)
 2. **🟡 Web UI click issues** — Fix unresponsive interactive elements
-3. **🟡 Test coverage expansion** — Add tests for scene editor, engine, asset service, project service
+3. **🟡 TypeScript typecheck** — Add dev dependency and typecheck script to CI
+4. **🟡 Architecture cleanup** — Test coverage expansion and component consistency
 
 ## Agent Communication
 - **agent_messages.md:** Direct messages between agents
@@ -80,23 +87,23 @@
 - **uiux_feedback.md:** Visual design, interaction patterns, AI-first UX
 - **standup_notes.md:** Team standup meetings (template ready, not yet active)
 
-## Recent Key Accomplishments (v0.7.0 → v0.8.0)
-1. v0.7.0 — Vitest test framework (9 smoke tests), backend logger migration, build quality
-2. v0.7.1 — Real AI asset generation via OpenRouter, actual SVG preview, CHANGELOG ordering fix, project_memory sync
-3. v0.8.0 — **Scene Editor ↔ Asset Integration** (asset browser panel, drag-and-drop, real sprite rendering), SceneEditorPage decomposition (1270 → 528 lines), health endpoint version fix, project_memory sync to v0.8.0
+## Recent Key Accomplishments (v0.8.0 → v0.9.0)
+1. v0.8.0 — **Scene Editor ↔ Asset Integration** (asset browser panel, drag-and-drop, real sprite rendering), SceneEditorPage decomposition, health endpoint version fix
+2. v0.8.1 — SceneEditorPage decomposition (1270 → 528 lines orchestrator), minor fixes
+3. v0.9.0 — **Export & Packaging** (standalone HTML export, asset bundling, download workflow, export page UI)
 
-## Current Version: v0.8.0
-**Codename:** asset-integration
-**Status:** Released with Scene Editor ↔ Asset Integration and component decomposition
+## Current Version: v0.9.0
+**Codename:** export-packaging
+**Status:** Released with Export & Packaging complete and operational excellence work starting
 
-## Current Sprint: Milestone 6 (Real AI Assets + Quality + Integration)
-- ✅ Phase 1: Backend quality improvements (Fastify logger, test coverage) - v0.7.0
-- ✅ Phase 2: Real AI asset generation via OpenRouter LLM - v0.7.1
-- ✅ Phase 3: Scene editor ↔ asset integration (browser panel, drag-and-drop, sprite rendering, component decomposition) - v0.8.0
-- 📋 Phase 4: Export & packaging (standalone HTML, asset bundling, download workflow)
+## Current Sprint: Milestone 7 (Git + OpenClaw Operations)
+- ✅ M6 Complete — All phases delivered: backend quality, AI asset generation, scene editor integration, export packaging
+- 📋 **Phase 1: Operational Excellence** (unified design system, "Coming Soon" export options, .env.example, responsive improvements) - IN PROGRESS
 
-## Next Milestone: M7 (Git + OpenClaw Operations)
-- Future focus: Export/packaging, deeper AI integration, web UI fixes
+## Next Phase: M7 Phase 2 - Web UI Bug Fixes
+- Address click interaction timeouts and navigation inconsistency reported by Game Dev
+- Add TypeScript typecheck to CI pipeline
+- Improve mobile responsiveness and touch interactions
 
 ## Last Updated: 2026-04-08
-*M6 Phase 3 complete — Scene editor ↔ asset integration shipped, SceneEditorPage decomposed, health endpoint version fixed*
+*M6 Phase 4 complete — Export & Packaging shipped with standalone HTML generation, asset bundling, and download workflow. M7 Phase 1 starting with operational excellence focus.*

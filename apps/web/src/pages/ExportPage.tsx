@@ -15,6 +15,7 @@ import {
   FileText,
   Package,
   Settings,
+  Lock,
 } from 'lucide-react';
 import '../export-page.css';
 
@@ -201,27 +202,39 @@ export function ExportPage() {
               </div>
             </label>
 
-            <label className="option-item">
+            <label className="option-item option-disabled">
               <input
                 type="checkbox"
                 checked={exportOptions.minify}
-                onChange={(e) => setExportOptions({ ...exportOptions, minify: e.target.checked })}
+                disabled
               />
               <div className="option-info">
-                <span className="option-name">Minify Code</span>
-                <span className="option-description">Reduce file size (not implemented yet)</span>
+                <div className="option-header">
+                  <span className="option-name">Minify Code</span>
+                  <span className="option-badge coming-soon">
+                    <Lock size={12} />
+                    Coming Soon
+                  </span>
+                </div>
+                <span className="option-description">Reduce file size by minifying code</span>
               </div>
             </label>
 
-            <label className="option-item">
+            <label className="option-item option-disabled">
               <input
                 type="checkbox"
                 checked={exportOptions.compress}
-                onChange={(e) => setExportOptions({ ...exportOptions, compress: e.target.checked })}
+                disabled
               />
               <div className="option-info">
-                <span className="option-name">Compress Output</span>
-                <span className="option-description">Create ZIP file (not implemented yet)</span>
+                <div className="option-header">
+                  <span className="option-name">Compress Output</span>
+                  <span className="option-badge coming-soon">
+                    <Lock size={12} />
+                    Coming Soon
+                  </span>
+                </div>
+                <span className="option-description">Create ZIP file for easy distribution</span>
               </div>
             </label>
           </div>
@@ -336,11 +349,11 @@ export function ExportPage() {
           </div>
           <div className="info-card">
             <h4>🚀 Easy Distribution</h4>
-            <p>Share your game by uploading the HTML file anywhere — web hosting, game portals, or send it directly to players.</p>
+            <p>Share your game by uploading to any web host or game portal, or send the HTML file directly to players.</p>
           </div>
           <div className="info-card">
             <h4>🔧 No Dependencies</h4>
-            <p>The exported game includes a minimal game engine that runs entirely in the browser. No build tools or npm required.</p>
+            <p>The exported game includes a minimal game engine that runs entirely in browser. No build tools or npm required.</p>
           </div>
         </div>
       </div>
