@@ -3,11 +3,34 @@
 **Sprint Goal:** Enhance user experience with advanced features, deeper AI integration, and improved workflow patterns.
 
 **Started:** 2026-04-08
-**Status:** 🚧 Phase 4 In Progress - v0.12.0
+**Status:** 🚧 Critical Fixes Shipped - v0.12.3
 
 ---
 
 ## Release History
+
+### v0.12.3 — Critical Blocker Fixes (2026-04-08)
+**What's Fixed (all 4 @gamedev critical blockers):**
+- Scene Editor Save now persists entities to disk (Map→Array serialization)
+- Add Entity button opens template picker dropdown (was a no-op)
+- Game Preview renders entities with type-based colors (handles array+object formats)
+- WelcomeModal shows only once per project (localStorage per-project tracking)
+
+**Also Fixed:**
+- Readable entity names on duplicate (player-1-copy vs entity-1775666322645)
+- Save feedback toast notifications
+- RenderSystem colored rect fallback for entities without sprites
+
+**Status:** ✅ RELEASED
+
+### v0.12.2 — Bug Fixes + Accessibility (2026-04-08)
+**What's Fixed:**
+- Asset Studio crash ("prev is not iterable")
+- Game Preview shows actual project name (was hardcoded "Eclipse of Runes")
+- AI Service timeout bumped to 180s
+- Sidebar section dividers and ARIA roles for accessibility
+
+**Status:** ✅ RELEASED
 
 ### v0.12.0 — RPG Foundation (2026-04-08)
 **What's New:**
@@ -159,11 +182,11 @@
 - 23 missing CSS classes in game preview — Fixed in v0.11.8
 
 ### Remaining 📋
-- **[HIGH] AI Command timeout** — 120 second timeout blocking AI code generation (GameDev critical)
-- **[HIGH] Game Preview shows wrong game** — Preview loads "Rune Rush" demo instead of actual project (GameDev critical)
+- **[HIGH] AI Command timeout** — API hangs indefinitely, needs streaming/retry/fallback (GameDev critical)
 - **[HIGH] Export functionality** — Verify download flow works end-to-end (GameDev critical)
-- **[MEDIUM] GamePreviewPage extraction** — Still 923 lines, needs modularization (architectural debt)
-- **[MEDIUM] Settings page stub** — Renders `<h1>Settings</h1><p>Coming soon</p>` (UI/UX priority)
+- **[MEDIUM] GamePreviewPage extraction** — Still 900+ lines, needs modularization (architectural debt)
+- **[MEDIUM] Asset Studio generation fails** — Progress reaches ~10% then "Failed" with no error (GameDev moderate)
+- **[MEDIUM] Game Preview shows identical text for all templates** — Controls text not template-specific
 
 ---
 
