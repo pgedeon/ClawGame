@@ -47,6 +47,8 @@
 | Asset browser panel in Scene Editor | ✅ Done | Left sidebar shows all project assets |
 | Drag assets into scene from library | ✅ Done | Drag-and-drop creates entities with sprite component |
 | Sprite rendering from actual assets | ✅ Done | Real SVG/PNG images render on canvas entities |
+| SceneEditorPage decomposition | ✅ Done | From 1270 lines → 528 lines orchestrator + 3 components |
+| Component separation | ✅ Done | AssetBrowserPanel (207), SceneCanvas (332), PropertyInspector (167) |
 
 **Details:**
 - Asset browser panel on left side of scene editor
@@ -60,6 +62,9 @@
 - Refresh assets button
 - Fixed project date display bug ("Invalid Date" issue)
 - ProjectService auto-fixes missing dates using file mtime
+- **NEW (v0.8.1):** SceneEditorPage decomposed into clean component architecture
+- **NEW (v0.8.1):** AssetBrowserPanel, SceneCanvas, PropertyInspector as separate files
+- **NEW (v0.8.1):** Shared types.ts for scene editor state and constants
 
 ---
 
@@ -85,15 +90,19 @@
 - [x] Drag-and-drop assets to canvas
 - [x] Sprite rendering from actual assets
 - [x] Code compiles clean
+- [x] Health endpoint returns actual version from VERSION.json
+- [x] SceneEditorPage decomposed (1270 → 528 lines orchestrator)
+- [x] Component separation (AssetBrowserPanel, SceneCanvas, PropertyInspector)
 
 ---
 
 ## Exit Criteria
 
-**AI generates real game assets from text descriptions. Scene editor integrates with asset library. Test coverage > 0.**
+**AI generates real game assets from text descriptions. Scene editor integrates with asset library. Test coverage > 0. Scene editor has clean component architecture.**
 
+**Phase 1 Complete ✅** — Backend quality shipped in v0.7.0!
 **Phase 2 Complete ✅** — Real AI asset generation shipped in v0.7.1!
-**Phase 3 Complete ✅** — Scene Editor ↔ Asset Integration shipped in v0.8.0!
+**Phase 3 Complete ✅** — Scene Editor ↔ Asset Integration shipped in v0.8.0! Component decomposition shipped in v0.8.1!
 
 ---
 
@@ -108,5 +117,5 @@ All 4 phases delivered:
 
 ---
 
-**Current Sprint:** Milestone 6 (Real AI Assets + Quality + Integration) — Phase 3 Complete ✅, Phase 4 Next
+**Current Sprint:** Milestone 6 (Real AI Assets + Quality + Integration) — Phases 1-3 Complete ✅, Phase 4 Next
 **Next Milestone:** M7 (Git + OpenClaw Operations)
