@@ -10,7 +10,7 @@ import { api, type AssetMetadata, type AssetType, type GenerationStatus } from '
 import { useToast } from '../components/Toast';
 import { RefreshCw } from 'lucide-react';
 import { logger } from '../utils/logger';
-import { ASSET_TYPE_ICONS } from './components/asset-studio/types';
+import { ASSET_TYPE_ICONS } from '../components/asset-studio/types';
 import { GeneratePanel } from './components/asset-studio/GeneratePanel';
 import { GenerationTracker } from './components/asset-studio/GenerationTracker';
 import { FilterPanel } from './components/asset-studio/FilterPanel';
