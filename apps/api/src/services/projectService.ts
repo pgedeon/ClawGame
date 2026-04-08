@@ -79,12 +79,12 @@ export class ProjectService {
             }
             
             projects.push({
-              id: project.project.id,
-              name: project.project.name,
-              genre: project.project.genre,
-              artStyle: project.project.artStyle,
-              description: project.project.description,
-              status: project.project.status,
+              id: project.project.id || entry.name,
+              name: project.project.name || project.project.displayName || 'Untitled',
+              genre: project.project.genre || 'unset',
+              artStyle: project.project.artStyle || 'unset',
+              description: project.project.description || '',
+              status: project.project.status || 'draft',
               createdAt: project.project.createdAt,
               updatedAt: project.project.updatedAt,
             });

@@ -12,7 +12,10 @@
     "artStyle": "pixel",
     "description": "A color matching puzzle game where players match colored tiles in groups of 3 or more to clear them from the board. Features power-ups and increasing difficulty levels.",
     "createdAt": "2026-04-07T14:57:14.666Z",
-    "updatedAt": "2026-04-07T14:57:14.666Z"
+    "updatedAt": "2026-04-07T14:57:14.666Z",
+    "id": "dzzoZ6r2MQ08",
+    "status": "draft",
+    "name": "Color Match Puzzle"
   },
   "ai": {
     "providers": [

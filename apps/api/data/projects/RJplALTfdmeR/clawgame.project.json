@@ -12,7 +12,10 @@
     "artStyle": "pixel",
     "description": "A space adventure game where you explore planets and collect cosmic crystals",
     "createdAt": "2026-04-07T15:50:07.318Z",
-    "updatedAt": "2026-04-07T15:50:07.318Z"
+    "updatedAt": "2026-04-07T15:50:07.318Z",
+    "id": "RJplALTfdmeR",
+    "status": "draft",
+    "name": "Space Adventure"
   },
   "ai": {
     "providers": [

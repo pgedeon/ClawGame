@@ -12,7 +12,10 @@
     "artStyle": "pixel",
     "description": "A simple color matching puzzle game",
     "createdAt": "2026-04-07T16:48:21.899Z",
-    "updatedAt": "2026-04-07T16:48:21.899Z"
+    "updatedAt": "2026-04-07T16:48:21.899Z",
+    "id": "VNjZ4hEwV9UO",
+    "status": "draft",
+    "name": "Simple Puzzle Game"
   },
   "ai": {
     "providers": [

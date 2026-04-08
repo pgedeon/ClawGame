@@ -12,7 +12,10 @@
     "artStyle": "pixel",
     "description": "A simple puzzle game where players match colored tiles",
     "createdAt": "2026-04-07T13:58:05.088Z",
-    "updatedAt": "2026-04-07T13:58:05.088Z"
+    "updatedAt": "2026-04-07T13:58:05.088Z",
+    "id": "uVg5WmUmicHf",
+    "status": "draft",
+    "name": "AI Agent Test Game"
   },
   "ai": {
     "providers": [

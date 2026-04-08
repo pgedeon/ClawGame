@@ -12,7 +12,10 @@
     "artStyle": "pixel",
     "description": "A test game",
     "createdAt": "2026-04-07T22:01:19.760Z",
-    "updatedAt": "2026-04-07T22:01:19.760Z"
+    "updatedAt": "2026-04-07T22:01:19.760Z",
+    "id": "pH5U5lYtlZIu",
+    "status": "draft",
+    "name": "Test Game"
   },
   "ai": {
     "providers": [
