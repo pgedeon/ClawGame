@@ -1,8 +1,8 @@
 {
-  "version": "0.9.4",
-  "codename": "ai-contextual-integration",
+  "version": "0.9.5",
+  "codename": "template-system",
   "milestone": 7,
   "milestoneName": "Git + OpenClaw Operations",
   "releaseDate": "2026-04-08",
-  "status": "released"
+  "status": "in-progress"
 }

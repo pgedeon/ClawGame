@@ -33,11 +33,11 @@
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Fix click interaction timeouts | ✅ Done | Debug and fix unresponsive elements (Play, New File, navigation) |
+| Fix click interaction timeouts | ✅ Done | GamePreviewPage infinite re-render bug fixed |
 | Fix navigation inconsistency | ✅ Done | Ensure URL updates and page transitions work correctly |
 | Improve error handling | ✅ Done | Better error messages and feedback for failed interactions |
 | Add interactive tutorial/onboarding | ✅ Done | Guide new users after project creation |
-| Add default game template | ✅ Done | Give users a starting point instead of empty project |
+| Add default game template | ✅ Done | Template system with 3 templates (Platformer, Top-Down, Dialogue) |
 
 ### Phase 2 Delivered Features:
 - **Contextual AI Assistant**: Inline AI helper in code editor with quick actions
@@ -45,6 +45,8 @@
 - **Enhanced Editor AI Integration**: Context-aware AI assistant bar with quick access to common AI tasks
 - **Improved Error Handling**: Better toast notifications and feedback states
 - **Editor UI Enhancements**: AI-ready badges, build feedback indicators, improved mobile layout
+- **Template System**: 3 game templates with auto-creation
+- **Welcome Modal**: Post-creation guidance with 3-step onboarding
 
 ---
 
@@ -109,21 +111,35 @@ All 4 phases delivered:
 
 ## Technical Debt Tracker
 
-### New Features Added (v0.9.3):
+### New Features Added (v0.9.3-0.9.5):
 - **Contextual AI Assistant**: Inline AI helper with 4 quick actions (Explain, Fix, Improve, Generate)
 - **Mobile-First Responsive Design**: Full mobile layout with bottom navigation
 - **Enhanced Error Handling**: Toast notifications with better user feedback
 - **AI-Ready Editor**: Context-aware AI integration with project-specific metadata
 - **Improved Build System**: Enhanced build feedback with visual indicators
+- **Template System**: 3 game templates with auto-creation
+  - Platformer: Jump mechanics, platforms, collectibles
+  - Top-Down Action: Free movement, enemy AI, powerups
+  - Dialogue Adventure: NPCs with dialogue trees, signs
+- **Welcome Modal**: Post-creation guidance with 3-step onboarding
+
+### Bug Fixes (v0.9.5):
+- **GamePreviewPage infinite re-render bug**: Removed gameStats from useEffect dependency array
+  - gameStats state now only updates every 30 frames (2x/sec)
+  - Uses useRef (gameStatsRef) for real-time stats without re-renders
+  - Stable game loop performance with no constant recreation
+- **OnboardingTour version mismatch**: Updated to v0.9.4 to sync with VERSION.json
 
 ### Design System Improvements:
 - **Unified Spacing System**: Consistent use of CSS variables (`--space-xs` to `--space-3xl`)
 - **Enhanced Mobile Breakpoints**: 768px and 480px responsive layouts
 - **Dark Mode Support**: Automatic theme switching based on user preference
 - **Component Consistency**: Standardized button, form, and navigation styles
+- **Template Cards**: Visual template selection with icons and descriptions
 
 ### Quality Improvements:
 - **TypeScript Integration**: Root-level typecheck script added and verified
 - **Build Verification**: Enhanced build feedback with success/error states
 - **Error States**: Improved error handling with visual feedback
 - **Accessibility**: Better focus indicators and keyboard navigation
+- **Onboarding Flow**: Multi-step guidance after project creation
