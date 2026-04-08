@@ -36,6 +36,14 @@ function PageLoader() {
   );
 }
 
+function LazyProjectPage() {
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <ProjectPage />
+    </Suspense>
+  );
+}
+
 function App() {
   return (
     <ErrorBoundary>
@@ -48,41 +56,15 @@ function App() {
             <Route path="open-project" element={<OpenProjectPage />} />
             <Route path="examples" element={<ExamplesPage />} />
             <Route path="settings" element={<SettingsPage />} />
-            <Route path="project/:projectId" element={
-              <Suspense fallback={<PageLoader />}>
-                <ProjectPage />
-              </Suspense>
-            } />
-            <Route path="project/:projectId/editor" element={
-              <Suspense fallback={<PageLoader />}>
-                <EditorPage />
-              </Suspense>
-            } />
-            <Route path="project/:projectId/scene-editor" element={
-              <Suspense fallback={<PageLoader />}>
-                <SceneEditorPage />
-              </Suspense>
-            } />
-            <Route path="project/:projectId/ai" element={
-              <Suspense fallback={<PageLoader />}>
-                <AICommandPage />
-              </Suspense>
-            } />
-            <Route path="project/:projectId/assets" element={
-              <Suspense fallback={<PageLoader />}>
-                <AssetStudioPage />
-              </Suspense>
-            } />
-            <Route path="project/:projectId/preview" element={
-              <Suspense fallback={<PageLoader />}>
-                <GamePreviewPage />
-              </Suspense>
-            } />
-            <Route path="project/:projectId/export" element={
-              <Suspense fallback={<PageLoader />}>
-                <ExportPage />
-              </Suspense>
-            } />
+            {/* Project routes — nested under ProjectPage so Outlet works */}
+            <Route path="project/:projectId" element={<LazyProjectPage />}>
+              <Route path="editor" element={<Suspense fallback={<PageLoader />}><EditorPage /></Suspense>} />
+              <Route path="scene-editor" element={<Suspense fallback={<PageLoader />}><SceneEditorPage /></Suspense>} />
+              <Route path="ai" element={<Suspense fallback={<PageLoader />}><AICommandPage /></Suspense>} />
+              <Route path="assets" element={<Suspense fallback={<PageLoader />}><AssetStudioPage /></Suspense>} />
+              <Route path="preview" element={<Suspense fallback={<PageLoader />}><GamePreviewPage /></Suspense>} />
+              <Route path="export" element={<Suspense fallback={<PageLoader />}><ExportPage /></Suspense>} />
+            </Route>
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>
