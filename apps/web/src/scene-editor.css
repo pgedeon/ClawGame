@@ -151,6 +151,7 @@
   overflow: hidden;
 }
 
+/* Entity Templates Panel */
 .scene-editor-page .entity-templates {
   position: absolute;
   left: var(--space-lg);
@@ -205,6 +206,169 @@
   line-height: var(--leading-normal);
 }
 
+/* Asset Browser Panel */
+.scene-editor-page .asset-browser {
+  width: 280px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: var(--space-md);
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.scene-editor-page .asset-browser-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+
+.scene-editor-page .asset-browser-header h3 {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.scene-editor-page .asset-browser-controls {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.scene-editor-page .asset-browser-controls button {
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--fg);
+  cursor: pointer;
+  font-size: var(--text-xs);
+  transition: all 0.2s;
+}
+
+.scene-editor-page .asset-browser-controls button:hover {
+  background: var(--surface-alt-2);
+}
+
+.scene-editor-page .asset-search {
+  width: 100%;
+  margin-bottom: var(--space-md);
+}
+
+.scene-editor-page .asset-search input {
+  width: 100%;
+  padding: var(--space-sm);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--fg);
+  font-size: var(--text-sm);
+}
+
+.scene-editor-page .asset-search input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.scene-editor-page .asset-filters {
+  display: flex;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+
+.scene-editor-page .asset-filter {
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--fg);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.scene-editor-page .asset-filter:hover {
+  background: var(--surface-alt-2);
+}
+
+.scene-editor-page .asset-filter.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.scene-editor-page .asset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: var(--space-xs);
+}
+
+.scene-editor-page .asset-item {
+  aspect-ratio: 1;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scene-editor-page .asset-item:hover {
+  border-color: var(--primary);
+  transform: scale(1.05);
+}
+
+.scene-editor-page .asset-item.dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.scene-editor-page .asset-item .asset-icon {
+  font-size: 24px;
+  color: var(--fg-secondary);
+}
+
+.scene-editor-page .asset-item .asset-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.scene-editor-page .asset-item .asset-name {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  font-size: 10px;
+  padding: 2px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scene-editor-page .asset-item.selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+.scene-editor-page .asset-item .ai-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: var(--primary);
+  color: white;
+  font-size: 8px;
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+
+/* Canvas Container */
 .scene-editor-page .canvas-container {
   flex: 1;
   position: relative;
@@ -221,6 +385,7 @@
   cursor: grabbing;
 }
 
+/* Inspector Panel */
 .scene-editor-page .inspector-panel {
   width: 320px;
   background: var(--surface);

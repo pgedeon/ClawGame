@@ -10,7 +10,9 @@
     "displayName": "AI Agent Test Game",
     "genre": "action",
     "artStyle": "pixel",
-    "description": "A simple puzzle game where players match colored tiles"
+    "description": "A simple puzzle game where players match colored tiles",
+    "createdAt": "2026-04-07T13:58:05.088Z",
+    "updatedAt": "2026-04-07T13:58:05.088Z"
   },
   "ai": {
     "providers": [

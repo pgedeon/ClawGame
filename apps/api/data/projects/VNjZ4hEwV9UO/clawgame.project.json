@@ -10,7 +10,9 @@
     "displayName": "Simple Puzzle Game",
     "genre": "Puzzle",
     "artStyle": "pixel",
-    "description": "A simple color matching puzzle game"
+    "description": "A simple color matching puzzle game",
+    "createdAt": "2026-04-07T16:48:21.899Z",
+    "updatedAt": "2026-04-07T16:48:21.899Z"
   },
   "ai": {
     "providers": [

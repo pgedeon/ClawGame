@@ -10,7 +10,9 @@
     "displayName": "Color Match Puzzle",
     "genre": "action",
     "artStyle": "pixel",
-    "description": "A color matching puzzle game where players match colored tiles to clear levels"
+    "description": "A color matching puzzle game where players match colored tiles to clear levels",
+    "createdAt": "2026-04-07T13:03:04.271Z",
+    "updatedAt": "2026-04-07T13:03:04.271Z"
   },
   "ai": {
     "providers": [

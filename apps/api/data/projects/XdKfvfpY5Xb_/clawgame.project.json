@@ -10,7 +10,9 @@
     "displayName": "Color Match Challenge",
     "genre": "action",
     "artStyle": "pixel",
-    "description": "A colorful puzzle game where players match colored tiles to clear the board. Simple one-touch gameplay with increasing difficulty levels."
+    "description": "A colorful puzzle game where players match colored tiles to clear the board. Simple one-touch gameplay with increasing difficulty levels.",
+    "createdAt": "2026-04-07T16:21:18.545Z",
+    "updatedAt": "2026-04-07T16:21:18.545Z"
   },
   "ai": {
     "providers": [

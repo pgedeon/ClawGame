@@ -10,7 +10,9 @@
     "displayName": "Test Game",
     "genre": "action",
     "artStyle": "pixel",
-    "description": "A test game"
+    "description": "A test game",
+    "createdAt": "2026-04-07T22:01:19.760Z",
+    "updatedAt": "2026-04-07T22:01:19.760Z"
   },
   "ai": {
     "providers": [

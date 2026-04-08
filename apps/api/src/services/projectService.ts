@@ -67,6 +67,17 @@ export class ProjectService {
           const project: ClawGameProject = JSON.parse(content);
           
           if (project.project) {
+            // Auto-fix missing dates using file mtime as fallback
+            if (!project.project.createdAt || !project.project.updatedAt) {
+              const fileStat = await stat(projectFile);
+              const fallbackDate = fileStat.mtime.toISOString();
+              project.project.createdAt = project.project.createdAt || fallbackDate;
+              project.project.updatedAt = project.project.updatedAt || fallbackDate;
+              // Persist the fix
+              await writeFile(projectFile, JSON.stringify(project, null, 2), 'utf-8');
+              this.logger.info({ projectId: project.project.id }, 'Auto-fixed missing dates');
+            }
+            
             projects.push({
               id: project.project.id,
               name: project.project.name,
@@ -84,9 +95,12 @@ export class ProjectService {
       }
     }
 
-    return projects.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    // Sort safely — invalid/missing dates get pushed to the end
+    return projects.sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+      return dateB - dateA;
+    });
   }
 
   /**

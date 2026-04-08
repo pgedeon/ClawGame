@@ -1,14 +1,22 @@
 /**
  * @clawgame/web - Scene Editor Page
  * Visual 2D scene editor with entity placement, selection, and property editing
+ * Phase 3: Asset browser panel with drag-and-drop from real assets
  */
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { api } from '../api/client';
+import { api, type AssetMetadata, type AssetType } from '../api/client';
 import { Entity, Transform, Sprite, Movement, AI, Collision, Scene } from '@clawgame/engine';
 import '../scene-editor.css';
 import { logger } from '../utils/logger';
+import { 
+  Image as ImageIcon, 
+  Layers as LayersIcon, 
+  X as XIcon, 
+  RefreshCw as RefreshIcon,
+  Search as SearchIcon
+} from 'lucide-react';
 
 interface SceneEditorPageProps {
   projectId: string;
@@ -101,13 +109,23 @@ function SceneEditorContent({ projectId }: SceneEditorPageProps) {
   const [snapping, setSnapping] = useState(true);
   const [gridSize] = useState(32);
 
+  // Asset browser state
+  const [assets, setAssets] = useState<AssetMetadata[]>([]);
+  const [assetsLoading, setAssetsLoading] = useState(false);
+  const [assetFilter, setAssetFilter] = useState<AssetType | 'all'>('all');
+  const [assetSearch, setAssetSearch] = useState('');
+  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
+  const [draggedAsset, setDraggedAsset] = useState<AssetMetadata | null>(null);
+
   // Refs for rendering
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const animationRef = useRef<number | null>(null);
+  const assetCache = useRef<Map<string, HTMLImageElement>>(new Map());
 
   // Load project and scene
   useEffect(() => {
     loadProjectAndScene();
+    loadAssets();
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
@@ -153,6 +171,18 @@ function SceneEditorContent({ projectId }: SceneEditorPageProps) {
     }
   };
 
+  const loadAssets = async () => {
+    try {
+      setAssetsLoading(true);
+      const assetList = await api.listAssets(projectId);
+      setAssets(assetList);
+    } catch (err) {
+      logger.error('Failed to load assets:', err);
+    } finally {
+      setAssetsLoading(false);
+    }
+  };
+
   const createDefaultScene = (): Scene => {
     const entitiesMap = new Map<string, Entity>();
 
@@ -173,6 +203,58 @@ function SceneEditorContent({ projectId }: SceneEditorPageProps) {
       entities: entitiesMap,
     };
   };
+
+  // Cache asset images for rendering
+  const loadAssetImage = useCallback(async (asset: AssetMetadata): Promise<HTMLImageElement | null> => {
+    // Check cache
+    const cached = assetCache.current.get(asset.id);
+    if (cached) return cached;
+
+    // Check if it's an AI-generated SVG
+    if (asset.mimeType === 'image/svg+xml') {
+      // Get the SVG content
+      try {
+        const blob = await api.getAssetFile(projectId, asset.id);
+        const svgText = await blob.text();
+        
+        // Create image from SVG
+        const img = new Image();
+        const blobUrl = URL.createObjectURL(new Blob([svgText], { type: 'image/svg+xml' }));
+        img.src = blobUrl;
+        
+        await new Promise<void>((resolve) => {
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+        });
+
+        assetCache.current.set(asset.id, img);
+        return img;
+      } catch (err) {
+        logger.error('Failed to load SVG asset:', err);
+        return null;
+      }
+    }
+
+    // Handle PNG/WebP/etc
+    try {
+      const blob = await api.getAssetFile(projectId, asset.id);
+      const blobUrl = URL.createObjectURL(blob);
+      
+      const img = new Image();
+      img.src = blobUrl;
+      
+      await new Promise<void>((resolve) => {
+        img.onload = () => resolve();
+        img.onerror = () => resolve();
+      });
+
+      assetCache.current.set(asset.id, img);
+      return img;
+    } catch (err) {
+      logger.error('Failed to load asset image:', err);
+      return null;
+    }
+  }, [projectId]);
 
   // Render the editor canvas
   useEffect(() => {
@@ -201,10 +283,17 @@ function SceneEditorContent({ projectId }: SceneEditorPageProps) {
     };
   }, []);
 
+  // Preload assets when they change
+  useEffect(() => {
+    assets.forEach(asset => {
+      loadAssetImage(asset);
+    });
+  }, [assets, loadAssetImage]);
+
   // Re-render when state changes
   useEffect(() => {
     render();
-  }, [scene, viewport, selectedEntityId, showGrid]);
+  }, [scene, viewport, selectedEntityId, showGrid, assets, assetCache.current]);
 
   const render = useCallback(() => {
     const canvas = canvasRef.current;
@@ -296,9 +385,20 @@ function SceneEditorContent({ projectId }: SceneEditorPageProps) {
     }
 
     // Draw sprite if available
-    if (sprite && sprite.image instanceof HTMLImageElement && sprite.image.complete) {
+    let spriteDrawn = false;
+    if (sprite && typeof sprite.image === 'string') {
+      // It's an asset ID - try to load the image from cache
+      const img = assetCache.current.get(sprite.image);
+      if (img && img.complete) {
+        ctx.drawImage(img, x, y, width, height);
+        spriteDrawn = true;
+      }
+    } else if (sprite && sprite.image instanceof HTMLImageElement && sprite.image.complete) {
       ctx.drawImage(sprite.image, x, y, width, height);
-    } else {
+      spriteDrawn = true;
+    }
+
+    if (!spriteDrawn) {
       // Draw placeholder box
       const colors: Record<string, string> = {
         'player': '#3b82f6',
@@ -497,6 +597,63 @@ function SceneEditorContent({ projectId }: SceneEditorPageProps) {
     });
   };
 
+  // Handle drop from asset browser
+  const handleCanvasDrop = (e: React.DragEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    if (!draggedAsset || !scene) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    const worldX = (mouseX - viewport.x) / viewport.zoom;
+    const worldY = (mouseY - viewport.y) / viewport.zoom;
+
+    // Create entity from dropped asset
+    const newId = `sprite-${Date.now()}`;
+    const newPosition = snapping ? {
+      x: Math.round(worldX / gridSize) * gridSize,
+      y: Math.round(worldY / gridSize) * gridSize,
+    } : { x: worldX, y: worldY };
+
+    const components = new Map<string, any>();
+    // Store asset ID in sprite component
+    components.set('sprite', {
+      image: draggedAsset.id,
+      width: 32,
+      height: 32,
+    });
+
+    const newEntity: Entity = {
+      id: newId,
+      transform: {
+        x: newPosition.x,
+        y: newPosition.y,
+        scaleX: 1,
+        scaleY: 1,
+        rotation: 0,
+      },
+      components,
+    };
+
+    const newScene: Scene = {
+      ...scene,
+      entities: new Map(scene.entities).set(newId, newEntity),
+    };
+
+    setScene(newScene);
+    setEntities(Array.from(newScene.entities.values()));
+    setSelectedEntityId(newId);
+    setDraggedAsset(null);
+  };
+
+  const handleCanvasDragOver = (e: React.DragEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+  };
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -676,6 +833,50 @@ function SceneEditorContent({ projectId }: SceneEditorPageProps) {
     setEntities(Array.from(newScene.entities.values()));
   };
 
+  // Attach asset to selected entity
+  const attachAssetToEntity = (assetId: string) => {
+    if (!selectedEntityId || !scene) return;
+
+    const entity = scene.entities.get(selectedEntityId);
+    if (!entity) return;
+
+    // Add or update sprite component with asset reference
+    const sprite = entity.components.get('sprite') as Sprite | undefined;
+    const updatedSprite = sprite ? { ...sprite, image: assetId } : {
+      image: assetId,
+      width: 32,
+      height: 32,
+    };
+
+    const updatedEntity = {
+      ...entity,
+      components: new Map(entity.components).set('sprite', updatedSprite),
+    };
+
+    const newScene: Scene = {
+      ...scene,
+      entities: new Map(scene.entities).set(selectedEntityId, updatedEntity),
+    };
+
+    setScene(newScene);
+    setEntities(Array.from(newScene.entities.values()));
+  };
+
+  // Filter assets
+  const filteredAssets = assets.filter(asset => {
+    if (assetFilter !== 'all' && asset.type !== assetFilter) return false;
+    if (assetSearch && !asset.name.toLowerCase().includes(assetSearch.toLowerCase())) return false;
+    return true;
+  });
+
+  // Asset type filter buttons
+  const ASSET_TYPES: Array<{ value: AssetType | 'all'; label: string }> = [
+    { value: 'all', label: 'All' },
+    { value: 'sprite', label: 'Sprites' },
+    { value: 'tileset', label: 'Tilesets' },
+    { value: 'texture', label: 'Textures' },
+  ];
+
   if (isLoading) {
     return (
       <div className="scene-editor-page">
@@ -762,24 +963,109 @@ function SceneEditorContent({ projectId }: SceneEditorPageProps) {
       )}
 
       <div className="scene-editor-container">
-        {/* Entity Templates Panel (shows when adding entities) */}
-        {toolMode === 'add-entity' && (
-          <div className="entity-templates">
-            <h3>Add Entity</h3>
-            <div className="template-grid">
-              {ENTITY_TEMPLATES.map((template) => (
-                <button
-                  key={template.id}
-                  className={`template-btn ${selectedTemplate?.id === template.id ? 'selected' : ''}`}
-                  onClick={() => setSelectedTemplate(template)}
-                >
-                  {template.name}
-                </button>
-              ))}
+        {/* Asset Browser Panel (Phase 3) */}
+        <div className="asset-browser">
+          <div className="asset-browser-header">
+            <h3>Assets</h3>
+            <div className="asset-browser-controls">
+              <button onClick={loadAssets} title="Refresh assets">
+                <RefreshIcon size={16} />
+              </button>
             </div>
-            <p className="hint">Click on canvas to place selected entity type</p>
           </div>
-        )}
+
+          <div className="asset-search">
+            <input
+              type="text"
+              placeholder="Search assets..."
+              value={assetSearch}
+              onChange={(e) => setAssetSearch(e.target.value)}
+            />
+          </div>
+
+          <div className="asset-filters">
+            {ASSET_TYPES.map((type) => (
+              <button
+                key={type.value}
+                className={`asset-filter ${assetFilter === type.value ? 'active' : ''}`}
+                onClick={() => setAssetFilter(type.value)}
+              >
+                {type.label}
+              </button>
+            ))}
+          </div>
+
+          {assetsLoading ? (
+            <div style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
+              Loading assets...
+            </div>
+          ) : filteredAssets.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
+              {assetSearch ? 'No matching assets' : 'No assets yet'}
+            </div>
+          ) : (
+            <div className="asset-grid">
+              {filteredAssets.map((asset) => {
+                const img = assetCache.current.get(asset.id);
+                return (
+                  <div
+                    key={asset.id}
+                    className={`asset-item ${selectedAssetId === asset.id ? 'selected' : ''}`}
+                    draggable
+                    onDragStart={(e) => {
+                      setDraggedAsset(asset);
+                      e.dataTransfer.effectAllowed = 'copy';
+                    }}
+                    onDragEnd={() => setDraggedAsset(null)}
+                    onClick={() => setSelectedAssetId(asset.id)}
+                  >
+                    {img && img.complete ? (
+                      <img
+                        src={img.src}
+                        alt={asset.name}
+                        className="asset-preview"
+                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                      />
+                    ) : (
+                      <ImageIcon className="asset-icon" />
+                    )}
+                    {asset.aiGeneration && <span className="ai-badge">AI</span>}
+                    <span className="asset-name">{asset.name}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {selectedAssetId && (
+            <div style={{ marginTop: '16px', padding: '12px', background: 'var(--surface-alt)', borderRadius: '8px' }}>
+              <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: 'var(--fg-secondary)' }}>
+                Selected: {assets.find(a => a.id === selectedAssetId)?.name}
+              </p>
+              {selectedEntityId ? (
+                <button
+                  onClick={() => attachAssetToEntity(selectedAssetId)}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    background: 'var(--primary)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                >
+                  Attach to Selected Entity
+                </button>
+              ) : (
+                <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)' }}>
+                  Select an entity to attach this asset, or drag it to the canvas
+                </p>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Main Canvas */}
         <div className="canvas-container" ref={containerRef}>
@@ -791,6 +1077,8 @@ function SceneEditorContent({ projectId }: SceneEditorPageProps) {
             onMouseUp={handleCanvasMouseUp}
             onMouseLeave={handleCanvasMouseUp}
             onWheel={handleCanvasWheel}
+            onDrop={handleCanvasDrop}
+            onDragOver={handleCanvasDragOver}
           />
         </div>
 
@@ -938,6 +1226,7 @@ function SceneEditorContent({ projectId }: SceneEditorPageProps) {
             <div className="inspector-placeholder">
               <p>Select an entity to edit its properties</p>
               <p className="hint">Or use Add Entity tool to create new entities</p>
+              <p className="hint">Drag assets from the left panel to the canvas</p>
             </div>
           )}
 

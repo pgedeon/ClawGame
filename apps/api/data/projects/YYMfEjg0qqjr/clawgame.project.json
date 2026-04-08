@@ -9,7 +9,9 @@
   "project": {
     "displayName": "Test Game",
     "genre": "action",
-    "artStyle": "pixel"
+    "artStyle": "pixel",
+    "createdAt": "2026-04-07T10:20:22.541Z",
+    "updatedAt": "2026-04-07T10:20:22.541Z"
   },
   "ai": {
     "providers": [
