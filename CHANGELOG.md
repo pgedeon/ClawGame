@@ -265,3 +265,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Basic routing
   - Sidebar layout
   - Project creation
+
+### [0.9.2] - 2026-04-08
+
+#### Fixed
+- Critical interaction timeout issues in scene editor and game preview
+- Stale state causing infinite re-renders in game loop
+- Scene editor keyboard shortcuts firing in input fields  
+- Stray '0' character breaking JSX in SceneEditorPage
+- Export button not responding in EditorPage
+
+#### Added  
+- Default game template system for new projects
+- Player movement script and main scene auto-generation
+- Project memory documentation tracking development decisions
+- Interactive tutorials coming in next sprint
+
+#### Changed
+- Removed UI stats from game preview to prevent performance issues
+- Improved keyboard shortcut handling across editors
+- Enhanced project creation experience with starter content
