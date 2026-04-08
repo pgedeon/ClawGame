@@ -573,3 +573,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dashboard hero scales properly on small screens
 - Project cards go single-column on mobile
 - Scene editor layout goes vertical on mobile
+
+
+## [0.11.6] - 2026-04-08
+
+#### Added
+- **Quick Start section** in FileWorkspace with 3 instant project starters (Create Scene, Add Player Code, Add Enemy AI)
+- **Context-aware code templates** — Generate player controllers, enemy AI, and game scenes with one click
+- **Game start screen** with proper "Start Game" button and clear instructions
+- **Game pause overlay** triggered by ESC key with resume functionality
+- **Project genre tags** displayed in editor header
+- **File count indicator** in editor header showing project size
+- **Score tracking** in game preview with live updates
+- **Enhanced game stats panel** — FPS, Entities, Memory display
+- **Game status badges** — Ready, Playing, Paused indicators in preview header
+
+#### Changed
+- **EditorPage build process**: Removed artificial 1.5s delay, now instant file check with specific counts
+- **GamePreviewPage start flow**: Changed from auto-start to explicit "Start Game" button
+- **Empty editor state**: Transformed from basic "No file selected" to full Quick Start guidance
+- **Project type detection**: Automatically determines scene-based vs code-focused projects for relevant suggestions
+- **Game controls display**: Added W/A/S/D and Arrow key hints in preview
+
+#### Fixed
+- **Navigation inconsistency**: Added Back to Editor button in game preview for quick navigation
+- **Empty editor confusion**: Users now see clear Quick Start options instead of blank screen
+- **Click responsiveness**: Build button now responds instantly with immediate feedback
+- **Game Dev feedback items #1-4** — All addressed: clearer starting points, snappier interactions, better navigation, file count display
+
+#### UX Improvements
+- **Professional code templates** with proper TypeScript syntax and comments
+- **Hover animations** on Quick Start items with glimmer effects
+- **Responsive design** — Quick Start grid adapts to mobile screens
+- **Visual hierarchy** — Clear grouping, icons, and descriptions for actions
+- **Pause/Resume flow** — ESC key with visual overlay for quick game state toggling
