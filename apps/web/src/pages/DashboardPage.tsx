@@ -3,6 +3,26 @@ import { Link, useNavigate } from 'react-router-dom';
 import { PlusCircle, FolderOpen, BookOpen, Sparkles, Terminal, Zap } from 'lucide-react';
 import { api, type ProjectListItem } from '../api/client';
 
+// Helper function to safely format dates
+function formatDate(dateString: string | undefined | null): string {
+  if (!dateString) return 'Unknown';
+  
+  try {
+    const date = new Date(dateString);
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return 'Unknown';
+    }
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  } catch (error) {
+    return 'Unknown';
+  }
+}
+
 export function DashboardPage() {
   const [projects, setProjects] = useState<ProjectListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -155,11 +175,7 @@ export function DashboardPage() {
                 </div>
                 <div className="project-card-footer">
                   <span className="project-date">
-                    {new Date(project.updatedAt).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
+                    {formatDate(project.updatedAt)}
                   </span>
                   <span className="project-open-link">Open →</span>
                 </div>

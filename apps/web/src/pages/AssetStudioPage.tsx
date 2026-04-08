@@ -281,13 +281,9 @@ const AssetStudioPage = () => {
   };
 
   const getAssetPreviewUrl = (asset: AssetMetadata): string => {
-    // For AI-generated assets, serve the actual SVG file from the API
-    if (asset.aiGeneration) {
-      return `${api.getAssetFile(projectId!, asset.id)}`.toString();
-    }
-    
-    // For uploaded assets, return the API URL
-    return `${api.getAssetFile(projectId!, asset.id)}`.toString();
+    // Use direct API URL path instead of calling async function
+    const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000';
+    return `${API_BASE}/api/projects/${projectId}/assets/${asset.id}/file`;
   };
 
   const filteredAssets = assets.filter(asset => {
@@ -562,6 +558,9 @@ const AssetStudioPage = () => {
                       src={getAssetPreviewUrl(asset)}
                       alt={asset.name}
                       loading="lazy"
+                      onError={(e) => {
+                        logger.error('Asset preview failed to load:', asset.id);
+                      }}
                     />
                     <div className="asset-type-badge" style={{ backgroundColor: ASSET_TYPE_COLORS[asset.type] }}>
                       {ASSET_TYPE_ICONS[asset.type]}
@@ -626,6 +625,9 @@ const AssetStudioPage = () => {
                   src={getAssetPreviewUrl(selectedAsset)}
                   alt={selectedAsset.name}
                   className="preview-image"
+                  onError={(e) => {
+                    logger.error('Asset detail preview failed to load:', selectedAsset.id);
+                  }}
                 />
               </div>
 
