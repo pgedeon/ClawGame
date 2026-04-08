@@ -1,13 +1,23 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { FileTree } from './FileTree';
 import { CodeEditor } from './CodeEditor';
 import { api, type FileContent } from '../api/client';
 import { useToast } from './Toast';
+import { Sparkles, Code, FileText, Play, Settings, FolderOpen } from 'lucide-react';
 import { logger } from '../utils/logger';
 
 interface FileWorkspaceProps {
   projectId: string;
   className?: string;
+}
+
+interface QuickStartItem {
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  file?: string;
+  code?: string;
+  action: () => void;
 }
 
 export function FileWorkspace({ projectId, className }: FileWorkspaceProps) {
@@ -21,8 +31,41 @@ export function FileWorkspace({ projectId, className }: FileWorkspaceProps) {
   const [newFileError, setNewFileError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [projectType, setProjectType] = useState<string>('');
 
   const { showToast } = useToast();
+
+  // Determine project type for quick start suggestions
+  useEffect(() => {
+    const determineProjectType = async () => {
+      try {
+        // Check for specific files to determine project type
+        const commonFiles = ['scenes/main-scene.json', 'assets/tileset.png', 'scripts/player.ts'];
+        
+        for (const file of commonFiles) {
+          try {
+            await api.readFile(projectId, file);
+            if (file.includes('scene')) {
+              setProjectType('scene-based');
+              return;
+            } else if (file.includes('player')) {
+              setProjectType('code-focused');
+              return;
+            }
+          } catch {
+            // File doesn't exist, continue checking
+          }
+        }
+        
+        // Default to file-based if no specific pattern found
+        setProjectType('file-based');
+      } catch (err) {
+        setProjectType('file-based');
+      }
+    };
+    
+    determineProjectType();
+  }, [projectId]);
 
   const handleFileSelect = (filePath: string) => {
     setSelectedFile(filePath);
@@ -147,6 +190,143 @@ export function FileWorkspace({ projectId, className }: FileWorkspaceProps) {
     setNewFileError(null);
   };
 
+  // Quick start suggestions based on project type
+  const getQuickStartItems = (): QuickStartItem[] => {
+    const commonItems = [
+      {
+        title: 'Create Scene',
+        description: 'Start with a basic game level',
+        icon: <FolderOpen size={16} />,
+        action: () => {
+          const defaultScene = {
+            name: 'main-scene',
+            entities: [
+              {
+                id: 'player',
+                transform: { x: 400, y: 300, scaleX: 1, scaleY: 1, rotation: 0 },
+                components: {
+                  playerInput: true,
+                  movement: { vx: 0, vy: 0, speed: 200 },
+                  sprite: { width: 32, height: 32, color: '#3b82f6' }
+                }
+              }
+            ]
+          };
+          
+          api.writeFile(projectId, 'scenes/main-scene.json', JSON.stringify(defaultScene, null, 2))
+            .then(() => {
+              setSelectedFile('scenes/main-scene.json');
+              setShowNewFileDialog(false);
+              handleRefresh();
+              showToast({ type: 'success', message: 'Created default scene' });
+            })
+            .catch(err => showToast({ type: 'error', message: `Failed to create scene: ${err.message}` }));
+        }
+      },
+      {
+        title: 'Add Player Code',
+        description: 'Create player character logic',
+        icon: <Code size={16} />,
+        action: () => {
+          const playerCode = `// Player character controller
+export class Player {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.speed = 200;
+    this.color = '#3b82f6';
+    this.size = 32;
+  }
+
+  update(deltaTime, keys) {
+    // Handle input
+    if (keys['left'] || keys['a']) {
+      this.x -= this.speed * deltaTime;
+    }
+    if (keys['right'] || keys['d']) {
+      this.x += this.speed * deltaTime;
+    }
+    if (keys['up'] || keys['w']) {
+      this.y -= this.speed * deltaTime;
+    }
+    if (keys['down'] || keys['s']) {
+      this.y += this.speed * deltaTime;
+    }
+  }
+
+  render(ctx) {
+    ctx.fillStyle = this.color;
+    ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
+  }
+}
+
+// Export for use in main game
+export default Player;`;
+          
+          api.writeFile(projectId, 'scripts/player.ts', playerCode)
+            .then(() => {
+              setSelectedFile('scripts/player.ts');
+              setShowNewFileDialog(false);
+              handleRefresh();
+              showToast({ type: 'success', message: 'Created player controller' });
+            })
+            .catch(err => showToast({ type: 'error', message: `Failed to create file: ${err.message}` }));
+        }
+      }
+    ];
+
+    // Add project-specific suggestions
+    if (projectType === 'scene-based') {
+      commonItems.unshift({
+        title: 'Add Enemy AI',
+        description: 'Create enemy behavior patterns',
+        icon: <Settings size={16} />,
+        action: () => {
+          const enemyCode = `// Enemy AI controller
+export class EnemyAI {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.patrolRadius = 100;
+    this.patrolSpeed = 50;
+    this.centerX = x;
+    this.centerY = y;
+    this.time = 0;
+  }
+
+  update(deltaTime) {
+    this.time += deltaTime;
+    
+    // Patrol movement
+    this.x = this.centerX + Math.sin(this.time * this.patrolSpeed / 1000) * this.patrolRadius;
+    this.y = this.centerY + Math.cos(this.time * this.patrolSpeed / 1000) * this.patrolRadius;
+  }
+
+  render(ctx) {
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(this.x - 16, this.y - 16, 32, 32);
+  }
+}
+
+export default EnemyAI;`;
+          
+          api.writeFile(projectId, 'scripts/enemy.ts', enemyCode)
+            .then(() => {
+              setSelectedFile('scripts/enemy.ts');
+              setShowNewFileDialog(false);
+              handleRefresh();
+              showToast({ type: 'success', message: 'Created enemy AI' });
+            })
+            .catch(err => showToast({ type: 'error', message: `Failed to create file: ${err.message}` }));
+        }
+      });
+    }
+
+    return commonItems;
+  };
+
+  const quickStartItems = getQuickStartItems();
+
   return (
     <div className={`file-workspace ${className}`}>
       <div className="workspace-header">
@@ -189,10 +369,48 @@ export function FileWorkspace({ projectId, className }: FileWorkspaceProps) {
               <div className="empty-message">
                 <div className="empty-icon">📝</div>
                 <h3>No file selected</h3>
-                <p>Select a file from the tree to start editing</p>
-                <p className="hint">Use the ➕ New File button below to create a file</p>
+                <p>Your project is ready! Select a file from the tree or create something new.</p>
+                <p className="hint">Quick start below to get coding quickly</p>
               </div>
 
+              {/* Quick Start Actions */}
+              <div className="quick-start-section">
+                <h4 className="quick-start-title">
+                  <Sparkles size={16} />
+                  Quick Start
+                </h4>
+                <div className="quick-start-grid">
+                  {quickStartItems.map((item) => (
+                    <button
+                      key={item.title}
+                      className="quick-start-item"
+                      onClick={item.action}
+                      title={item.description}
+                    >
+                      <div className="quick-start-icon">{item.icon}</div>
+                      <div className="quick-start-content">
+                        <div className="quick-start-title">{item.title}</div>
+                        <div className="quick-start-desc">{item.description}</div>
+                      </div>
+                      <div className="quick-start-arrow">→</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Create File Prompt */}
+              <div className="create-file-prompt">
+                <p>Need something specific?</p>
+                <button 
+                  className="create-file-btn" 
+                  onClick={() => setShowNewFileDialog(true)}
+                >
+                  <FileText size={14} />
+                  Create Custom File
+                </button>
+              </div>
+
+              {/* Search Results */}
               {searchResults.length > 0 && (
                 <div className="search-results">
                   <h4>Search Results</h4>

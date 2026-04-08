@@ -1,11 +1,12 @@
 /**
  * @clawgame/web - Game Preview Page
- * Loads and runs actual game content from project
+ * Loads and runs actual game content from project with enhanced UX
  */
 
 import React, { useEffect, useRef, useState, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
+import { Play, X, Zap, Code, ArrowLeft } from 'lucide-react';
 import '../game-preview.css';
 import { logger } from '../utils/logger';
 
@@ -35,10 +36,14 @@ const GamePreviewContent: React.FC = () => {
   const animationRef = useRef<number | null>(null);
   const gameStatsRef = useRef<GameStats>({ fps: 60, entities: 0, memory: '0MB' });
   const { projectId } = useParams<{ projectId: string }>();
+  const navigate = useNavigate();
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [projectScene, setProjectScene] = useState<ProjectScene | null>(null);
   const [gameStats, setGameStats] = useState<GameStats>({ fps: 60, entities: 0, memory: '0MB' });
+  const [gameStarted, setGameStarted] = useState(false);
+  const [gamePaused, setGamePaused] = useState(false);
 
   // Load project scene
   useEffect(() => {
@@ -94,6 +99,14 @@ const GamePreviewContent: React.FC = () => {
                   collision: { width: 16, height: 16, type: 'collectible' },
                   sprite: { width: 16, height: 16, color: '#fbbf24' }
                 }
+              },
+              {
+                id: 'coin-2',
+                transform: { x: 300, y: 400, scaleX: 1, scaleY: 1, rotation: 0 },
+                components: {
+                  collision: { width: 16, height: 16, type: 'collectible' },
+                  sprite: { width: 16, height: 16, color: '#fbbf24' }
+                }
               }
             ]
           };
@@ -111,7 +124,7 @@ const GamePreviewContent: React.FC = () => {
     loadProjectScene();
   }, [projectId]);
 
-  // Initialize game loop - only depends on projectScene, NOT gameStats
+  // Initialize game loop
   useEffect(() => {
     if (!canvasRef.current || !projectScene) return;
 
@@ -145,11 +158,22 @@ const GamePreviewContent: React.FC = () => {
 
     const keys: Record<string, boolean> = {};
     let frameCount = 0;
-    let lastTime = 0;
+    let lastTime = performance.now();
+    let score = 0;
 
     // Input handling
     const handleKeyDown = (e: KeyboardEvent) => {
       keys[e.key.toLowerCase()] = true;
+      
+      // ESC to pause/exit
+      if (e.key === 'Escape') {
+        if (gameStarted && !gamePaused) {
+          setGamePaused(true);
+        } else if (gamePaused) {
+          setGamePaused(false);
+          lastTime = performance.now();
+        }
+      }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
@@ -161,8 +185,10 @@ const GamePreviewContent: React.FC = () => {
 
     // Game update logic
     const update = () => {
+      if (!gameStarted || gamePaused) return;
+
       const currentTime = performance.now();
-      const deltaTime = currentTime - lastTime;
+      const deltaTime = Math.min(currentTime - lastTime, 50); // Cap delta time
       lastTime = currentTime;
 
       // Update entities with AI/movement logic
@@ -189,7 +215,7 @@ const GamePreviewContent: React.FC = () => {
         }
 
         // Simple AI patrol for enemies
-        if (entity.components?.ai?.type === 'patrol') {
+        if (entity.components?.ai?.type === 'patrol' && gameStarted) {
           const patrolSpeed = entity.components.ai.patrolSpeed || 50;
           const time = currentTime / 1000;
           
@@ -199,8 +225,8 @@ const GamePreviewContent: React.FC = () => {
         }
 
         // Rotation animation for coins
-        if (entity.components?.collision?.type === 'collectible') {
-          entity.transform.rotation += deltaTime * 0.002;
+        if (entity.components?.collision?.type === 'collectible' && gameStarted) {
+          entity.transform.rotation += deltaTime * 0.003;
         }
       });
 
@@ -218,10 +244,11 @@ const GamePreviewContent: React.FC = () => {
         if (distance < (player!.width + coin.width) / 2) {
           // Collect coin - remove from game
           entities.delete(coin.id);
+          score += 10;
         }
       });
 
-      // Update game stats - using ref to avoid re-render
+      // Update game stats
       frameCount++;
       if (frameCount % 30 === 0) {
         const fps = Math.round(1000 / deltaTime);
@@ -229,14 +256,12 @@ const GamePreviewContent: React.FC = () => {
           ? `${((performance as any).memory.usedJSHeapSize || 0) / 1048576 | 0}MB`
           : 'N/A';
         
-        // Update ref instead of state to prevent re-renders
         gameStatsRef.current = {
           fps,
           entities: entities.size,
           memory
         };
         
-        // Only trigger state update every 30 frames (2x per second at 60fps)
         setGameStats(prev => ({
           ...prev,
           fps,
@@ -302,30 +327,33 @@ const GamePreviewContent: React.FC = () => {
         ctx.restore();
       });
 
-      // Draw UI - use gameStatsRef for latest values
+      // Draw UI
       const stats = gameStatsRef.current;
       
+      // Stats panel
       ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-      ctx.fillRect(10, 10, 200, 80);
+      ctx.fillRect(10, 10, 200, 100);
       
       ctx.fillStyle = 'white';
       ctx.font = '14px monospace';
       ctx.textAlign = 'left';
-      ctx.fillText(`FPS: ${stats.fps}`, 20, 30);
-      ctx.fillText(`Entities: ${stats.entities}`, 20, 50);
-      ctx.fillText(`Memory: ${stats.memory}`, 20, 70);
+      ctx.fillText(`Score: ${score}`, 20, 30);
+      ctx.fillText(`FPS: ${stats.fps}`, 20, 50);
+      ctx.fillText(`Entities: ${stats.entities}`, 20, 70);
+      ctx.fillText(`Memory: ${stats.memory}`, 20, 90);
 
-      // Draw controls
+      // Controls panel
       ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-      ctx.fillRect(canvas.width - 210, 10, 200, 100);
+      ctx.fillRect(canvas.width - 210, 10, 200, 120);
       
       ctx.fillStyle = 'white';
       ctx.font = '12px monospace';
       ctx.textAlign = 'left';
       ctx.fillText('Controls:', canvas.width - 200, 30);
       ctx.fillText('WASD/Arrows: Move', canvas.width - 200, 50);
-      ctx.fillText('ESC: Exit game', canvas.width - 200, 70);
-      ctx.fillText(`Scene: ${projectScene.name}`, canvas.width - 200, 90);
+      ctx.fillText('ESC: Pause Game', canvas.width - 200, 70);
+      ctx.fillText(`Scene: ${projectScene?.name || "Game Preview"}`, canvas.width - 200, 90);
+      ctx.fillText(gameStarted ? 'Status: Running' : 'Status: Paused', canvas.width - 200, 110);
     };
 
     // Game loop
@@ -347,7 +375,20 @@ const GamePreviewContent: React.FC = () => {
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('resize', resizeCanvas);
     };
-  }, [projectScene]); // Only depend on projectScene, NOT gameStats
+  }, [projectScene, gameStarted, gamePaused]);
+
+  const handleStartGame = () => {
+    setGameStarted(true);
+    setGamePaused(false);
+  };
+
+  const handleBackToEditor = () => {
+    navigate(`/project/${projectId}`);
+  };
+
+  const handlePauseResume = () => {
+    setGamePaused(!gamePaused);
+  };
 
   if (loading) {
     return (
@@ -375,12 +416,83 @@ const GamePreviewContent: React.FC = () => {
 
   return (
     <div className="game-preview">
+      {/* Header */}
+      <div className="game-preview-header">
+        <button 
+          className="header-btn"
+          onClick={handleBackToEditor}
+          title="Back to editor"
+        >
+          <ArrowLeft size={16} />
+          Back
+        </button>
+        <div className="header-title">
+          <span className="game-title">{projectScene?.name || "Game Preview"}</span>
+          {!gameStarted && <span className="status-badge ready">Ready</span>}
+          {gameStarted && !gamePaused && <span className="status-badge running">Playing</span>}
+          {gamePaused && <span className="status-badge paused">Paused</span>}
+        </div>
+        {gameStarted && (
+          <button 
+            className="header-btn"
+            onClick={handlePauseResume}
+            title={gamePaused ? 'Resume' : 'Pause'}
+          >
+            {gamePaused ? <Play size={16} /> : <Zap size={16} />}
+            {gamePaused ? 'Resume' : 'Pause'}
+          </button>
+        )}
+      </div>
+
       <div className="game-preview-container">
         <div className="game-preview-canvas-container">
           <canvas ref={canvasRef} className="game-preview-canvas" />
+          
+          {!gameStarted && (
+            <div className="game-preview-start-screen">
+              <div className="start-screen-content">
+                <div className="start-screen-icon">🎮</div>
+                <h2>Ready to Play</h2>
+                <p>Use WASD or Arrow Keys to move</p>
+                <p>Collect coins to increase your score</p>
+                <button 
+                  className="start-game-btn"
+                  onClick={handleStartGame}
+                >
+                  <Play size={20} />
+                  Start Game
+                </button>
+              </div>
+            </div>
+          )}
+          
+          {gamePaused && (
+            <div className="game-preview-pause-overlay">
+              <div className="pause-screen-content">
+                <div className="pause-screen-icon">⏸️</div>
+                <h2>Game Paused</h2>
+                <p>Press ESC or click Resume to continue</p>
+                <button 
+                  className="resume-game-btn"
+                  onClick={handlePauseResume}
+                >
+                  <Play size={20} />
+                  Resume Game
+                </button>
+              </div>
+            </div>
+          )}
+          
           {!projectScene && (
             <div className="game-preview-placeholder">
               <p>No scene data available</p>
+              <button 
+                className="action-btn"
+                onClick={handleBackToEditor}
+              >
+                <Code size={16} />
+                Create Scene
+              </button>
             </div>
           )}
         </div>

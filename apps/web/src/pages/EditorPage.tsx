@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Play, Wrench, FileCode, Zap } from 'lucide-react';
 import { api } from '../api/client';
 import { FileWorkspace } from '../components/FileWorkspace';
 import { ContextualAIAssistant } from '../components/ContextualAIAssistant';
@@ -13,10 +13,12 @@ interface EditorPageProps {
 
 function EditorPageContent({ projectId }: EditorPageProps) {
   const [projectName, setProjectName] = useState('');
+  const [projectGenre, setProjectGenre] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [buildStatus, setBuildStatus] = useState<'idle' | 'building' | 'success' | 'error'>('idle');
   const [buildMessage, setBuildMessage] = useState<string | null>(null);
   const [aiContext, setAiContext] = useState<string>('code editor');
+  const [fileCount, setFileCount] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,7 +29,12 @@ function EditorPageContent({ projectId }: EditorPageProps) {
     try {
       const project = await api.getProject(projectId);
       setProjectName(project?.name || 'Unknown Project');
+      setProjectGenre(project?.genre || '');
       setAiContext(project?.genre || 'code editor');
+
+      // Count files for status display
+      const tree = await api.getFileTree(projectId, '', 2);
+      setFileCount(countFiles(tree));
     } catch (err) {
       logger.error('Failed to load project:', err);
     } finally {
@@ -35,34 +42,40 @@ function EditorPageContent({ projectId }: EditorPageProps) {
     }
   };
 
+  const countFiles = (nodes: any[]): number => {
+    let count = 0;
+    for (const node of nodes) {
+      if (node.type === 'file') count++;
+      if (node.children) count += countFiles(node.children);
+    }
+    return count;
+  };
+
   const handleBuild = async () => {
     setBuildStatus('building');
-    setBuildMessage('Building project...');
-
-    // Simulate build process
-    // In a real implementation, this would call a build API endpoint
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    setBuildMessage('Checking project files...');
 
     try {
-      // Check that project files are accessible as a basic "build" check
       const tree = await api.getFileTree(projectId, '', 1);
-      if (tree && tree.length > 0) {
+      const totalFiles = countFiles(tree);
+
+      if (totalFiles > 0) {
         setBuildStatus('success');
-        setBuildMessage(`Build successful — ${tree.length} items found`);
+        setBuildMessage(`✅ Ready — ${totalFiles} file${totalFiles !== 1 ? 's' : ''} found`);
+        setFileCount(totalFiles);
       } else {
         setBuildStatus('error');
-        setBuildMessage('Build failed — no files found in project');
+        setBuildMessage('No files found — create a file to get started');
       }
     } catch (err: any) {
       setBuildStatus('error');
-      setBuildMessage(`Build failed: ${err.message}`);
+      setBuildMessage(`Build check failed: ${err.message}`);
     }
 
-    // Clear after 5 seconds
     setTimeout(() => {
       setBuildStatus('idle');
       setBuildMessage(null);
-    }, 5000);
+    }, 4000);
   };
 
   const handlePlay = () => {
@@ -86,10 +99,14 @@ function EditorPageContent({ projectId }: EditorPageProps) {
         <div className="project-info">
           <h1>Code Workspace</h1>
           <p>Project: <span className="project-name">{projectName}</span>
+            {projectGenre && <span className="genre-tag">{projectGenre}</span>}
             <span className="ai-badge-inline">
               <Sparkles size={10} />
               AI-Ready
             </span>
+            {fileCount > 0 && (
+              <span className="file-count-tag">{fileCount} files</span>
+            )}
           </p>
         </div>
 
@@ -97,8 +114,6 @@ function EditorPageContent({ projectId }: EditorPageProps) {
           {buildMessage && (
             <div className={`build-feedback ${buildStatus}`}>
               {buildStatus === 'building' && <span className="build-spinner" />}
-              {buildStatus === 'success' && '✅ '}
-              {buildStatus === 'error' && '❌ '}
               {buildMessage}
             </div>
           )}
@@ -107,12 +122,13 @@ function EditorPageContent({ projectId }: EditorPageProps) {
             onClick={handleBuild}
             disabled={buildStatus === 'building'}
           >
-            {buildStatus === 'building' ? '⏳ Building...' : '🏗️ Build'}
+            <Wrench size={14} />
+            {buildStatus === 'building' ? 'Checking...' : 'Build'}
           </button>
           <button className="action-btn play" onClick={handlePlay}>
-            ▶️ Play
+            <Play size={14} />
+            Play
           </button>
-          <button className="action-btn" onClick={() => navigate(`/project/${projectId}/export`)}>📤 Export</button>
         </div>
       </header>
 
