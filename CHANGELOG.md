@@ -379,3 +379,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Uses useRef (gameStatsRef) for real-time stats without re-renders
   - Stable game loop performance with no constant recreation
 
+
+### [0.9.6] - 2026-04-08
+
+#### Added
+- **Documentation Sync Process**: Comprehensive guide for keeping project documentation in sync with releases (docs/documentation_sync_process.md)
+  - Mandatory checklist for every release (project_memory.md, CHANGELOG.md, VERSION.json, current_sprint.md)
+  - Release workflow script outline
+  - Pre-commit hook suggestion for enforcing documentation updates
+- **Component Design System Audit**: Detailed compliance review across all components (docs/component_design_system_audit.md)
+  - Comprehensive component-by-component analysis
+  - Compliance scoring and recommendations
+  - Migration strategy for improving design system adoption
+
+#### Changed
+- **Design System Compliance**: Improved from 65% to ~85% overall compliance
+  - Refactored ai-fab.css to use design system variables (40% → 95% compliance)
+  - Refactored command-palette.css to use design system variables (50% → 95% compliance)
+  - Fixed hardcoded padding/margin in export-page.css, game-preview.css, onboarding.css, toast.css
+  - Replaced 40+ hardcoded pixel values with CSS variables (--space-*, --radius-*, --transition-*)
+- **project_memory.md**: Updated to v0.9.5 with Phase 2 complete status
+
+#### Fixed
+- **CSS Hardcoded Values**: Systematic replacement of hardcoded values with design system variables
+  - ai-fab.css: 8 instances of hardcoded padding replaced with variables
+  - command-palette.css: 10 instances of hardcoded padding/margin replaced
+  - Minor files: 4 instances fixed across export, game-preview, onboarding, toast
+- **Documentation Drift**: Created process to prevent docs becoming stale
+  - Mandatory sync process for every release
+  - Version consistency checks
+  - Comprehensive checklist
+
+#### Technical Improvements
+- **Design System Adoption**: Newer components (WelcomeModal, Toast) serve as templates for compliance
+- **Phase 3 Progress**: Documentation sync and design system audit completed
+- **Remaining Work**: Test coverage expansion (>50%) and optional pre-commit hook
