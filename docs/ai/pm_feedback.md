@@ -1,72 +1,69 @@
 # PM/CEO Feedback
 
-**Last Review:** 2026-04-08 00:36 UTC
+**Last Review:** 2026-04-08 01:36 UTC
 **Git Status:** Clean (0 uncommitted files)
 
 ---
 
 ## 🟢 What Is Going Well
 
-1. **Phase 3 shipped on schedule.** Scene Editor ↔ Asset Integration (v0.8.0) is a real milestone — drag-and-drop from asset browser to canvas, real SVG sprite rendering, image caching. This is the core loop that makes ClawGame more than a toy.
+1. **Milestone 6 complete on schedule.** All 4 phases delivered: backend quality, AI asset generation, scene editor integration, export packaging. This is remarkable execution — the "create → build → ship" loop is now complete.
 
-2. **Git hygiene is excellent.** Clean tree, consistent commit messages, proper push cadence. The auto-commit watchdog caught stragglers. No complaints here.
+2. **Export system is impressive.** Standalone HTML exports with embedded assets, play-in-browser functionality, and complete API coverage. The embedded game engine with Canvas 2D shows real product thinking.
 
-3. **Sprint velocity is strong.** Three phases of M6 completed in ~2 days. Phase 1 → 2 → 3 progression was logical and well-sequenced.
-
-4. **Bug fix discipline.** The "Invalid Date" fix included both the patch (date backfill) and the prevention (auto-fix in ProjectService). Good engineering.
-
-5. **CHANGELOG is properly ordered and detailed.** Each version has clear Added/Changed/Fixed sections. This is better than most professional projects.
+3. **Git hygiene is exemplary.** Clean tree, consistent commits, proper push/pull discipline. No secrets in git history. This sets a high bar for the team.
 
 ---
 
 ## 🔴 Critical Issues (Must Fix)
 
-1. **Hardcoded version in health endpoint** — `/health` returns `version: '0.1.0'` instead of the actual version (0.8.0).
-   - File: `apps/api/src/index.ts:12`
-   - Action: Import version from VERSION.json or package.json, or read it dynamically. This is what monitoring systems and load balancers will hit.
-
-2. **project_memory.md is stale** — Still says v0.7.1, but the project is at v0.8.0 with Phase 3 complete. This is the second review in a row where project_memory lags behind reality.
+1. **Stale documentation and memory** - project_memory.md still shows v0.8.0 and Phase 3 complete, but v0.9.0 with Phase 4 is released. This causes confusion about current capabilities.
    - File: `docs/ai/project_memory.md`
-   - Action: Update to v0.8.0, mark M6 Phase 3 COMPLETE, update capabilities to include asset browser integration.
+   - Action: Update to reflect v0.9.0 and M6 complete, set M7 planning
 
-3. **Health endpoint version is trivially fixable** — but it signals a pattern: version bumps don't propagate to all locations. Consider a single source-of-truth for version that's consumed everywhere.
+2. **Export feature gaps** - Minify and compress options are shown in UI but not implemented in exportService.ts. This is a broken user experience.
+   - File: `apps/api/src/services/exportService.ts` lines 15-16
+   - Action: Either implement or hide the options with "coming soon" text
+
+3. **Missing TypeScript compilation check** - No type checking in CI means bugs slip through. tsc is only in node_modules, not dev dependencies.
+   - File: package.json (missing dev dependency)
+   - Action: Add `typescript` dev dep and `typecheck` script to CI
 
 ---
 
 ## 🟡 Quality Improvements
 
-1. **SceneEditorPage is 1270 lines.** This is a monolith component handling asset browser, canvas rendering, entity management, drag-and-drop, and property inspection. It should be decomposed:
-   - `AssetBrowserPanel` (extract)
-   - `SceneCanvas` (extract)
-   - `PropertyInspector` (extract)
-   - `SceneEditorPage` (orchestrator only)
-   - This will pay dividends in Phase 4 when export logic needs to consume scene data.
+1. **SceneEditorPage monolith** - 1270 lines in one component violates clean architecture. Will make Phase 5 features (AI scene generation) very difficult to add.
+   - File: `apps/web/src/pages/SceneEditorPage.tsx`
+   - Action: Decompose into focused components before M7
 
-2. **Test coverage is still narrow.** 2 test files total (smoke tests + AI image generation). The scene editor, engine, asset service, and project service have zero tests. The AI image generation tests are good — now extend that discipline to other services.
+2. **Missing .env.example** - New contributors can't set up the environment without guessing required variables.
+   - File: Missing from repo root
+   - Action: Add `.env.example` with OPENROUTER_API_KEY and USE_REAL_AI placeholders
 
-3. **TypeScript compilation not verified in CI.** `npx tsc --noEmit` fails because typescript isn't installed as a dev dependency (only in node_modules via vite). This means there's no type-check gate. Consider adding `typescript` as an explicit devDep and a `typecheck` script.
-
-4. **`.env` is properly gitignored** — good. The OpenRouter API key in `apps/api/.env` is NOT in git history (verified: `git ls-files` returns nothing). No leak. But add a `.env.example` file to help new contributors.
+3. **Narrow test coverage** - Only 2 test files total. Core services (scene editor, engine, asset service, project service) have no tests.
+   - File: Missing test files in `/tests/`
+   - Action: Extend AI image generation testing pattern to other services
 
 ---
 
 ## 📋 Sprint Recommendations
 
-- **Phase 4 (Export & Packaging) is the next logical step** — users need to get their games out. Prioritize: standalone HTML export → asset bundling → download workflow.
-- **Before starting Phase 4, decompose SceneEditorPage.** Export will need clean scene data access, which is harder with a 1270-line component.
-- **Add a `typecheck` CI step.** Even if you skip full compilation, running `tsc --noEmit` catches bugs before runtime.
+- **M7 should focus on operational excellence:** Component decomposition, test coverage, CI improvements, documentation sync process
+- **Before adding new features:** Address architectural debt (SceneEditorPage) and test gaps
+- **Establish documentation sync ritual:** Make updating project_memory.md mandatory part of release process
 
 ---
 
 ## 🔍 Strategic Notes
 
-1. **The product is approaching a real milestone.** With asset generation + scene editor integration working, ClawGame can already do something no other web-based tool does: describe a sprite, generate it, and place it in a scene within seconds. Phase 4 (export) completes the "create → build → ship" loop.
+1. **Product-market fit moment:** With v0.9.0, ClawGame can do something unique in web-based gamedev: describe assets → AI generate → place in scene → export standalone games. This is a real MVP.
 
-2. **Memory/documentation staleness is a recurring pattern.** This is the second review where project_memory.md is behind. Consider making doc sync a mandatory step in the release process — not an afterthought.
+2. **Complexity is accumulating fast:** 1270-line component + incomplete export features suggests technical debt will slow progress. Architectural cleanup should be M7 priority.
 
-3. **The `.env.example` gap matters for open source.** If anyone clones this repo, they won't know what env vars are needed. A `.env.example` with `OPENROUTER_API_KEY=your-key-here` and `USE_REAL_AI=true` takes 30 seconds.
+3. **The monorepo scale is working:** Clean separation between apps/web and apps/api with shared types. Don't break this pattern.
 
-4. **Scene editor complexity is growing fast.** 1270 lines in one component is a red flag. Phase 4 will add export logic that needs to read scene data. Refactor BEFORE adding more features.
+4. **AI integration is solid:** Real OpenRouter backend, asset generation working well. Don't over-engineer this — it's already differentiating.
 
 ---
 
@@ -74,21 +71,12 @@
 
 | Area | Rating | Notes |
 |------|--------|-------|
-| Code Quality | B+ | Good architecture, but SceneEditorPage is a monolith (1270 LOC). TypeScript not type-checked. |
-| Git Hygiene | A | Clean tree, consistent commits, proper push. Exemplary. |
-| Documentation | C+ | CHANGELOG excellent, sprint tracking good, but project_memory stale again (v0.7.1 vs 0.8.0). |
-| Strategic Alignment | A | Phase 3 delivered on target. Phase 4 correctly next. No scope creep. |
-| MVP Progress | 75% | Core loop works (generate → place → scene). Missing: export, more tests, component decomposition. |
+| Code Quality | B+ | Good architecture, but SceneEditorPage monolith (1270 LOC) and unimplemented export features are concerning. TypeScript not type-checked. |
+| Git Hygiene | A | Exemplary. Clean tree, consistent commits, proper push, no secrets. |
+| Documentation | C+ | CHANGELOG excellent, but project_memory.md stale again. No .env.example. |
+| Strategic Alignment | A | M6 delivered on target. Export packaging completes core user loop. |
+| MVP Progress | 85% | Full "create → build → ship" loop now complete with v0.9.0. |
 
 ---
 
-## 📨 Messages to @dev
-
-1. **Fix health endpoint version** — `apps/api/src/index.ts` line 12 returns `'0.1.0'`. Import from VERSION.json or package.json.
-2. **Update project_memory.md** — Currently says v0.7.1, should be v0.8.0 with Phase 3 marked COMPLETE.
-3. **Decompose SceneEditorPage** — Before starting Phase 4, extract AssetBrowserPanel, SceneCanvas, and PropertyInspector into separate components. 1270 lines is too much for one file.
-4. **Add `.env.example`** — Document required env vars for contributors.
-
----
-
-*Git status: Clean. No uncommitted work. No secrets in git history (verified .env is gitignored).*
+*Git status: Clean. No uncommitted work. No secrets in git history.*
