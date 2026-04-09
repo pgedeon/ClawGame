@@ -5,6 +5,24 @@ All notable changes to ClawGame will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.4] - 2026-04-09
+
+#### Added
+- **Playwright E2E Testing Framework** — End-to-end smoke tests for critical user flows
+  - Added @playwright/test and playwright packages
+  - Created 3 smoke tests covering dashboard functionality
+  - Dashboard load verification (title, hero section, projects list)
+  - New project creation flow (navigate to create-project page)
+  - Project navigation (click project card, verify project URL)
+  - Automated onboarding tour dismissal in tests
+  - Test scripts: `pnpm test:e2e`, `pnpm test:e2e:headed`, `pnpm test:e2e:debug`
+  - Chromium browser installed for headless testing
+  - HTML reporter with screenshots on failure
+  - Traces on first retry for debugging
+
+#### Changed
+- Updated .gitignore to exclude Playwright test results and reports
+
 ## [0.13.3] - 2026-04-09
 
 #### Fixed

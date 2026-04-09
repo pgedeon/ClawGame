@@ -1,6 +1,6 @@
 {
-  "version": "0.13.3",
-  "codename": "asset-refresh",
+  "version": "0.13.4",
+  "codename": "playwright-tests",
   "milestone": 8,
   "milestoneName": "Feature Expansion",
   "releaseDate": "2026-04-09",
