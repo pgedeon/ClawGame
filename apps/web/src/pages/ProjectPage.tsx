@@ -18,6 +18,7 @@ import {
   ChevronRight,
   Gamepad2,
   Download,
+  GitBranch,
 } from 'lucide-react';
 import '../game-hub.css';
 import { logger } from '../utils/logger';
@@ -145,6 +146,13 @@ export function ProjectPage() {
       label: 'Export',
       icon: <Download size={18} />,
       description: 'Export to HTML',
+    },
+    {
+      id: 'git',
+      path: `/project/${projectId}/git`,
+      label: 'Git',
+      icon: <GitBranch size={18} />,
+      description: 'Version control',
     },
   ];
 

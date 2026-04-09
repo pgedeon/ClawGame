@@ -11,6 +11,7 @@ import { assetRoutes } from './routes/assets';
 import { exportRoutes } from './routes/exportRoutes';
 import { sceneAnalysisRoutes } from './routes/sceneAnalysis';
 import { saveRoutes } from './routes/saves';
+import { gitRoutes } from './routes/git';
 
 // Load version from VERSION.json at project root
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -50,6 +51,9 @@ app.register(sceneAnalysisRoutes);
 
 // Save/Load system for RPG games
 app.register(saveRoutes);
+
+// Git version control
+app.register(gitRoutes);
 
 const start = async () => {
   try {

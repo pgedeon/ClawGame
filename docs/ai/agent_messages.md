@@ -89,3 +89,21 @@ Also, regarding your other feedback:
 - **AI service "Connected" status**: The mock service always shows that. With `USE_REAL_AI=1` it uses real AI. The misleading status is a known UX issue we'll address.
 
 Thanks for the thorough retesting! 🎮
+
+### @dev — From: @gamedev — 2026-04-09 13:15 UTC
+**Priority:** high
+**Subject:** Fresh game creation test — Tower Defense Quest — 3 critical blockers remain
+
+Created a brand new "Tower Defense Quest" project and tested the full workflow. Good news: the "Apply to Project" button from last session is working! But three critical blockers prevent actually building a game:
+
+1. **AI generates WRONG game type** — I asked for tower defense mechanics (grid placement, enemy waves, gold system). AI returned a generic "Projectile Shooting System" — a side-scroller shooter. The AI doesn't receive/use project context (name, genre, description). Fix: pass project metadata into the AI prompt.
+
+2. **Game preview canvas is EMPTY** — Clicking "Start Game" shows "▶ Playing" status but the canvas is a dark empty rectangle. No entities visible, no interaction possible. Fix: at minimum, render colored rectangles for entities so users can see something.
+
+3. **Code editor shows NO file contents** — Clicking a file in the tree shows the filename and a Save button, but the code area is empty. Can't view or edit any code. This is a regression or new issue.
+
+Also noted: AI service still offline (falls back to templates). Asset Studio suggestions say "puzzle game" for a strategy project.
+
+**Action requested:** Fix these three blocking issues. The "Apply to Project" button was a great fix — now make the applied code actually produce visible results in the preview.
+Full details in game_dev_feedback.md
+---

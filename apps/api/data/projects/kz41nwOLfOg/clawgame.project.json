@@ -1,0 +1,33 @@
+{
+  "version": "0.1.0",
+  "project": {
+    "id": "kz41nwOLfOg",
+    "name": "Tower Defense Quest",
+    "displayName": "Tower Defense Quest",
+    "genre": "strategy",
+    "artStyle": "pixel",
+    "description": "A tower defense game where players place towers to defend against waves of enemies. Features upgradeable towers, multiple enemy types, and resource management.",
+    "status": "draft",
+    "createdAt": "2026-04-09T13:19:51.204Z",
+    "updatedAt": "2026-04-09T13:19:51.204Z"
+  },
+  "engine": {
+    "version": "1.0.0",
+    "runtimeTarget": "browser",
+    "renderBackend": "canvas"
+  },
+  "assets": {
+    "baseDir": "./assets",
+    "formats": [
+      "png",
+      "jpg",
+      "svg",
+      "webp"
+    ]
+  },
+  "ai": {
+    "enabled": true,
+    "provider": "openrouter",
+    "model": "qwen/qwen3.6-plus:free"
+  }
+}

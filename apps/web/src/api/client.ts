@@ -439,4 +439,41 @@ export const api = {
     request<{ success: boolean }>(`/api/projects/${projectId}/exports/${filename}`, {
       method: 'DELETE',
     }),
+
+  // Git operations
+  gitStatus: (projectId: string) =>
+    request<{
+      initialized: boolean;
+      branch: string | null;
+      ahead: number;
+      behind: number;
+      changedFiles: { path: string; status: string }[];
+      recentCommits: { hash: string; message: string }[];
+    }>(`/api/projects/${projectId}/git/status`),
+
+  gitCommit: (projectId: string, message: string) =>
+    request<{ success: boolean; hash: string; message: string }>(`/api/projects/${projectId}/git/commit`, {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    }),
+
+  gitLog: (projectId: string, limit?: number) =>
+    request<{ commits: { hash: string; message: string; author: string; date: string; filesChanged: number }[] }>(
+      `/api/projects/${projectId}/git/log`,
+      { query: limit !== undefined ? { limit: limit.toString() } : undefined },
+    ),
+
+  gitInit: (projectId: string) =>
+    request<{ initialized: boolean }>(`/api/projects/${projectId}/git/init`, { method: 'POST' }),
+
+  gitDiff: (projectId: string) =>
+    request<{ files: { path: string; additions: number; deletions: number }[]; summary: string }>(
+      `/api/projects/${projectId}/git/diff`,
+    ),
+
+  gitRevert: (projectId: string, body: { filePath?: string; commitHash?: string }) =>
+    request<{ success: boolean }>(`/api/projects/${projectId}/git/revert`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
 };

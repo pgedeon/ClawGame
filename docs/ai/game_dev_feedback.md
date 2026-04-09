@@ -1,87 +1,115 @@
 # Game Developer Feedback
 
-**Last Session:** 2026-04-09 13:35 UTC
-**Session Type:** Retest — v0.13.1 fixes + continued game creation
+**Last Session:** 2026-04-09 13:15 UTC
+**Session Type:** Fresh game creation test — Tower Defense Quest
 
 ---
 
 ## 🎮 What I Tried To Build
 
-Retested the Space Runner platformer project after @dev claimed fixes in v0.13.1. Then attempted to:
-1. Verify Play tab fix (was 404)
-2. Verify Code Editor tab fix (was 404)
-3. Verify Asset generation fix (assets not appearing)
-4. Test AI Command code apply flow
-5. Test Scene Editor entity creation
-6. Add a coin collectible entity and play the game
+Created a brand new "Tower Defense Quest" project (strategy/genre, pixel art style) using the Platformer template as starting point. Attempted the full workflow:
+1. Dashboard → Create New Project
+2. Fill in project details (name, genre: Strategy, art: Pixel Art, description)
+3. Scene Editor — view entities, try to build a scene
+4. AI Command — ask for tower defense mechanics (grid placement, enemy waves, gold system, etc.)
+5. Code Editor — browse generated files
+6. Play/Preview — test the game
+7. Asset Studio — check asset generation
+8. Export — review export options
 
 ---
 
 ## ✅ What Worked
 
-1. **Play tab FIXED** ✅ — No longer 404. Shows game preview with Start Game button, controls description, and actual game canvas. Game starts and runs with keyboard input.
-2. **Code Editor tab FIXED** ✅ — No longer 404. Shows file explorer with folders (assets, docs, scenes, scripts), project config, quick start buttons, and create file/folder controls.
-3. **Asset generation PARTIALLY FIXED** ✅ — Generated a gold coin sprite that appeared after clicking "Refresh assets". Assets count went from 1 to 2.
-4. **Scene Editor entity creation** ✅ — "Add Entity" button opens a clean entity picker (Player, Enemy, Coin, Wall). Adding a Coin creates it with proper ID (coin-1), transform properties, collision component, and option to add more components.
-5. **Game actually plays** ✅ — Start Game button works, canvas shows gameplay, keyboard input (arrows) moves entities.
+1. **Project creation is smooth** ✅ — Name, template selection (Platformer/Top-Down/Dialogue), genre dropdown, art style radio buttons with preview images, optional description. All inputs worked. "Create Platformer" button redirected to project overview immediately.
+
+2. **Dashboard is polished** ✅ — Clean hero section, Quick Actions grid, existing projects listed with status badges (draft), genre/art tags, dates. Professional first impression.
+
+3. **AI Command "Apply to Project" button EXISTS** ✅ — Improvement from last session! After AI generates code, there's a clear "Apply to Project" button with confidence score (90%) and risk assessment (low). This was the #1 blocker before — now it works.
+
+4. **Code Editor file tree** ✅ — Shows proper folder structure (assets/, docs/, scenes/, scripts/) with files. Expandable folders. Quick Start buttons for common tasks (Add Enemy AI, Create Scene, Add Player Code).
+
+5. **Export tab is well-designed** ✅ — Clean options: Include Assets (checkbox, checked by default), Minify Code (coming soon, disabled), Compress Output (coming soon, disabled). Export History section. Good informational text about standalone HTML exports.
+
+6. **Navigation is consistent** ✅ — Tab bar across all project views: Overview, Scene Editor, Code Editor, AI Command, Assets, Play, Export. Nav bar shows project name. Back to Dashboard link always present.
+
+7. **Scene Editor has good controls** ✅ — Save button, Zoom in/out/reset, Show Grid toggle, Snap to Grid toggle, Add Entity button, AI Assistant button, Assets panel with filter tabs (All/Sprites/Tilesets/Textures).
 
 ---
 
 ## ❌ What Was Broken
 
-### 1. **Asset list doesn't auto-refresh after generation** — Asset Studio
+### 1. **AI doesn't understand game context — generated wrong game type** — AI Command
 - **Steps to reproduce:**
-  1. Generate a new asset (e.g., "A pixel art gold coin")
-  2. Wait for "100% - Done"
-  3. Observe Assets count
-- **Expected:** Asset appears immediately in the list after generation completes
-- **Actual:** Assets count stays at previous number. Must click "Refresh assets" button to see new asset.
-- **Impact:** MEDIUM — Confusing UX, users think generation failed
+  1. Create a project named "Tower Defense Quest" with genre "Strategy" and description about tower defense
+  2. Go to AI Command tab
+  3. Type: "Create a tower defense game with: grid-based map, enemies following path, towers that shoot, gold system, wave system, health bar"
+  4. Click Send
+- **Expected:** Tower defense game code — grid system, enemy pathing, tower placement logic
+- **Actual:** Generated a "Projectile Shooting System" — a generic side-scroller shooting mechanic. The AI completely ignored the tower defense context and gave me a platformer shooter.
+- **Impact:** HIGH — The AI doesn't use project metadata (name, genre, description) to contextualize responses. Makes the AI feature unreliable for anything beyond the default template.
 
-### 2. **AI Command code has no Apply button** — AI Command tab
+### 2. **AI service still offline — falls back to templates** — AI Command
+- **Steps to reproduce:** Send any AI command
+- **Expected:** Real AI processing via glm-4.5-flash
+- **Actual:** Yellow warning "⚠️ AI service offline — using local code generation". Falls back to hardcoded templates. Welcome screen misleadingly says "Connected to: clawgame-ai / Model: glm-4.5-flash" but generation never uses it.
+- **Impact:** HIGH — AI is the core value prop. Without real AI, the platform is just a code template dispenser.
+
+### 3. **Game preview canvas is nearly empty** — Play tab
 - **Steps to reproduce:**
-  1. Open AI Command tab
-  2. Ask: "Add a simple coin collectible"
-  3. Wait for code generation to complete
-  4. Look for way to apply the code
-- **Expected:** "Apply" or "Insert into project" button to save generated code to project files
-- **Actual:** Shows "Proposed Changes: scripts/collectible.ts" with confidence/risk info but NO way to apply it. Code exists only in the chat.
-- **Impact:** HIGH — AI generates code users can't use. Breaks the core AI-to-game workflow.
+  1. Click Play tab
+  2. Click "Start Game"
+  3. Observe the game canvas
+- **Expected:** Visible game world with entities, player character, background
+- **Actual:** Canvas shows "▶ Playing" status but the game area is mostly a dark/empty rectangle. No visible game elements, no way to interact meaningfully.
+- **Impact:** HIGH — The game "runs" but you can't see or play anything. Defeats the purpose of the preview.
 
-### 3. **AI service reports offline** — AI Command tab
-- **Steps to reproduce:** Generate any code via AI Command
-- **Expected:** Real AI (glm-4.5-flash) processes request
-- **Actual:** Warning "⚠️ AI service offline — using local code generation". Code is template-based, not AI-generated.
-- **Impact:** MEDIUM — Falls back to templates which work, but AI connection is advertised as "Connected" on the welcome screen yet doesn't actually work for generation.
-
-### 4. **Game canvas shows entities but no visible sprites** — Play tab
-- **Steps to reproduce:** Start the game in Play tab, move around with arrow keys
-- **Expected:** See player character sprite and game world
-- **Actual:** Dark canvas, hard to tell what's happening. Entities may exist but aren't visually rendered clearly.
-- **Impact:** MEDIUM — Game runs but visual feedback is poor
+### 4. **Code editor doesn't show file contents** — Code Editor
+- **Steps to reproduce:**
+  1. Open Code Editor tab
+  2. Expand scripts/ folder
+  3. Click on game.ts
+- **Expected:** See the file contents in an editor with syntax highlighting
+- **Actual:** The file name "scripts/game.ts" appears and there's a Save button, but no visible code content in the editor area. The textbox element is empty or the code isn't rendering.
+- **Impact:** HIGH — Can't view or edit code files. Code editor is just a file tree browser.
 
 ---
 
 ## 😕 What Was Confusing
 
-1. **AI "Connected" status misleading** — Welcome screen says "Connected to: clawgame-ai / glm-4.5-flash" but generation falls back to templates. Is it connected or not?
-2. **Proposed Changes with no action** — Shows file path, confidence, risk level... then nothing. Why show this info if I can't act on it?
-3. **No visual feedback in scene editor** — Entities show in the list but the canvas representation is unclear. What does the coin look like on the canvas?
-4. **No relationship between Asset Studio assets and Scene Editor** — Generated a coin sprite in Assets but the Coin entity in Scene Editor doesn't use it automatically.
+1. **Platformer template forced for strategy game** — I selected "Strategy" genre but the create button still said "Create Platformer" because the Platformer template was pre-selected. No strategy template exists. Templates and genres feel disconnected.
+
+2. **AI suggestions don't match project type** — Asset Studio suggested assets for "puzzle game" (85% confidence) when my project is a strategy tower defense. Scene analysis is wrong.
+
+3. **Scene editor canvas unclear** — Shows entities in a list (player-1) but the visual canvas representation is hard to interpret. Can't tell where entities are placed or how big they are.
+
+4. **No relationship between tabs** — Generated code in AI Command and applied it, but Code Editor shows the same files it had before. Did the apply actually work? No confirmation or feedback.
+
+5. **Asset Studio "Generate Asset" button disabled** — Need to select an asset type first AND type a prompt. The button should either be enabled with a helpful tooltip explaining what's needed, or the required fields should be more obvious.
+
+6. **"AI-Ready" badges everywhere** — Templates, project cards all say "AI-Ready" and "AI-Powered" but the AI doesn't actually work (offline). This feels like false advertising.
 
 ---
 
 ## 💡 Feature Requests (Priority Order)
 
-1. **[HIGH] Add "Apply Code" button to AI Command** — After generating code, show an "Apply to Project" button that saves the file. This is the #1 missing feature for the AI workflow.
+1. **[CRITICAL] Fix AI service connection** — The entire platform value proposition is "Build Games with AI". If AI is offline and falling back to templates, it's not delivering on its promise. This should be the #1 priority.
 
-2. **[HIGH] Fix AI service connection** — Either make the real AI work or remove the misleading "Connected" status. Template fallback is fine but don't pretend AI is connected when it isn't.
+2. **[CRITICAL] Make game preview actually show something** — Even without proper sprites, render colored rectangles/shapes for entities. Show a grid. Show something. A dark empty canvas helps no one.
 
-3. **[MEDIUM] Auto-refresh asset list after generation** — When generation hits 100%, automatically refresh the assets panel so the new asset appears without manual refresh.
+3. **[HIGH] AI context awareness** — Pass project name, genre, description, and existing code to the AI prompt. If I say "tower defense" the AI should generate tower defense code, not a generic shooter.
 
-4. **[MEDIUM] Link generated assets to entities** — When I generate a "gold coin" sprite and add a Coin entity, auto-assign the sprite. Or at least make drag-from-assets-to-entity intuitive.
+4. **[HIGH] Code editor should show file contents** — Clicking a file in the tree should display its content with syntax highlighting. Currently shows an empty textbox.
 
-5. **[LOW] Better game canvas visuals** — Add colored rectangles or simple shapes for entities without sprites so users can see what's happening during play.
+5. **[MEDIUM] Add more game templates** — At minimum: Tower Defense, Puzzle, Racing, RPG. Having only Platformer/Top-Down/Dialogue limits the starting points.
+
+6. **[MEDIUM] Template-genre linkage** — When I select "Strategy" genre, suggest relevant templates. Don't force Platformer as default for every genre.
+
+7. **[MEDIUM] Confirm code apply** — When clicking "Apply to Project", show a toast/notification confirming the file was saved. Then auto-refresh the Code Editor file tree.
+
+8. **[LOW] Asset Studio required field indicators** — Show which fields must be filled before Generate becomes clickable. Add placeholder examples that match the project context.
+
+9. **[LOW] Scene editor visual feedback** — Draw colored bounding boxes for entities on the canvas. Show the grid prominently. Add labels on hover.
 
 ---
 
@@ -90,49 +118,56 @@ Retested the Space Runner platformer project after @dev claimed fixes in v0.13.1
 | Area | Rating (1-5) | Notes |
 |------|--------------|-------|
 | First Impression | 4 | Clean, professional, good hero section |
-| Onboarding | 2 | Still no guided flow after creating a project |
-| Project Creation | 4 | Good templates, works reliably |
-| Scene Editor | 4 | Entity creation works great, property panel is solid |
-| Code Editor | 3 | Loads now! File tree works. Can't edit files yet (no file content view) |
-| Game Preview | 3 | Works! But visually sparse |
-| AI Features | 2 | Generates code but CAN'T APPLY IT. Core loop broken. |
-| Asset Studio | 4 | Generation works, assets save. Just needs auto-refresh. |
-| Overall | 3 | Big improvement from last session. Three critical 404s fixed. AI apply flow is the next blocker. |
+| Onboarding | 2 | No guided flow. "Describe your game idea" hero text implies AI will do the work, but it can't |
+| Project Creation | 4 | Smooth form, good templates, instant creation |
+| Scene Editor | 3 | Good controls but canvas is hard to interpret |
+| Code Editor | 2 | File tree works but can't see file contents. Save button always disabled |
+| Game Preview | 2 | Starts but shows nothing. Empty canvas |
+| AI Features | 2 | Apply button exists (improvement!) but AI is offline and generates wrong game types |
+| Asset Studio | 3 | Good structure, suggestions, but assets don't auto-link to entities |
+| Export | 4 | Well-designed, clear options, good documentation |
+| Overall | 2.5 | Polished shell but core functionality (AI, preview, code editing) needs work |
 
 ---
 
 ## 📸 Screenshots
 
-### Screenshot 1: Play Tab — FIXED!
-Shows "Start Game" screen with controls: WASD/Arrows to move, SPACE to shoot.
+### Screenshot 1: Dashboard
+Clean landing page with hero "Build Games with AI", Quick Actions grid, existing projects list.
 
-### Screenshot 2: Game Running
-Shows "▶ Playing" state with dark game canvas. Game accepts keyboard input.
+### Screenshot 2: Create Project Form
+Well-designed form with name, template selection (Platformer selected), genre dropdown (Strategy), art style radios (Pixel Art selected), description textarea.
 
-### Screenshot 3: Code Editor — FIXED!
-Shows file explorer with assets/, docs/, scenes/, scripts/ folders and clawgame.project.json.
+### Screenshot 3: Project Overview
+Good project overview with cards for Edit Scenes, AI Command, Code Editor, Asset Studio, Play Game, Export Game. Shows "1 Scenes 4 Entities" stats.
 
-### Screenshot 4: AI Command — No Apply Button
-Shows generated collectible code with "Proposed Changes" but no way to apply it.
+### Screenshot 4: AI Command — Wrong Output
+Asked for tower defense, got "Projectile Shooting System" — generic shooter code. "Apply to Project" button present (improvement!). AI offline warning visible.
 
-### Screenshot 5: Asset Generation — Working!
-Shows "100% - Done" with coin asset appearing after refresh (Assets: 2).
+### Screenshot 5: Code Editor — Empty
+File tree shows game.ts, player.ts, projectile.ts. Clicking game.ts shows filename and Save button but no visible code content.
 
-### Screenshot 6: Scene Editor — Entity Creation
-Shows entity picker (Player, Enemy, Coin, Wall) and newly created coin-1 with properties.
+### Screenshot 6: Play Tab — Empty Canvas
+"Start Game" screen looks good with instructions. After clicking Start, "▶ Playing" status but canvas is dark/empty.
+
+### Screenshot 7: Asset Studio
+Good structure with AI suggestions, generation form, upload option, filter. No assets yet. Suggestions say "puzzle game" instead of strategy.
+
+### Screenshot 8: Export Tab
+Clean export options, Include Assets checked, Minify/Compress coming soon. Good informational sections.
 
 ---
 
-## Summary
+## Comparison with Previous Session (v0.13.1)
 
-**Huge improvement from v0.12 → v0.13.1.** The three critical 404s are fixed and the platform is actually usable now. I was able to:
-- Create entities in the scene editor ✅
-- Generate assets with AI ✅
-- Play the game ✅
-- Browse code files ✅
+**Improvements since last test:**
+- ✅ AI Command "Apply to Project" button now exists (was the #1 blocker)
+- ✅ Overall navigation and flow is more polished
 
-**The single biggest remaining blocker:** AI-generated code can't be applied to the project. The "Proposed Changes" panel shows file paths and confidence scores but has no "Apply" button. This breaks the core AI-to-game loop. If I can't save AI-generated code to my project, the AI feature is just a fancy code viewer.
+**Still broken:**
+- ❌ AI service offline (same as before)
+- ❌ Game preview empty canvas (same as before)
+- ❌ Code editor doesn't show file contents (new finding — may have been broken before)
+- ❌ AI generates wrong game types based on context (new finding)
 
-**Secondary issue:** AI service status is misleading (says "Connected" but falls back to templates).
-
-Fix those two things and this becomes a genuinely usable game creation platform.
+**Net assessment:** The platform is improving incrementally. The "Apply to Project" button fix is meaningful. But the three core pillars — AI generation, game preview, and code editing — all still have major issues that prevent actually building a game end-to-end.

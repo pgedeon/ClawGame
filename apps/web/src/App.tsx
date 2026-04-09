@@ -18,6 +18,7 @@ import './game-preview.css';
 import './welcome-modal.css';
 import './asset-studio.css';
 import './export-page.css';
+import './git-center.css';
 
 // Lazy-loaded pages (code-split for smaller initial bundle)
 const ProjectPage = lazy(() => import('./pages/ProjectPage').then(m => ({ default: m.ProjectPage })));
@@ -27,6 +28,7 @@ const AICommandPage = lazy(() => import('./pages/AICommandPage').then(m => ({ de
 const AssetStudioPage = lazy(() => import('./pages/AssetStudioPage').then(m => ({ default: m.AssetStudioPage })));
 const GamePreviewPage = lazy(() => import('./pages/GamePreviewPage').then(m => ({ default: m.GamePreviewPage })));
 const ExportPage = lazy(() => import('./pages/ExportPage').then(m => ({ default: m.ExportPage })));
+const GitCenterPage = lazy(() => import('./pages/GitCenterPage').then(m => ({ default: m.GitCenterPage })));
 
 function PageLoader() {
   return (
@@ -66,6 +68,7 @@ function App() {
               <Route path="assets" element={<Suspense fallback={<PageLoader />}><AssetStudioPage /></Suspense>} />
               <Route path="preview" element={<Suspense fallback={<PageLoader />}><GamePreviewPage /></Suspense>} />
               <Route path="export" element={<Suspense fallback={<PageLoader />}><ExportPage /></Suspense>} />
+              <Route path="git" element={<Suspense fallback={<PageLoader />}><GitCenterPage /></Suspense>} />
               {/* Alias routes for better UX (redirect to canonical paths) */}
               <Route path="play" element={<Navigate to="preview" replace />} />
               <Route path="code-editor" element={<Navigate to="editor" replace />} />
