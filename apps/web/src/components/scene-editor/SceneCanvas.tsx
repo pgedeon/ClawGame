@@ -5,7 +5,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { api, type AssetMetadata } from '../../api/client';
-import { Entity, Transform, Scene, Sprite, Collision } from '@clawgame/engine';
+import { Entity, Transform, Scene, SpriteComponent as Sprite, CollisionComponent as Collision } from '@clawgame/engine';
 import { ToolMode, ViewportState } from './types';
 import { logger } from '../../utils/logger';
 

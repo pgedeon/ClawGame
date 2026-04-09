@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Entity, Transform, Scene, Sprite } from '@clawgame/engine';
+import { Entity, Transform, Scene, SpriteComponent as Sprite } from '@clawgame/engine';
 
 interface PropertyInspectorProps {
   scene: Scene | null;

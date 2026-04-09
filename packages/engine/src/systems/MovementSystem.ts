@@ -3,7 +3,7 @@
  */
 
 import { Scene, InputState, Entity } from '../types';
-import { Movement, Transform } from '../types';
+import { MovementComponent, Transform } from '../types';
 
 export class MovementSystem {
   /**
@@ -13,7 +13,7 @@ export class MovementSystem {
    */
   update(scene: Scene, input: InputState, deltaTime: number): void {
     scene.entities.forEach((entity) => {
-      const movement = entity.components.get('movement') as Movement | undefined;
+      const movement = entity.components.get('movement') as MovementComponent | undefined;
       const transform = entity.transform;
 
       if (!movement || !transform) return;
@@ -54,7 +54,7 @@ export class MovementSystem {
     const entity = scene.entities.get(entityId);
     if (!entity) return;
 
-    const movement = entity.components.get('movement') as Movement | undefined;
+    const movement = entity.components.get('movement') as MovementComponent | undefined;
     if (movement) {
       movement.vx = 0;
       movement.vy = 0;

@@ -1,10 +1,10 @@
 # ClawGame Project Memory
 
 ## Project Overview
-- **Status:** Recovery Complete — Transitioning to M9 AI Creator Workspace
-- **Current Version: v0.18.0 (sfx-forge)
-- **Current Stage:** M11 Generative Media Forge in progress
-- **Next Phase:** M11 — multi-model image gen, quick sprites, music, asset pack planner
+- **Status:** M12 Unified Runtime in progress
+- **Current Version:** v0.18.0 (canonical-schema)
+- **Current Stage:** M12 Unified Runtime in progress
+- **Next Phase:** M12 — unified runtime across preview, export, editor, AI
 - **Timeline:** Scene Editor AI provides contextual co-pilot experience during game editing
 
 ## Key Documents

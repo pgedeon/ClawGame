@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 ### Added
+- **Canonical Entity/Component Schema** (M12): Unified `SerializableEntity` and runtime `Entity` types in `@clawgame/engine`. Added conversion utilities (`toRuntimeEntity`, `toSerializableEntity`, `toRuntimeScene`, `toSerializableScene`). New component types: `StatsComponent`, `PlayerInputComponent`, `CollectibleComponent`, `PhysicsComponent`, `TriggerComponent`, `CameraComponent`, `AnimationComponent`. Scene editor imports from engine schema instead of duplicating types. 6 tests.
+### Added
 - **Quick Sprites workflow** (M11): Prompt-to-sprite-sheet pipeline with animation presets, frame grid generation, placeholder SVG output, and CRUD API routes (`/api/projects/:id/sprites/*`). 14 tests.
 
 All notable changes to ClawGame will be documented in this file.

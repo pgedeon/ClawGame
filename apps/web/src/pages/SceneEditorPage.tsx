@@ -12,7 +12,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { api, type AssetMetadata } from '../api/client';
-import { Entity, Scene, Transform, Component, Sprite } from '@clawgame/engine';
+import { Entity, Scene, Transform, Component, SpriteComponent as Sprite } from '@clawgame/engine';
 import { AssetBrowserPanel } from '../components/scene-editor/AssetBrowserPanel';
 import { SceneCanvas } from '../components/scene-editor/SceneCanvas';
 import { PropertyInspector } from '../components/scene-editor/PropertyInspector';

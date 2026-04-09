@@ -1,10 +1,21 @@
 /**
  * @clawgame/web - Scene Editor shared types and state
- * Shared between AssetBrowserPanel, SceneCanvas, and PropertyInspector
+ * Uses canonical schema from @clawgame/engine
  */
 
-import { Entity, Transform, Sprite, Collision, Scene } from '@clawgame/engine';
-import { AssetMetadata, AssetType } from '../../api/client';
+import {
+  Entity,
+  Transform,
+  Scene,
+  SerializableEntity,
+  toSerializableEntity,
+  toRuntimeEntity,
+} from '@clawgame/engine';
+import { AssetType } from '../../api/client';
+
+// Re-export canonical types for convenience
+export type { Entity, Transform, Scene, SerializableEntity };
+export { toSerializableEntity, toRuntimeEntity };
 
 // Tool modes for the editor
 export type ToolMode = 'select' | 'move' | 'add-entity';

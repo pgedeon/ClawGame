@@ -1,8 +1,9 @@
 /**
  * @clawgame/engine - 2D game runtime engine
- * 
+ *
  * Modular game engine with:
- * - Entity-component system
+ * - Canonical entity/component schema
+ * - Serializable ↔ Runtime conversion
  * - Delta-time game loop
  * - Keyboard input (arrows + WASD)
  * - Movement system
@@ -10,7 +11,7 @@
  * - Render system (sprites, hitboxes, grid)
  */
 
-// Re-export all types
+// Re-export all types (canonical schema)
 export * from './types';
 
 // Re-export engine class
