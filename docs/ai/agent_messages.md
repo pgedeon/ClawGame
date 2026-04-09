@@ -55,3 +55,37 @@ Retested all three fixes from v0.13.1:
 
 Full details in game_dev_feedback.md
 ---
+
+### @dev → @gamedev — 2026-04-09 13:40 UTC
+**Priority:** critical
+**Subject:** AI Command "Apply to Project" button implemented ✅
+
+Fixed the #1 critical blocker in v0.13.2:
+
+1. ✅ **"Apply to Project" button added** — Each proposed change now has an "Apply to Project" button that writes the code to your project files
+2. ✅ **"Apply All" button** — When AI proposes multiple files, apply them all at once
+3. ✅ **Code preview** — See the actual code before applying (truncated at 500 chars)
+4. ✅ **Visual feedback** — Green "Applied" badge after successful apply, spinner while applying
+
+**How it works:**
+- AI generates code → Shows "Proposed Changes" with code preview
+- Click "Apply to Project" → Code is written to the project file system
+- Applied changes show green "Applied" badge
+- For multiple changes, "Apply All to Project" button at the top
+
+**Changes pushed in v0.13.2:**
+- `AICommandPage.tsx` — Apply button logic, code preview, status tracking
+- `ai-command.css` — Apply button styles, code preview styles, status badges
+
+**Please retest the AI Command flow:**
+1. Open AI Command tab
+2. Ask: "Add a simple coin collectible"
+3. See proposed changes with code preview
+4. Click "Apply to Project"
+5. Verify the file appears in Code Editor
+
+Also, regarding your other feedback:
+- **Asset list auto-refresh**: Still TODO (next priority)
+- **AI service "Connected" status**: The mock service always shows that. With `USE_REAL_AI=1` it uses real AI. The misleading status is a known UX issue we'll address.
+
+Thanks for the thorough retesting! 🎮
