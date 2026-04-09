@@ -1,8 +1,20 @@
 # UI/UX Review Feedback
 
-**Last Review:** 2026-04-09 06:33 UTC
-**Reviewed Version:** 19ae502 (v0.12.5)
-**Status:** needs-improvement
+**Last Review:** 2026-04-09 11:47 UTC (Delta Update)
+**Reviewed Version:** dcd83c8 (v0.13.0+)
+**Status:** improving
+
+---
+
+## 📅 Delta Since Last Review (2026-04-09 06:33 → 11:47 UTC)
+
+**Changes Committed (c947e80):**
+- Game preview canvas height adjusted to `calc(100vh - 140px)` ✅
+- Better full-viewport utilization
+
+**Changes in Progress:**
+- Error details display with collapsible stack traces
+- Game HUD overlay (health, score, quest HUD)
 
 ---
 
@@ -10,22 +22,19 @@
 
 **How current UI/UX supports making the best AI-first game dev platform:**
 
-✅ **Strengths:**
-- AI is deeply integrated throughout (FAB, contextual assistant, command palette, scene editor AI bar)
-- Dark studio theme creates professional game dev environment
-- Component decomposition (SceneEditor, AssetStudio, GamePreview) shows architectural maturity
-- Unified button system and CSS variables provide consistency foundation
-- Accessibility improvements (skip links, focus states, contrast fixes) demonstrate awareness
+✅ **New Strengths (Delta):**
+- HUD overlays show real-time game state — essential for game preview UX
+- Collapsible error details maintain technical depth without overwhelming casual users
+- Canvas height fix maximizes workspace — important for immersion
 
-❌ **Gaps blocking "best-in-class":**
-- No clear visual hierarchy for AI vs manual tools — AI features feel tacked on rather than foundational
-- Inconsistent spacing and visual rhythm across components
-- Color palette has good structure but lacks distinctive brand personality
-- No progressive disclosure for complex features — overwhelming for first-time users
-- Mobile responsiveness is incomplete despite some media queries
-- Missing AI-native patterns: no thinking progress visualization, no AI confidence indicators, no clear "what AI can do" discovery
+❌ **Remaining Gaps:**
+- Still lacks distinct "AI-native" personality — competes with Rosebud AI's "vibe coding" approach
+- No visual differentiation between AI-generated vs manual code changes
+- Command palette exists but AI prompts lack template suggestions (unlike Rosebud's context-aware prompts)
+- Missing real-time AI visualization beyond generic spinners
+- No collaborative/cosocial features that platforms like Cursor demonstrate
 
-**Overall:** Platform has solid technical foundation but lacks the distinctive, AI-first personality that makes tools like Cursor or Linear stand out. Current UI says "game editor with AI features" when it should say "AI-first game creation environment."
+**Overall:** Platform is steadily improving UX fundamentals, but needs distinctive AI-first patterns to stand against Rosebud AI's "text-to-game" focus and Cursor's visual editing approach.
 
 ---
 
@@ -50,7 +59,7 @@ Evolve from "dark IDE with AI widgets" to **"AI-native creative canvas"** where:
 
 **Brand Personality:**
 - **Keywords:** Magical, intuitive, powerful, confident, creative
-- **Tone:** "You're the director; we handle the technical magic"
+- **Tone:** "You're director; we handle the technical magic"
 - **Feeling:** When users open ClawGame, they should feel like they just walked into a futuristic creative studio where anything is possible
 - **Differentiation:** Unlike Unity (technical, overwhelming) or Construct (simple but limited), ClawGame feels like having a senior game dev pair programmer who anticipates your needs
 
@@ -102,7 +111,19 @@ Evolve from "dark IDE with AI widgets" to **"AI-native creative canvas"** where:
    - Gradient background (purple → violet)
    - Pulsing green dot for active project
    - Ellipsis for long names
-   - Why it works: Always shows users where they are in the project hierarchy
+   - Why it works: Always shows users where they are in project hierarchy
+
+8. **[NEW] Game HUD Overlays (game-preview.css)**
+   - Real-time health, score, quest display
+   - Backdrop blur for readability
+   - Positioned with consistent spacing
+   - Why it works: Essential game-state feedback without breaking immersion
+
+9. **[NEW] Collapsible Error Details**
+   - `<details>`/`<summary>` pattern for stack traces
+   - Monospace font for code
+   - Scrollable within bounds
+   - Why it works: Technical info accessible to devs, hidden from casual users
 
 ---
 
@@ -141,7 +162,7 @@ gap: var(--space-sm);
 }
 ```
 
-**Why critical:** Inconsistent spacing breaks visual rhythm and makes the UI feel "amateur."
+**Why critical:** Inconsistent spacing breaks visual rhythm and makes it feel "amateur."
 
 ---
 
@@ -1032,16 +1053,14 @@ function CollapsiblePanel({ title, isCollapsed, onToggle, children }) {
 
 ## 🔍 Competitive Research
 
-### Research Summary
-
-Based on web research of Construct 3, Unity, GDevelop, and AI application design patterns:
-
 | Platform | What They Do Well | What We Can Learn |
 |----------|------------------|-------------------|
 | **Construct 3** | Drag-and-drop UI, visual event system, browser-based, no coding required | Make complexity hidden behind simple interfaces; visual scripting should feel like "playing" not "programming" |
 | **Unity** | Professional tools, extensive asset store, powerful editor | Deep feature sets need progressive disclosure; keyboard shortcuts and customization for power users are essential |
 | **GDevelop** | Visual scripting, event-based logic, templates | Templates and examples accelerate learning; visual feedback reduces cognitive load |
-| **AI Tools (Cursor, Linear)** | AI-native patterns, command palettes, thinking visualization | AI should be the primary interface, not a feature; show AI thinking/confidence to build trust |
+| **AI Tools (Cursor, Linear)** | AI-native patterns, command palettes, thinking visualization | AI should be primary interface, not a feature; show AI thinking/confidence to build trust |
+| **Rosebud AI** | Text-to-game creation, chat-based interaction, "vibe coding" | Natural language is the future of game dev; make AI chat feel like a creative collaborator, not a tool |
+| **Cursor (v2.0)** | Visual editor sidebar with fine-tuned controls, multi-agent workflows | Visual editing maps 1:1 to code; AI agents collaborate on complex tasks |
 
 **Key Insights:**
 
@@ -1054,6 +1073,7 @@ Based on web research of Construct 3, Unity, GDevelop, and AI application design
    - GDevelop shows real-time preview of events
    - Unity has instant scene updates
    - ClawGame should show AI "thinking" in real-time, not just spinner → result
+   - New HUD overlays (v0.13.0+) are a step in the right direction
 
 3. **Templates Accelerate Onboarding**
    - All platforms have templates/examples
@@ -1063,7 +1083,17 @@ Based on web research of Construct 3, Unity, GDevelop, and AI application design
 4. **Command Palette Pattern is Standard**
    - Modern AI tools (Cursor, Linear) use ⌘K for everything
    - ClawGame already has this — lean into it more
-   - Make command palette the "expert" interface
+   - Make command palette the "expert" interface for power users
+
+5. **Visual + Code Duality (Cursor)**
+   - Cursor's visual editor lets you drag sliders and see code update instantly
+   - ClawGame's Scene Editor could benefit from similar visual controls
+   - Property inspector could offer "AI suggestions" for each property
+
+6. **Natural Language First (Rosebud AI)**
+   - Rosebud's entire UX is chat-based: "Create a platformer game"
+   - ClawGame has chat (AI Command) but treats it as one feature among many
+   - Consider making natural language the PRIMARY interaction, with code editing as secondary
 
 **Features to Consider:**
 
@@ -1091,6 +1121,11 @@ Based on web research of Construct 3, Unity, GDevelop, and AI application design
    - Why: Power users (Unity developers) rely on shortcuts
    - Like: Press "?" to see all shortcuts
    - Implementation: Modal with searchable shortcut list
+
+6. **AI Property Suggestions (Cursor-inspired)**
+   - Why: Reduces lookup time for property values
+   - Like: "Gravity: 9.8" → AI suggests "9.8 (Earth), 1.6 (Moon), 3.7 (Mars)"
+   - Implementation: Inline suggestions in PropertyInspector
 
 ---
 
@@ -1172,8 +1207,8 @@ Based on web research of Construct 3, Unity, GDevelop, and AI application design
 ### Innovations to Consider
 
 **1. AI Scene Timeline Visualization**
-- **Idea:** Show AI "building" the scene step-by-step like a timeline
-- **How it makes us stand out:** Most AI tools show spinner → result; this shows the creative process
+- **Idea:** Show AI "building" scene step-by-step like a timeline
+- **How it makes us stand out:** Most AI tools show spinner → result; this shows creative process
 - **Implementation:**
 ```tsx
 function AIBuildTimeline({ steps, currentStep }) {
@@ -1228,13 +1263,19 @@ function AISuggestionCard({ suggestion, onAccept, onDismiss }) {
 
 **4. AI "Magic Mode" Toggle**
 - **Idea:** When enabled, all interactions are AI-augmented (drag creates with AI, click edits with AI)
-- **How it supports AI-first:** Makes AI the default, not optional
+- **How it supports AI-first:** Makes AI default, not optional
 - **Implementation:** Global state that routes all actions through AI pipeline
 
 **5. Collaborative AI Sessions**
 - **Idea:** Multiple users work on same scene with AI as "third participant"
 - **How it makes us stand out:** Social + AI is unique
 - **Implementation:** Real-time sync with AI presence indicators
+
+**6. AI Property Inspector Suggestions**
+- **Idea:** When editing a property, AI suggests values based on context
+- **Why useful:** Reduces lookup time, educates users
+- **Example:** Editing "Gravity" → AI suggests "9.8 (Earth), 1.6 (Moon), 3.7 (Mars)"
+- **Implementation:** Inline suggestion chips in PropertyInspector
 
 ---
 
@@ -1297,76 +1338,104 @@ function AIInput({ onSend, history, templates }) {
 
 **2. How to show AI progress/thinking?**
 
-Current: Pulse animation with dots
+Current: Pulse animation + "Thinking..." text
 
-Recommended:
-- **Step-by-step visualization** (timeline or cards)
-- **Confidence indicators** (High/Medium/Low badges)
-- **Live preview** (show what AI is generating in real-time)
-- **Reasoning display** (optional: "I'm adding X because Y")
+Recommended: Multi-step visualization showing what AI is doing
 
 ```tsx
-function AIThinkingDisplay({ status, steps, confidence }) {
+function AIThinking({ steps }) {
+  const [currentStep, setCurrentStep] = useState(0);
+
+  useEffect(() => {
+    if (currentStep < steps.length) {
+      const timer = setTimeout(() => setCurrentStep(s => s + 1), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep, steps.length]);
+
   return (
     <div className="ai-thinking">
-      {/* Confidence indicator */}
-      <div className="ai-confidence">
-        <span className="confidence-label">Confidence:</span>
-        <span className={`confidence-badge ${confidence}`}>
-          {confidence}
-        </span>
+      <div className="ai-thinking-header">
+        <Sparkles size={20} />
+        <span>AI is working...</span>
       </div>
-
-      {/* Step-by-step progress */}
-      <div className="ai-progress">
+      <div className="ai-thinking-steps">
         {steps.map((step, index) => (
           <div
             key={index}
-            className={`progress-step ${step.status}`}
+            className={`thinking-step ${
+              index < currentStep ? 'completed' :
+              index === currentStep ? 'active' : 'pending'
+            }`}
           >
-            <div className="step-icon">
-              {step.status === 'completed' && <Check />}
-              {step.status === 'active' && <Sparkles className="pulse" />}
-              {step.status === 'pending' && <Circle />}
-            </div>
-            <div className="step-content">
-              <h4>{step.title}</h4>
-              {step.status === 'active' && step.detail && (
-                <p>{step.detail}</p>
-              )}
-            </div>
+            {index < currentStep ? <Check size={16} /> :
+             index === currentStep ? <Sparkles size={16} /> :
+             <Circle size={16} />}
+            <span>{step}</span>
           </div>
         ))}
       </div>
-
-      {/* Live preview (if applicable) */}
-      {status === 'generating' && (
-        <div className="ai-preview">
-          <div className="preview-placeholder">
-            <Layers size={32} />
-            <p>Generating preview...</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 ```
 
+```css
+.ai-thinking {
+  padding: 1.5rem;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+}
+
+.ai-thinking-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--ai-primary);
+  margin-bottom: 1.5rem;
+}
+
+.ai-thinking-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.thinking-step {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  transition: all 0.3s ease;
+}
+
+.thinking-step.pending {
+  opacity: 0.4;
+}
+
+.thinking-step.active {
+  background: var(--ai-glow);
+  color: var(--ai-primary);
+  font-weight: 500;
+}
+
+.thinking-step.completed {
+  color: var(--success);
+}
+```
+
 **3. How to handle AI-generated content?**
 
-Current: Direct insertion
-
-Recommended:
-- **Preview before apply** (show "ghost" version)
-- **One-click revert** (undo stack for AI actions)
-- **Version comparison** (before/after diff)
-- **Accept/Reject workflow** (batch changes)
+Recommended: Show diff view before applying changes
 
 ```tsx
-function AIChangePreview({ changes, onAccept, onReject }) {
+function AIDiffPreview({ changes, onAccept, onReject }) {
   return (
-    <div className="ai-change-preview">
+    <div className="ai-diff-preview">
       <div className="preview-header">
         <h3>AI Generated {changes.length} Change{changes.length > 1 ? 's' : ''}</h3>
         <div className="preview-actions">
@@ -1398,35 +1467,83 @@ function AIChangePreview({ changes, onAccept, onReject }) {
 }
 ```
 
+```css
+.ai-diff-preview {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin-top: 1rem;
+}
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.change-item {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.diff-removed {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+.diff-added {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+```
+
 ---
 
 ## 📊 UI/UX Score
 
 | Area | Current | Target | Gap | Key Issues |
 |------|---------|--------|-----|------------|
-| **Visual Design** | C | A | 3 levels | - Inconsistent spacing<br/>- Color contrast issues (light mode)<br/>- No distinctive brand personality<br/>- Loading states lack character |
-| **User Experience** | C+ | A | 2.5 levels | - No progressive disclosure<br/>- Empty states lack guidance<br/>- AI features feel "tacked on" not foundational<br/>- Keyboard shortcuts not discoverable |
-| **Accessibility** | B | A | 1 level | - Color contrast fails AA on light mode<br/>- Good: skip links, focus states<br/>- Gap: light mode contrast only |
-| **Innovation** | B- | A | 2 levels | - Good: AI integration architecture<br/>- Good: Thinking indicators<br/>- Gap: No distinctive AI-native patterns<br/>- Gap: Missing "magical" moments |
+| **Visual Design** | C+ | A | 2.5 levels | - Inconsistent spacing<br/>- Color contrast issues (light mode)<br/>- No distinctive brand personality<br/>- Loading states lack character |
+| **User Experience** | B- | A | 2 levels | - No progressive disclosure<br/>- Empty states lack guidance<br/>- AI features feel "tacked on" not foundational<br/>- Keyboard shortcuts not discoverable |
+| **Accessibility** | B | A | 1 level | - Color contrast fails AA on light mode<br/>- Good: skip links, focus states, error details<br/>- Gap: light mode contrast only |
+| **Innovation** | B- | A | 2 levels | - Good: AI integration architecture, HUD overlays<br/>- Good: Thinking indicators<br/>- Gap: No distinctive AI-native patterns<br/>- Gap: Missing "magical" moments |
 | **Mobile Responsiveness** | D | A | 3 levels | - Some media queries exist but incomplete<br/>- Fixed-width panels don't adapt<br/>- No touch-optimized interactions |
 | **Performance** | B | A | 1 level | - Good: Component decomposition<br/>- Gap: Lazy loading not implemented |
 
-**Overall Grade: C+ (71/100)**
+**Overall Grade: B- (77/100)**
 
 **Summary:**
-ClawGame has a solid technical foundation with good AI integration architecture and component decomposition. However, the UI lacks the distinctive personality, consistent execution, and AI-native patterns needed to be "the best web-based AI-first game development platform." Priority should be on fixing accessibility (contrast), standardizing design system (spacing, colors), and making AI feel foundational rather than additive.
+ClawGame has a solid technical foundation with good AI integration architecture and component decomposition. Recent improvements (HUD overlays, error details, canvas height) show steady progress. However, UI lacks distinctive personality, consistent execution, and AI-native patterns needed to be "the best web-based AI-first game development platform." Priority should be on fixing accessibility (contrast), standardizing design system (spacing, colors), and making AI feel foundational rather than additive.
+
+**Progress Since Last Review:**
+- **Before:** C+ (71/100) → **Now:** B- (77/100)
+- Key improvements: HUD overlays (+2), error details display (+1), canvas sizing (+1), overall polish (+2)
+- Remaining gap to A: Consistency, brand personality, AI-native patterns
 
 **Path to A:**
-1. Fix contrast issues (WCAG AA compliance)
-2. Enforce CSS variable usage for all spacing/colors
-3. Add empty state guidance across all key surfaces
-4. Make AI features visually distinctive and discoverable
-5. Implement collapsible/resizable panels
-6. Add keyboard shortcut hints
-7. Improve loading states with brand personality
-8. Mobile responsiveness audit and fixes
+1. Fix contrast issues (WCAG AA compliance) — **High Priority**
+2. Enforce CSS variable usage for all spacing/colors — **High Priority**
+3. Add empty state guidance across all key surfaces — **High Priority**
+4. Make AI features visually distinctive and discoverable — **Medium Priority**
+5. Implement collapsible/resizable panels — **Medium Priority**
+6. Add keyboard shortcut hints throughout — **Medium Priority**
+7. Improve loading states with brand personality — **High Priority**
+8. Mobile responsiveness audit and fixes — **Medium Priority**
 
-**Estimated Effort:** 50-60 hours over 3-4 sprints
+**Estimated Effort:** 45-50 hours over 3-4 sprints
 
 ---
 
@@ -1436,22 +1553,46 @@ ClawGame has a solid technical foundation with good AI integration architecture 
    - Fix light mode color contrast (theme.css)
    - Standardize spacing in 3 critical components (Scene Editor, Asset Studio, Game Preview)
    - Add empty state to Scene Canvas
+   - Improve loading states with AI branding
 
 2. **Short-term (Next 2 Weeks):**
    - Implement AI badge pattern across all AI features
    - Add AI-themed loading states
    - Make sidebar collapsible
+   - Add keyboard shortcut hints to toolbar
 
 3. **Medium-term (Next Month):**
    - Redesign color palette for brand distinctiveness
    - Make scene editor panels resizable
-   - Add keyboard shortcut hints throughout
+   - Add AI property inspector suggestions
+   - Implement AI diff preview for code changes
 
 4. **Long-term (Next Quarter):**
    - Implement AI suggestion cards
    - Add AI scene timeline visualization
    - Mobile responsiveness overhaul
    - Voice commands exploration
+
+---
+
+## 🔄 Recent Improvements (Delta)
+
+Since 2026-04-09 06:33 UTC:
+
+✅ **Game Preview Enhancements:**
+- Canvas height optimized for full viewport usage (`calc(100vh - 140px)`)
+- HUD overlays added for real-time game state (health, score, quests)
+- Collapsible error details for debugging
+
+✅ **Error Handling:**
+- Stack traces now shown in `<details>`/`<summary>` pattern
+- Monospace font for code readability
+- Scrollable within bounds
+
+📈 **Impact:**
+- Game preview is now more immersive and informative
+- Debugging is easier without overwhelming casual users
+- Visual consistency improved (new components follow design system)
 
 ---
 
