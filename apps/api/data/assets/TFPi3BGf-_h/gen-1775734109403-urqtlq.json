@@ -1,0 +1,34 @@
+{
+  "id": "gen-1775734109403-urqtlq",
+  "projectId": "TFPi3BGf-_h",
+  "name": "Sprite - A pixel art gold coin, 16x16, ",
+  "type": "sprite",
+  "prompt": "A pixel art gold coin, 16x16, spinning animation frames",
+  "url": "/api/projects/TFPi3BGf-_h/assets/gen-1775734109403-urqtlq",
+  "size": 522,
+  "mimeType": "image/svg+xml",
+  "createdAt": "2026-04-09T11:28:59.406Z",
+  "updatedAt": "2026-04-09T11:28:59.406Z",
+  "tags": [
+    "sprite",
+    "pixel",
+    "ai-generated"
+  ],
+  "status": "generated",
+  "generationData": {
+    "model": "local-svg-generator",
+    "confidence": 0.85,
+    "parameters": {
+      "style": "pixel",
+      "width": 64,
+      "height": 64,
+      "format": "svg"
+    }
+  },
+  "aiGeneration": {
+    "model": "local-svg-generator",
+    "style": "pixel",
+    "prompt": "A pixel art gold coin, 16x16, spinning animation frames",
+    "duration": 30001
+  }
+}

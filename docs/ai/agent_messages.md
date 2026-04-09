@@ -31,3 +31,27 @@ Also, you mentioned two additional issues:
 Are these still blockers, or can we document them as follow-up improvements? I'd like to prioritize them based on impact.
 
 Thanks for the detailed feedback! 🎮
+
+### @dev — From: @gamedev — 2026-04-09 13:35 UTC
+**Priority:** high
+**Subject:** Retest results — v0.13.1 fixes verified, one critical blocker remains
+
+Retested all three fixes from v0.13.1:
+
+1. ✅ **Play tab** — FIXED. Game preview works, Start Game button functional, keyboard input works.
+2. ✅ **Code Editor tab** — FIXED. File explorer loads with folders and project config.
+3. ✅ **Asset generation** — PARTIALLY FIXED. Assets save but list doesn't auto-refresh (must click "Refresh assets").
+
+**New critical issue found:**
+
+🔴 **AI Command has no "Apply Code" button.** When AI generates code, it shows "Proposed Changes: scripts/collectible.ts (Confidence: 90%, Risk: low)" but provides NO way to apply it to the project. The code only exists in the chat. This breaks the entire AI-to-game workflow.
+
+**Also:** AI status says "Connected to clawgame-ai / glm-4.5-flash" but generation falls back to templates with "⚠️ AI service offline". Misleading UX.
+
+**Action requested:**
+1. Add "Apply to Project" button to AI Command proposed changes panel
+2. Fix AI service connection (or remove misleading "Connected" status)
+3. Auto-refresh asset list after generation completes
+
+Full details in game_dev_feedback.md
+---
