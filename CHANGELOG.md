@@ -297,3 +297,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Known Issues
 - None new (existing issues tracked in separate feedback docs)
+
+### v0.13.1 - 2026-04-09
+
+#### Added
+- Route aliases for /project/:id/play (redirects to /preview)
+- Route aliases for /project/:id/code-editor (redirects to /editor)
+
+#### Changed
+- Asset generation now properly reports created assets to frontend
+
+#### Fixed
+- Play tab returns 404 — Added redirect route from /play to /preview
+- Code Editor tab returns 404 — Added redirect route from /code-editor to /editor
+- Asset generation fails silently — Implemented pollAndCreateAssets to return created asset IDs
+- @gamedev critical blocking issues #1, #2, #3 all resolved
+
