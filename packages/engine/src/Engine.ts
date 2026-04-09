@@ -10,6 +10,7 @@ import { AISystem } from './systems/AISystem';
 import { RenderSystem } from './systems/RenderSystem';
 import { PhysicsSystem } from './systems/PhysicsSystem';
 import { CollisionSystem } from './systems/CollisionSystem';
+import { AnimationSystem } from './systems/AnimationSystem';
 
 export class Engine {
   private canvas: HTMLCanvasElement;
@@ -30,6 +31,7 @@ export class Engine {
   private renderSystem: RenderSystem;
   private physicsSystem: PhysicsSystem;
   private collisionSystem: CollisionSystem;
+  private animationSystem: AnimationSystem;
 
   private updateCallback?: (deltaTime: number) => void;
   private errorCallback?: (error: Error) => void;
@@ -53,9 +55,11 @@ export class Engine {
     this.renderSystem = new RenderSystem(this.ctx, this.config);
     this.physicsSystem = new PhysicsSystem({ width: config.width, height: config.height });
     this.collisionSystem = new CollisionSystem();
+    this.animationSystem = new AnimationSystem();
 
-    // Wire collision system to event bus
+    // Wire systems to event bus
     this.collisionSystem.attach(this.events);
+    this.animationSystem.attach(this.events);
   }
 
   /**
@@ -65,6 +69,7 @@ export class Engine {
     const prevName = this.scene?.name;
     this.scene = scene;
     this.collisionSystem.resetTriggers();
+    this.animationSystem.reset();
     if (prevName) {
       this.events.emit('scene:unload', { sceneName: prevName });
     }
@@ -105,6 +110,13 @@ export class Engine {
    */
   getConfig(): RendererConfig {
     return { ...this.config };
+  }
+
+  /**
+   * Register a frame image for animation rendering
+   */
+  registerFrameImage(assetRef: string, image: HTMLImageElement): void {
+    this.renderSystem.registerFrameImage(assetRef, image);
   }
 
   /**
@@ -160,6 +172,7 @@ export class Engine {
   destroy(): void {
     this.stop();
     this.renderSystem.destroy();
+    this.animationSystem.destroy();
     this.events.clear();
     this.scene = null;
   }
@@ -195,7 +208,8 @@ export class Engine {
     // Run custom update callback
     this.updateCallback?.(deltaTime);
 
-    // Run systems in order: movement → physics → AI → collision
+    // Run systems in order: animation → movement → physics → AI → collision
+    this.animationSystem.update(this.scene, deltaTime);
     this.movementSystem.update(this.scene, this.inputState, deltaTime);
     this.physicsSystem.update(this.scene, deltaTime);
     this.aiSystem.update(this.scene, deltaTime);

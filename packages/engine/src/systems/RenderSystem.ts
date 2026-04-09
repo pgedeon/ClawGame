@@ -1,8 +1,13 @@
 /**
  * @clawgame/engine - Render system
+ *
+ * Supports:
+ * - Static sprites (single image or color fill)
+ * - Sprite sheet animation (frame slicing via AnimationComponent)
+ * - Individual frame images (AnimationComponent.frames as asset refs)
  */
 
-import { Scene, RendererConfig, Entity, SpriteComponent, CollisionComponent } from '../types';
+import { Scene, RendererConfig, Entity, SpriteComponent, CollisionComponent, AnimationComponent } from '../types';
 
 export class RenderSystem {
   private ctx: CanvasRenderingContext2D;
@@ -12,9 +17,17 @@ export class RenderSystem {
   private fps = 60;
   private entityCount = 0;
 
+  /** Cache of loaded frame images: assetRef → HTMLImageElement */
+  private frameImageCache: Map<string, HTMLImageElement> = new Map();
+
   constructor(ctx: CanvasRenderingContext2D, config: RendererConfig) {
     this.ctx = ctx;
     this.config = config;
+  }
+
+  /** Pre-load a frame image for animation use */
+  registerFrameImage(assetRef: string, image: HTMLImageElement): void {
+    this.frameImageCache.set(assetRef, image);
   }
 
   render(scene: Scene, config: RendererConfig): void {
@@ -41,6 +54,7 @@ export class RenderSystem {
     const transform = entity.transform;
     const sprite = entity.components.get('sprite') as SpriteComponent | undefined;
     const collision = entity.components.get('collision') as CollisionComponent | undefined;
+    const animation = entity.components.get('animation') as AnimationComponent | undefined;
 
     if (!transform) return;
 
@@ -57,16 +71,45 @@ export class RenderSystem {
       this.ctx.rotate((transform.rotation ?? 0) * Math.PI / 180);
       this.ctx.scale(scaleX, scaleY);
 
+      // Shadow
       this.ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
       this.ctx.fillRect(-width / 2 + 4, -height / 2 + 4, width, height);
 
-      if (sprite.image) {
-        this.ctx.drawImage(sprite.image, -width / 2, -height / 2, width, height);
+      // Determine which image to draw
+      const frameImage = this.resolveFrameImage(sprite, animation);
+
+      if (frameImage) {
+        // Check if sprite sheet mode
+        if (sprite.spriteSheet && sprite.frameWidth && sprite.frameHeight) {
+          const fw = sprite.frameWidth;
+          const fh = sprite.frameHeight;
+          const currentFrame = animation?.currentFrame ?? 0;
+          const cols = Math.max(1, Math.floor(frameImage.width / fw));
+          const col = currentFrame % cols;
+          const row = Math.floor(currentFrame / cols);
+          this.ctx.drawImage(
+            frameImage,
+            col * fw, row * fh, fw, fh,  // source rect
+            -width / 2, -height / 2, width, height  // dest rect
+          );
+        } else {
+          this.ctx.drawImage(frameImage, -width / 2, -height / 2, width, height);
+        }
       } else {
+        // Color fallback — tint by animation frame if available
         this.ctx.fillStyle = sprite.color || '#8b5cf6';
         this.ctx.fillRect(-width / 2, -height / 2, width, height);
+
+        // Show frame indicator for animated entities without images
+        if (animation && animation.frames.length > 1) {
+          const frameIdx = animation.currentFrame ?? 0;
+          this.ctx.fillStyle = 'rgba(255,255,255,0.6)';
+          this.ctx.font = '10px monospace';
+          this.ctx.fillText(`${frameIdx + 1}/${animation.frames.length}`, -width / 2 + 2, -height / 2 + 12);
+        }
       }
 
+      // Outline
       this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
       this.ctx.lineWidth = 2;
       this.ctx.strokeRect(-width / 2, -height / 2, width, height);
@@ -86,6 +129,31 @@ export class RenderSystem {
         } as CollisionComponent);
       }
     }
+  }
+
+  /**
+   * Resolve which HTMLImageElement to render for the current frame.
+   * Priority:
+   *  1. Sprite sheet mode: sprite.spriteSheet image
+   *  2. Frame image mode: look up animation.frames[currentFrame] in cache
+   *  3. Static sprite: sprite.image
+   */
+  private resolveFrameImage(sprite: SpriteComponent, animation: AnimationComponent | undefined): HTMLImageElement | undefined {
+    // Sprite sheet mode
+    if (sprite.spriteSheet && sprite.frameWidth && sprite.frameHeight) {
+      return sprite.spriteSheet;
+    }
+
+    // Individual frame images mode
+    if (animation && animation.frames.length > 0) {
+      const frameIdx = animation.currentFrame ?? 0;
+      const frameRef = animation.frames[Math.min(frameIdx, animation.frames.length - 1)];
+      const cached = this.frameImageCache.get(frameRef);
+      if (cached) return cached;
+    }
+
+    // Static sprite
+    return sprite.image;
   }
 
   private drawHitbox(x: number, y: number, collision: CollisionComponent): void {
@@ -157,5 +225,7 @@ export class RenderSystem {
     return this.fps;
   }
 
-  destroy(): void {}
+  destroy(): void {
+    this.frameImageCache.clear();
+  }
 }

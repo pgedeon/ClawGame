@@ -21,7 +21,7 @@ M11 shipped 3 core deliverables (SFX generation, multi-model image gen, quick sp
 | Canonical entity/component schema | ✅ Done | Serializable↔Runtime types with conversion utils (commit 0e762d9) |
 | Runtime systems (physics, collisions, triggers) | ✅ Done | PhysicsSystem + CollisionSystem with 12 tests (commit a87eea3) |
 | Data-driven scene loading | ✅ Done | SceneLoader with pluggable AssetResolver, image cache, loadIntoEngine() — 11 tests |
-| Asset-aware sprite/animation rendering | 📋 TODO | Engine-native sprite rendering |
+| Asset-aware sprite/animation rendering | ✅ Done | AnimationSystem + sprite sheet slicing + frame image cache (11 tests) |
 | Engine events bus | ✅ Done | Typed EventBus with on/once/onAny/history/mute, integrated into Engine class (20 tests) |
 | Export runtime = preview runtime | 📋 TODO | Same simulation rules |
 

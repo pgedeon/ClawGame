@@ -26,6 +26,9 @@ export interface EngineEvents {
   'entity:destroy': { entityId: string };
   'entity:collision': { entityA: string; entityB: string; type: string };
 
+  // Animation
+  'animation:complete': { entityId: string; entityName?: string; animation: { frames: string[]; frameRate: number; loop: boolean } };
+
   // Input
   'input:key-down': { key: string };
   'input:key-up': { key: string };

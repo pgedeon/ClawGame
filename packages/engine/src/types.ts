@@ -34,6 +34,10 @@ export interface SpriteComponent {
   offsetY?: number;
   color?: string;
   /** Reference to an asset in the project's asset store */
+  /** Sprite sheet: if set, render slices from this single image */
+  spriteSheet?: HTMLImageElement;
+  frameWidth?: number;
+  frameHeight?: number;
   assetRef?: string;
 }
 

@@ -30,6 +30,7 @@ export { AISystem } from './systems/AISystem';
 export { RenderSystem } from './systems/RenderSystem';
 export { PhysicsSystem } from './systems/PhysicsSystem';
 export { CollisionSystem } from './systems/CollisionSystem';
+export { AnimationSystem } from './systems/AnimationSystem';
 export type { CollisionEvent } from './systems/CollisionSystem';
 
 // Re-export scene loader
