@@ -29,6 +29,7 @@ const AssetStudioPage = lazy(() => import('./pages/AssetStudioPage').then(m => (
 const GamePreviewPage = lazy(() => import('./pages/GamePreviewPage').then(m => ({ default: m.GamePreviewPage })));
 const ExportPage = lazy(() => import('./pages/ExportPage').then(m => ({ default: m.ExportPage })));
 const GitCenterPage = lazy(() => import('./pages/GitCenterPage').then(m => ({ default: m.GitCenterPage })));
+const AISettingsPage = lazy(() => import('./pages/AISettingsPage').then(m => ({ default: m.AISettingsPage })));
 
 function PageLoader() {
   return (
@@ -70,6 +71,7 @@ function App() {
               <Route path="export" element={<Suspense fallback={<PageLoader />}><ExportPage /></Suspense>} />
               <Route path="git" element={<Suspense fallback={<PageLoader />}><GitCenterPage /></Suspense>} />
               {/* Alias routes for better UX (redirect to canonical paths) */}
+              <Route path="ai-settings" element={<Suspense fallback={<PageLoader />}><AISettingsPage /></Suspense>} />
               <Route path="play" element={<Navigate to="preview" replace />} />
               <Route path="code-editor" element={<Navigate to="editor" replace />} />
             </Route>

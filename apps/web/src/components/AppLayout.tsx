@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom';
-import { FileCode, Bot, Palette, Play, Layers, ArrowLeft, StickyNote } from 'lucide-react';
+import { FileCode, Bot, Palette, Play, Layers, ArrowLeft, StickyNote, Settings } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { api, type ProjectListItem } from '../api/client';
 import { sidebarItems } from '../constants/sidebar';
@@ -129,6 +129,11 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
                   <StickyNote size={20} className="nav-icon" />
                   <span className="nav-text">Notes</span>
                 </button>
+
+                <Link to={`/project/${projectId}/ai-settings`} className="nav-item" role="menuitem">
+                  <Settings size={20} className="nav-icon" />
+                  <span className="nav-text">AI Settings</span>
+                </Link>
 
                 {/* Back to projects */}
                 <div className="sidebar-section-title" />
