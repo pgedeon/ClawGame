@@ -7,6 +7,10 @@ import { PromptRecipeLibrary, type PromptRecipe } from './PromptRecipeLibrary';
 import '../ai-fab.css';
 
 interface AIFABProps {
+  /** Current page context for AI awareness */
+  pageContext?: string;
+  sceneSummary?: string;
+  selectedEntities?: string[];
   projectId?: string;
 }
 
@@ -18,7 +22,7 @@ interface ChatMessage {
   fromFallback?: boolean;
 }
 
-export function AIFAB({ projectId }: AIFABProps) {
+export function AIFAB({ projectId, pageContext, sceneSummary, selectedEntities }: AIFABProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -73,7 +77,16 @@ export function AIFAB({ projectId }: AIFABProps) {
     }
 
     try {
-      const result = await api.processAICommand(projectId, { command: text, projectId });
+      const result = await api.processAICommand(projectId, {
+        command: text,
+        projectId,
+        context: {
+          selectedFiles: [],
+          sceneSummary,
+          selectedEntities,
+          currentPage: pageContext,
+        },
+      });
       const isFallback = result.response?.fromFallback === true;
       const content = isFallback
         ? `⚠️ **Offline mode** — generated from local templates\n\n${result.response.content}\n\n*The AI service is unavailable. This code was generated locally.*`

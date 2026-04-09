@@ -224,6 +224,9 @@ export interface AICommandRequest {
     selectedCode?: string;
     selectedRange?: { start: number; end: number };
     recentChanges?: Array<{ path: string; content: string }>;
+    sceneSummary?: string;
+    selectedEntities?: string[];
+    currentPage?: string;
   };
 }
 

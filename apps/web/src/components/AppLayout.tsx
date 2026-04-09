@@ -170,7 +170,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
 
         {/* Floating AI button — visible on project pages */}
         {isInProjectContext && (
-          <AIFAB projectId={projectId || undefined} />
+          <AIFAB projectId={projectId || undefined} pageContext={location.pathname.split("/").pop() || ""} />
         )}
 
         {/* Command Palette — global */}
