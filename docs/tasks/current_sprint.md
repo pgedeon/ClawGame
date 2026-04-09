@@ -1,77 +1,43 @@
-# Current Sprint: Post-Recovery — Transition to Follow-Up Sprints
+# Current Sprint: M9 — AI Creator Workspace
 
-**Status:** Recovery Complete — Transitioning to M9  
-**Recovery Closed:** 2026-04-09  
-**Next Sprint:** M9 AI Creator Workspace → [`docs/sprints/follow_up_sprints.md`](../sprints/follow_up_sprints.md)
+**Status:** M9 In Progress  
+**Started:** 2026-04-09  
+**Sprint:** M9 AI Creator Workspace → [`docs/sprints/follow_up_sprints.md`](../sprints/follow_up_sprints.md)
+
+---
+
+## M9 Exit Criteria
+
+| Criterion | Status |
+|-----------|--------|
+| AI accessible without leaving editor, scene, asset, or preview flows | ✅ AIFAB in AppLayout (all pages) |
+| Prompts can target files, entities, scenes, or asset groups | ✅ Context injection (page, scene, entities) |
+| Notes and prompt recipes are saved per project | ✅ ProjectNotesPanel + PromptRecipeLibrary |
+| AI can open a preview target and reason about current game context | ✅ Page context passed to AI commands |
+| Model profiles and BYO provider configuration | ✅ AISettingsPage with health check |
+
+### M9 Deliverables — Progress
+
+| Deliverable | Status | Commits |
+|-------------|--------|---------|
+| Ambient AI side panel (AIFAB) | ✅ Already existed, enhanced with context | e6af36b, 97896fd |
+| Project Notes Panel | ✅ New — goals, constraints, TODOs, custom sections | 25e7e37 |
+| AI context injection (page, scene, entities) | ✅ Extended API types + AIFAB integration | 97896fd |
+| AI Settings page (model status, provider config) | ✅ New — connection health, config guide | 03a775b |
+| Prompt Recipe Library | ✅ Already existed — 10 recipes across 5 categories | pre-existing |
+
+### Commits This Sprint
+
+1. `25e7e37` — feat(M9): ProjectNotesPanel — per-project notes, goals, TODOs
+2. `97896fd` — feat(M9): AI context injection — pass page context and scene info to AIFAB
+3. `03a775b` — feat(M9): AI Settings page — model status, provider config, connection health
 
 ---
 
 ## Recovery Sprint — CLOSED ✅
 
-**Sprint Goal:** Restore repository trust: green checks, closed high-severity risks, and one accurate planning source.
-
-**Started:** 2026-04-08  
-**Closed:** 2026-04-09
-
-### Exit Criteria — All Met ✅
-
-| Criterion | Status |
-|-----------|--------|
-| `pnpm build` passes | ✅ Clean |
-| `pnpm test` passes | ✅ 73/73 tests green |
-| `pnpm lint` passes (typecheck) | ✅ Clean |
-| High-severity security issues closed | ✅ fileService.ts sandbox validation DONE |
-| One active sprint file, no contradictory status | ✅ This file |
-| Working tree clean or intentionally documented | ✅ Clean |
-
-### Priority 0: Restore Safety and Green Checks — ALL DONE ✅
-
-| Task | Status |
-|------|--------|
-| Fix file sandbox validation in `fileService.ts` | ✅ DONE |
-| Remove/harden unsafe AI markdown rendering | ✅ DONE |
-| Fix CodeDiffView.tsx / restore pnpm build | ✅ DONE |
-| Fix failing RPG quest test | ✅ DONE |
-| Make lint a real gate (tsc --noEmit) | ✅ DONE |
-| Stop tracking generated project data in git | ✅ DONE |
-
-### Priority 1: Validate Core User Flows
-
-| Task | Status | Notes |
-|------|--------|-------|
-| Verify AI status indicator is truthful | ✅ DONE | |
-| Validate tab navigation and scene entity creation | ✅ DONE | v0.13.5 |
-| Verify export flow end-to-end | ✅ DONE | Fixed filename/listExports mismatch, added metadata sidecar |
-| Smoke-test AI Command apply/reject flow | ✅ DONE | Apply/reject UI works end-to-end; AI→runtime disconnect is structural (M12) |
-
-### Priority 2: Planning and Process Cleanup
-
-| Task | Status |
-|------|--------|
-| Sync roadmap to current milestone | ✅ DONE |
-| Single active sprint document | ✅ DONE |
-| Move release detail to CHANGELOG.md | ✅ DONE |
-
-### Recovery Retrospective
-
-**What went well:**
-- All quality gates restored (build, test, lint, typecheck)
-- Critical security fix landed (fileService.ts path traversal)
-- v0.15.0 shipped with Tower Defense genre mode
-- Clean git hygiene throughout
-
-**Deferred items carried forward:**
-- Export flow end-to-end browser validation → M9
-- AI Command apply/reject smoke test → M9 (AI→runtime disconnect is a strategic gap)
-- These are tracked in `docs/sprints/follow_up_sprints.md` under M9 deliverables
-
----
-
-## Current Work: M9 AI Creator Workspace
-
-See [`docs/sprints/follow_up_sprints.md`](../sprints/follow_up_sprints.md) for the full post-recovery program.
-
-**Active Task:** *(picked per run by @dev agent)*
+**Closed:** 2026-04-09  
+All exit criteria met. See git history for details.
 
 ---
 
