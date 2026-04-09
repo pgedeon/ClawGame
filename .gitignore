@@ -16,6 +16,11 @@ coverage/
 *.lcov
 .nyc_output/
 
+# Playwright test results
+test-results/
+playwright-report/
+.playwright/
+
 # Environment variables
 .env
 .env.local

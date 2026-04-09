@@ -14,6 +14,8 @@
     "clean": "pnpm -r clean"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "playwright": "^1.59.1",
     "typescript": "^5.4.0"
   },
   "keywords": [
