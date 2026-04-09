@@ -1,118 +1,120 @@
 # Game Developer Feedback
 
-**Last Session:** 2026-04-09 06:20 UTC
+**Last Session:** 2026-04-09 11:00 UTC
 **Session Type:** Game Creation Test
 
 ---
 
 ## 🎮 What I Tried To Build
 
-I attempted to create a top-down space shooter called "Galaxy Defender" - a game where players defend the galaxy from alien invaders by shooting enemies, collecting power-ups, fighting bosses, and surviving as long as possible.
+A simple platformer game called "Space Runner" with:
+- A player character that can move and jump
+- Collectible coins with a score counter
+- Basic collision detection
+- Pixel art graphics
 
 ---
 
 ## ✅ What Worked
 
-1. **Dashboard & Project List** - Clean, well-organized dashboard showing existing projects with clear metadata (status, genre, art style, date)
-2. **Project Creation Flow** - Intuitive form with good options (template selection, genre dropdown, art style radio buttons with visual previews, description field)
-3. **Template Selection** - Nice visual templates (Platformer, Top-Down Action, Dialogue Adventure) with clear descriptions
-4. **Scene Editor Loading** - Scene editor loaded successfully and showed existing entities (player-1)
-5. **Add Entity Dropdown** - Entity templates appeared when clicking Add Entity (Player, Enemy, Coin, Wall) with relevant component tags
-6. **Code Editor File Explorer** - File tree structure displayed correctly (assets, docs, scenes, scripts folders + config files)
-7. **AI Command Interface** - AI Command tab loaded and showed it was connected to glm-4.5-flash model with command history/suggestions
+1. **Dashboard loads** - Clean interface with existing projects list
+2. **Project creation** - Successfully created "Space Runner" project with Platformer template
+3. **Scene Editor loads** - Shows canvas with grid, 1 player entity, entity list panel
+4. **AI Command UI** - Shows connected status (clawgame-ai / glm-4.5-flash)
+5. **AI code generation** - Generated TypeScript code for collectible system when asked
+6. **Asset Studio UI** - Loads with AI suggestions, type/style/prompt controls
+7. **Export tab** - Shows export options with proper UI
 
 ---
 
 ## ❌ What Was Broken
 
-### 1. **CRITICAL: Play Game Fails - "require is not defined"** - Play button in header
-   - **Steps to reproduce:** Created project "Galaxy Defender" with Top-Down Action template, clicked "Play" button in header
-   - **Expected:** Game should run in preview window
-   - **Actual:** Error page displayed: "Something went wrong: require is not defined"
-   - **Screenshot:** Attached (see screenshot with warning icon)
-   - **Impact:** BLOCKING - Cannot test or play the game at all
+### 1. **Play Tab Returns 404** - /project/TFPi3BGf-_h/play
+- **Steps to reproduce:** Click "Play" tab or navigate to `/play`
+- **Expected:** Game preview/play mode with canvas
+- **Actual:** "404 Page Not Found"
+- **Impact:** CRITICAL - Cannot test or play games at all
+- **Screenshot:** See screenshot 3
 
-### 2. **Code Editor Tab Click Doesn't Navigate** - Project overview page
-   - **Steps to reproduce:** On project overview, clicked "Code Editor" tab in the tablist
-   - **Expected:** Should navigate to code editor view
-   - **Actual:** Page URL remains same, no navigation happens. Had to click the "Code Editor" card button instead
-   - **Impact:** Medium - Confusing navigation, but workable via card buttons
+### 2. **Code Editor Returns 404** - /project/TFPi3BGf-_h/code-editor
+- **Steps to reproduce:** Click "Code Editor" tab or navigate to `/code-editor`
+- **Expected:** Full code workspace with file management and syntax highlighting
+- **Actual:** "404 Page Not Found"
+- **Impact:** CRITICAL - Cannot view or edit game code
+- **Screenshot:** See screenshot 6
 
-### 3. **Direct URL to Code Editor Returns 404** - /project/Gnp-pJM9T9t/code-editor
-   - **Steps to reproduce:** Navigated directly to http://localhost:5173/project/Gnp-pJM9T9t/code-editor
-   - **Expected:** Code editor should load
-   - **Actual:** "Page Not Found" error
-   - **Impact:** Medium - Direct URLs don't work, but tab navigation works
+### 3. **Asset Generation Fails Silently** - Asset Studio
+- **Steps to reproduce:**
+  1. Navigate to Assets tab
+  2. Select "sprite" type and "Pixel Art" style
+  3. Enter prompt: "A pixel art player character, 32x32, blue, standing pose"
+  4. Click "Generate Asset"
+  5. Wait for "100% - Done"
+- **Expected:** New sprite asset appears in "Assets" section
+- **Actual:** Generation completes but "No assets found" still shows
+- **Impact:** HIGH - Cannot generate assets, defeating the purpose of AI asset generation
+- **Screenshot:** See screenshot 10
 
-### 4. **Cannot Add Entity from Dropdown** - Scene Editor
-   - **Steps to reproduce:** Clicked "Add Entity" button, dropdown appeared with entity options, tried clicking "Enemy" option
-   - **Expected:** Enemy entity should be added to scene
-   - **Actual:** Multiple browser tool failures, unclear if entity was added
-   - **Impact:** High - Can't visually build scenes via templates
+### 4. **AI Command Generated Code Not Applied**
+- **Steps to reproduce:** Ask AI "Create a platformer with a player that can jump and collect coins, with a score counter"
+- **Expected:** Code is automatically applied to project files or shows clear "Apply" button
+- **Actual:** Code shows in chat but no clear way to apply it to the project
+- **Impact:** MEDIUM - Can generate code but can't use it
 
-### 5. **Cannot Click Files in Code Editor** - File Explorer
-   - **Steps to reproduce:** Expanded scripts folder showing game.ts and player.ts, tried clicking game.ts
-   - **Expected:** File should open in editor pane
-   - **Actual:** Browser tool kept failing, no file selected
-   - **Impact:** HIGH - Cannot view or edit game code!
+### 5. **Scene Editor Assets Panel Empty**
+- **Steps to reproduce:** Open Scene Editor in any project
+- **Expected:** Shows default assets or "No assets" with upload option
+- **Actual:** Shows "No assets yet" and "Select an entity to edit its properties" but no way to add assets
+- **Impact:** MEDIUM - Can't add sprites/tiles to scenes
 
-### 6. **Browser Tool Flakiness** - Throughout session
-   - **Steps to reproduce:** Multiple click/type operations on various refs
-   - **Expected:** Actions should execute reliably
-   - **Actual:** Frequent "Validation failed" errors, timeout errors, ref conflicts (20 elements matched)
-   - **Impact:** Medium - May be my tool issue, not app issue, but worth investigating if refs are unstable
+### 6. **AI Service Reports Offline During Generation**
+- **Steps to reproduce:** Generate code with AI Command
+- **Expected:** Real AI (glm-4.5-flash) processes request
+- **Actual:** Warning "⚠️ AI service offline — using local code generation"
+- **Impact:** LOW - Still works but signals backend issue
 
 ---
 
 ## 😕 What Was Confusing
 
-1. **Tab Navigation vs Card Buttons** - Both tabs (Overview, Scene Editor, Code Editor) AND cards with same names exist on overview page. It's unclear which to click, and tabs don't seem to work while cards do.
-
-2. **No Indication of File Selection** - In Code Editor, when clicking files, there's no visual feedback showing which file is selected. The pane just says "No file selected" even after clicks.
-
-3. **Add Entity Dropdown UX** - The dropdown appears but clicking options doesn't give feedback. It's unclear if the action succeeded or failed.
-
-4. **No Quick Start or Tutorial** - After creating a project, there's no guided onboarding. Users are dumped into the overview with no "first steps" walkthrough.
-
-5. **Empty Assets Panel** - Scene Editor shows "No assets yet" but no guidance on how to add assets or what formats are supported.
-
-6. **Play Button Placement** - There are TWO Play buttons (header and card on overview) but both do the same thing and both fail with the same error. Redundant and broken.
+1. **Tab navigation inconsistency** - Scene Editor, AI Command, Assets, Export work as tabs, but Play and Code Editor 404
+2. **No clear onboarding flow** - After creating a project, what should I do first?
+3. **AI Command output unclear** - Code is generated but where does it go? How do I apply it?
+4. **Scene editor controls** - "Add Entity" button visible but unclear what it does (didn't test due to time)
+5. **Asset Studio vs Scene Editor assets** - Two different asset panels, unclear relationship
+6. **"Play" button in nav vs "Play" tab** - Multiple Play controls, unclear difference
 
 ---
 
 ## 💡 Feature Requests (Priority Order)
 
-### High Priority
+### **[High] Fix 404 Routes**
+- **Why:** Play and Code Editor tabs are completely broken. Users cannot test or edit games.
+- **Fix:** Implement missing routes `/project/:id/play` and `/project/:id/code-editor`
 
-1. **Fix "require is not defined" Error** - This is a complete blocker. Users cannot run their games. Need to investigate CommonJS/ESM module bundling issues in the game runtime.
+### **[High] Fix Asset Generation**
+- **Why:** Asset generation completes but doesn't add assets to the project. Core feature is broken.
+- **Fix:** Ensure generated assets are saved and displayed in the Assets panel
 
-2. **Enable File Viewing/Editing in Code Editor** - Cannot click files to open them. The core functionality of a code editor is broken. This must work for the platform to be usable.
+### **[High] AI Code Apply Flow**
+- **Why:** AI generates code but users can't apply it. Breaks the AI-to-game workflow.
+- **Fix:** Add "Apply" button or auto-apply with confirmation after AI code generation
 
-3. **Add Functional Entity Creation in Scene Editor** - The template system is great visually, but adding entities must actually work. Add visual feedback when an entity is created.
+### **[Medium] Add Scene Editor Entity Placement**
+- **Why:** Scene editor shows entity but no clear way to add more or place them.
+- **Fix:** Ensure "Add Entity" button opens entity creation dialog
 
-4. **Add Real-Time Error Display** - When "Play" fails, show actual error details (stack trace, file path, line number) instead of generic "Something went wrong". Developers need to know what's broken.
+### **[Medium] Add Play Mode Canvas**
+- **Why:** Play tab needs actual game canvas, not just 404.
+- **Fix:** Implement game runtime preview in Play tab
 
-### Medium Priority
+### **[Medium] Add Onboarding Guide**
+- **Why:** New users don't know where to start after creating a project.
+- **Fix:** Add step-by-step walkthrough: "Create entities → Add assets → Generate code with AI → Test in Play mode"
 
-5. **Guided Onboarding** - Add a "Quick Start" walkthrough after project creation that guides users through: (1) Run the default game, (2) Edit player code, (3) Add an enemy, (4) Play changes.
-
-6. **Asset Studio Integration** - The Asset Studio is marked "New" but needs actual functionality. Users need a way to add sprites, sounds, and other assets to use in their games.
-
-7. **Export Game Functionality** - The Export Game card is marked "New" but likely not implemented yet. This is critical for shipping games.
-
-8. **Fix Tab Navigation** - Make tabs actually navigate instead of requiring clicks on card buttons. Inconsistent UX.
-
-9. **Add Entity Selection & Properties Panel** - In Scene Editor, when entities exist, clicking them should show a properties panel to edit position, size, components, etc.
-
-10. **Add Keyboard Shortcuts** - Document and implement shortcuts (⌘K for AI is mentioned, what about Save? Build? Play? Undo? Redo?).
-
-### Low Priority
-
-11. **Add Scene Templates** - Beyond entity templates, provide full scene templates (e.g., "Level 1: Space Station", "Level 2: Asteroid Field").
-
-12. **Add Game Settings Panel** - Allow configuration of screen size, framerate, input mappings, audio settings, etc.
-
-13. **Add Project Templates from Community** - Allow sharing and importing of game templates from other users.
+### **[Low] Add Code Editor File Tree**
+- **Why:** When Code Editor is fixed, users need to see project files.
+- **Fix:** Show file tree with main.ts, entities/, scripts/, assets/
 
 ---
 
@@ -120,40 +122,66 @@ I attempted to create a top-down space shooter called "Galaxy Defender" - a game
 
 | Area | Rating (1-5) | Notes |
 |------|--------------|-------|
-| First Impression | 4 | Clean, modern UI. Promising concept. |
-| Onboarding | 2 | No guided walkthrough. Dumped into editor with no help. |
-| Project Creation | 4 | Smooth form, good options, nice templates. |
-| Editor Usability | 1 | Cannot view code, cannot add entities, cannot play game. |
-| Game Preview | 0 | Completely broken. "require is not defined" error. |
-| AI Features | 3 | AI Command loaded but couldn't test due to input issues. |
-| Overall | 2 | Great concept and UI, but core functionality broken. |
+| First Impression | 3 | Clean design, promises AI features |
+| Onboarding | 2 | No guidance after project creation |
+| Project Creation | 4 | Good templates, clear form |
+| Editor Usability | 2 | Scene editor works but limited; others 404 |
+| Game Preview | 1 | Tab returns 404 - completely broken |
+| AI Features | 3 | Generates code/assets but integration unclear |
+| Overall | 2 | Foundation looks good, critical flows broken |
 
 ---
 
 ## 📸 Screenshots
 
-1. **Dashboard with Project List** - Clean overview showing existing games
-2. **Create New Project Form** - Good template and style selection
-3. **Project Overview - Galaxy Defender** - Created successfully with "Welcome" dialog
-4. **Scene Editor with Entity Templates** - Add Entity dropdown showing Player/Enemy/Coin/Wall
-5. **Code Editor File Explorer** - Scripts folder expanded with game.ts and player.ts
-6. **AI Command Interface** - Connected to glm-4.5-flash with suggestions
-7. **CRITICAL: Play Game Error** - "require is not defined" blocking issue
-8. **Multiple Attempts to Click Files** - No files opening, "No file selected" persists
+### Screenshot 1: Dashboard
+Shows clean landing page with "Build Games with AI" heading, project list, and quick actions.
+
+### Screenshot 2: Create Project Form
+Shows project name field, template selection (Platformer selected), genre/art style choices.
+
+### Screenshot 3: Project Overview
+Shows Space Runner project with tabs: Overview, Scene Editor, Code Editor, AI Command, Assets, Play, Export.
+
+### Screenshot 4: Scene Editor
+Shows canvas with grid, player entity, entity list panel (1 entity), assets panel (empty).
+
+### Screenshot 5: AI Command (Generating)
+Shows "Analyzing your request... Processing... Generating response..."
+
+### Screenshot 6: AI Command (Done)
+Shows generated TypeScript code for collectible system, "⚠️ AI service offline" warning.
+
+### Screenshot 7: Play Tab (404)
+Shows "404 Page Not Found" - critical blocking issue.
+
+### Screenshot 8: Export Tab
+Shows export options with "Include Assets" checked, "Minify Code" and "Compress Output" disabled ("Coming Soon").
+
+### Screenshot 9: Code Editor Tab (404)
+Shows "404 Page Not Found" - second critical blocking issue.
+
+### Screenshot 10: Asset Studio (Before Generation)
+Shows AI suggestions, type/style/prompt controls, "No assets found".
+
+### Screenshot 11: Asset Studio (After Generation)
+Shows "100% - Done" but still "No assets found" - generation failed to add asset.
 
 ---
 
 ## Summary
 
-ClawGame has excellent UI/UX design and a promising concept. The dashboard, project creation, and overall visual design are polished and intuitive. However, the core development workflow is broken:
+ClawGame has a solid foundation with:
+- ✅ Good UI design and clean interface
+- ✅ Working project creation and templates
+- ✅ Scene editor with entity management
+- ✅ AI code generation (via templates when service offline)
+- ✅ Asset studio UI with controls
 
-- **Cannot play games** (module bundling error)
-- **Cannot view/edit code** (file selection broken)
-- **Cannot add entities** (creation non-functional)
+But critical blocking issues prevent actual game development:
+- ❌ **Play tab 404** - Cannot test/play games
+- ❌ **Code Editor 404** - Cannot edit code
+- ❌ **Asset generation broken** - Cannot add generated assets
+- ❌ **No clear AI-to-game workflow** - Generated code not applicable
 
-These are fundamental blocking issues that prevent any actual game development. The platform needs immediate work on:
-1. Game runtime/preview system
-2. Code editor file handling
-3. Scene editor entity creation
-
-Until these are fixed, ClawGame is a beautiful UI shell with no working engine underneath.
+**Recommendation:** Fix the 404 routes and asset generation before adding new features. These are showstoppers that make the platform unusable for game development.
