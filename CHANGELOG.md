@@ -5,6 +5,15 @@ All notable changes to ClawGame will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.5] - 2026-04-09
+
+#### Fixed
+- **AI generates wrong game type** — AI service now includes project metadata (name, genre, artStyle, description) in prompts via `getProjectContext()` helper
+- **Game preview canvas is empty** — Added `DEFAULT_SCENE` fallback with player, enemy, and collectible entities when projectScene is null/empty
+- **Code editor doesn't show file contents** — FileWorkspace component now uses separate `loading` state for initial file load (was conflated with `saving` state)
+- FileWorkspace properly handles `onLoad` prop for CodeEditor content initialization
+- CodeEditor displays file content correctly on selection
+
 ## [0.13.4] - 2026-04-09
 
 #### Added
@@ -216,149 +225,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.9.0] - 2026-04-08
 
 [565 more lines in file. Use offset=101 to continue.]
-### [0.12.2] - 2026-04-08
-
-#### Fixed
-- Asset Studio crash ("prev is not iterable"): unwrap getGenerations API response to properly handle `{ generations: [] }` format
-- Game Preview showing wrong game name: display actual project name instead of hardcoded "Eclipse of Runes"
-- Generic start screen description instead of RPG-specific tagline
-
-#### Changed
-- Bumped AI service timeout from 120s to 180s for longer code generation tasks
-
-#### Added
-- Sidebar section dividers: "Platform" and "Project" labels separate navigation groups
-- ARIA accessibility: role="tablist"/"tab" on project hub tabs, aria-selected state
-- aria-live="polite" on AI thinking indicator for screen reader announcements
-- sidebar-section-title CSS styling with uppercase label, muted color, border separator
-
-### 0.12.3 - 2026-04-08
-
-#### Fixed
-- **CRITICAL: Scene Editor Save now persists entities** — Map→Array serialization (was saving `{}`)
-- **CRITICAL: Add Entity button now works** — shows template picker dropdown with Player/Enemy/Coin/Wall
-- **CRITICAL: Game Preview renders entities** — handles array+object formats, infers type from components
-- **CRITICAL: WelcomeModal shows only once per project** — localStorage tracked per project ID
-- Entity duplicate names are readable (e.g., `player-1-copy` instead of `entity-1775666322645`)
-- Save shows toast feedback with entity count on success, error message on failure
-- RenderSystem draws colored rectangles as fallback when no sprite image is loaded
-- Sprite type: `image` is now optional, added `color` field for rendering without assets
-
-#### Changed
-- Template picker dropdown replaces mode-toggle for Add Entity button
-- Entity type inference: uses components (playerInput, ai, collision.type) to classify entities
-- Type-based colors: player=blue, enemy=red, collectible=amber, obstacle=gray, npc=green
-
-### 0.12.4 - 2026-04-08
-
-#### Added
-- Scene Editor keyboard shortcuts: Delete, Ctrl+D (duplicate), Ctrl+S (save), V (select), G (move), Escape (deselect)
-- AI Command fallback notice: users see "AI offline — local code generation" banner when external API is unreachable
-- AIFAB (floating AI assistant) now connects to real AI API instead of showing "coming soon"
-- AIFAB shows live connection status (🟢 Live / 🔴 Offline) with periodic health checks
-- AI health badge on AIFAB panel header
-- Extracted hooks: useRPGState (RPG manager reactive state), useGameLoop (game loop engine)
-- Extracted components: GameHUD, GameOverlays (start/pause/gameover/victory screens)
-- Game loop render helpers: renderEntity, renderProjectile, renderParticle
-
-#### Changed
-- AI service: 30s timeout (was 180s), AbortController, 2 retries with exponential backoff
-- AI service: circuit breaker (5 failures → 60s cooldown, half-open recovery)
-- AI service: streaming SSE support for real-time AI responses
-- AI service: local fallback codegen for 8 game system types (player, enemy, collectible, etc.)
-- Asset image generation: unified with same AI API, SVG placeholder fallback
-- API client: 90s timeout for AI commands, 60s default for other endpoints
-- AI routes: SSE streaming endpoint for real-time command responses
-- AI Command response includes `fromFallback` flag for UI notification
-
-#### Fixed
-- .gitignore: properly excludes apps/api/data/projects/ and exports/ (was leaking user data)
-- Removed tracked project data from git history
-- AI image generation test rewritten to match new service API
-- AIFAB no longer shows contradictory "coming soon" when AI Command shows "Real AI Connected"
-- User-facing error messages for AI timeout and failures in AIFAB
-
-### v0.12.5 - 2026-04-08
-
-#### Added
-- RPGPanels component: inventory, quests, spell crafting, save/load, dialogue UI (315 lines extracted)
-- useSceneLoader hook: scene loading, validation, entity type inference, legacy format handling
-- Vitest test infrastructure for web package (jsdom + React Testing Library)
-- 21 regression tests covering: Map→Array serialization, entity type inference, duplicate naming, AI circuit breaker, local codegen templates, scene parsing
-- Test script in web package.json (`pnpm test` / `pnpm test:watch`)
-
-#### Changed
-- GamePreviewPage: integrated extracted components (RPGPanels, useSceneLoader) — now an orchestrator
-- GamePreviewPage: 1391 → 985 lines (RPG panels + scene loading extracted to dedicated modules)
-- FileWorkspace: removed fragile setTimeout(100ms) hack after file creation — refreshes immediately
-
-#### Fixed
-- TypeScript compilation: fixed SpellRecipe pattern/grid interface mismatch
-- TypeScript compilation: fixed ElementType null handling in crafting grid
-
-## [0.13.0] - 2026-04-09
-
-#### Fixed
-- **Game Preview Runtime Errors** — `require is not defined` error fixed by replacing all CommonJS `require()` calls with ESM imports
-  - Added imports: InventoryManager, QuestManager, DialogueManager, SpellCraftingManager, SaveLoadManager
-  - Replaced `new (require(...).Class)()` patterns with direct ESM imports
-- **Game Loop Error Handling** — Wrapped game loop in try-catch to capture runtime errors gracefully
-  - Added `runtimeError` and `runtimeErrorStack` state variables
-  - Errors now display with expandable stack trace in error panel
-  - Added Restart Game / Back to Editor actions for recovery
-- **CSS Syntax Errors** — Fixed malformed CSS in game-preview.css
-  - Removed orphaned closing braces `}` from `.game-preview-container`
-  - Fixed broken `.game-preview-canvas-container` declaration
-  - Clean build warnings eliminated
-- **Project Creation API Validation** — Added server-side input validation for `POST /api/projects`
-  - Validate required fields: name, genre, artStyle
-  - Check string lengths (name ≤ 100, description ≤ 500)
-  - Validate genre against allowed values: platformer, rpg, action, puzzle, adventure, simulation, strategy, other
-  - Validate artStyle against allowed values: pixel, vector, 3d, mixed, other
-  - Returns 400 with descriptive error message for invalid input
-  - API test now passes for validation requirement
-
-#### Changed
-- **Git Hygiene** — Updated .gitignore to exclude temporary and generated files
-  - Added patterns: *.orig, *.patch, *.bak, *~ (backup files)
-  - Exclude .openclaw/, .openclaw.json (OpenClaw config)
-  - Exclude data/projects/*/ (actual project data, keep .gitkeep)
-
-#### Security
-- No changes
-
-#### Known Issues
-- None new (existing issues tracked in separate feedback docs)
-
-### v0.13.1 - 2026-04-09
-
-#### Added
-- Route aliases for /project/:id/play (redirects to /preview)
-- Route aliases for /project/:id/code-editor (redirects to /editor)
-
-#### Changed
-- Asset generation now properly reports created assets to frontend
-
-#### Fixed
-- Play tab returns 404 — Added redirect route from /play to /preview
-- Code Editor tab returns 404 — Added redirect route from /code-editor to /editor
-- Asset generation fails silently — Implemented pollAndCreateAssets to return created asset IDs
-- @gamedev critical blocking issues #1, #2, #3 all resolved
-
-
-### [0.13.2] - 2026-04-09
-
-#### Added
-- "Apply to Project" button on each AI Command proposed change
-- "Apply All" button for responses with multiple file changes
-- Code preview (up to 500 lines) in each change item
-- Visual status badges: Applied (green), Applying (spinner), No Content (warning)
-- CSS classes for cancel/retry buttons (replaced inline styles)
-
-#### Changed
-- AI Command change items now show line count and code preview
-- Applied changes tracked per-session to prevent duplicate writes
-
-#### Fixed
-- AI-generated code can now be applied to project files (was #1 blocker from @gamedev)
-- Inline styles in AICommandPage moved to CSS classes (design system consistency)
