@@ -4,11 +4,24 @@
 
 **Started:** 2026-04-08
 **Last Updated:** 2026-04-09
-**Status:** 🚧 Partial Critical Fixes - v0.13.0 (2 of 5 blockers fixed)
+**Status:** ✅ Critical Fixes Complete - v0.13.1 (all 3 blocking issues resolved)
 
 ---
 
 ## Release History
+
+### v0.13.1 — Route Aliases + Asset Generation Fix (2026-04-09)
+**What's Fixed (all 3 @gamedev critical blockers from 2026-04-09):**
+- ✅ Play tab returns 404 — Added redirect route /project/:id/play → /preview
+- ✅ Code Editor tab returns 404 — Added redirect route /project/:id/code-editor → /editor
+- ✅ Asset generation fails silently — Implemented pollAndCreateAssets to return created asset IDs
+
+**Also Fixed:**
+- Assets now properly appear in AssetGrid after generation completes
+- Frontend polling now receives created asset IDs from backend
+- Recently created assets tracked to avoid duplicate reporting
+
+**Status:** ✅ RELEASED
 
 ### v0.13.0 — Critical Fixes + Error Details Display (2026-04-09)
 **What's Fixed (2 of 5 @gamedev blocking issues):**
@@ -169,7 +182,7 @@
 
 ---
 
-## Phase 4: RPG System Foundation 🚧 IN PROGRESS - v0.12.0+
+## Phase 4: RPG System Foundation ✅ COMPLETE - v0.12.0+
 
 | Task | Status | Notes |
 |------|--------|-------|
@@ -202,12 +215,15 @@
 - AI Command confusing Preview Mode — Fixed in v0.11.7
 - Asset Studio "prev is not iterable" crash — Fixed in v0.11.8
 - 23 missing CSS classes in game preview — Fixed in v0.11.8
+- **Play tab returns 404** — Fixed in v0.13.1 (redirect route added)
+- **Code Editor tab returns 404** — Fixed in v0.13.1 (redirect route added)
+- **Asset generation fails silently** — Fixed in v0.13.1 (pollAndCreateAssets implemented)
 
 ### Remaining 📋
 - **[HIGH] AI Command timeout** — API hangs indefinitely, needs streaming/retry/fallback (GameDev critical)
 - **[HIGH] Export functionality** — Verify download flow works end-to-end (GameDev critical)
 - **[MEDIUM] GamePreviewPage extraction** — Still 900+ lines, needs modularization (architectural debt)
-- **[MEDIUM] Asset Studio generation fails** — Progress reaches ~10% then "Failed" with no error (GameDev moderate)
+- **[MEDIUM] Scene Editor asset panel** — Empty with no way to add assets from dropdown
 - **[MEDIUM] Game Preview shows identical text for all templates** — Controls text not template-specific
 
 ---
@@ -258,42 +274,4 @@ Should RPG UI integration be completed before addressing AI timeout? The AI time
 ---
 
 **Sprint Owner:** @dev
-**Last Updated:** 2026-04-08 17:30 UTC (v0.12.0 RPG Foundation release)
-
-### v0.12.4 — AI Reliability + UX (2026-04-08)
-**What's New:**
-- AI service robustness: 30s timeout, AbortController, retry (2x), circuit breaker, streaming SSE
-- AI fallback codegen: 8 game system types (player, enemy, collectible, platform, jump, projectile, health, scene)
-- Scene Editor keyboard shortcuts: Delete, Ctrl+D (duplicate), Ctrl+S (save), V (select), G (move), Escape
-- AIFAB: connects to real AI API, live/offline status indicator, no more "coming soon"
-- AI Command: shows "offline mode" notice when using local fallback
-- Component extraction: useRPGState hook, useGameLoop hook, GameHUD, GameOverlays
-- .gitignore fixed: no more project data leaking to git
-
-**Addressed from feedback:**
-- PM #1 (AI Command): ✅ Robust retry/fallback/circuit-breaker system
-- PM #2 (Asset Studio): ✅ Unified with AI API, SVG fallback
-- PM #3 (Code Editor): ✅ Already had CodeMirror 6 (PM review was based on stale info)
-- PM .gitignore: ✅ Fixed pattern, removed tracked data
-- GameDev #1 (AI timeout): ✅ 30s timeout + retry + fallback
-- GameDev #2 (error messages): ✅ Toast notifications + fallback notice
-- GameDev #3 (contradictory AI): ✅ AIFAB now uses real AI
-- UI/UX #3 (keyboard shortcuts): ✅ Delete, Ctrl+D, Ctrl+S, V, G, Esc
-
-**Status:** ✅ RELEASED
-
-### v0.12.5 — Decomposition + Test Infrastructure (2026-04-08)
-**What's Done:**
-- GamePreviewPage decomposition: RPGPanels component + useSceneLoader hook now wired in
-- GamePreviewPage: 1391 → 985 lines with real component integration (not dead code)
-- Vitest test infrastructure for web package (21 regression tests)
-- Regression tests for: Map→Array serialization, entity type inference, duplicate naming, AI circuit breaker
-- Scene parsing unit tests: array format, legacy object format, empty scenes, missing fields
-- FileWorkspace setTimeout hack removed
-
-**Addressed from PM feedback:**
-- PM Critical #1 (decomposition): ✅ Components now imported and used in GamePreviewPage
-- PM Critical #2 (tests): ✅ Vitest + 21 regression tests (up from 2 test files total)
-- PM Quality #1 (setTimeout hack): ✅ Replaced with immediate refresh
-
-**Status:** ✅ RELEASED
+**Last Updated:** 2026-04-09 13:15 UTC (v0.13.1 route aliases + asset generation fix)
