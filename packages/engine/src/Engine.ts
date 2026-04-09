@@ -3,6 +3,7 @@
  */
 
 import { Entity, Scene, InputState, RendererConfig } from './types';
+import { EventBus } from './EventBus';
 import { InputSystem } from './systems/InputSystem';
 import { MovementSystem } from './systems/MovementSystem';
 import { AISystem } from './systems/AISystem';
@@ -16,6 +17,9 @@ export class Engine {
   private isRunning = false;
   private lastTime = 0;
   private config: RendererConfig;
+
+  /** Shared event bus for all engine communication */
+  readonly events: EventBus;
 
   // Systems
   private inputSystem: InputSystem;
@@ -35,6 +39,9 @@ export class Engine {
     this.ctx = ctx;
     this.config = config;
 
+    // Initialize event bus
+    this.events = new EventBus();
+
     // Initialize systems
     this.inputSystem = new InputSystem();
     this.movementSystem = new MovementSystem();
@@ -46,7 +53,12 @@ export class Engine {
    * Load a scene
    */
   loadScene(scene: Scene): void {
+    const prevName = this.scene?.name;
     this.scene = scene;
+    if (prevName) {
+      this.events.emit('scene:unload', { sceneName: prevName });
+    }
+    this.events.emit('scene:load', { sceneName: scene.name });
   }
 
   /**
@@ -108,6 +120,7 @@ export class Engine {
       this.isRunning = true;
       this.lastTime = performance.now();
       this.setupEventListeners();
+      this.events.emit('engine:start');
       this.gameLoop();
     } catch (error) {
       this.handleError(error as Error);
@@ -120,6 +133,7 @@ export class Engine {
   stop(): void {
     this.isRunning = false;
     this.cleanupEventListeners();
+    this.events.emit('engine:stop');
   }
 
   /**
@@ -135,6 +149,7 @@ export class Engine {
   destroy(): void {
     this.stop();
     this.renderSystem.destroy();
+    this.events.clear();
     this.scene = null;
   }
 
@@ -202,6 +217,7 @@ export class Engine {
    */
   private handleError(error: Error): void {
     console.error('Engine error:', error);
+    this.events.emit('engine:error', { error });
     this.errorCallback?.(error);
   }
 }

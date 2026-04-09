@@ -18,11 +18,11 @@ M11 shipped 3 core deliverables (SFX generation, multi-model image gen, quick sp
 
 | Deliverable | Status | Notes |
 |-------------|--------|-------|
-| Canonical entity/component schema | 📋 TODO | Shared by engine, scene editor, preview, export, AI |
+| Canonical entity/component schema | ✅ Done | Serializable↔Runtime types with conversion utils (commit 0e762d9) |
 | Runtime systems (physics, collisions, triggers, etc.) | 📋 TODO | Core gameplay systems |
 | Data-driven scene loading | 📋 TODO | No fork between editor and preview |
 | Asset-aware sprite/animation rendering | 📋 TODO | Engine-native sprite rendering |
-| Engine events bus | 📋 TODO | Gameplay systems event communication |
+| Engine events bus | ✅ Done | Typed EventBus with on/once/onAny/history/mute, integrated into Engine class (20 tests) |
 | Export runtime = preview runtime | 📋 TODO | Same simulation rules |
 
 ### Quality Gates
@@ -30,7 +30,7 @@ M11 shipped 3 core deliverables (SFX generation, multi-model image gen, quick sp
 | Gate | Status |
 |------|--------|
 | `pnpm build` | ✅ Pass |
-| `pnpm test` | ✅ Pass (166 tests) |
+| `pnpm test` | ✅ Pass (186 tests: 79 web + 20 engine + 87 other) |
 | `pnpm typecheck` | ✅ Pass |
 
 ---

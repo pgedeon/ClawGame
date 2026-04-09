@@ -4,6 +4,7 @@
  * Modular game engine with:
  * - Canonical entity/component schema
  * - Serializable ↔ Runtime conversion
+ * - Typed event bus for gameplay communication
  * - Delta-time game loop
  * - Keyboard input (arrows + WASD)
  * - Movement system
@@ -16,6 +17,10 @@ export * from './types';
 
 // Re-export engine class
 export { Engine } from './Engine';
+
+// Re-export event bus
+export { EventBus } from './EventBus';
+export type { EngineEvents, Subscription } from './EventBus';
 
 // Re-export systems
 export { InputSystem } from './systems/InputSystem';
