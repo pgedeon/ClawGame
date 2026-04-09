@@ -47,6 +47,9 @@ export interface AssetMetadata {
 
 export type AssetType = 'sprite' | 'tileset' | 'texture' | 'icon' | 'audio' | 'background';
 
+// Track recently created assets to avoid duplicates in polling
+const recentlyCreated = new Set<string>();
+
 export class AssetService {
   private cache: Map<string, AssetMetadata> = new Map();
   private logger: FastifyLoggerInstance;
@@ -201,6 +204,9 @@ export class AssetService {
 
     this.cache.set(assetId, metadata);
 
+    // Mark as recently created for polling
+    recentlyCreated.add(assetId);
+
     this.logger.info({
       projectId,
       assetId,
@@ -268,6 +274,7 @@ export class AssetService {
     }
 
     this.cache.delete(assetId);
+    recentlyCreated.delete(assetId);
     return true;
   }
 
@@ -308,10 +315,26 @@ export class AssetService {
   }
 
   /**
-   * Poll and create assets — now a no-op since generation is synchronous
+   * Poll and create assets — returns recently created asset IDs
+   * Since generation is synchronous, assets are created immediately.
+   * This method just reports what was created recently.
    */
   async pollAndCreateAssets(projectId: string): Promise<{ created: string[]; errors: string[] }> {
-    return { created: [], errors: [] };
+    const created: string[] = [];
+    const errors: string[] = [];
+
+    // Return all recently created assets for this project
+    const assets = await this.listAssets(projectId);
+
+    for (const asset of assets) {
+      // If this asset was recently created and hasn't been reported yet
+      if (recentlyCreated.has(asset.id)) {
+        created.push(asset.id);
+        recentlyCreated.delete(asset.id); // Mark as reported
+      }
+    }
+
+    return { created, errors };
   }
 
   async getAssetStats(projectId: string): Promise<{

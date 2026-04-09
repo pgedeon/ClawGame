@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppLayout } from './components/AppLayout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { OnboardingTour } from './components/OnboardingTour';
@@ -59,12 +59,16 @@ function App() {
             <Route path="settings" element={<SettingsPage />} />
             {/* Project routes — nested under ProjectPage so Outlet works */}
             <Route path="project/:projectId" element={<LazyProjectPage />}>
+              {/* Standard routes */}
               <Route path="editor" element={<Suspense fallback={<PageLoader />}><EditorPage /></Suspense>} />
               <Route path="scene-editor" element={<Suspense fallback={<PageLoader />}><SceneEditorPage /></Suspense>} />
               <Route path="ai" element={<Suspense fallback={<PageLoader />}><AICommandPage /></Suspense>} />
               <Route path="assets" element={<Suspense fallback={<PageLoader />}><AssetStudioPage /></Suspense>} />
               <Route path="preview" element={<Suspense fallback={<PageLoader />}><GamePreviewPage /></Suspense>} />
               <Route path="export" element={<Suspense fallback={<PageLoader />}><ExportPage /></Suspense>} />
+              {/* Alias routes for better UX (redirect to canonical paths) */}
+              <Route path="play" element={<Navigate to="preview" replace />} />
+              <Route path="code-editor" element={<Navigate to="editor" replace />} />
             </Route>
             <Route path="*" element={<NotFoundPage />} />
           </Route>
