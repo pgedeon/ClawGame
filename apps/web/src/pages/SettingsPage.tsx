@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Moon, Sun, Monitor, Keyboard, Cpu, Info, ChevronRight } from 'lucide-react';
+import { Moon, Sun, Monitor, Keyboard, Cpu, Info, ChevronRight, Server, Palette } from 'lucide-react';
 
 type Theme = 'dark' | 'light' | 'system';
 
@@ -38,6 +38,14 @@ export function SettingsPage() {
   const [autoSuggestions, setAutoSuggestions] = useState<boolean>(() => {
     return localStorage.getItem('clawgame-auto-suggestions') !== 'false';
   });
+  const [apiUrl, setApiUrl] = useState<string>(() => {
+    return localStorage.getItem('clawgame-api-url') || 'http://localhost:3000';
+  });
+  const [comfyuiUrl, setComfyuiUrl] = useState<string>(() => {
+    return localStorage.getItem('clawgame-comfyui-url') || 'http://localhost:8188';
+  });
+  const [healthVersion, setHealthVersion] = useState<string | null>(null);
+  const [apiStatus, setApiStatus] = useState<'unknown' | 'connected' | 'error'>('unknown');
 
   // Apply theme changes
   useEffect(() => {
@@ -54,6 +62,33 @@ export function SettingsPage() {
   useEffect(() => {
     localStorage.setItem('clawgame-auto-suggestions', String(autoSuggestions));
   }, [autoSuggestions]);
+
+  // Persist API URL
+  useEffect(() => {
+    localStorage.setItem('clawgame-api-url', apiUrl);
+  }, [apiUrl]);
+
+  // Persist ComfyUI URL
+  useEffect(() => {
+    localStorage.setItem('clawgame-comfyui-url', comfyuiUrl);
+  }, [comfyuiUrl]);
+
+  // Fetch health endpoint for version info
+  useEffect(() => {
+    const baseUrl = apiUrl.replace(/\/+$/, '');
+    fetch(`${baseUrl}/health`)
+      .then(res => {
+        if (!res.ok) throw new Error('not ok');
+        return res.json();
+      })
+      .then(data => {
+        setHealthVersion(data.version || data.app?.version || null);
+        setApiStatus('connected');
+      })
+      .catch(() => {
+        setApiStatus('error');
+      });
+  }, [apiUrl]);
 
   const applyTheme = (t: Theme) => {
     const root = document.documentElement;
@@ -86,10 +121,50 @@ export function SettingsPage() {
       </header>
 
       <div className="settings-content">
+        {/* Connection Settings */}
+        <section className="settings-section">
+          <div className="section-header">
+            <Server size={20} />
+            <h2>Connections</h2>
+          </div>
+          <div className="settings-card">
+            <div className="setting-row">
+              <div className="setting-info">
+                <span className="setting-label">API Server URL</span>
+                <span className="setting-desc">
+                  ClawGame backend API endpoint
+                  {apiStatus === 'connected' && <span style={{ color: 'var(--success, #10b981)', marginLeft: 8 }}>● Connected</span>}
+                  {apiStatus === 'error' && <span style={{ color: 'var(--error, #ef4444)', marginLeft: 8 }}>● Unreachable</span>}
+                </span>
+              </div>
+              <input
+                className="setting-input"
+                type="url"
+                value={apiUrl}
+                onChange={(e) => setApiUrl(e.target.value)}
+                placeholder="http://localhost:3000"
+              />
+            </div>
+            <div className="setting-row">
+              <div className="setting-info">
+                <span className="setting-label">ComfyUI Server URL</span>
+                <span className="setting-desc">ComfyUI instance for AI asset generation</span>
+              </div>
+              <input
+                className="setting-input"
+                type="url"
+                value={comfyuiUrl}
+                onChange={(e) => setComfyuiUrl(e.target.value)}
+                placeholder="http://localhost:8188"
+              />
+            </div>
+          </div>
+        </section>
+
         {/* Appearance */}
         <section className="settings-section">
           <div className="section-header">
-            <Sun size={20} />
+            <Palette size={20} />
             <h2>Appearance</h2>
           </div>
           <div className="settings-card">
@@ -190,7 +265,7 @@ export function SettingsPage() {
           <div className="settings-card about-card">
             <div className="about-row">
               <span className="about-label">ClawGame</span>
-              <span className="about-value">v0.12.0</span>
+              <span className="about-value">{healthVersion || 'v0.12.0'}</span>
             </div>
             <div className="about-row">
               <span className="about-label">Codename</span>
@@ -199,6 +274,12 @@ export function SettingsPage() {
             <div className="about-row">
               <span className="about-label">Engine</span>
               <span className="about-value">Custom 2D Web Engine</span>
+            </div>
+            <div className="about-row">
+              <span className="about-label">API Status</span>
+              <span className="about-value">
+                {apiStatus === 'connected' ? '🟢 Connected' : apiStatus === 'error' ? '🔴 Unreachable' : '⚪ Checking…'}
+              </span>
             </div>
             <div className="about-links">
               <a href="https://github.com/pgedeon/ClawGame" target="_blank" rel="noopener noreferrer" className="about-link">

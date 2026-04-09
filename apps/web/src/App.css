@@ -2491,6 +2491,23 @@ kbd:hover {
 }
 
 /* Toggle switch */
+
+/* Text input */
+.settings-page .setting-input {
+  padding: 8px 12px;
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  min-width: 220px;
+  font-family: var(--font-mono, monospace);
+}
+
+.settings-page .setting-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
 .settings-page .toggle-switch {
   position: relative;
   display: inline-block;
