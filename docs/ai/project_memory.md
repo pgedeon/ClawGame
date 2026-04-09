@@ -1,10 +1,10 @@
 # ClawGame Project Memory
 
 ## Project Overview
-- **Status:** M12 Unified Runtime in progress
+- **Status:** M12 Unified Runtime complete
 - **Current Version:** v0.18.0 (canonical-schema)
-- **Current Stage:** M12 Unified Runtime in progress
-- **Next Phase:** M12 — unified runtime across preview, export, editor, AI
+- **Current Stage:** M12 Unified Runtime complete
+- **Next Phase:** M13 — Gameplay Authoring Layer
 - **Timeline:** Scene Editor AI provides contextual co-pilot experience during game editing
 
 ## Key Documents
