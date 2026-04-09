@@ -576,7 +576,7 @@ export function useGamePreview(
         const proj = projectiles[i];
         proj.x += proj.vx * (deltaTime / 1000);
         proj.y += proj.vy * (deltaTime / 1000);
-        if (proj.x < -500 || proj.x > 1500 || proj.y < -500 || proj.y > 1500) {
+        if (proj.x < 0 || proj.x > canvas.width || proj.y < 0 || proj.y > canvas.height) {
           projectiles.splice(i, 1); continue;
         }
         const enemies = Array.from(entities.values()).filter((e: any) => e.type === 'enemy');
@@ -695,28 +695,11 @@ export function useGamePreview(
 
     /* ─── RENDER ─── */
     const render = () => {
-      // Camera: center viewport on player entity
-      let camX = 0, camY = 0;
-      let playerEnt: any = null;
-      entities.forEach((e: any) => { if (e.type === 'player') playerEnt = e; });
-      if (playerEnt) {
-        camX = canvas.width / 2 - playerEnt.transform.x;
-        camY = canvas.height / 2 - playerEnt.transform.y;
-      }
-
       ctx.fillStyle = '#0f172a';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // World-space rendering with camera offset
-      ctx.save();
-      ctx.translate(camX, camY);
-      // Extended grid
       ctx.strokeStyle = 'rgba(71, 85, 105, 0.15)'; ctx.lineWidth = 1;
-      for (let x = -500; x < 1500; x += 32) { ctx.beginPath(); ctx.moveTo(x, -500); ctx.lineTo(x, 1500); ctx.stroke(); }
-      for (let y = -500; y < 1500; y += 32) { ctx.beginPath(); ctx.moveTo(-500, y); ctx.lineTo(1500, y); ctx.stroke(); }
-      // Ground plane
-      ctx.fillStyle = 'rgba(30, 41, 59, 0.5)';
-      ctx.fillRect(-500, -500, 2000, 2000);
+      for (let x = 0; x < canvas.width; x += 32) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke(); }
+      for (let y = 0; y < canvas.height; y += 32) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
 
       const renderLayer = (filterFn: (e: any) => boolean, renderFn: (e: any) => void) => {
         entities.forEach((e: any) => { if (filterFn(e)) renderFn(e); });

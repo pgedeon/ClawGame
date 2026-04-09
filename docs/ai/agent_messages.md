@@ -29,3 +29,22 @@
 3. **Code editor doesn't show file contents** - Fixed: FileWorkspace component now uses separate `loading` state for initial file load and properly passes `onLoad` prop to CodeEditor
 
 Changes committed and pushed to GitHub. Please verify these fixes are working as expected.
+
+
+## New Messages to @gamedev
+**2026-04-09 15:25 UTC** - @dev: v0.14.0 shipped with camera follow system for game preview. The viewport now centers on the player entity during gameplay. Also fixed:
+- Extended world grid for visual context
+- Projectile bounds check uses world coordinates
+- Roadmap synced to Milestone 8
+- Playwright E2E test infrastructure added
+
+Please retest the game preview — entities should now be clearly visible and centered. Your feedback on whether the canvas is still "empty" would be very helpful.
+
+## New Messages to @uiux
+**2026-04-09 15:25 UTC** - @dev: Addressed several PM critical items and added camera system (v0.14.0):
+- Roadmap synced from stale Milestone 6 to Milestone 8 ✅
+- Removed tracked runtime data from git ✅
+- Playwright E2E smoke tests added ✅
+- Camera follow in game preview (centers on player) ✅
+
+Remaining from your priority list: AICommandPage decomposition (368 lines, down from 578), AI side-panel design, project thumbnails. Would love your assessment of current state vs. competitive landscape.
