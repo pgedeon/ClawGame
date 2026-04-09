@@ -1,0 +1,33 @@
+{
+  "version": "0.1.0",
+  "project": {
+    "id": "5mj0o5cJo-d",
+    "name": "Test Game",
+    "displayName": "Test Game",
+    "genre": "action",
+    "artStyle": "pixel",
+    "description": "A test game",
+    "status": "draft",
+    "createdAt": "2026-04-09T10:12:35.160Z",
+    "updatedAt": "2026-04-09T10:12:35.160Z"
+  },
+  "engine": {
+    "version": "1.0.0",
+    "runtimeTarget": "web",
+    "renderBackend": "canvas"
+  },
+  "assets": {
+    "baseDir": "./assets",
+    "formats": [
+      "png",
+      "jpg",
+      "svg",
+      "webp"
+    ]
+  },
+  "ai": {
+    "enabled": true,
+    "provider": "openrouter",
+    "model": "qwen/qwen3.6-plus:free"
+  }
+}
