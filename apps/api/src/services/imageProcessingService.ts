@@ -327,47 +327,61 @@ export async function batchProcess(
   return results;
 }
 
-// ── Helpers ──
-
 function detectGrid(width: number, height: number): SpriteAnalysis['detectedGrid'] | undefined {
-  const commonSizes = [16, 32, 48, 64, 96, 128, 256];
+  const commonSizes = [256, 128, 96, 64, 48, 32, 16];
 
+  // Score grid candidates: prefer balanced multi-frame grids over single-row/column
+  let best: { cols: number; rows: number; frameWidth: number; frameHeight: number; score: number } | null = null;
+
+  // Phase 1: Square frames — prefer grids where both cols > 1 AND rows > 1
   for (const size of commonSizes) {
     if (width % size === 0 && height % size === 0) {
       const cols = width / size;
       const rows = height / size;
-      // Likely a sprite sheet if multiple frames in at least one direction
-      if (cols >= 1 && rows >= 1 && (cols > 1 || rows > 1)) {
-        return {
-          cols,
-          rows,
-          frameWidth: size,
-          frameHeight: size,
-        };
+      if (cols >= 2 && rows >= 2) {
+        const score = size;
+        if (!best || score > best.score) {
+          best = { cols, rows, frameWidth: size, frameHeight: size, score };
+        }
       }
     }
   }
 
-  // Try non-square: detect rows/cols independently
-  for (const fw of commonSizes) {
-    if (width % fw !== 0) continue;
-    for (const fh of commonSizes) {
-      if (height % fh !== 0) continue;
-      const cols = width / fw;
-      const rows = height / fh;
-      if (cols >= 1 && rows >= 1 && (cols > 1 || rows > 1)) {
-        return { cols, rows, frameWidth: fw, frameHeight: fh };
+  // Phase 2: Fall back to any square grid with >1 in one direction
+  if (!best) {
+    for (const size of commonSizes) {
+      if (width % size === 0 && height % size === 0) {
+        const cols = width / size;
+        const rows = height / size;
+        if ((cols > 1 || rows > 1) && cols >= 1 && rows >= 1) {
+          best = { cols, rows, frameWidth: size, frameHeight: size, score: 0 };
+          break;
+        }
       }
     }
   }
 
-  return undefined;
+  // Phase 3: Non-square frames
+  if (!best) {
+    for (const fw of commonSizes) {
+      if (width % fw !== 0) continue;
+      for (const fh of commonSizes) {
+        if (height % fh !== 0) continue;
+        const cols = width / fw;
+        const rows = height / fh;
+        if (cols >= 2 && rows >= 2) {
+          if (!best || (cols * rows) > best.score) {
+            best = { cols, rows, frameWidth: fw, frameHeight: fh, score: cols * rows };
+          }
+        }
+      }
+    }
+  }
+
+  if (!best) return undefined;
+  return { cols: best.cols, rows: best.rows, frameWidth: best.frameWidth, frameHeight: best.frameHeight };
 }
 
-function rgbToHex(r: { mean: number }, g: { mean: number }, b: { mean: number }): string {
-  const toHex = (v: number) => Math.round(v).toString(16).padStart(2, '0');
-  return `#${toHex(r.mean)}${toHex(g.mean)}${toHex(b.mean)}`;
-}
 
 async function getDominantColors(filePath: string, count: number): Promise<string[]> {
   try {

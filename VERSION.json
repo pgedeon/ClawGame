@@ -1,8 +1,8 @@
 {
-  "version": "0.16.0",
-  "codename": "prompt-recipes",
-  "milestone": 8,
-  "milestoneName": "Genre Expansion",
+  "version": "0.17.0",
+  "codename": "ai-command-validation",
+  "milestone": 10,
+  "milestoneName": "Asset Factory Core",
   "releaseDate": "2026-04-09",
-  "status": "in-progress"
+  "status": "validation"
 }

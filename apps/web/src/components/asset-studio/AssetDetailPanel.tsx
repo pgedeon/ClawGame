@@ -3,10 +3,12 @@
  * Right panel showing selected asset details, metadata, and actions.
  */
 
-import React from 'react';
-import { Trash2 } from 'lucide-react';
-import type { AssetMetadata } from '../../api/client';
+import React, { useState, useEffect } from 'react';
+import { Trash2, Link2 } from 'lucide-react';
+import { api, type AssetMetadata } from '../../api/client';
 import { ASSET_TYPE_ICONS, ASSET_TYPE_COLORS } from './types';
+import { useToast } from '../Toast';
+import { logger } from '../../utils/logger';
 
 interface AssetDetailPanelProps {
   asset: AssetMetadata | null;
@@ -15,11 +17,68 @@ interface AssetDetailPanelProps {
 }
 
 export const AssetDetailPanel: React.FC<AssetDetailPanelProps> = ({ asset, projectId, onDelete }) => {
+  const [sceneEntities, setSceneEntities] = useState<Array<{ id: string; name?: string; type: string }>>([]);
+  const [showBindModal, setShowBindModal] = useState(false);
+  const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
+  const [isBinding, setIsBinding] = useState(false);
+  const { showToast } = useToast();
+
   const getPreviewUrl = (): string => {
     if (!projectId || !asset) return '';
     const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000';
     return `${API_BASE}/api/projects/${projectId}/assets/${asset.id}/file`;
   };
+
+  // Load scene entities for binding
+  const loadSceneEntities = async () => {
+    if (!projectId) return;
+    try {
+      const sceneFile = await api.readFile(projectId, 'scenes/main-scene.json');
+      const scene = typeof sceneFile.content === 'string' ? JSON.parse(sceneFile.content) : sceneFile.content;
+      const entities = (scene.entities || []).map((e: any) => ({
+        id: e.id,
+        name: e.name || e.id,
+        type: e.type || 'unknown',
+      }));
+      setSceneEntities(entities);
+    } catch {
+      // No scene file — that's fine
+      setSceneEntities([]);
+    }
+  };
+
+  const handleBindToEntity = async () => {
+    if (!projectId || !asset || !selectedEntityId) return;
+    setIsBinding(true);
+    try {
+      // Read scene
+      const sceneFile = await api.readFile(projectId, 'scenes/main-scene.json');
+      const scene = typeof sceneFile.content === 'string' ? JSON.parse(sceneFile.content) : sceneFile.content;
+
+      // Find entity and add sprite binding
+      const entity = scene.entities.find((e: any) => e.id === selectedEntityId);
+      if (!entity) throw new Error('Entity not found');
+
+      if (!entity.components) entity.components = {};
+      entity.components.sprite = {
+        assetId: asset.id,
+        assetType: asset.type,
+        url: asset.url,
+      };
+
+      // Write back
+      await api.writeFile(projectId, 'scenes/main-scene.json', JSON.stringify(scene, null, 2));
+      showToast({ type: 'success', message: `Bound ${asset.name} to ${entity.name || entity.id}` });
+      setShowBindModal(false);
+      setSelectedEntityId(null);
+    } catch (err: any) {
+      showToast({ type: 'error', message: err.message || 'Failed to bind asset' });
+    } finally {
+      setIsBinding(false);
+    }
+  };
+
+  const canBind = asset && ['sprite', 'tileset', 'texture', 'icon', 'background'].includes(asset.type);
 
   if (!asset) {
     return (
@@ -28,89 +87,117 @@ export const AssetDetailPanel: React.FC<AssetDetailPanelProps> = ({ asset, proje
           <div className="no-selection-icon">🎨</div>
           <h3>No Asset Selected</h3>
           <p>Select an asset from the grid to view details</p>
-          <p className="hint">Or generate a new asset with AI</p>
         </div>
       </div>
     );
   }
 
+  const iconNode = ASSET_TYPE_ICONS[asset.type] || ASSET_TYPE_ICONS.sprite;
+  const color = ASSET_TYPE_COLORS[asset.type] || '#94a3b8';
+
   return (
     <div className="studio-details">
-      {/* Header */}
-      <div className="detail-header">
-        <div className="detail-title">
-          <div className="detail-icon" style={{ backgroundColor: ASSET_TYPE_COLORS[asset.type] }}>
-            {ASSET_TYPE_ICONS[asset.type]}
-          </div>
-          <div>
-            <h2>{asset.name}</h2>
-            <span className="detail-type">{asset.type}</span>
-            {asset.aiGeneration && <span className="ai-tag">AI Generated</span>}
-          </div>
-        </div>
-        <div className="detail-actions">
-          <button
-            onClick={() => onDelete(asset.id, asset.name)}
-            className="icon-button danger"
-            title="Delete asset"
-          >
-            <Trash2 size={18} />
+      {/* Preview */}
+      <div className="detail-preview">
+        <img src={getPreviewUrl()} alt={asset.name} />
+      </div>
+
+      {/* Basic Info */}
+      <div className="detail-section">
+        <div className="detail-header">
+          <span className="detail-type-badge" style={{ color, borderColor: color }}>
+            {iconNode}
+            {asset.type}
+          </span>
+          <button className="detail-delete" onClick={() => onDelete(asset.id, asset.name)} title="Delete">
+            <Trash2 size={14} />
           </button>
         </div>
+        <h2 className="detail-name">{asset.name}</h2>
       </div>
 
-      {/* Preview Image */}
-      <div className="detail-preview">
-        <img src={getPreviewUrl()} alt={asset.name} className="preview-image" />
-      </div>
-
-      {/* Details Grid */}
-      <div className="detail-section">
-        <h3>Details</h3>
-        <div className="detail-grid">
-          <div className="detail-item">
-            <label>Type</label>
-            <span>{asset.type}</span>
-          </div>
-          <div className="detail-item">
-            <label>Size</label>
-            <span>{(asset.size / 1024).toFixed(2)} KB</span>
-          </div>
-          <div className="detail-item">
-            <label>Format</label>
-            <span>{asset.mimeType.split('/')[1].toUpperCase()}</span>
-          </div>
-          <div className="detail-item">
-            <label>Status</label>
-            <span className={`status-badge status-${asset.status}`}>{asset.status}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Original Prompt */}
-      {asset.prompt && (
+      {/* Bind to Scene Entity */}
+      {canBind && (
         <div className="detail-section">
-          <h3>Original Prompt</h3>
-          <p className="prompt-text">{asset.prompt}</p>
+          <button
+            className="bind-entity-btn"
+            onClick={() => { loadSceneEntities(); setShowBindModal(true); }}
+          >
+            <Link2 size={14} />
+            Bind to Scene Entity
+          </button>
+
+          {showBindModal && (
+            <div className="bind-modal">
+              <h4>Select Entity</h4>
+              {sceneEntities.length === 0 ? (
+                <p className="bind-empty">No entities found in scene</p>
+              ) : (
+                <div className="bind-entity-list">
+                  {sceneEntities.map(entity => (
+                    <button
+                      key={entity.id}
+                      className={`bind-entity-item ${selectedEntityId === entity.id ? 'selected' : ''}`}
+                      onClick={() => setSelectedEntityId(entity.id)}
+                    >
+                      <span className="bind-entity-name">{entity.name || entity.id}</span>
+                      <span className="bind-entity-type">{entity.type}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="bind-actions">
+                <button className="bind-cancel" onClick={() => setShowBindModal(false)}>Cancel</button>
+                <button
+                  className="bind-confirm"
+                  onClick={handleBindToEntity}
+                  disabled={!selectedEntityId || isBinding}
+                >
+                  {isBinding ? 'Binding...' : 'Bind'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
+      {/* Metadata */}
+      <div className="detail-section">
+        <h3>Metadata</h3>
+        <div className="detail-meta-grid">
+          <div className="detail-item">
+            <label>Size</label>
+            <span>{(asset.size / 1024).toFixed(1)} KB</span>
+          </div>
+          <div className="detail-item">
+            <label>Format</label>
+            <span>{asset.mimeType}</span>
+          </div>
+          {asset.prompt && (
+            <div className="detail-item full-width">
+              <label>Prompt</label>
+              <span className="detail-prompt">{asset.prompt}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* AI Generation Details */}
-      {asset.aiGeneration && (
+      {(asset as any).aiGeneration && (
         <div className="detail-section">
           <h3>AI Generation Details</h3>
           <div className="ai-details-grid">
             <div className="detail-item">
               <label>Style</label>
-              <span>{asset.aiGeneration.style}</span>
+              <span>{(asset as any).aiGeneration.style}</span>
             </div>
             <div className="detail-item">
               <label>Duration</label>
-              <span>{asset.aiGeneration.duration}ms</span>
+              <span>{(asset as any).aiGeneration.duration}ms</span>
             </div>
             <div className="detail-item">
               <label>Generation ID</label>
-              <span className="generation-id">{asset.aiGeneration.generationId}</span>
+              <span className="generation-id">{(asset as any).aiGeneration.generationId}</span>
             </div>
           </div>
         </div>

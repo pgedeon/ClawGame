@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.17.0] - 2026-04-09
+
+#### Added
+- **AI Command apply/reject smoke tests** — 5 new API-level tests validating the critical "AI builds your game" flow: command → code generation → apply (file write) → verify persistence, reject (skip) → original intact, apply-all → multiple files, and read-after-write consistency. Closes PM Priority 1 validation gap.
+
+#### Tests
+- `apps/api/src/test/ai-command-apply.test.ts` — 5 tests covering the full AI Command apply/reject lifecycle
+
 ## [0.16.0] - 2026-04-09
 
 #### Added
