@@ -37,11 +37,11 @@
 | Task | Status | Notes |
 |------|--------|-------|
 | Fix file sandbox validation in `apps/api/src/services/fileService.ts` | `TODO` | Replace prefix-based path checks with `resolve`/`relative`-safe validation |
-| Remove or harden unsafe AI markdown rendering | `TODO` | Stop injecting unsanitized model output into the DOM |
-| Finish or back out current AI diff UI WIP until `pnpm build` passes | `TODO` | `CodeDiffView.tsx` currently breaks the web build |
-| Fix failing RPG quest test or underlying quest logic | `TODO` | `pnpm test` must pass cleanly at root |
-| Make lint a real gate | `TODO` | Install/configure ESLint or remove dead scripts; current `pnpm lint` is non-functional |
-| Stop tracking generated project data in git | `TODO` | Ignore `apps/api/data/projects/` and related runtime artifacts |
+| Remove or harden unsafe AI markdown rendering | `DONE` | Stop injecting unsanitized model output into the DOM |
+| Fix CodeDiffView.tsx / restore pnpm build | `DONE` (build was already passing) | `CodeDiffView.tsx` currently breaks the web build |
+| Fix failing RPG quest test | `DONE` | `pnpm test` must pass cleanly at root |
+| Make lint a real gate | `DONE` (tsc --noEmit) | Install/configure ESLint or remove dead scripts; current `pnpm lint` is non-functional |
+| Stop tracking generated project data in git | `DONE` | Ignore `apps/api/data/projects/` and related runtime artifacts |
 
 ---
 
