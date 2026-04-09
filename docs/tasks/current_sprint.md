@@ -11,7 +11,7 @@
 | Task | Status | Notes |
 |------|--------|-------|
 | AI Command apply/reject smoke test | ✅ Done | 5 tests in `apps/api/src/test/ai-command-apply.test.ts` |
-| Export flow end-to-end validation | TODO | Export works (PM confirmed), needs formal test |
+| Export flow end-to-end validation | ✅ Done | 4 tests in `apps/api/src/test/export-flow.test.ts` (create→export→list→download→delete lifecycle) |
 | package.json version sync | ✅ Done | Already at 0.16.0 matching VERSION.json |
 
 ### Quality Gates
@@ -19,7 +19,7 @@
 | Gate | Status |
 |------|--------|
 | `pnpm build` | ✅ Pass |
-| `pnpm test` | ✅ Pass (103 tests: 30 API + 73 web) |
+| `pnpm test` | ✅ Pass (107 tests: 34 API + 73 web) |
 | `pnpm typecheck` | ✅ Pass |
 
 ---
