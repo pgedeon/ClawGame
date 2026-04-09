@@ -8,7 +8,7 @@
 
 import React, { Suspense } from 'react';
 import { useParams } from 'react-router-dom';
-import { Play, ArrowLeft, Skull, Trophy } from 'lucide-react';
+import { Play, ArrowLeft, Skull, Trophy, Monitor, Cloud } from 'lucide-react';
 import '../game-preview.css';
 import { useSceneLoader } from '../hooks/useSceneLoader';
 import { useGamePreview, GENRE_CONTROLS } from '../hooks/useGamePreview';
@@ -67,6 +67,10 @@ const GamePreviewContent: React.FC = () => {
           </button>
           <h1 className="game-preview-title">{projectName}</h1>
           <div className="game-preview-controls">
+            <select className="preview-target-selector" title="Preview target">
+              <option value="local"><Monitor size={12} /> Local Canvas</option>
+              <option value="cloud" disabled><Cloud size={12} /> Cloud Preview (coming soon)</option>
+            </select>
             <span className={`game-status ${gameStarted ? (gamePaused ? 'paused' : 'playing') : 'ready'}`}>
               {gameStarted ? (gamePaused ? '⏸ Paused' : '▶ Playing') : '⏹ Ready'}
             </span>

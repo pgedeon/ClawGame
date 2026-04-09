@@ -415,3 +415,40 @@ async function getDominantColors(filePath: string, count: number): Promise<strin
     return [];
   }
 }
+
+// ── Audio Processing (stub — requires ffmpeg) ──
+
+export interface AudioNormalizeOptions {
+  targetLevel: number;  // dB, e.g. -3
+  format?: 'mp3' | 'wav' | 'ogg';
+}
+
+export async function normalizeAudio(
+  inputPath: string,
+  outputPath: string,
+  options: AudioNormalizeOptions
+): Promise<{ path: string; normalizedLevel: number }> {
+  // Audio normalization requires ffmpeg — not yet integrated.
+  // This stub validates the input and returns a placeholder.
+  if (!existsSync(inputPath)) {
+    throw new Error(`Audio file not found: ${inputPath}`);
+  }
+
+  // TODO: Integrate ffmpeg for audio normalization
+  // ffmpeg -i input -af "loudnorm=I=-3:TP=-1:LRA=11" output
+  const ext = extname(inputPath).toLowerCase();
+  const supportedFormats = ['.mp3', '.wav', '.ogg', '.flac', '.m4a'];
+  if (!supportedFormats.includes(ext)) {
+    throw new Error(`Unsupported audio format: ${ext}`);
+  }
+
+  // Copy as-is for now
+  const { createReadStream, createWriteStream } = await import('fs');
+  return new Promise((resolve, reject) => {
+    const rs = createReadStream(inputPath);
+    const ws = createWriteStream(outputPath);
+    rs.pipe(ws);
+    ws.on('finish', () => resolve({ path: outputPath, normalizedLevel: options.targetLevel }));
+    ws.on('error', reject);
+  });
+}

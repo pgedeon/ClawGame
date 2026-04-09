@@ -8,6 +8,8 @@ import {
   Scan, Scissors, Grid3x3, Palette, Layers, Zap, Settings2, ChevronDown, ChevronRight,
 } from 'lucide-react';
 import { useToast } from './Toast';
+import { AnimationPreview } from './AnimationPreview';
+import '../animation-preview.css';
 
 interface AssetProcessingToolbarProps {
   projectId: string;
@@ -219,6 +221,17 @@ export function AssetProcessingToolbar({
             <Zap size={12} /> Result
           </div>
           <pre className="tool-results-json">{JSON.stringify(result, null, 2)}</pre>
+          {/* Animation preview for sliced sprites */}
+          {result?.frames && result.frames.length > 0 && (
+            <div style={{ marginTop: '0.75rem' }}>
+              <div className="tool-results-header"><span>🎬 Animation Preview</span></div>
+              <AnimationPreview
+                frames={result.frames.map((f: any) => `http://localhost:3000/api/projects/${projectId}/files?path=${encodeURIComponent(f.path)}`)}
+                width={result.manifest?.frameWidth || 32}
+                height={result.manifest?.frameHeight || 32}
+              />
+            </div>
+          )}
         </div>
       )}
     </div>
