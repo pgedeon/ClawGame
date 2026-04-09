@@ -555,3 +555,15 @@
     background: var(--surface, #1e293b);
   }
 }
+
+/* Skeleton streaming styles */
+.ai-skeleton-response { display: flex; flex-direction: column; gap: 8px; padding: 8px 0; width: 100%; max-width: 350px; }
+.skeleton-line { height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--border, #e2e8f0) 25%, rgba(139,92,246,0.15) 50%, var(--border, #e2e8f0) 75%); background-size: 200% 100%; animation: skeleton-shimmer 1.5s ease-in-out infinite; }
+.skeleton-w40 { width: 40%; }
+.skeleton-w50 { width: 50%; }
+.skeleton-w60 { width: 60%; }
+.skeleton-w70 { width: 70%; }
+.skeleton-w80 { width: 80%; }
+.skeleton-w90 { width: 90%; }
+.skeleton-block { height: 60px; border-radius: 6px; background: linear-gradient(90deg, var(--border, #e2e8f0) 25%, rgba(139,92,246,0.1) 50%, var(--border, #e2e8f0) 75%); background-size: 200% 100%; animation: skeleton-shimmer 1.5s ease-in-out infinite 0.2s; }
+@keyframes skeleton-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }

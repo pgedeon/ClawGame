@@ -291,3 +291,73 @@
     height: 48px;
   }
 }
+
+/* ── FAB Wrapper + Tooltip ── */
+.ai-fab-wrapper { position: fixed; bottom: var(--space-xl); right: var(--space-xl); z-index: var(--z-overlay); display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+
+.ai-fab-tooltip {
+  position: absolute; bottom: 100%; right: 0; margin-bottom: 8px;
+  padding: 6px 12px; background: var(--card); color: var(--fg);
+  border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-lg);
+  font-size: 0.75rem; white-space: nowrap; display: flex; align-items: center; gap: 6px;
+  animation: tooltip-in 0.3s ease-out;
+}
+@keyframes tooltip-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+/* FAB glow animation */
+.ai-fab { position: relative; }
+.ai-fab::before {
+  content: ''; position: absolute; inset: -4px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(139,92,246,0.3), transparent 70%);
+  animation: fab-glow 3s ease-in-out infinite; pointer-events: none;
+}
+@keyframes fab-glow { 0%, 100% { opacity: 0.3; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.15); } }
+
+.ai-fab--thinking::before { animation: fab-thinking-glow 0.8s ease-in-out infinite; }
+@keyframes fab-thinking-glow { 0%, 100% { opacity: 0.5; transform: scale(1.1); } 50% { opacity: 1; transform: scale(1.3); } }
+
+.ai-fab-thinking-ring {
+  position: absolute; inset: -6px; border-radius: 50%;
+  border: 2px solid var(--ai-primary, #8b5cf6); opacity: 0;
+  animation: fab-thinking-ring 1.2s ease-out infinite;
+}
+@keyframes fab-thinking-ring { 0% { transform: scale(0.8); opacity: 0.8; } 100% { transform: scale(1.5); opacity: 0; } }
+
+/* ── Entity Action Buttons (floating) ── */
+.ai-context-trigger-group { position: relative; display: inline-flex; align-items: center; gap: 4px; }
+.ai-entity-actions-float {
+  display: flex; gap: 3px; opacity: 0; transition: opacity 0.2s;
+}
+.ai-context-trigger-group:hover .ai-entity-actions-float { opacity: 1; }
+
+.ai-entity-action-btn {
+  width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--border);
+  background: var(--surface); color: var(--action-color, var(--fg-secondary));
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s ease; font-size: 0;
+}
+.ai-entity-action-btn:hover {
+  background: var(--action-color, var(--accent)); color: white;
+  transform: scale(1.15); box-shadow: 0 0 8px color-mix(in srgb, var(--action-color) 40%, transparent);
+}
+
+/* ── Contextual Panel Entity Actions ── */
+.ai-entity-actions { display: flex; gap: 4px; padding: 6px 8px; flex-wrap: wrap; border-bottom: 1px solid var(--border); }
+.ai-entity-action-pill {
+  display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px;
+  border-radius: 12px; border: 1px solid var(--border); background: var(--surface);
+  color: var(--action-color, var(--fg-secondary)); cursor: pointer;
+  font-size: 0.75rem; font-weight: 600; transition: all 0.15s;
+}
+.ai-entity-action-pill:hover {
+  background: var(--action-color, var(--accent)); color: white;
+  border-color: var(--action-color);
+}
+
+/* Skeleton in FAB panel */
+.ai-panel-messages .ai-skeleton-response { padding: 8px 0; }
+.ai-panel-messages .skeleton-line { height: 10px; }
+
+@media (max-width: 768px) {
+  .ai-fab-wrapper { bottom: var(--space-md); right: var(--space-md); }
+}
