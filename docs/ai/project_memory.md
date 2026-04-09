@@ -2,9 +2,9 @@
 
 ## Project Overview
 - **Status:** Recovery Complete — Transitioning to M9 AI Creator Workspace
-- **Current Version: v0.16.0 (prompt-recipes)
-- **Current Stage:** Post-recovery; starting M9 AI Creator Workspace
-- **Next Phase:** M9 AI Creator Workspace (ambient AI, prompt recipes, plan/apply/review workflow)
+- **Current Version: v0.18.0 (sfx-forge)
+- **Current Stage:** M11 Generative Media Forge in progress
+- **Next Phase:** M11 — multi-model image gen, quick sprites, music, asset pack planner
 - **Timeline:** Scene Editor AI provides contextual co-pilot experience during game editing
 
 ## Key Documents

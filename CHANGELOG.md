@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+
+## [0.18.0] - 2026-04-09
+
+### Added
+- **SFX Generation Service** (M11: Generative Media Forge) — Genre-aware sound effect pack generation with engine-consumable metadata
+  - `POST /api/projects/:projectId/sfx/generate` — Generate SFX pack from genre templates (platformer, RPG, shooter, tower defense, puzzle)
+  - `GET /api/projects/:projectId/sfx/packs` — List SFX packs
+  - `GET /api/projects/:projectId/sfx/:name` — Get individual SFX descriptor
+  - `DELETE /api/projects/:projectId/sfx/:name` — Delete SFX descriptor
+  - Per-effect metadata files (`.sfx.json`) stored in `assets/sfx/` for engine consumption
+  - Pack-level `pack.json` with full SFX manifest
+- 12 tests for SFX generation lifecycle (generate, persist, list, get, delete, genre matching)
+
 ## [0.17.0] - 2026-04-09
 
 #### Added

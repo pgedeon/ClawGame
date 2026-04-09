@@ -1,8 +1,8 @@
 {
-  "version": "0.17.0",
-  "codename": "ai-command-validation",
-  "milestone": 10,
-  "milestoneName": "Asset Factory Core",
+  "version": "0.18.0",
+  "codename": "sfx-forge",
+  "milestone": 11,
+  "milestoneName": "Generative Media Forge",
   "releaseDate": "2026-04-09",
-  "status": "validation"
+  "status": "in-progress"
 }

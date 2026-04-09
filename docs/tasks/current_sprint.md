@@ -1,25 +1,29 @@
-# Current Sprint: Post-M10 Validation + M11 Prep
+# Current Sprint: M11 Generative Media Forge
 
 **Status:** In Progress  
 **Started:** 2026-04-09  
-**Next:** [`docs/sprints/follow_up_sprints.md`](../sprints/follow_up_sprints.md) → M11 Generative Media Forge
+**Next:** [`docs/sprints/follow_up_sprints.md`](../sprints/follow_up_sprints.md) → M12 Unified Runtime
 
 ---
 
-## Validation Tasks (PM Priority 1)
+## M11 Progress
 
-| Task | Status | Notes |
-|------|--------|-------|
-| AI Command apply/reject smoke test | ✅ Done | 5 tests in `apps/api/src/test/ai-command-apply.test.ts` |
-| Export flow end-to-end validation | ✅ Done | 4 tests in `apps/api/src/test/export-flow.test.ts` (create→export→list→download→delete lifecycle) |
-| package.json version sync | ✅ Done | Already at 0.16.0 matching VERSION.json |
+| Deliverable | Status | Notes |
+|-------------|--------|-------|
+| SFX generation with batch pack planning | ✅ Done | Service + API routes + 12 tests. Genre-aware packs (platformer, RPG, shooter, tower defense, puzzle) |
+| Multi-model image generation with style presets | 📋 TODO | Next: character/enemy/prop/background presets |
+| Quick Sprites workflow | 📋 TODO | Prompt-to-sprite-sheet pipeline |
+| Seamless texture and tile generation | 📋 TODO | |
+| Background removal / outpainting | 📋 TODO | |
+| Music generation for theme/ambient/battle | 📋 TODO | |
+| Asset pack planner | 📋 TODO | "Generate complete starter pack" |
 
 ### Quality Gates
 
 | Gate | Status |
 |------|--------|
 | `pnpm build` | ✅ Pass |
-| `pnpm test` | ✅ Pass (107 tests: 34 API + 73 web) |
+| `pnpm test` | ✅ Pass (135 tests: 62 API + 73 web) |
 | `pnpm typecheck` | ✅ Pass |
 
 ---

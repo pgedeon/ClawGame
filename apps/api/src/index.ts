@@ -13,6 +13,7 @@ import { sceneAnalysisRoutes } from './routes/sceneAnalysis';
 import { saveRoutes } from './routes/saves';
 import { gitRoutes } from './routes/git';
 import { imageProcessingRoutes } from './routes/imageProcessingRoutes';
+import { sfxRoutes } from './routes/sfxRoutes';
 
 // Load version from VERSION.json at project root
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -56,6 +57,7 @@ app.register(saveRoutes);
 // Git version control
 app.register(gitRoutes);
 app.register(imageProcessingRoutes);
+app.register(sfxRoutes);
 
 const start = async () => {
   try {
