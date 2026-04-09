@@ -60,7 +60,8 @@ export function CodeEditor({ projectId, filePath, onSave, onLoad, readOnly = fal
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
-  const [hasLoaded, setHasLoaded] = useState(false);
+  // contentReady is set to filePath when content is loaded, triggering editor creation
+  const [contentReady, setContentReady] = useState<string | null>(null);
 
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -68,11 +69,12 @@ export function CodeEditor({ projectId, filePath, onSave, onLoad, readOnly = fal
   const needsFocus = useRef(false);
   const handleSaveRef = useRef<() => void>();
 
-  // Load file content when file path changes or onLoad prop changes
+  // Reset and load when filePath changes
   useEffect(() => {
     if (!filePath) return;
+    setContentReady(null); // reset first
     loadFileContent();
-  }, [projectId, filePath, onLoad]);
+  }, [projectId, filePath]);
 
   const handleSave = useCallback(async () => {
     if (!filePath || isSaving || !hasChanges || !onSave) return;
@@ -90,19 +92,17 @@ export function CodeEditor({ projectId, filePath, onSave, onLoad, readOnly = fal
     }
   }, [filePath, projectId, isSaving, hasChanges, onSave]);
 
-  // Keep ref to latest save handler
   useEffect(() => {
     handleSaveRef.current = handleSave;
   }, [handleSave]);
 
   const loadFileContent = async () => {
-    if (!filePath || hasLoaded) return;
+    if (!filePath) return;
 
     let newContent = '';
-    setIsSaving(true); // Show loading while fetching content
+    setIsSaving(true);
 
     try {
-      // Use onLoad prop if provided, otherwise fallback to API
       if (onLoad) {
         newContent = await onLoad(filePath);
       } else {
@@ -113,7 +113,6 @@ export function CodeEditor({ projectId, filePath, onSave, onLoad, readOnly = fal
       contentRef.current = newContent;
       setHasChanges(false);
       needsFocus.current = true;
-      setHasLoaded(true);
 
       // If editor already exists, update its content without destroying it
       if (viewRef.current) {
@@ -132,11 +131,16 @@ export function CodeEditor({ projectId, filePath, onSave, onLoad, readOnly = fal
           viewRef.current.focus();
           needsFocus.current = false;
         }
+        setContentReady(filePath);
         return;
       }
+
+      // Signal that content is ready for editor creation
+      setContentReady(filePath);
     } catch (err) {
       logger.error('Failed to load file:', err);
       contentRef.current = '';
+      setContentReady(filePath); // still mark ready so empty editor shows
     } finally {
       setIsSaving(false);
     }
@@ -144,13 +148,13 @@ export function CodeEditor({ projectId, filePath, onSave, onLoad, readOnly = fal
 
   const handleReset = () => {
     if (!filePath) return;
-    setHasLoaded(false);
+    setContentReady(null);
     loadFileContent();
   };
 
-  // Create CodeMirror editor once (NOT re-creating on content change)
+  // Create CodeMirror editor when content is ready
   useEffect(() => {
-    if (!editorRef.current || !hasLoaded) return;
+    if (!editorRef.current || !contentReady) return;
 
     // Destroy previous editor
     if (viewRef.current) {
@@ -227,7 +231,6 @@ export function CodeEditor({ projectId, filePath, onSave, onLoad, readOnly = fal
 
     viewRef.current = view;
 
-    // Focus if needed
     if (needsFocus.current) {
       view.focus();
       needsFocus.current = false;
@@ -239,7 +242,7 @@ export function CodeEditor({ projectId, filePath, onSave, onLoad, readOnly = fal
         viewRef.current = null;
       }
     };
-  }, [filePath, readOnly, hasLoaded]); // Only recreate on file/type change or reset
+  }, [contentReady, readOnly]); // Recreate when content loads or readOnly changes
 
   // Cleanup on unmount
   useEffect(() => {
@@ -281,9 +284,9 @@ export function CodeEditor({ projectId, filePath, onSave, onLoad, readOnly = fal
         </div>
       </div>
 
-      <div 
-        ref={editorRef} 
-        className={`codemirror-container ${!hasLoaded ? 'loading' : ''}`}
+      <div
+        ref={editorRef}
+        className={`codemirror-container ${!contentReady ? 'loading' : ''}`}
         onClick={() => {
           if (viewRef.current) {
             viewRef.current.focus();
