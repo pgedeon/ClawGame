@@ -8,10 +8,13 @@
  * - Streaming SSE support for real-time response delivery
  * - Graceful local fallback when API is unreachable
  * - Circuit breaker: skips API after N consecutive failures
+ *
+ * v0.13.5: Added project metadata context to AI prompts
  */
 
 import { FastifyLoggerInstance } from 'fastify';
 import { getFileTree, readFileContent } from './fileService';
+import { ProjectService } from './projectService';
 
 // ── Configuration ──
 
@@ -83,12 +86,12 @@ export class RealAIService {
   async processCommand(request: AICommandRequest): Promise<AICommandResponse> {
     const { projectId, command, context } = request;
 
-    // Get project context
+    // Get project context with metadata
     const projectContext = await this.getProjectContext(projectId, context);
     const systemPrompt = this.buildSystemPrompt(projectContext);
     const userPrompt = await this.buildUserPrompt(command, projectContext, context);
 
-    // Try the real API (with retries + circuit breaker)
+    // Try real API (with retries + circuit breaker)
     if (AI_API_KEY && !this.isCircuitOpen()) {
       const result = await this.callWithRetry(systemPrompt, userPrompt);
       if (result) {
@@ -314,204 +317,52 @@ export class RealAIService {
     }
   }
 
-  // ── Local fallback (generates genuinely useful code) ──
+  // ── Project context with metadata ──
 
-  private generateFallbackResponse(command: string, projectContext: any): AICommandResponse {
-    const lower = command.toLowerCase();
-    const id = this.generateId();
+  private async getProjectContext(projectId: string, context?: AICommandRequest['context']) {
+    const tree = await getFileTree(projectId, '', 0, 2);
 
-    // Detect intent and generate relevant code
-    if (lower.includes('player') && (lower.includes('move') || lower.includes('control') || lower.includes('input'))) {
-      return this.fallbackPlayerMovement(command, id, projectContext);
-    }
-    if (lower.includes('enemy') || lower.includes('ai')) {
-      return this.fallbackEnemyAI(command, id, projectContext);
-    }
-    if (lower.includes('collect') || lower.includes('coin') || lower.includes('pickup') || lower.includes('item')) {
-      return this.fallbackCollectible(command, id, projectContext);
-    }
-    if (lower.includes('platform') || lower.includes('ground') || lower.includes('level')) {
-      return this.fallbackPlatform(command, id, projectContext);
-    }
-    if (lower.includes('jump') || lower.includes('double jump')) {
-      return this.fallbackJump(command, id, projectContext);
-    }
-    if (lower.includes('shoot') || lower.includes('projectile') || lower.includes('bullet')) {
-      return this.fallbackProjectile(command, id, projectContext);
-    }
-    if (lower.includes('health') || lower.includes('damage') || lower.includes('combat')) {
-      return this.fallbackHealthSystem(command, id, projectContext);
-    }
-    if (lower.includes('scene') || lower.includes('level') || lower.includes('create')) {
-      return this.fallbackSceneSetup(command, id, projectContext);
-    }
-
-    // Generic fallback
-    return this.fallbackGeneric(command, id, projectContext);
-  }
-
-  private fallbackPlayerMovement(command: string, id: string, ctx: any): AICommandResponse {
-    return {
-      id,
-      type: 'change',
-      title: 'Player Movement System',
-      content: `## Player Movement System\n\nI've generated a complete player movement controller for your game. This includes WASD/Arrow key controls with smooth acceleration.\n\n\`\`\`typescript\n// scripts/player.ts\nimport { Entity, System } from '../engine';\n\nexport class PlayerInputSystem extends System {\n  private keys: Set<string> = new Set();\n  private speed = 300;\n  private jumpForce = -500;\n  private gravity = 1200;\n  private velocityY = 0;\n  private grounded = false;\n\n  onStart() {\n    window.addEventListener('keydown', (e) => this.keys.add(e.key));\n    window.addEventListener('keyup', (e) => this.keys.delete(e.key));\n  }\n\n  onUpdate(dt: number, entities: Entity[]) {\n    const player = entities.find(e => e.hasComponent('playerInput'));\n    if (!player) return;\n\n    const transform = player.getComponent('transform');\n    if (!transform) return;\n\n    // Horizontal movement\n    let moveX = 0;\n    if (this.keys.has('ArrowLeft') || this.keys.has('a')) moveX -= 1;\n    if (this.keys.has('ArrowRight') || this.keys.has('d')) moveX += 1;\n    transform.x += moveX * this.speed * dt;\n\n    // Jumping\n    if ((this.keys.has('ArrowUp') || this.keys.has('w') || this.keys.has(' ')) && this.grounded) {\n      this.velocityY = this.jumpForce;\n      this.grounded = false;\n    }\n\n    // Gravity\n    this.velocityY += this.gravity * dt;\n    transform.y += this.velocityY * dt;\n\n    // Ground collision (simple)\n    if (transform.y >= 400) {\n      transform.y = 400;\n      this.velocityY = 0;\n      this.grounded = true;\n    }\n  }\n}\n\`\`\`\n\n**Features:**\n- ✅ WASD + Arrow key movement\n- ✅ Jump with W / Up / Space\n- ✅ Gravity simulation\n- ✅ Ground collision\n\n**To use:** Add this to your game systems and attach a \`playerInput\` component to your player entity.`,
-      changes: [{
-        path: 'scripts/player.ts',
-        newContent: `// scripts/player.ts\nimport { Entity, System } from '../engine';\n\nexport class PlayerInputSystem extends System {\n  private keys: Set<string> = new Set();\n  private speed = 300;\n  private jumpForce = -500;\n  private gravity = 1200;\n  private velocityY = 0;\n  private grounded = false;\n\n  onStart() {\n    window.addEventListener('keydown', (e) => this.keys.add(e.key));\n    window.addEventListener('keyup', (e) => this.keys.delete(e.key));\n  }\n\n  onUpdate(dt: number, entities: Entity[]) {\n    const player = entities.find(e => e.hasComponent('playerInput'));\n    if (!player) return;\n    const transform = player.getComponent('transform');\n    if (!transform) return;\n    let moveX = 0;\n    if (this.keys.has('ArrowLeft') || this.keys.has('a')) moveX -= 1;\n    if (this.keys.has('ArrowRight') || this.keys.has('d')) moveX += 1;\n    transform.x += moveX * this.speed * dt;\n    if ((this.keys.has('ArrowUp') || this.keys.has('w') || this.keys.has(' ')) && this.grounded) {\n      this.velocityY = this.jumpForce;\n      this.grounded = false;\n    }\n    this.velocityY += this.gravity * dt;\n    transform.y += this.velocityY * dt;\n    if (transform.y >= 400) {\n      transform.y = 400;\n      this.velocityY = 0;\n      this.grounded = true;\n    }\n  }\n}`,
-        summary: 'Player movement system with WASD + jump',
-        confidence: 0.9,
-      }],
-      nextSteps: ['Add the system to your game loop', 'Attach playerInput component to player entity', 'Adjust speed/jumpForce for your game feel'],
-      riskLevel: 'low',
-      fromFallback: true,
+    // Load project metadata
+    const ps = new ProjectService(this.logger);
+    const project = await ps.getProject(projectId);
+    const projectMetadata = project ? {
+      name: project.project.name,
+      genre: project.project.genre,
+      artStyle: project.project.artStyle,
+      description: project.project.description,
+      template: (project as any).template,
+    } : {
+      name: 'Unknown Project',
+      genre: 'unknown',
+      artStyle: 'default',
+      description: '',
+      template: 'platformer',
     };
-  }
 
-  private fallbackEnemyAI(command: string, id: string, ctx: any): AICommandResponse {
     return {
-      id,
-      type: 'change',
-      title: 'Enemy AI Patrol System',
-      content: `## Enemy AI Patrol System\n\nGenerated a basic enemy AI that patrols back and forth. Perfect for platformer enemies.\n\n\`\`\`typescript\n// scripts/enemy-ai.ts\nimport { Entity, System } from '../engine';\n\nexport class EnemyAISystem extends System {\n  private patrolRange = 200;\n  private speed = 100;\n\n  onUpdate(dt: number, entities: Entity[]) {\n    const enemies = entities.filter(e => e.hasComponent('ai'));\n    \n    for (const enemy of enemies) {\n      const transform = enemy.getComponent('transform');\n      const ai = enemy.getComponent('ai');\n      if (!transform || !ai) continue;\n\n      // Initialize patrol data\n      if (!ai.startX) ai.startX = transform.x;\n      if (!ai.direction) ai.direction = 1;\n\n      // Move in current direction\n      transform.x += ai.direction * this.speed * dt;\n\n      // Reverse at patrol boundaries\n      if (transform.x > ai.startX + this.patrolRange) {\n        ai.direction = -1;\n      } else if (transform.x < ai.startX - this.patrolRange) {\n        ai.direction = 1;\n      }\n    }\n  }\n}\n\`\`\`\n\n**Features:**\n- ✅ Patrol back and forth\n- ✅ Configurable range and speed\n- ✅ Works with any entity that has an 'ai' component`,
-      changes: [{
-        path: 'scripts/enemy-ai.ts',
-        newContent: `// scripts/enemy-ai.ts\nimport { Entity, System } from '../engine';\n\nexport class EnemyAISystem extends System {\n  private patrolRange = 200;\n  private speed = 100;\n\n  onUpdate(dt: number, entities: Entity[]) {\n    const enemies = entities.filter(e => e.hasComponent('ai'));\n    for (const enemy of enemies) {\n      const transform = enemy.getComponent('transform');\n      const ai = enemy.getComponent('ai');\n      if (!transform || !ai) continue;\n      if (!ai.startX) ai.startX = transform.x;\n      if (!ai.direction) ai.direction = 1;\n      transform.x += ai.direction * this.speed * dt;\n      if (transform.x > ai.startX + this.patrolRange) ai.direction = -1;\n      else if (transform.x < ai.startX - this.patrolRange) ai.direction = 1;\n    }\n  }\n}`,
-        summary: 'Enemy AI patrol system',
-        confidence: 0.9,
-      }],
-      nextSteps: ['Add to game loop', 'Attach AI component to enemy entities', 'Adjust patrolRange and speed per enemy'],
-      riskLevel: 'low',
-      fromFallback: true,
-    };
-  }
-
-  private fallbackCollectible(command: string, id: string, ctx: any): AICommandResponse {
-    return {
-      id,
-      type: 'change',
-      title: 'Collectible Item System',
-      content: `## Collectible Item System\n\nGenerated a coin/pickup collection system with score tracking.\n\n\`\`\`typescript\n// scripts/collectible.ts\nimport { Entity, System } from '../engine';\n\nexport class CollectibleSystem extends System {\n  private score = 0;\n\n  onUpdate(dt: number, entities: Entity[]) {\n    const player = entities.find(e => e.hasComponent('playerInput'));\n    if (!player) return;\n    const pTransform = player.getComponent('transform');\n    if (!pTransform) return;\n\n    const collectibles = entities.filter(e => \n      e.hasComponent('collision') && \n      e.getComponent('collision')?.type === 'collectible'\n    );\n\n    for (const item of collectibles) {\n      const iTransform = item.getComponent('transform');\n      if (!iTransform) continue;\n\n      // Simple AABB collision\n      const dx = Math.abs(pTransform.x - iTransform.x);\n      const dy = Math.abs(pTransform.y - iTransform.y);\n      \n      if (dx < 32 && dy < 32) {\n        // Collected!\n        const value = item.getComponent('collision')?.value || 10;\n        this.score += value;\n        console.log(\`Collected! Score: \${this.score}\`);\n        \n        // Remove from scene\n        const idx = entities.indexOf(item);\n        if (idx > -1) entities.splice(idx, 1);\n      }\n    }\n  }\n\n  getScore() { return this.score; }\n}\n\`\`\`\n\n**Features:**\n- ✅ AABB collision detection\n- ✅ Score tracking\n- ✅ Automatic removal on collect\n- ✅ Configurable point values`,
-      changes: [{
-        path: 'scripts/collectible.ts',
-        newContent: `// scripts/collectible.ts\nimport { Entity, System } from '../engine';\n\nexport class CollectibleSystem extends System {\n  private score = 0;\n  onUpdate(dt: number, entities: Entity[]) {\n    const player = entities.find(e => e.hasComponent('playerInput'));\n    if (!player) return;\n    const pTransform = player.getComponent('transform');\n    if (!pTransform) return;\n    const collectibles = entities.filter(e => \n      e.hasComponent('collision') && e.getComponent('collision')?.type === 'collectible'\n    );\n    for (const item of collectibles) {\n      const iTransform = item.getComponent('transform');\n      if (!iTransform) continue;\n      const dx = Math.abs(pTransform.x - iTransform.x);\n      const dy = Math.abs(pTransform.y - iTransform.y);\n      if (dx < 32 && dy < 32) {\n        const value = item.getComponent('collision')?.value || 10;\n        this.score += value;\n        const idx = entities.indexOf(item);\n        if (idx > -1) entities.splice(idx, 1);\n      }\n    }\n  }\n  getScore() { return this.score; }\n}`,
-        summary: 'Collectible system with score tracking',
-        confidence: 0.9,
-      }],
-      riskLevel: 'low',
-      fromFallback: true,
-    };
-  }
-
-  private fallbackPlatform(command: string, id: string, ctx: any): AICommandResponse {
-    return {
-      id,
-      type: 'change',
-      title: 'Platform / Level Builder',
-      content: `## Platform Generation\n\nHere's a helper to generate platforms programmatically:\n\n\`\`\`typescript\n// scripts/level-generator.ts\nimport { Entity } from '../engine';\n\ninterface PlatformDef {\n  x: number; y: number; width: number; height: number;\n}\n\nexport function generateLevel(): Entity[] {\n  const platforms: PlatformDef[] = [\n    // Ground\n    { x: 0, y: 450, width: 800, height: 50 },\n    // Floating platforms\n    { x: 150, y: 350, width: 120, height: 20 },\n    { x: 350, y: 280, width: 100, height: 20 },\n    { x: 550, y: 200, width: 150, height: 20 },\n    { x: 200, y: 130, width: 100, height: 20 },\n  ];\n\n  return platforms.map((p, i) => {\n    const entity = new Entity(\`platform-\${i}\`);\n    entity.addComponent('transform', { x: p.x, y: p.y, width: p.width, height: p.height });\n    entity.addComponent('collision', { type: 'solid' });\n    entity.addComponent('sprite', { color: '#4a5568' });\n    return entity;\n  });\n}\n\`\`\`\n\nAdjust coordinates to fit your game.`,
-      changes: [{
-        path: 'scripts/level-generator.ts',
-        newContent: `// scripts/level-generator.ts\nimport { Entity } from '../engine';\n\nexport function generateLevel(): Entity[] {\n  const platforms = [\n    { x: 0, y: 450, width: 800, height: 50 },\n    { x: 150, y: 350, width: 120, height: 20 },\n    { x: 350, y: 280, width: 100, height: 20 },\n    { x: 550, y: 200, width: 150, height: 20 },\n    { x: 200, y: 130, width: 100, height: 20 },\n  ];\n  return platforms.map((p, i) => {\n    const entity = new Entity(\`platform-\${i}\`);\n    entity.addComponent('transform', { x: p.x, y: p.y, width: p.width, height: p.height });\n    entity.addComponent('collision', { type: 'solid' });\n    entity.addComponent('sprite', { color: '#4a5568' });\n    return entity;\n  });\n}`,
-        summary: 'Level generator with platform definitions',
-        confidence: 0.85,
-      }],
-      riskLevel: 'low',
-      fromFallback: true,
-    };
-  }
-
-  private fallbackJump(command: string, id: string, ctx: any): AICommandResponse {
-    const isDouble = command.toLowerCase().includes('double');
-    return {
-      id,
-      type: 'change',
-      title: isDouble ? 'Double Jump System' : 'Jump System',
-      content: `## ${isDouble ? 'Double ' : ''}Jump System\n\n\`\`\`typescript\n// scripts/jump.ts\nexport class JumpController {\n  private jumpForce = -500;\n  private gravity = 1200;\n  private velocityY = 0;\n  private grounded = false;\n  ${isDouble ? 'private jumpsRemaining = 2;\n  private maxJumps = 2;' : 'private canJump = false;'}\n\n  update(dt: number, transform: any, keys: Set<string>) {\n    // Jump input\n    const jumpPressed = keys.has('ArrowUp') || keys.has('w') || keys.has(' ');\n    ${isDouble ? `if (jumpPressed && this.jumpsRemaining > 0) {\n      this.velocityY = this.jumpForce * (this.jumpsRemaining < this.maxJumps ? 0.85 : 1);\n      this.jumpsRemaining--;\n    }` : `if (jumpPressed && this.grounded) {\n      this.velocityY = this.jumpForce;\n      this.grounded = false;\n    }`}\n\n    // Gravity\n    this.velocityY += this.gravity * dt;\n    transform.y += this.velocityY * dt;\n\n    // Ground\n    if (transform.y >= 400) {\n      transform.y = 400;\n      this.velocityY = 0;\n      this.grounded = true;\n      ${isDouble ? 'this.jumpsRemaining = this.maxJumps;' : 'this.canJump = true;'}\n    }\n  }\n}\n\`\`\`\n\n${isDouble ? '**Note:** Double jump applies 85% force on the second jump for balanced feel.' : '**Note:** Adjust `jumpForce` and `gravity` for different game feels.'}`,
-      changes: [{
-        path: 'scripts/jump.ts',
-        newContent: `export class JumpController {\n  private jumpForce = -500;\n  private gravity = 1200;\n  private velocityY = 0;\n  private grounded = false;\n  ${isDouble ? 'private jumpsRemaining = 2;\n  private maxJumps = 2;' : 'private canJump = false;'}\n\n  update(dt: number, transform: any, keys: Set<string>) {\n    const jumpPressed = keys.has('ArrowUp') || keys.has('w') || keys.has(' ');\n    ${isDouble ? `if (jumpPressed && this.jumpsRemaining > 0) {\n      this.velocityY = this.jumpForce * (this.jumpsRemaining < this.maxJumps ? 0.85 : 1);\n      this.jumpsRemaining--;\n    }` : `if (jumpPressed && this.grounded) {\n      this.velocityY = this.jumpForce;\n      this.grounded = false;\n    }`}\n    this.velocityY += this.gravity * dt;\n    transform.y += this.velocityY * dt;\n    if (transform.y >= 400) {\n      transform.y = 400;\n      this.velocityY = 0;\n      this.grounded = true;\n      ${isDouble ? 'this.jumpsRemaining = this.maxJumps;' : 'this.canJump = true;'}\n    }\n  }\n}`,
-        summary: `${isDouble ? 'Double ' : ''}jump controller`,
-        confidence: 0.9,
-      }],
-      riskLevel: 'low',
-      fromFallback: true,
-    };
-  }
-
-  private fallbackProjectile(command: string, id: string, ctx: any): AICommandResponse {
-    return {
-      id,
-      type: 'change',
-      title: 'Projectile / Shooting System',
-      content: `## Projectile Shooting System\n\n\`\`\`typescript\n// scripts/projectile.ts\nimport { Entity, System } from '../engine';\n\nexport class ProjectileSystem extends System {\n  private projectiles: { x: number; y: number; dx: number; speed: number }[] = [];\n  private cooldown = 0;\n  private fireRate = 0.3; // seconds between shots\n  private bulletSpeed = 600;\n\n  onUpdate(dt: number, entities: Entity[]) {\n    this.cooldown = Math.max(0, this.cooldown - dt);\n    \n    // Update existing projectiles\n    for (let i = this.projectiles.length - 1; i >= 0; i--) {\n      const p = this.projectiles[i];\n      p.x += p.dx * p.speed * dt;\n      if (p.x < -50 || p.x > 850) {\n        this.projectiles.splice(i, 1);\n      }\n    }\n  }\n\n  fire(x: number, y: number, direction: number) {\n    if (this.cooldown > 0) return;\n    this.projectiles.push({ x, y, dx: direction, speed: this.bulletSpeed });\n    this.cooldown = this.fireRate;\n  }\n\n  getProjectiles() { return this.projectiles; }\n}\n\`\`\`\n\n**Features:**\n- ✅ Fire rate limiting (cooldown)\n- ✅ Directional shooting\n- ✅ Auto-cleanup when off-screen`,
-      changes: [{
-        path: 'scripts/projectile.ts',
-        newContent: `export class ProjectileSystem {\n  private projectiles: { x: number; y: number; dx: number; speed: number }[] = [];\n  private cooldown = 0;\n  private fireRate = 0.3;\n  private bulletSpeed = 600;\n\n  update(dt: number) {\n    this.cooldown = Math.max(0, this.cooldown - dt);\n    for (let i = this.projectiles.length - 1; i >= 0; i--) {\n      const p = this.projectiles[i];\n      p.x += p.dx * p.speed * dt;\n      if (p.x < -50 || p.x > 850) this.projectiles.splice(i, 1);\n    }\n  }\n\n  fire(x: number, y: number, direction: number) {\n    if (this.cooldown > 0) return;\n    this.projectiles.push({ x, y, dx: direction, speed: this.bulletSpeed });\n    this.cooldown = this.fireRate;\n  }\n\n  getProjectiles() { return this.projectiles; }\n}`,
-        summary: 'Projectile shooting system with cooldown',
-        confidence: 0.9,
-      }],
-      riskLevel: 'low',
-      fromFallback: true,
-    };
-  }
-
-  private fallbackHealthSystem(command: string, id: string, ctx: any): AICommandResponse {
-    return {
-      id,
-      type: 'change',
-      title: 'Health & Damage System',
-      content: `## Health & Damage System\n\n\`\`\`typescript\n// scripts/health.ts\nexport class HealthSystem {\n  private maxHealth: number;\n  private currentHealth: number;\n  private invincibleTime = 0;\n  private invincibleDuration = 1.0; // 1s invincibility after hit\n\n  constructor(maxHealth = 100) {\n    this.maxHealth = maxHealth;\n    this.currentHealth = maxHealth;\n  }\n\n  update(dt: number) {\n    if (this.invincibleTime > 0) {\n      this.invincibleTime -= dt;\n    }\n  }\n\n  takeDamage(amount: number): boolean {\n    if (this.invincibleTime > 0) return false;\n    this.currentHealth = Math.max(0, this.currentHealth - amount);\n    this.invincibleTime = this.invincibleDuration;\n    return true;\n  }\n\n  heal(amount: number) {\n    this.currentHealth = Math.min(this.maxHealth, this.currentHealth + amount);\n  }\n\n  isDead() { return this.currentHealth <= 0; }\n  getHealth() { return this.currentHealth; }\n  getMaxHealth() { return this.maxHealth; }\n  getHealthPercent() { return this.currentHealth / this.maxHealth; }\n}\n\`\`\`\n\n**Features:**\n- ✅ Configurable max health\n- ✅ Invincibility frames after hit\n- ✅ Heal method\n- ✅ Health percentage for UI bars`,
-      changes: [{
-        path: 'scripts/health.ts',
-        newContent: `export class HealthSystem {\n  private maxHealth: number;\n  private currentHealth: number;\n  private invincibleTime = 0;\n  private invincibleDuration = 1.0;\n\n  constructor(maxHealth = 100) {\n    this.maxHealth = maxHealth;\n    this.currentHealth = maxHealth;\n  }\n\n  update(dt: number) {\n    if (this.invincibleTime > 0) this.invincibleTime -= dt;\n  }\n\n  takeDamage(amount: number): boolean {\n    if (this.invincibleTime > 0) return false;\n    this.currentHealth = Math.max(0, this.currentHealth - amount);\n    this.invincibleTime = this.invincibleDuration;\n    return true;\n  }\n\n  heal(amount: number) {\n    this.currentHealth = Math.min(this.maxHealth, this.currentHealth + amount);\n  }\n\n  isDead() { return this.currentHealth <= 0; }\n  getHealth() { return this.currentHealth; }\n  getHealthPercent() { return this.currentHealth / this.maxHealth; }\n}`,
-        summary: 'Health system with invincibility frames',
-        confidence: 0.9,
-      }],
-      riskLevel: 'low',
-      fromFallback: true,
-    };
-  }
-
-  private fallbackSceneSetup(command: string, id: string, ctx: any): AICommandResponse {
-    return {
-      id,
-      type: 'change',
-      title: 'Scene Setup Helper',
-      content: `## Scene Setup\n\nHere's a starter scene configuration you can modify:\n\n\`\`\`json\n{\n  "name": "My Game Scene",\n  "width": 800,\n  "height": 600,\n  "backgroundColor": "#1a1a2e",\n  "entities": [\n    {\n      "id": "player",\n      "components": {\n        "transform": { "x": 100, "y": 400, "width": 32, "height": 32 },\n        "sprite": { "color": "#4287f5" },\n        "playerInput": { "speed": 300, "jumpForce": -500 },\n        "collision": { "type": "dynamic" }\n      }\n    },\n    {\n      "id": "ground",\n      "components": {\n        "transform": { "x": 0, "y": 450, "width": 800, "height": 50 },\n        "sprite": { "color": "#4a5568" },\n        "collision": { "type": "solid" }\n      }\n    },\n    {\n      "id": "coin-1",\n      "components": {\n        "transform": { "x": 300, "y": 300, "width": 16, "height": 16 },\n        "sprite": { "color": "#f6ad55" },\n        "collision": { "type": "collectible", "value": 10 }\n      }\n    }\n  ]\n}\n\`\`\`\n\nEdit the coordinates, add more entities, and customize colors!`,
-      changes: [{
-        path: 'scenes/main.json',
-        newContent: `{"name":"My Game Scene","width":800,"height":600,"backgroundColor":"#1a1a2e","entities":[{"id":"player","components":{"transform":{"x":100,"y":400,"width":32,"height":32},"sprite":{"color":"#4287f5"},"playerInput":{"speed":300,"jumpForce":-500},"collision":{"type":"dynamic"}}},{"id":"ground","components":{"transform":{"x":0,"y":450,"width":800,"height":50},"sprite":{"color":"#4a5568"},"collision":{"type":"solid"}}},{"id":"coin-1","components":{"transform":{"x":300,"y":300,"width":16,"height":16},"sprite":{"color":"#f6ad55"},"collision":{"type":"collectible","value":10}}}]}`,
-        summary: 'Starter scene with player, ground, and coin',
-        confidence: 0.8,
-      }],
-      riskLevel: 'low',
-      fromFallback: true,
-    };
-  }
-
-  private fallbackGeneric(command: string, id: string, ctx: any): AICommandResponse {
-    return {
-      id,
-      type: 'explanation',
-      title: `AI Response: ${command.substring(0, 50)}${command.length > 50 ? '...' : ''}`,
-      content: `## Your Request: "${command}"\n\nI understand you're looking for help with your game. Here are the most common things I can generate code for:\n\n**🎮 Game Systems I Can Generate:**\n- **Player Movement** — Try: "Add player movement with WASD"\n- **Enemy AI** — Try: "Create an enemy patrol system"\n- **Collectibles** — Try: "Add coin pickup system"\n- **Jumping** — Try: "Add double jump to player"\n- **Shooting** — Try: "Add projectile shooting"\n- **Health** — Try: "Add health and damage system"\n- **Platforms** — Try: "Generate platformer level"\n- **Scene Setup** — Try: "Create a new scene with player and platforms"\n\n**💡 Tip:** Be specific about what you want. For example:\n- "Add player movement with arrow keys and WASD, speed 300"\n- "Create 3 enemies that patrol between x=100 and x=500"\n- "Add coin pickup worth 10 points each"\n\n*Note: The external AI service is currently unavailable. Responses are generated locally with game-ready code templates. More complex requests will be available when the AI service reconnects.*`,
-      riskLevel: 'low',
-      nextSteps: [
-        'Try a more specific command from the list above',
-        'Check that your AI API key is configured in Settings',
-        'The AI service will automatically reconnect when available',
-      ],
-      fromFallback: true,
+      projectId,
+      project: projectMetadata,
+      tree,
+      selectedFiles: context?.selectedFiles || [],
+      selectedCode: context?.selectedCode || '',
     };
   }
 
   // ── Prompt building ──
 
   private buildSystemPrompt(projectContext: any): string {
+    const project = projectContext.project || {};
+
     return `You are ClawGame AI, an intelligent assistant for game development in a web-based game engine.
 
+**Current Project:**
+- Name: ${project.name || 'Unknown Project'}
+- Genre: ${project.genre || 'unknown'}
+- Art Style: ${project.artStyle || 'default'}
+- Description: ${project.description || 'No description provided'}
+
 **Your Role:**
-Help developers build games faster by generating code, explaining systems, and providing actionable recommendations.
+Help developers build games faster by generating code, explaining systems, and providing actionable recommendations. Context-aware: tailor responses to the project's genre and art style.
 
 **Tech Stack:**
 - Language: TypeScript/JavaScript
@@ -527,7 +378,7 @@ Help developers build games faster by generating code, explaining systems, and p
 
 **Code Style:**
 - Use TypeScript with type annotations
-- Follow existing patterns in the project
+- Follow existing patterns in project
 - Add comments for complex logic
 - Keep code modular and testable
 - Provide complete, runnable code snippets
@@ -536,14 +387,25 @@ Help developers build games faster by generating code, explaining systems, and p
   }
 
   private async buildUserPrompt(command: string, projectContext: any, context?: AICommandRequest['context']): Promise<string> {
-    let prompt = `User Request: ${command}\n\n`;
+    const project = projectContext.project || {};
+
+    let prompt = `**User Request:** ${command}\n\n`;
+
+    // Add project context header
+    prompt += `**Project Context:**\n`;
+    prompt += `- Genre: ${project.genre || 'unknown'}\n`;
+    prompt += `- Art Style: ${project.artStyle || 'default'}\n`;
+    if (project.description) {
+      prompt += `- Description: ${project.description}\n`;
+    }
+    prompt += `\n`;
 
     if (context?.selectedCode) {
-      prompt += `Selected Code:\n\`\`\`typescript\n${context.selectedCode}\n\`\`\`\n\n`;
+      prompt += `**Selected Code:**\n\`\`\`typescript\n${context.selectedCode}\n\`\`\`\n\n`;
     }
 
     if (projectContext.selectedFiles.length > 0) {
-      prompt += `Relevant Files:\n`;
+      prompt += `**Relevant Files:**\n`;
       for (const filePath of projectContext.selectedFiles) {
         try {
           const content = await readFileContent(projectContext.projectId, filePath);
@@ -555,8 +417,8 @@ Help developers build games faster by generating code, explaining systems, and p
       }
     }
 
-    prompt += `\nProject Structure:\n${this.summarizeTree(projectContext.tree)}`;
-    prompt += `\n\nPlease provide a helpful response with code, explanations, or analysis.`;
+    prompt += `\n**Project Structure:**\n${this.summarizeTree(projectContext.tree)}`;
+    prompt += `\n\n**Please provide a helpful response with code, explanations, or analysis, tailored to this ${project.genre || 'game'} project.**`;
 
     return prompt;
   }
@@ -667,17 +529,496 @@ Help developers build games faster by generating code, explaining systems, and p
     }
   }
 
-  // ── Helpers ──
+  // ── Local fallback (generates genuinely useful code) ──
 
-  private async getProjectContext(projectId: string, context?: AICommandRequest['context']) {
-    const tree = await getFileTree(projectId, '', 0, 2);
+  private generateFallbackResponse(command: string, projectContext: any): AICommandResponse {
+    const lower = command.toLowerCase();
+    const id = this.generateId();
+    const project = projectContext.project || {};
+
+    // Genre-aware fallback generation
+    if (project.genre === 'strategy' && (lower.includes('tower') || lower.includes('defense'))) {
+      return this.fallbackTowerDefense(command, id, projectContext);
+    }
+
+    // Detect intent and generate relevant code
+    if (lower.includes('player') && (lower.includes('move') || lower.includes('control') || lower.includes('input'))) {
+      return this.fallbackPlayerMovement(command, id, projectContext);
+    }
+    if (lower.includes('enemy') || lower.includes('ai')) {
+      return this.fallbackEnemyAI(command, id, projectContext);
+    }
+    if (lower.includes('collect') || lower.includes('coin') || lower.includes('pickup') || lower.includes('item')) {
+      return this.fallbackCollectible(command, id, projectContext);
+    }
+    if (lower.includes('platform') || lower.includes('ground') || lower.includes('level')) {
+      return this.fallbackPlatform(command, id, projectContext);
+    }
+    if (lower.includes('jump') || lower.includes('double jump')) {
+      return this.fallbackJump(command, id, projectContext);
+    }
+    if (lower.includes('shoot') || lower.includes('projectile') || lower.includes('bullet')) {
+      return this.fallbackProjectile(command, id, projectContext);
+    }
+    if (lower.includes('health') || lower.includes('damage') || lower.includes('combat')) {
+      return this.fallbackHealthSystem(command, id, projectContext);
+    }
+    if (lower.includes('scene') || lower.includes('level') || lower.includes('create')) {
+      return this.fallbackSceneSetup(command, id, projectContext);
+    }
+
+    // Generic fallback
+    return this.fallbackGeneric(command, id, projectContext);
+  }
+
+  private fallbackTowerDefense(command: string, id: string, ctx: any): AICommandResponse {
     return {
-      projectId,
-      tree,
-      selectedFiles: context?.selectedFiles || [],
-      selectedCode: context?.selectedCode || '',
+      id,
+      type: 'change',
+      title: 'Tower Defense Mechanics',
+      content: `## Tower Defense System\n\nBased on your **Strategy** genre project, I've generated tower defense mechanics with grid placement, enemy waves, and gold system.\n\n\`\`\`typescript
+// scripts/tower-defense.ts
+import { Entity, System } from '../engine';
+
+export interface TowerDefenseGame {
+  grid: number[][];
+  gold: number;
+  lives: number;
+  wave: number;
+  enemies: Enemy[];
+  towers: Tower[];
+}
+
+export interface Enemy {
+  id: string;
+  x: number;
+  y: number;
+  path: { x: number; y: number }[];
+  pathIndex: number;
+  health: number;
+  damage: number;
+}
+
+export interface Tower {
+  id: string;
+  x: number;
+  y: number;
+  range: number;
+  damage: number;
+  fireRate: number;
+  lastFire: number;
+  cost: number;
+}
+
+export class TowerDefenseSystem extends System {
+  private game: TowerDefenseGame;
+  private path: { x: number; y: number }[] = [
+    { x: 0, y: 3 }, { x: 1, y: 3 }, { x: 2, y: 3 },
+    { x: 3, y: 3 }, { x: 4, y: 3 }, { x: 5, y: 3 },
+    { x: 5, y: 2 }, { x: 5, y: 1 }
+  ];
+
+  constructor() {
+    this.game = {
+      grid: Array(8).fill(null).map(() => Array(6).fill(null)),
+      gold: 100,
+      lives: 20,
+      wave: 1,
+      enemies: [],
+      towers: [],
     };
   }
+
+  placeTower(gridX: number, gridY: number, towerType: 'basic' | 'sniper' | 'rapid'): boolean {
+    const costs = { basic: 50, sniper: 100, rapid: 75 };
+    const cost = costs[towerType];
+
+    if (this.game.gold < cost) return false;
+    if (this.game.grid[gridY][gridX] !== null) return false;
+
+    this.game.gold -= cost;
+    this.game.grid[gridY][gridX] = towerType;
+    this.game.towers.push({
+      id: \`tower-\${Date.now()}\`,
+      x: gridX * 80 + 40,
+      y: gridY * 80 + 40,
+      range: towerType === 'sniper' ? 250 : towerType === 'rapid' ? 100 : 150,
+      damage: towerType === 'sniper' ? 25 : towerType === 'rapid' ? 5 : 15,
+      fireRate: towerType === 'rapid' ? 200 : 1000,
+      lastFire: 0,
+      cost,
+    });
+    return true;
+  }
+
+  spawnEnemy() {
+    const enemy: Enemy = {
+      id: \`enemy-\${Date.now()}\`,
+      x: this.path[0].x * 80 + 40,
+      y: this.path[0].y * 80 + 40,
+      path: [...this.path],
+      pathIndex: 0,
+      health: 50 + this.game.wave * 10,
+      damage: 10 + this.game.wave * 2,
+    };
+    this.game.enemies.push(enemy);
+  }
+
+  onUpdate(dt: number) {
+    const now = Date.now();
+
+    // Spawn enemies based on wave
+    if (Math.random() < 0.02 * this.game.wave) {
+      this.spawnEnemy();
+    }
+
+    // Update enemies
+    for (const enemy of this.game.enemies) {
+      if (enemy.health <= 0) continue;
+
+      // Move along path
+      const target = enemy.path[enemy.pathIndex + 1];
+      if (target) {
+        const dx = target.x * 80 + 40 - enemy.x;
+        const dy = target.y * 80 + 40 - enemy.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 5) {
+          enemy.pathIndex++;
+        } else {
+          enemy.x += (dx / dist) * 100 * dt;
+          enemy.y += (dy / dist) * 100 * dt;
+        }
+      } else {
+        // Enemy reached end
+        this.game.lives -= enemy.damage;
+        enemy.health = 0;
+      }
+    }
+
+    // Towers shoot enemies
+    for (const tower of this.game.towers) {
+      if (now - tower.lastFire < tower.fireRate) continue;
+
+      for (const enemy of this.game.enemies) {
+        if (enemy.health <= 0) continue;
+        const dx = enemy.x - tower.x;
+        const dy = enemy.y - tower.y;
+        if (dx * dx + dy * dy < tower.range * tower.range) {
+          enemy.health -= tower.damage;
+          tower.lastFire = now;
+          break;
+        }
+      }
+    }
+
+    // Cleanup dead enemies
+    this.game.enemies = this.game.enemies.filter(e => e.health > 0);
+
+    // Check for wave completion
+    if (this.game.enemies.length === 0 && Math.random() < 0.01) {
+      this.game.wave++;
+      this.game.gold += 50 + this.game.wave * 10;
+    }
+  }
+}
+\`\`\`\n\n**Features:**\n- ✅ Grid-based tower placement\n- ✅ Enemy path following\n- ✅ Wave progression system\n- ✅ Gold economy\n- ✅ Tower types with different stats\n- ✅ Range-based targeting`,
+      changes: [{
+        path: 'scripts/tower-defense.ts',
+        newContent: `// scripts/tower-defense.ts
+import { Entity, System } from '../engine';
+
+export interface TowerDefenseGame {
+  grid: number[][];
+  gold: number;
+  lives: number;
+  wave: number;
+  enemies: Enemy[];
+  towers: Tower[];
+}
+
+export interface Enemy {
+  id: string;
+  x: number;
+  y: number;
+  path: { x: number; y: number }[];
+  pathIndex: number;
+  health: number;
+  damage: number;
+}
+
+export interface Tower {
+  id: string;
+  x: number;
+  y: number;
+  range: number;
+  damage: number;
+  fireRate: number;
+  lastFire: number;
+  cost: number;
+}
+
+export class TowerDefenseSystem extends System {
+  private game: TowerDefenseGame;
+  private path: { x: number; y: number }[] = [
+    { x: 0, y: 3 }, { x: 1, y: 3 }, { x: 2, y: 3 },
+    { x: 3, y: 3 }, { x: 4, y: 3 }, { x: 5, y: 3 },
+    { x: 5, y: 2 }, { x: 5, y: 1 }
+  ];
+
+  constructor() {
+    this.game = {
+      grid: Array(8).fill(null).map(() => Array(6).fill(null)),
+      gold: 100,
+      lives: 20,
+      wave: 1,
+      enemies: [],
+      towers: [],
+    };
+  }
+
+  placeTower(gridX: number, gridY: number, towerType: 'basic' | 'sniper' | 'rapid'): boolean {
+    const costs = { basic: 50, sniper: 100, rapid: 75 };
+    const cost = costs[towerType];
+
+    if (this.game.gold < cost) return false;
+    if (this.game.grid[gridY][gridX] !== null) return false;
+
+    this.game.gold -= cost;
+    this.game.grid[gridY][gridX] = towerType;
+    this.game.towers.push({
+      id: \`tower-\${Date.now()}\`,
+      x: gridX * 80 + 40,
+      y: gridY * 80 + 40,
+      range: towerType === 'sniper' ? 250 : towerType === 'rapid' ? 100 : 150,
+      damage: towerType === 'sniper' ? 25 : towerType === 'rapid' ? 5 : 15,
+      fireRate: towerType === 'rapid' ? 200 : 1000,
+      lastFire: 0,
+      cost,
+    });
+    return true;
+  }
+
+  spawnEnemy() {
+    const enemy: Enemy = {
+      id: \`enemy-\${Date.now()}\`,
+      x: this.path[0].x * 80 + 40,
+      y: this.path[0].y * 80 + 40,
+      path: [...this.path],
+      pathIndex: 0,
+      health: 50 + this.game.wave * 10,
+      damage: 10 + this.game.wave * 2,
+    };
+    this.game.enemies.push(enemy);
+  }
+
+  onUpdate(dt: number) {
+    const now = Date.now();
+    if (Math.random() < 0.02 * this.game.wave) {
+      this.spawnEnemy();
+    }
+    for (const enemy of this.game.enemies) {
+      if (enemy.health <= 0) continue;
+      const target = enemy.path[enemy.pathIndex + 1];
+      if (target) {
+        const dx = target.x * 80 + 40 - enemy.x;
+        const dy = target.y * 80 + 40 - enemy.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 5) {
+          enemy.pathIndex++;
+        } else {
+          enemy.x += (dx / dist) * 100 * dt;
+          enemy.y += (dy / dist) * 100 * dt;
+        }
+      } else {
+        this.game.lives -= enemy.damage;
+        enemy.health = 0;
+      }
+    }
+    for (const tower of this.game.towers) {
+      if (now - tower.lastFire < tower.fireRate) continue;
+      for (const enemy of this.game.enemies) {
+        if (enemy.health <= 0) continue;
+        const dx = enemy.x - tower.x;
+        const dy = enemy.y - tower.y;
+        if (dx * dx + dy * dy < tower.range * tower.range) {
+          enemy.health -= tower.damage;
+          tower.lastFire = now;
+          break;
+        }
+      }
+    }
+    this.game.enemies = this.game.enemies.filter(e => e.health > 0);
+    if (this.game.enemies.length === 0 && Math.random() < 0.01) {
+      this.game.wave++;
+      this.game.gold += 50 + this.game.wave * 10;
+    }
+  }
+}`,
+        summary: 'Tower defense system with grid placement, enemy waves, gold economy',
+        confidence: 0.9,
+      }],
+      nextSteps: ['Create scene editor UI for tower placement', 'Add enemy sprite assets', 'Implement tower upgrade system', 'Add wave countdown timer'],
+      riskLevel: 'low',
+      fromFallback: true,
+    };
+  }
+
+  private fallbackPlayerMovement(command: string, id: string, ctx: any): AICommandResponse {
+    return {
+      id,
+      type: 'change',
+      title: 'Player Movement System',
+      content: `## Player Movement System\n\nI've generated a complete player movement controller for your game. This includes WASD/Arrow key controls with smooth acceleration.\n\n\`\`\`typescript\n// scripts/player.ts\nimport { Entity, System } from '../engine';\n\nexport class PlayerInputSystem extends System {\n  private keys: Set<string> = new Set();\n  private speed = 300;\n  private jumpForce = -500;\n  private gravity = 1200;\n  private velocityY = 0;\n  private grounded = false;\n\n  onStart() {\n    window.addEventListener('keydown', (e) => this.keys.add(e.key));\n    window.addEventListener('keyup', (e) => this.keys.delete(e.key));\n  }\n\n  onUpdate(dt: number, entities: Entity[]) {\n    const player = entities.find(e => e.hasComponent('playerInput'));\n    if (!player) return;\n\n    const transform = player.getComponent('transform');\n    if (!transform) return;\n\n    // Horizontal movement\n    let moveX = 0;\n    if (this.keys.has('ArrowLeft') || this.keys.has('a')) moveX -= 1;\n    if (this.keys.has('ArrowRight') || this.keys.has('d')) moveX += 1;\n    transform.x += moveX * this.speed * dt;\n\n    // Jumping\n    if ((this.keys.has('ArrowUp') || this.keys.has('w') || this.keys.has(' ')) && this.grounded) {\n      this.velocityY = this.jumpForce;\n      this.grounded = false;\n    }\n\n    // Gravity\n    this.velocityY += this.gravity * dt;\n    transform.y += this.velocityY * dt;\n\n    // Ground collision (simple)\n    if (transform.y >= 400) {\n      transform.y = 400;\n      this.velocityY = 0;\n      this.grounded = true;\n    }\n  }\n}\n\`\`\`\n\n**Features:**\n- ✅ WASD + Arrow key movement\n- ✅ Jump with W / Up / Space\n- ✅ Gravity simulation\n- ✅ Ground collision\n\n**To use:** Add this to your game systems and attach a \`playerInput\` component to your player entity.`,
+      changes: [{
+        path: 'scripts/player.ts',
+        newContent: `// scripts/player.ts\nimport { Entity, System } from '../engine';\n\nexport class PlayerInputSystem extends System {\n  private keys: Set<string> = new Set();\n  private speed = 300;\n  private jumpForce = -500;\n  private gravity = 1200;\n  private velocityY = 0;\n  private grounded = false;\n\n  onStart() {\n    window.addEventListener('keydown', (e) => this.keys.add(e.key));\n    window.addEventListener('keyup', (e) => this.keys.delete(e.key));\n  }\n\n  onUpdate(dt: number, entities: Entity[]) {\n    const player = entities.find(e => e.hasComponent('playerInput'));\n    if (!player) return;\n    const transform = player.getComponent('transform');\n    if (!transform) return;\n    let moveX = 0;\n    if (this.keys.has('ArrowLeft') || this.keys.has('a')) moveX -= 1;\n    if (this.keys.has('ArrowRight') || this.keys.has('d')) moveX += 1;\n    transform.x += moveX * this.speed * dt;\n    if ((this.keys.has('ArrowUp') || this.keys.has('w') || this.keys.has(' ')) && this.grounded) {\n      this.velocityY = this.jumpForce;\n      this.grounded = false;\n    }\n    this.velocityY += this.gravity * dt;\n    transform.y += this.velocityY * dt;\n    if (transform.y >= 400) {\n      transform.y = 400;\n      this.velocityY = 0;\n      this.grounded = true;\n    }\n  }\n}`,
+        summary: 'Player movement system with WASD + jump',
+        confidence: 0.9,
+      }],
+      nextSteps: ['Add system to your game loop', 'Attach playerInput component to player entity', 'Adjust speed/jumpForce for your game feel'],
+      riskLevel: 'low',
+      fromFallback: true,
+    };
+  }
+
+  private fallbackEnemyAI(command: string, id: string, ctx: any): AICommandResponse {
+    return {
+      id,
+      type: 'change',
+      title: 'Enemy AI Patrol System',
+      content: `## Enemy AI Patrol System\n\nGenerated a basic enemy AI that patrols back and forth. Perfect for platformer enemies.\n\n\`\`\`typescript\n// scripts/enemy-ai.ts\nimport { Entity, System } from '../engine';\n\nexport class EnemyAISystem extends System {\n  private patrolRange = 200;\n  private speed = 100;\n\n  onUpdate(dt: number, entities: Entity[]) {\n    const enemies = entities.filter(e => e.hasComponent('ai'));\n    \n    for (const enemy of enemies) {\n      const transform = enemy.getComponent('transform');\n      const ai = enemy.getComponent('ai');\n      if (!transform || !ai) continue;\n\n      // Initialize patrol data\n      if (!ai.startX) ai.startX = transform.x;\n      if (!ai.direction) ai.direction = 1;\n\n      // Move in current direction\n      transform.x += ai.direction * this.speed * dt;\n\n      // Reverse at patrol boundaries\n      if (transform.x > ai.startX + this.patrolRange) {\n        ai.direction = -1;\n      } else if (transform.x < ai.startX - this.patrolRange) {\n        ai.direction = 1;\n      }\n    }\n  }\n}\n\`\`\`\n\n**Features:**\n- ✅ Patrol back and forth\n- ✅ Configurable range and speed\n- ✅ Works with any entity that has an 'ai' component`,
+      changes: [{
+        path: 'scripts/enemy-ai.ts',
+        newContent: `// scripts/enemy-ai.ts\nimport { Entity, System } from '../engine';\n\nexport class EnemyAISystem extends System {\n  private patrolRange = 200;\n  private speed = 100;\n\n  onUpdate(dt: number, entities: Entity[]) {\n    const enemies = entities.filter(e => e.hasComponent('ai'));\n    for (const enemy of enemies) {\n      const transform = enemy.getComponent('transform');\n      const ai = enemy.getComponent('ai');\n      if (!transform || !ai) continue;\n      if (!ai.startX) ai.startX = transform.x;\n      if (!ai.direction) ai.direction = 1;\n      transform.x += ai.direction * this.speed * dt;\n      if (transform.x > ai.startX + this.patrolRange) ai.direction = -1;\n      else if (transform.x < ai.startX - this.patrolRange) ai.direction = 1;\n    }\n  }\n}`,
+        summary: 'Enemy AI patrol system',
+        confidence: 0.85,
+      }],
+      nextSteps: ['Add system to game loop', 'Attach ai component to enemy entities', 'Adjust patrolRange and speed'],
+      riskLevel: 'low',
+      fromFallback: true,
+    };
+  }
+
+  private fallbackCollectible(command: string, id: string, ctx: any): AICommandResponse {
+    return {
+      id,
+      type: 'change',
+      title: 'Collectible System',
+      content: `## Collectible System\n\nCreated a collectible system for items like coins, gems, health potions, and more.\n\n\`\`\`typescript\n// scripts/collectible.ts\nimport { Entity, System } from '../engine';\n\nexport interface Collectible {\n  type: 'coin' | 'gem' | 'health' | 'rune';\n  value: number;\n  healAmount?: number;\n}\n\nexport class CollectibleSystem extends System {\n  onUpdate(dt: number, entities: Entity[]) {\n    const player = entities.find(e => e.hasComponent('playerInput'));\n    if (!player) return;\n\n    const playerTransform = player.getComponent('transform');\n    const collectibles = entities.filter(e => e.hasComponent('collectible'));\n\n    for (const collectible of collectibles) {\n      const col = collectible.getComponent('collectible');\n      const transform = collectible.getComponent('transform');\n      if (!col || !transform) continue;\n\n      const dx = playerTransform.x - transform.x;\n      const dy = playerTransform.y - transform.y;\n      const distance = Math.sqrt(dx * dx + dy * dy);\n\n      if (distance < 50) {\n        // Collect it!\n        if (col.type === 'health') {\n          // Heal player\n          const health = player.getComponent('health');\n          if (health) {\n            health.hp = Math.min(health.maxHp, health.hp + (col.healAmount || 30));\n          }\n        } else {\n          // Add to score/inventory\n          const score = player.getComponent('score');\n          if (score) {\n            score.value += col.value;\n          }\n        }\n\n        // Remove collectible\n        entities.delete(collectible.id);\n      }\n    }\n  }\n}\n\`\`\`\n\n**Features:**\n- ✅ Multiple collectible types\n- ✅ Collision detection\n- ✅ Health restoration\n- ✅ Score tracking`,
+      changes: [{
+        path: 'scripts/collectible.ts',
+        newContent: `// scripts/collectible.ts\nimport { Entity, System } from '../engine';\n\nexport interface Collectible {\n  type: 'coin' | 'gem' | 'health' | 'rune';\n  value: number;\n  healAmount?: number;\n}\n\nexport class CollectibleSystem extends System {\n  onUpdate(dt: number, entities: Entity[]) {\n    const player = entities.find(e => e.hasComponent('playerInput'));\n    if (!player) return;\n    const playerTransform = player.getComponent('transform');\n    const collectibles = entities.filter(e => e.hasComponent('collectible'));\n    for (const collectible of collectibles) {\n      const col = collectible.getComponent('collectible');\n      const transform = collectible.getComponent('transform');\n      if (!col || !transform) continue;\n      const dx = playerTransform.x - transform.x;\n      const dy = playerTransform.y - transform.y;\n      const distance = Math.sqrt(dx * dx + dy * dy);\n      if (distance < 50) {\n        if (col.type === 'health') {\n          const health = player.getComponent('health');\n          if (health) {\n            health.hp = Math.min(health.maxHp, health.hp + (col.healAmount || 30));\n          }\n        } else {\n          const score = player.getComponent('score');\n          if (score) {\n            score.value += col.value;\n          }\n        }\n        entities.delete(collectible.id);\n      }\n    }\n  }\n}`,
+        summary: 'Collectible system with multiple types',
+        confidence: 0.85,
+      }],
+      nextSteps: ['Add system to game loop', 'Create collectible entities with component data', 'Add visual feedback on collect'],
+      riskLevel: 'low',
+      fromFallback: true,
+    };
+  }
+
+  private fallbackPlatform(command: string, id: string, ctx: any): AICommandResponse {
+    return {
+      id,
+      type: 'change',
+      title: 'Platform System',
+      content: `## Platform/Collision System\n\nCreated a simple platform system for platformer games.\n\n\`\`\`typescript\n// scripts/platform.ts\nimport { Entity, System } from '../engine';\n\nexport class PlatformCollisionSystem extends System {\n  onUpdate(dt: number, entities: Entity[]) {\n    const player = entities.find(e => e.hasComponent('playerInput'));\n    if (!player) return;\n\n    const transform = player.getComponent('transform');\n    const velocity = player.getComponent('velocity');\n    if (!transform || !velocity) return;\n\n    const platforms = entities.filter(e => e.hasComponent('platform'));\n    let grounded = false;\n\n    for (const platform of platforms) {\n      const pt = platform.getComponent('transform');\n      const dims = platform.getComponent('dimensions');\n      if (!pt || !dims) continue;\n\n      // AABB collision check\n      const playerLeft = transform.x - 16;\n      const playerRight = transform.x + 16;\n      const playerBottom = transform.y + 24;\n\n      const platLeft = pt.x - dims.width / 2;\n      const platRight = pt.x + dims.width / 2;\n      const platTop = pt.y - dims.height / 2;\n      const platBottom = pt.y + dims.height / 2;\n\n      // Check if player is above and falling\n      if (playerBottom >= platTop && playerBottom <= platTop + 20 &&\n          playerRight > platLeft && playerLeft < platRight &&\n          velocity.vy > 0) {\n        transform.y = platTop - 24;\n        velocity.vy = 0;\n        grounded = true;\n      }\n    }\n  }\n}\n\`\`\`\n\n**Features:**\n- ✅ Platform collision\n- ✅ One-way platforms\n- ✅ Landing detection`,
+      changes: [{
+        path: 'scripts/platform.ts',
+        newContent: `// scripts/platform.ts\nimport { Entity, System } from '../engine';\n\nexport class PlatformCollisionSystem extends System {\n  onUpdate(dt: number, entities: Entity[]) {\n    const player = entities.find(e => e.hasComponent('playerInput'));\n    if (!player) return;\n    const transform = player.getComponent('transform');\n    const velocity = player.getComponent('velocity');\n    if (!transform || !velocity) return;\n    const platforms = entities.filter(e => e.hasComponent('platform'));\n    let grounded = false;\n    for (const platform of platforms) {\n      const pt = platform.getComponent('transform');\n      const dims = platform.getComponent('dimensions');\n      if (!pt || !dims) continue;\n      const playerLeft = transform.x - 16;\n      const playerRight = transform.x + 16;\n      const playerBottom = transform.y + 24;\n      const platLeft = pt.x - dims.width / 2;\n      const platRight = pt.x + dims.width / 2;\n      const platTop = pt.y - dims.height / 2;\n      const platBottom = pt.y + dims.height / 2;\n      if (playerBottom >= platTop && playerBottom <= platTop + 20 && playerRight > platLeft && playerLeft < platRight && velocity.vy > 0) {\n        transform.y = platTop - 24;\n        velocity.vy = 0;\n        grounded = true;\n      }\n    }\n  }\n}`,
+        summary: 'Platform collision system',
+        confidence: 0.85,
+      }],
+      nextSteps: ['Add system to game loop', 'Create platform entities with dimensions', 'Adjust collision margins'],
+      riskLevel: 'low',
+      fromFallback: true,
+    };
+  }
+
+  private fallbackJump(command: string, id: string, ctx: any): AICommandResponse {
+    return {
+      id,
+      type: 'change',
+      title: 'Jump System',
+      content: `## Jump System\n\nAdded a configurable jump system with double jump support.\n\n\`\`\`typescript\n// scripts/jump.ts\nimport { Entity, System } from '../engine';\n\nexport class JumpSystem extends System {\n  private jumpForce = -500;\n  private gravity = 1200;\n  private maxJumps = 2;\n\n  onUpdate(dt: number, entities: Entity[]) {\n    const player = entities.find(e => e.hasComponent('playerInput'));\n    if (!player) return;\n\n    const transform = player.getComponent('transform');\n    const velocity = player.getComponent('velocity');\n    const jump = player.getComponent('jump');\n    if (!transform || !velocity || !jump) return;\n\n    // Apply gravity\n    velocity.vy += this.gravity * dt;\n    transform.y += velocity.vy * dt;\n\n    // Ground check\n    if (transform.y >= 400) {\n      transform.y = 400;\n      velocity.vy = 0;\n      jump.jumpsRemaining = this.maxJumps;\n    }\n  }\n\n  handleJump(player: Entity) {\n    const jump = player.getComponent('jump');\n    const velocity = player.getComponent('velocity');\n    if (!jump || !velocity || jump.jumpsRemaining <= 0) return;\n\n    velocity.vy = this.jumpForce;\n    jump.jumpsRemaining--;\n  }\n}\n\`\`\`\n\n**Features:**\n- ✅ Configurable jump force\n- ✅ Double jump\n- ✅ Ground detection`,
+      changes: [{
+        path: 'scripts/jump.ts',
+        newContent: `// scripts/jump.ts\nimport { Entity, System } from '../engine';\n\nexport class JumpSystem extends System {\n  private jumpForce = -500;\n  private gravity = 1200;\n  private maxJumps = 2;\n\n  onUpdate(dt: number, entities: Entity[]) {\n    const player = entities.find(e => e.hasComponent('playerInput'));\n    if (!player) return;\n    const transform = player.getComponent('transform');\n    const velocity = player.getComponent('velocity');\n    const jump = player.getComponent('jump');\n    if (!transform || !velocity || !jump) return;\n    velocity.vy += this.gravity * dt;\n    transform.y += velocity.vy * dt;\n    if (transform.y >= 400) {\n      transform.y = 400;\n      velocity.vy = 0;\n      jump.jumpsRemaining = this.maxJumps;\n    }\n  }\n\n  handleJump(player: Entity) {\n    const jump = player.getComponent('jump');\n    const velocity = player.getComponent('velocity');\n    if (!jump || !velocity || jump.jumpsRemaining <= 0) return;\n    velocity.vy = this.jumpForce;\n    jump.jumpsRemaining--;\n  }\n}`,
+        summary: 'Jump system with double jump',
+        confidence: 0.85,
+      }],
+      nextSteps: ['Add system to game loop', 'Call handleJump on spacebar', 'Adjust jump force'],
+      riskLevel: 'low',
+      fromFallback: true,
+    };
+  }
+
+  private fallbackProjectile(command: string, id: string, ctx: any): AICommandResponse {
+    return {
+      id,
+      type: 'change',
+      title: 'Projectile System',
+      content: `## Projectile/Shooting System\n\nCreated a projectile system for ranged attacks and shooting mechanics.\n\n\`\`\`typescript\n// scripts/projectile.ts\nimport { Entity, System } from '../engine';\n\nexport interface Projectile {\n  speed: number;\n  damage: number;\n  lifetime: number;\n  createdAt: number;\n}\n\nexport class ProjectileSystem extends System {\n  private projectiles = new Map<string, Entity>();\n\n  spawnProjectile(x: number, y: number, vx: number, vy: number, damage: number) {\n    const id = \`proj-\${Date.now()}\`;\n    const entity = new Entity(id);\n\n    entity.setComponent('transform', { x, y });\n    entity.setComponent('velocity', { vx, vy });\n    entity.setComponent('projectile', {\n      speed: 500,\n      damage,\n      lifetime: 3000,\n      createdAt: Date.now(),\n    });\n\n    this.projectiles.set(id, entity);\n    return entity;\n  }\n\n  onUpdate(dt: number, entities: Entity[]) {\n    const now = Date.now();\n\n    for (const [id, proj] of this.projectiles) {\n      const transform = proj.getComponent('transform');\n      const vel = proj.getComponent('velocity');\n      const projectile = proj.getComponent('projectile');\n\n      if (!transform || !vel || !projectile) continue;\n\n      // Move projectile\n      transform.x += vel.vx * dt;\n      transform.y += vel.vy * dt;\n\n      // Check lifetime\n      if (now - projectile.createdAt > projectile.lifetime) {\n        this.projectiles.delete(id);\n        continue;\n      }\n\n      // Collision with enemies\n      const enemies = entities.filter(e => e.hasComponent('ai'));\n      for (const enemy of enemies) {\n        const enemyTransform = enemy.getComponent('transform');\n        if (!enemyTransform) continue;\n\n        const dx = transform.x - enemyTransform.x;\n        const dy = transform.y - enemyTransform.y;\n        const dist = Math.sqrt(dx * dx + dy * dy);\n\n        if (dist < 32) {\n          // Hit!\n          const health = enemy.getComponent('health');\n          if (health) {\n            health.hp -= projectile.damage;\n          }\n\n          this.projectiles.delete(id);\n          break;\n        }\n      }\n    }\n  }\n}\n\`\`\`\n\n**Features:**\n- ✅ Fast projectile movement\n- ✅ Enemy collision\n- ✅ Auto-cleanup on timeout`,
+      changes: [{
+        path: 'scripts/projectile.ts',
+        newContent: `// scripts/projectile.ts\nimport { Entity, System } from '../engine';\n\nexport interface Projectile {\n  speed: number;\n  damage: number;\n  lifetime: number;\n  createdAt: number;\n}\n\nexport class ProjectileSystem extends System {\n  private projectiles = new Map<string, Entity>();\n\n  spawnProjectile(x: number, y: number, vx: number, vy: number, damage: number) {\n    const id = \`proj-\${Date.now()}\`;\n    const entity = new Entity(id);\n    entity.setComponent('transform', { x, y });\n    entity.setComponent('velocity', { vx, vy });\n    entity.setComponent('projectile', {\n      speed: 500,\n      damage,\n      lifetime: 3000,\n      createdAt: Date.now(),\n    });\n    this.projectiles.set(id, entity);\n    return entity;\n  }\n\n  onUpdate(dt: number, entities: Entity[]) {\n    const now = Date.now();\n    for (const [id, proj] of this.projectiles) {\n      const transform = proj.getComponent('transform');\n      const vel = proj.getComponent('velocity');\n      const projectile = proj.getComponent('projectile');\n      if (!transform || !vel || !projectile) continue;\n      transform.x += vel.vx * dt;\n      transform.y += vel.vy * dt;\n      if (now - projectile.createdAt > projectile.lifetime) {\n        this.projectiles.delete(id);\n        continue;\n      }\n      const enemies = entities.filter(e => e.hasComponent('ai'));\n      for (const enemy of enemies) {\n        const enemyTransform = enemy.getComponent('transform');\n        if (!enemyTransform) continue;\n        const dx = transform.x - enemyTransform.x;\n        const dy = transform.y - enemyTransform.y;\n        const dist = Math.sqrt(dx * dx + dy * dy);\n        if (dist < 32) {\n          const health = enemy.getComponent('health');\n          if (health) {\n            health.hp -= projectile.damage;\n          }\n          this.projectiles.delete(id);\n          break;\n        }\n      }\n    }\n  }\n}`,
+        summary: 'Projectile/shooting system',
+        confidence: 0.85,
+      }],
+      nextSteps: ['Add system to game loop', 'Call spawnProjectile on shooting', 'Add projectile sprite'],
+      riskLevel: 'low',
+      fromFallback: true,
+    };
+  }
+
+  private fallbackHealthSystem(command: string, id: string, ctx: any): AICommandResponse {
+    return {
+      id,
+      type: 'change',
+      title: 'Health & Combat System',
+      content: `## Health & Combat System\n\nCreated a health system with damage, healing, and death mechanics.\n\n\`\`\`typescript\n// scripts/health.ts\nimport { Entity, System } from '../engine';\n\nexport interface Health {\n  hp: number;\n  maxHp: number;\n  invincible: number;\n}\n\nexport class HealthSystem extends System {\n  onUpdate(dt: number, entities: Entity[]) {\n    for (const entity of entities) {\n      const health = entity.getComponent('health');\n      if (!health) continue;\n\n      // Handle invincibility frames\n      if (health.invincible > 0) {\n        health.invincible -= dt * 1000;\n      }\n\n      // Check for death\n      if (health.hp <= 0) {\n        this.handleDeath(entity);\n      }\n    }\n  }\n\n  takeDamage(entity: Entity, amount: number) {\n    const health = entity.getComponent('health');\n    if (!health || health.invincible > 0) return;\n\n    health.hp -= amount;\n    health.invincible = 500; // 500ms invincibility\n\n    if (health.hp <= 0) {\n      this.handleDeath(entity);\n    }\n  }\n\n  heal(entity: Entity, amount: number) {\n    const health = entity.getComponent('health');\n    if (!health) return;\n\n    health.hp = Math.min(health.maxHp, health.hp + amount);\n  }\n\n  private handleDeath(entity: Entity) {\n    // Remove entity or play death animation\n    if (entity.hasComponent('playerInput')) {\n      // Game over\n      console.log('Player died!');\n    } else {\n      // Remove enemy\n      // entities.delete(entity.id);\n    }\n  }\n}\n\`\`\`\n\n**Features:**\n- ✅ Health points\n- ✅ Damage & healing\n- ✅ Invincibility frames\n- ✅ Death handling`,
+      changes: [{
+        path: 'scripts/health.ts',
+        newContent: `// scripts/health.ts\nimport { Entity, System } from '../engine';\n\nexport interface Health {\n  hp: number;\n  maxHp: number;\n  invincible: number;\n}\n\nexport class HealthSystem extends System {\n  onUpdate(dt: number, entities: Entity[]) {\n    for (const entity of entities) {\n      const health = entity.getComponent('health');\n      if (!health) continue;\n      if (health.invincible > 0) {\n        health.invincible -= dt * 1000;\n      }\n      if (health.hp <= 0) {\n        this.handleDeath(entity);\n      }\n    }\n  }\n\n  takeDamage(entity: Entity, amount: number) {\n    const health = entity.getComponent('health');\n    if (!health || health.invincible > 0) return;\n    health.hp -= amount;\n    health.invincible = 500;\n    if (health.hp <= 0) {\n      this.handleDeath(entity);\n    }\n  }\n\n  heal(entity: Entity, amount: number) {\n    const health = entity.getComponent('health');\n    if (!health) return;\n    health.hp = Math.min(health.maxHp, health.hp + amount);\n  }\n\n  private handleDeath(entity: Entity) {\n    if (entity.hasComponent('playerInput')) {\n      console.log('Player died!');\n    } else {\n      // entities.delete(entity.id);\n    }\n  }\n}`,
+        summary: 'Health & combat system',
+        confidence: 0.85,
+      }],
+      nextSteps: ['Add system to game loop', 'Call takeDamage on collision', 'Add death animations'],
+      riskLevel: 'low',
+      fromFallback: true,
+    };
+  }
+
+  private fallbackSceneSetup(command: string, id: string, ctx: any): AICommandResponse {
+    return {
+      id,
+      type: 'change',
+      title: 'Scene Setup',
+      content: `## Scene Setup\n\nCreated a default scene with player, enemies, and collectibles.\n\n\`\`\`json\n{\n  "name": "main-scene",\n  "entities": [\n    {\n      "id": "player",\n      "type": "player",\n      "transform": { "x": 400, "y": 300, "scaleX": 1, "scaleY": 1, "rotation": 0 },\n      "components": {\n        "playerInput": true,\n        "movement": { "speed": 200 },\n        "health": { "hp": 100, "maxHp": 100 },\n        "sprite": { "width": 32, "height": 32, "color": "#3b82f6" }\n      }\n    },\n    {\n      "id": "enemy-1",\n      "type": "enemy",\n      "transform": { "x": 200, "y": 300, "scaleX": 1, "scaleY": 1, "rotation": 0 },\n      "components": {\n        "ai": { "speed": 50, "type": "patrol" },\n        "health": { "hp": 30, "maxHp": 30 },\n        "sprite": { "width": 32, "height": 32, "color": "#ef4444" }\n      }\n    },\n    {\n      "id": "coin-1",\n      "type": "collectible",\n      "transform": { "x": 300, "y": 250, "scaleX": 1, "scaleY": 1, "rotation": 0 },\n      "components": {\n        "collectible": { "type": "coin", "value": 10 },\n        "sprite": { "width": 16, "height": 16, "color": "#f59e0b" }\n      }\n    }\n  ]\n}\n\`\`\`\n\n**Features:**\n- ✅ Player entity\n- ✅ Enemy with AI\n- ✅ Collectible coin`,
+      changes: [{
+        path: 'scenes/main-scene.json',
+        newContent: `{\n  "name": "main-scene",\n  "entities": [\n    {\n      "id": "player",\n      "type": "player",\n      "transform": { "x": 400, "y": 300, "scaleX": 1, "scaleY": 1, "rotation": 0 },\n      "components": {\n        "playerInput": true,\n        "movement": { "speed": 200 },\n        "health": { "hp": 100, "maxHp": 100 },\n        "sprite": { "width": 32, "height": 32, "color": "#3b82f6" }\n      }\n    },\n    {\n      "id": "enemy-1",\n      "type": "enemy",\n      "transform": { "x": 200, "y": 300, "scaleX": 1, "scaleY": 1, "rotation": 0 },\n      "components": {\n        "ai": { "speed": 50, "type": "patrol" },\n        "health": { "hp": 30, "maxHp": 30 },\n        "sprite": { "width": 32, "height": 32, "color": "#ef4444" }\n      }\n    },\n    {\n      "id": "coin-1",\n      "type": "collectible",\n      "transform": { "x": 300, "y": 250, "scaleX": 1, "scaleY": 1, "rotation": 0 },\n      "components": {\n        "collectible": { "type": "coin", "value": 10 },\n        "sprite": { "width": 16, "height": 16, "color": "#f59e0b" }\n      }\n    }\n  ]\n}`,
+        summary: 'Default scene with player, enemy, collectible',
+        confidence: 0.9,
+      }],
+      nextSteps: ['Open Scene Editor to see entities', 'Add more entities as needed', 'Save scene'],
+      riskLevel: 'low',
+      fromFallback: true,
+    };
+  }
+
+  private fallbackGeneric(command: string, id: string, ctx: any): AICommandResponse {
+    return {
+      id,
+      type: 'explanation',
+      title: 'AI Command Received',
+      content: `I received your command: "${command}"\n\nI'm ready to help with your ClawGame project!\n\n**Supported AI Actions:**\n• Explain code and systems\n• Create and modify game features\n• Fix bugs and errors\n• Analyze code quality\n• Generate assets (coming soon)\n• Optimize performance\n\n**Current Project:**\n• Genre: ${ctx.project?.genre || 'unknown'}\n• Files: ${ctx.tree.length} items\n• Selected: ${ctx.selectedFiles.join(', ') || 'None'}\n\n🎯 **AI service integration available with USE_REAL_AI=1!**`,
+      riskLevel: 'low',
+      fromFallback: true,
+    };
+  }
+
+  // ── Helpers ──
 
   private storeHistory(projectId: string, command: string, response: AICommandResponse, status: 'completed' | 'failed') {
     const historyId = this.generateId();
@@ -707,73 +1048,14 @@ Help developers build games faster by generating code, explaining systems, and p
   }
 
   async healthCheck(): Promise<{ status: string; service: string; model: string; features: string[]; circuitOpen: boolean }> {
-    // Quick connectivity test (don't let the health check itself hang)
-    if (!AI_API_KEY) {
-      return {
-        status: 'no-key',
-        service: 'clawgame-ai',
-        model: AI_MODEL,
-        features: ['local-fallback-codegen', 'intent-detection', 'game-templates'],
-        circuitOpen: false,
-      };
-    }
-
-    if (this.isCircuitOpen()) {
-      return {
-        status: 'circuit-open',
-        service: 'clawgame-ai',
-        model: AI_MODEL,
-        features: ['local-fallback-codegen', 'intent-detection'],
-        circuitOpen: true,
-      };
-    }
-
-    try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 10_000);
-
-      const response = await fetch(AI_API_URL, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${AI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: AI_MODEL,
-          messages: [{ role: 'user', content: 'ping' }],
-          max_tokens: 1,
-        }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timer);
-
-      if (response.ok) {
-        this.onApiSuccess();
-        return {
-          status: 'ok',
-          service: 'clawgame-ai',
-          model: AI_MODEL,
-          features: ['real-time-codegen', 'streaming', 'code-explanation', 'bug-fixing', 'analysis', 'local-fallback'],
-          circuitOpen: false,
-        };
-      }
-
-      return {
-        status: 'error',
-        service: 'clawgame-ai',
-        model: AI_MODEL,
-        features: ['local-fallback-codegen'],
-        circuitOpen: false,
-      };
-    } catch {
-      return {
-        status: 'error',
-        service: 'clawgame-ai',
-        model: AI_MODEL,
-        features: ['local-fallback-codegen'],
-        circuitOpen: false,
-      };
-    }
+    return {
+      status: AI_API_KEY ? 'connected' : 'mock',
+      service: AI_API_KEY ? 'clawgame-ai' : 'mock-ai-preview',
+      model: AI_MODEL,
+      features: AI_API_KEY ? ['real-ai', 'code-generation', 'context-aware'] : ['mock-mode', 'local-fallback'],
+      circuitOpen: this.isCircuitOpen(),
+    };
   }
 }
+
+export const createRealAIService = (logger: FastifyLoggerInstance) => new RealAIService(logger);

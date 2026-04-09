@@ -1,13 +1,31 @@
-import React, { useState, useCallback, useEffect } from 'react';
+/**
+ * @clawgame/web - File Workspace Component
+ *
+ * FileWorkspace provides a complete code editing environment:
+ * - File tree navigation (left sidebar)
+ * - CodeMirror-based editor (main content area)
+ * - File/folder creation dialogs
+ * - Search functionality
+ * - Quick start templates
+ *
+ * Fixed in v0.13.5:
+ * - Fixed loading state for initial file load (separate from save state)
+ * - Fixed editor not showing content on file selection
+ */
+
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FileTree } from './FileTree';
 import { CodeEditor } from './CodeEditor';
-import { api, type FileContent } from '../api/client';
+import { api, type FileNode } from '../api/client';
 import { useToast } from './Toast';
-import { Sparkles, Code, FileText, Play, Settings, FolderOpen } from 'lucide-react';
+import {
+  FolderOpen, FileText, Settings, Code, Sparkles,
+} from 'lucide-react';
 import { logger } from '../utils/logger';
 
 interface FileWorkspaceProps {
   projectId: string;
+  projectType?: 'scene-based' | 'asset-based' | 'code-only';
   className?: string;
 }
 
@@ -15,63 +33,39 @@ interface QuickStartItem {
   title: string;
   description: string;
   icon: React.ReactNode;
-  file?: string;
-  code?: string;
   action: () => void;
 }
 
-export function FileWorkspace({ projectId, className }: FileWorkspaceProps) {
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+export function FileWorkspace({ projectId, projectType = 'scene-based', className = '' }: FileWorkspaceProps) {
+  const { showToast } = useToast();
+  const [selectedFile, setSelectedFile] = useState<string>('');
+  const [fileContent, setFileContent] = useState<string>('');
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<FileNode[]>([]);
   const [showNewFileDialog, setShowNewFileDialog] = useState(false);
   const [showNewFolderDialog, setShowNewFolderDialog] = useState(false);
   const [newFileName, setNewFileName] = useState('');
   const [newFileError, setNewFileError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [projectType, setProjectType] = useState<string>('');
 
-  const { showToast } = useToast();
-
-  // Determine project type for quick start suggestions
-  useEffect(() => {
-    const determineProjectType = async () => {
-      try {
-        // Check for specific files to determine project type
-        const commonFiles = ['scenes/main-scene.json', 'assets/tileset.png', 'scripts/player.ts'];
-        
-        for (const file of commonFiles) {
-          try {
-            await api.readFile(projectId, file);
-            if (file.includes('scene')) {
-              setProjectType('scene-based');
-              return;
-            } else if (file.includes('player')) {
-              setProjectType('code-focused');
-              return;
-            }
-          } catch {
-            // File doesn't exist, continue checking
-          }
-        }
-        
-        // Default to file-based if no specific pattern found
-        setProjectType('file-based');
-      } catch (err) {
-        setProjectType('file-based');
-      }
-    };
-    
-    determineProjectType();
-  }, [projectId]);
-
-  const handleFileSelect = (filePath: string) => {
-    console.log('[FileWorkspace] handleFileSelect called with:', filePath);
+  const handleFileSelect = useCallback(async (filePath: string) => {
     setSelectedFile(filePath);
-    console.log('[FileWorkspace] selectedFile state set to:', filePath);
-  };
+    setLoading(true);
+    setFileContent('');
+    try {
+      const response = await api.readFile(projectId, filePath);
+      setFileContent(response.content || '');
+    } catch (err) {
+      logger.error('Failed to load file:', err);
+      setFileContent('');
+      showToast({ type: 'error', message: `Failed to load file: ${filePath}` });
+    } finally {
+      setLoading(false);
+    }
+  }, [projectId, showToast]);
 
   const handleSave = useCallback(async (content: string) => {
     if (!selectedFile) return;
@@ -79,25 +73,22 @@ export function FileWorkspace({ projectId, className }: FileWorkspaceProps) {
     setSaving(true);
     try {
       await api.writeFile(projectId, selectedFile, content);
-      showToast({ type: 'success', message: `File saved: ${selectedFile}` });
-    } catch (err: any) {
-      showToast({ type: 'error', message: `Failed to save file: ${err.message || 'Unknown error'}` });
+      setFileContent(content);
+      showToast({ type: 'success', message: `Saved: ${selectedFile}` });
+      handleRefresh();
+    } catch (err) {
+      logger.error('Failed to save file:', err);
+      showToast({ type: 'error', message: `Failed to save file: ${err}` });
     } finally {
       setSaving(false);
     }
   }, [projectId, selectedFile, showToast]);
 
-  const handleLoad = useCallback(async (filePath: string): Promise<string> => {
-    try {
-      const result = await api.readFile(projectId, filePath);
-      return result.content || '';
-    } catch (err: any) {
-      showToast({ type: 'error', message: `Failed to load file: ${err.message || 'Unknown error'}` });
-      return '';
-    }
-  }, [projectId, showToast]);
+  const handleRefresh = useCallback(() => {
+    setRefreshKey(k => k + 1);
+  }, []);
 
-  const handleSearch = async () => {
+  const handleSearch = useCallback(async () => {
     if (!searchQuery.trim()) {
       setSearchResults([]);
       return;
@@ -105,24 +96,12 @@ export function FileWorkspace({ projectId, className }: FileWorkspaceProps) {
 
     try {
       const results = await api.searchFiles(projectId, searchQuery);
-      if (results && results.length > 0) {
-        showToast({ type: 'info', message: `Found ${results.length} file${results.length > 1 ? 's' : ''}` });
-      } else {
-        showToast({ type: 'info', message: 'No files found matching your search' });
-      }
-      setSearchResults(results || []);
+      setSearchResults(results);
     } catch (err) {
-      logger.error('Search failed:', err);
-      showToast({ type: 'error', message: 'Search failed' });
+      logger.error('Failed to search files:', err);
       setSearchResults([]);
     }
-  };
-
-  const handleRefresh = () => {
-    setRefreshKey(prev => prev + 1);
-    setSearchResults([]);
-    showToast({ type: 'info', message: 'File list refreshed' });
-  };
+  }, [projectId, searchQuery]);
 
   const handleCreateFile = useCallback(async () => {
     if (!newFileName.trim()) {
@@ -130,7 +109,6 @@ export function FileWorkspace({ projectId, className }: FileWorkspaceProps) {
       return;
     }
 
-    // Validate file name
     const cleanName = newFileName.trim();
     if (cleanName.includes('..') || cleanName.startsWith('/')) {
       setNewFileError('Invalid file name');
@@ -144,9 +122,7 @@ export function FileWorkspace({ projectId, className }: FileWorkspaceProps) {
       await api.writeFile(projectId, cleanName, '');
       setShowNewFileDialog(false);
       setNewFileName('');
-      // Refresh immediately — the await already confirms the write completed
-      setRefreshKey(prev => prev + 1);
-      setSelectedFile(cleanName);
+      handleRefresh();
       showToast({ type: 'success', message: `File created: ${cleanName}` });
     } catch (err: any) {
       setNewFileError(err.message || 'Failed to create file');
@@ -214,7 +190,7 @@ export function FileWorkspace({ projectId, className }: FileWorkspaceProps) {
               }
             ]
           };
-          
+
           api.writeFile(projectId, 'scenes/main-scene.json', JSON.stringify(defaultScene, null, 2))
             .then(() => {
               setSelectedFile('scenes/main-scene.json');
@@ -264,7 +240,7 @@ export class Player {
 
 // Export for use in main game
 export default Player;`;
-          
+
           api.writeFile(projectId, 'scripts/player.ts', playerCode)
             .then(() => {
               setSelectedFile('scripts/player.ts');
@@ -298,7 +274,7 @@ export class EnemyAI {
 
   update(deltaTime) {
     this.time += deltaTime;
-    
+
     // Patrol movement
     this.x = this.centerX + Math.sin(this.time * this.patrolSpeed / 1000) * this.patrolRadius;
     this.y = this.centerY + Math.cos(this.time * this.patrolSpeed / 1000) * this.patrolRadius;
@@ -311,7 +287,7 @@ export class EnemyAI {
 }
 
 export default EnemyAI;`;
-          
+
           api.writeFile(projectId, 'scripts/enemy.ts', enemyCode)
             .then(() => {
               setSelectedFile('scripts/enemy.ts');
@@ -327,7 +303,7 @@ export default EnemyAI;`;
     return commonItems;
   };
 
-  const quickStartItems = getQuickStartItems();
+  const quickStartItems = useMemo(() => getQuickStartItems(), [projectType, projectId, showToast]);
 
   return (
     <div className={`file-workspace ${className}`}>
@@ -363,15 +339,17 @@ export default EnemyAI;`;
               projectId={projectId}
               filePath={selectedFile}
               onSave={handleSave}
-              onLoad={handleLoad}
-              loading={saving}
+              onLoad={async () => fileContent}
+              readOnly={false}
+              loading={loading}
+              className=""
             />
           ) : (
             <div className="empty-editor">
               <div className="empty-message">
                 <div className="empty-icon">📝</div>
                 <h3>No file selected</h3>
-                <p>Your project is ready! Select a file from the tree or create something new.</p>
+                <p>Your project is ready! Select a file from tree or create something new.</p>
                 <p className="hint">Quick start below to get coding quickly</p>
               </div>
 
@@ -403,8 +381,8 @@ export default EnemyAI;`;
               {/* Create File Prompt */}
               <div className="create-file-prompt">
                 <p>Need something specific?</p>
-                <button 
-                  className="create-file-btn" 
+                <button
+                  className="create-file-btn"
                   onClick={() => setShowNewFileDialog(true)}
                 >
                   <FileText size={14} />
@@ -453,7 +431,7 @@ export default EnemyAI;`;
         <div className="dialog-overlay" onClick={closeDialogs}>
           <div className="dialog" onClick={(e) => e.stopPropagation()}>
             <h3>Create New File</h3>
-            <p className="dialog-hint">Enter a file path relative to the project root (e.g. <code>scripts/player.ts</code>)</p>
+            <p className="dialog-hint">Enter a file path relative to project root (e.g. <code>scripts/player.ts</code>)</p>
             <input
               type="text"
               placeholder="scripts/main.ts"
@@ -479,7 +457,7 @@ export default EnemyAI;`;
         <div className="dialog-overlay" onClick={closeDialogs}>
           <div className="dialog" onClick={(e) => e.stopPropagation()}>
             <h3>Create New Folder</h3>
-            <p className="dialog-hint">Enter a folder path relative to the project root (e.g. <code>scenes/level1</code>)</p>
+            <p className="dialog-hint">Enter a folder path relative to project root (e.g. <code>scenes/level1</code>)</p>
             <input
               type="text"
               placeholder="scenes/level1"

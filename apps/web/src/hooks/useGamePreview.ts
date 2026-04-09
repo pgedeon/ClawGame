@@ -1,6 +1,10 @@
 /**
  * @clawgame/web - Game Preview Hook
  * Extracted from GamePreviewPage: game loop, RPG state, and event handlers.
+ *
+ * Fixed in v0.13.5:
+ * - Added default scene with player entity when projectScene is null/empty
+ * - Fixed empty canvas issue by always ensuring entities are available
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
@@ -27,6 +31,49 @@ const TYPE_COLORS: Record<string, string> = {
 const TYPE_SIZES: Record<string, [number, number]> = {
   player: [32, 48], enemy: [32, 32], collectible: [16, 16],
   obstacle: [32, 32], npc: [32, 48], unknown: [32, 32],
+};
+
+/* ─── Default scene fallback for empty/null scenes ─── */
+const DEFAULT_SCENE: ProjectScene = {
+  entities: [
+    {
+      id: 'player',
+      type: 'player',
+      transform: { x: 400, y: 300, scaleX: 1, scaleY: 1, rotation: 0 },
+      components: {
+        playerInput: true,
+        movement: { speed: 200 },
+        stats: { hp: 100, maxHp: 100, damage: 10 },
+        sprite: { width: 32, height: 48, color: '#3b82f6' }
+      }
+    },
+    {
+      id: 'enemy-1',
+      type: 'enemy',
+      transform: { x: 600, y: 200, scaleX: 1, scaleY: 1, rotation: 0 },
+      components: {
+        ai: { speed: 50, type: 'patrol' },
+        stats: { hp: 30, maxHp: 30, damage: 10 },
+        sprite: { width: 32, height: 32, color: '#ef4444' },
+        enemyType: 'slime'
+      }
+    },
+    {
+      id: 'coin-1',
+      type: 'collectible',
+      transform: { x: 500, y: 350, scaleX: 1, scaleY: 1, rotation: 0 },
+      components: {
+        collectible: { type: 'coin', value: 10 },
+        sprite: { width: 16, height: 16, color: '#f59e0b' }
+      }
+    }
+  ],
+  dialogueTrees: [],
+  platforms: [],
+  collectibles: [],
+  waypoints: [],
+  spawnPoint: undefined,
+  bounds: undefined
 };
 
 /* ─── Genre-specific control text ─── */
@@ -98,6 +145,11 @@ export function useGamePreview(
   const animationRef = useRef<number | null>(null);
   const gameStatsRef = useRef<GameStats>({ fps: 60, entities: 0, memory: '0MB' });
   const gameLoopState = useRef<any>(null);
+
+  // Use projectScene if available and has entities, otherwise use default
+  const activeScene = (projectScene && projectScene.entities && projectScene.entities.length > 0)
+    ? projectScene
+    : DEFAULT_SCENE;
 
   /* ─── Game state ─── */
   const [gameStats, setGameStats] = useState<GameStats>({ fps: 60, entities: 0, memory: 'N/A' });
@@ -314,7 +366,7 @@ export function useGamePreview(
 
   /* ─── Game loop ─── */
   useEffect(() => {
-    if (!canvasRef.current || !projectScene) return;
+    if (!canvasRef.current) return;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -328,7 +380,7 @@ export function useGamePreview(
 
     /* Init entities */
     const entities = new Map<string, any>();
-    for (const entity of projectScene.entities) {
+    for (const entity of activeScene.entities) {
       const t = entity.transform || { x: 400, y: 300, scaleX: 1, scaleY: 1, rotation: 0 };
       const eType = entity.type || 'unknown';
       const defaultSize = TYPE_SIZES[eType] || [32, 32];
@@ -361,8 +413,8 @@ export function useGamePreview(
     const dialogueMgr = dialogueMgrRef.current as any;
     const spellMgr = spellMgrRef.current as any;
 
-    if (projectScene.dialogueTrees) {
-      projectScene.dialogueTrees.forEach((dt: any) => dialogueMgr.registerTree(dt));
+    if (activeScene.dialogueTrees) {
+      activeScene.dialogueTrees.forEach((dt: any) => dialogueMgr.registerTree(dt));
     }
 
     inventory.addItem({
@@ -627,7 +679,7 @@ export function useGamePreview(
         });
       }
 
-      const allRunes = projectScene.entities.filter(e => e.type === 'collectible' && e.components?.collectible?.type === 'rune');
+      const allRunes = activeScene.entities.filter(e => e.type === 'collectible' && e.components?.collectible?.type === 'rune');
       if (allRunes.length > 0 && collectedRuneIds.length >= allRunes.length) setVictory(true);
 
       frameCount++;
@@ -806,7 +858,7 @@ export function useGamePreview(
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [projectScene, gameStarted, gamePaused, gameOver, victory, syncRPGState, questHUDText, handleSave]);
+  }, [activeScene, gameStarted, gamePaused, gameOver, victory, syncRPGState, questHUDText, handleSave]);
 
   return {
     canvasRef, gameStats, gameStarted, gamePaused, gameOver, victory,
