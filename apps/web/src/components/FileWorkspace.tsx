@@ -68,7 +68,9 @@ export function FileWorkspace({ projectId, className }: FileWorkspaceProps) {
   }, [projectId]);
 
   const handleFileSelect = (filePath: string) => {
+    console.log('[FileWorkspace] handleFileSelect called with:', filePath);
     setSelectedFile(filePath);
+    console.log('[FileWorkspace] selectedFile state set to:', filePath);
   };
 
   const handleSave = useCallback(async (content: string) => {

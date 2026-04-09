@@ -52,7 +52,10 @@ function TreeNode({ node, level, projectId, selectedFile, onFileSelect }: TreeNo
     e.preventDefault();
     e.stopPropagation();
     
+    console.log('[FileTree] handleSelect:', { nodeType: node.type, nodePath: node.path, nodeName: node.name });
+    
     if (node.type === 'file') {
+      console.log('[FileTree] Calling onFileSelect with:', node.path);
       onFileSelect?.(node.path);
     } else {
       toggleExpand();
