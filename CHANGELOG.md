@@ -261,3 +261,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Synced roadmap.md from stale Milestone 6 to Milestone 8
 - Removed tracked runtime assets/exports from git
 - Projectile out-of-bounds check uses world coordinates
+
+### [0.15.0] - 2026-04-09
+
+#### Added
+- Tower Defense game mode (Sacred Bean defense)
+- 5 waves of office-themed enemies with wave spawning system
+- Tower placement (T key) with auto-targeting and shooting
+- Core entity health system with game over/victory conditions
+- TD-specific HUD with wave count, tower count, enemy count
+- Animated tower rendering with steam effects
+- Projectiles integrate with TD tower system
+
+#### Changed
+- Strategy genre controls updated to match Tower Defense gameplay
