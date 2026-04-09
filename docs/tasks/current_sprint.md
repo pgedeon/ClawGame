@@ -87,6 +87,37 @@
 
 ---
 
+## Candidate Engine Breakthroughs (Post-Recovery)
+
+These are the highest-leverage feature bets found by reviewing the actual runtime and preview code, not just the docs.
+
+| Feature | Why it is game-changing | Evidence in current code |
+|------|--------|-------|
+| Canonical runtime unification | Replace the split between `packages/engine` and the custom preview runtime with one shared simulation layer used by preview, scene editor, export, and AI-generated gameplay changes | `packages/engine` is lean ECS/runtime, while gameplay currently lives in large web-side hooks (`useGamePreview.ts`, `useGameLoop.ts`) |
+| Physics + trigger/event layer | Turn collisions, pickups, goals, damage zones, moving platforms, and one-way platforms into engine primitives instead of template-specific logic | Project templates already rely on `solid`, `goal`, `powerup`, `npc`, `sign`, and custom collision meanings the engine does not natively understand |
+| Animation state machines + sprite pipeline | Upgrade from colored rectangles/single images to sprite sheets, directional animation, attack windows, animation events, and layered VFX | Engine `Sprite` rendering is currently one image or a colored box; preview visuals are still heavily placeholder-driven |
+| Camera, bounds, and scene streaming | Enable large levels, room transitions, dead-zone follow camera, parallax, screen shake, and spawn checkpoints | Movement still clamps to a fixed 800x600 box while scene loader already exposes `bounds` and `spawnPoint` |
+| Behavior graphs + navigation | Move beyond `idle/patrol/chase` into waypoints, line-of-sight, aggro states, scripted encounters, and boss phases | Scene loader already has `waypoints`; engine AI is currently limited to basic patrol/chase behavior |
+| Event graph / visual logic authoring | Give the editor and AI a shared declarative system for triggers, conditions, actions, and cutscene/gameplay scripting | Current game rules are spread across scene JSON, template-generated scripts, and large preview-specific logic |
+| Deterministic replay + time-travel debugging | Record inputs/events for one-click repro, rewind, regression capture, AI playtesting, and balancing workflows | AI-first tooling gets much stronger when gameplay bugs are reproducible frame-for-frame |
+| Genre kits as installable runtime modules | Extract platformer, RPG, and top-down systems into reusable engine modules instead of hardcoded preview/page logic | RPG systems, template logic, and preview behaviors are currently implemented in parallel rather than as shared runtime kits |
+
+### Recommended Top 3
+
+1. **Canonical runtime unification** — highest leverage because it reduces duplication across editor, preview, AI, and export.
+2. **Physics + trigger/event layer** — unlocks multiple genres with reusable gameplay rules instead of bespoke template code.
+3. **Deterministic replay + time-travel debugging** — strongest differentiator for an AI-first game engine because it improves testing, balancing, and autonomous bug fixing.
+
+### Proposed Sequencing After Recovery
+
+1. Ship canonical runtime unification first.
+2. Build physics + trigger/event layer on top of that runtime.
+3. Add camera/bounds + navigation so larger playable worlds become viable.
+4. Add animation state machines once the simulation model is stable.
+5. Layer visual logic authoring and genre kits on top of the unified runtime.
+
+---
+
 ## Immediate Next Actions
 
 1. Fix `fileService.ts` sandbox validation and add regression coverage.
@@ -94,6 +125,10 @@
 3. Make root test and lint commands pass.
 4. Run browser validation on repaired AI, scene, navigation, and export flows.
 5. Sync roadmap, known issues, and changelog to match the repaired state.
+
+## After Recovery
+
+When the exit criteria above are met, the next program of work is defined in [`docs/sprints/follow_up_sprints.md`](../sprints/follow_up_sprints.md).
 
 ---
 
