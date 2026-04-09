@@ -28,6 +28,9 @@ export { InputSystem } from './systems/InputSystem';
 export { MovementSystem } from './systems/MovementSystem';
 export { AISystem } from './systems/AISystem';
 export { RenderSystem } from './systems/RenderSystem';
+export { PhysicsSystem } from './systems/PhysicsSystem';
+export { CollisionSystem } from './systems/CollisionSystem';
+export type { CollisionEvent } from './systems/CollisionSystem';
 
 // Re-export scene loader
 export { SceneLoader } from './SceneLoader';

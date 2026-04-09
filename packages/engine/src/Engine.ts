@@ -8,6 +8,8 @@ import { InputSystem } from './systems/InputSystem';
 import { MovementSystem } from './systems/MovementSystem';
 import { AISystem } from './systems/AISystem';
 import { RenderSystem } from './systems/RenderSystem';
+import { PhysicsSystem } from './systems/PhysicsSystem';
+import { CollisionSystem } from './systems/CollisionSystem';
 
 export class Engine {
   private canvas: HTMLCanvasElement;
@@ -26,6 +28,8 @@ export class Engine {
   private movementSystem: MovementSystem;
   private aiSystem: AISystem;
   private renderSystem: RenderSystem;
+  private physicsSystem: PhysicsSystem;
+  private collisionSystem: CollisionSystem;
 
   private updateCallback?: (deltaTime: number) => void;
   private errorCallback?: (error: Error) => void;
@@ -47,6 +51,11 @@ export class Engine {
     this.movementSystem = new MovementSystem();
     this.aiSystem = new AISystem();
     this.renderSystem = new RenderSystem(this.ctx, this.config);
+    this.physicsSystem = new PhysicsSystem({ width: config.width, height: config.height });
+    this.collisionSystem = new CollisionSystem();
+
+    // Wire collision system to event bus
+    this.collisionSystem.attach(this.events);
   }
 
   /**
@@ -55,6 +64,7 @@ export class Engine {
   loadScene(scene: Scene): void {
     const prevName = this.scene?.name;
     this.scene = scene;
+    this.collisionSystem.resetTriggers();
     if (prevName) {
       this.events.emit('scene:unload', { sceneName: prevName });
     }
@@ -87,6 +97,7 @@ export class Engine {
    */
   setConfig(partial: Partial<RendererConfig>): void {
     this.config = { ...this.config, ...partial };
+    this.physicsSystem.setWorldBounds({ width: this.config.width, height: this.config.height });
   }
 
   /**
@@ -184,9 +195,11 @@ export class Engine {
     // Run custom update callback
     this.updateCallback?.(deltaTime);
 
-    // Run systems
+    // Run systems in order: movement → physics → AI → collision
     this.movementSystem.update(this.scene, this.inputState, deltaTime);
+    this.physicsSystem.update(this.scene, deltaTime);
     this.aiSystem.update(this.scene, deltaTime);
+    this.collisionSystem.update(this.scene);
   }
 
   /**

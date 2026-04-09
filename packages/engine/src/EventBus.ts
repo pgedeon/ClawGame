@@ -35,6 +35,12 @@ export interface EngineEvents {
   'game:health-change': { entityId: string; delta: number; current: number };
   'game:death': { entityId: string };
   'game:collect': { entityId: string; collectibleType: string; value: number };
+
+  // Collision system events
+  'collision:enter': { entityA: string; entityB: string; typeA?: string; typeB?: string; overlap: { x: number; y: number } };
+  'collision:pickup': { playerId: string; collectibleId: string; type: string; value: number };
+  'collision:damage': { playerId: string; enemyId: string; damage: number };
+  'collision:trigger': { triggerId: string; entityId: string; event: string; target?: string };
   'game:trigger': { triggerId: string; event: string; target?: string };
   'game:level-complete': Record<string, never>;
   'game:game-over': Record<string, never>;
