@@ -1,216 +1,193 @@
 # UI/UX Review Feedback
 
-**Last Review:** 2026-04-09 10:06 UTC
-**Reviewed Version:** 3c55136 (v0.13.x)
+**Last Review:** 2026-04-09 13:37 UTC
+**Reviewed Version:** ba9157f
 **Status:** on-track
 
 ---
 
 ## 🎯 Alignment with Goal
 
-ClawGame is positioning itself as the **best web-based AI-first game development platform**. The current UI nails the "AI-first" branding (purple/violet accent, AI Command page, FAB, Command Palette) and the dark studio aesthetic is appropriate for a creative tool. The core workflow — dashboard → create project → editor/scene/AI — is logical and discoverable.
-
-**Key gap:** The AI feels like a *page* you visit rather than a *presence* that's everywhere. To be the best AI-first platform, AI assistance should be ambient, contextual, and integrated into every surface — not siloed in `/ai`.
+ClawGame's UI is heading in the right direction for an AI-first game dev platform. The dark studio theme, command palette, AI FAB, and onboarding tour all signal "AI-native tool" clearly. The biggest gap is **AI prominence in the core workflow** — the AI Command page feels like a separate chat room rather than an integrated co-pilot. To be the *best* AI-first platform, AI needs to be ambient and ever-present, not a tab you navigate to.
 
 ---
 
 ## 🎨 Overall Design Direction
 
-**Current Style:** Dark studio theme with Indigo/Violet primary (#6366f1), Slate backgrounds (Tailwind gray-blue), Inter + JetBrains Mono fonts. Clean, professional, slightly generic.
+**Current Style:** Dark studio theme (Slate-900 palette) with purple/violet AI accents. Professional, IDE-like. Good foundation.
 
-**Recommended Direction:** Lean harder into the "creative AI studio" identity. Think: Figma meets Cursor. The purple gradient (`--ai-gradient`) and glow (`--ai-glow`) are underused. The platform should *feel* intelligent the moment you land.
+**Recommended Direction:** Lean harder into the "creative studio" vibe. Less IDE, more Figma-meets-Unity. Warmer gradients, more personality in micro-copy, and AI should feel like a collaborator, not a feature.
 
-**Brand Personality:** Confident, creative, fast. Not corporate. The emoji in the logo (🎮) is a nice touch — keep the personality warm but the UI sharp.
+**Brand Personality:** Smart, fast, slightly playful. Think: "the game dev tool that actually gets you." Not corporate, not toy-like.
 
 ---
 
 ## ✨ What Looks Great
 
-1. **Design system (`theme.css`)** — Comprehensive CSS variable system with spacing scale, typography scale, z-index layers, status colors, light mode override, reduced-motion support, and focus indicators. This is genuinely excellent. Most early-stage projects don't have this discipline.
+1. **Theme system (`theme.css`)** — Comprehensive, well-organized CSS custom properties. Dark + light mode support. Spacing scale, typography scale, z-index layers all defined. This is genuinely solid.
 
-2. **Command Palette** — `⌘K` everywhere is exactly right. The palette with categories (navigation, AI, action) and keyboard navigation is the single most powerful UX pattern for a power-user tool. Well executed.
+2. **Command Palette (`CommandPalette.tsx`)** — ⌘K everywhere, fuzzy search, keyboard navigation, categorized results. This is a killer feature and it's well-executed.
 
-3. **Dashboard hero section** — The "Build Games with AI" hero with orb visuals, badge, and dual CTAs is strong. Good hierarchy, clear value prop.
+3. **Onboarding tour** — Modal with dots, slide-up animation, clear CTA. Good first-time experience.
 
-4. **Lazy-loaded routes** — Code-splitting with `Suspense` + loading states shows performance awareness.
+4. **Project context indicator** — The gradient pill with green dot in sidebar is a nice touch. Subtle but effective.
 
-5. **Accessibility foundation** — `SkipLink`, `role="navigation"`, `aria-label`, `aria-live="polite"`, focus-visible outlines, reduced-motion media query. This puts you ahead of most competitors.
+5. **Skip link + accessibility focus states** — Skip to content link, `focus-visible` rings, reduced-motion media query. Better than most indie tools.
 
-6. **Sidebar architecture** — Context-aware navigation (project vs. global) with back-link and project indicator dot is clean and functional.
+6. **Lazy-loaded routes** — Code splitting for heavy pages (Scene Editor, Asset Studio, etc.). Smart performance choice.
+
+7. **Dashboard hero section** — "Build Games with AI" with orbs and gradient badge. Sets the tone immediately.
 
 ---
 
 ## 🐛 What Needs Improvement
 
-### 1. **AI is a destination, not a companion**
-- **Location:** `AICommandPage.tsx`, `AIFAB.tsx`
-- **Problem:** AI lives on its own page (`/project/:id/ai`). Users must leave their workflow to ask AI for help. This breaks flow.
-- **Solution:** Make AI a persistent sidebar panel (like GitHub Copilot Chat in VS Code) that can be toggled from any project page. The `/ai` route can remain, but the real power is contextual assistance *while editing*.
-- The `ContextualAIAssistant` component exists in `EditorPage.tsx` — expand this pattern to Scene Editor and Asset Studio.
+### 1. **AI Command page is a chat island, not a co-pilot**
+   - Location: `AICommandPage.tsx` (578 lines!)
+   - Problem: AI is a separate page you navigate to, breaking flow. Users must context-switch between code/scene and AI.
+   - Solution: Introduce an AI side-panel that slides in from the right (like GitHub Copilot Chat). Keep it accessible from any page via the existing FAB. The chat UI should float *over* the workspace, not replace it.
 
-### 2. **Inline styles in React components**
-- **Location:** `AICommandPage.tsx` lines with `style={{...}}` (cancel button, retry button)
-- **Problem:** Inline styles bypass the design system, can't be overridden by themes, and break consistency.
-- **Solution:** Move to CSS classes in `ai-command.css`:
-```css
-.ai-cancel-btn {
-  margin-top: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
-  background: var(--error-light);
-  color: var(--error);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-size: var(--text-sm);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-}
-```
+### 2. **No visual preview thumbnails for projects**
+   - Location: `DashboardPage.tsx` — project cards
+   - Problem: Project cards show text only (name, genre, status). No thumbnail/screenshot. Games are visual — the dashboard should *look* like a game library.
+   - Solution: Add a thumbnail/screenshot to each project card. Generate a canvas snapshot on save. Store as base64 or small PNG.
+   ```tsx
+   // In project card, add:
+   <div className="project-card-thumbnail">
+     {project.thumbnail ? (
+       <img src={project.thumbnail} alt={project.name} />
+     ) : (
+       <div className="project-card-placeholder">
+         <Gamepad2 size={32} />
+       </div>
+     )}
+   </div>
+   ```
 
-### 3. **No responsive/mobile consideration**
-- **Location:** `App.css` — sidebar is `position: sticky; height: 100vh; width: var(--sidebar-width)`
-- **Problem:** On screens < 768px, the sidebar eats all horizontal space. The layout is desktop-only.
-- **Solution:** Add responsive breakpoint:
-```css
-@media (max-width: 768px) {
-  .app-layout { flex-direction: column; }
-  .sidebar {
-    width: 100%;
-    height: auto;
-    position: relative;
-    flex-direction: row;
-    overflow-x: auto;
-  }
-  .sidebar-nav { flex-direction: row; }
-  .nav-item { padding: 0.5rem; }
-  .sidebar-section-title { display: none; }
-}
-```
-- **Priority:** Medium — web-based tool users are mostly on desktop, but tablet/iPad usage is real for game dev tools.
+### 3. **Scene Editor toolbar z-index issue (partially fixed)**
+   - Location: `SceneEditorPage.tsx` — commit 47a93cf patched z-index
+   - Problem: Dropdowns still may clip in nested panels. The toolbar z-index approach is fragile.
+   - Solution: Use a dedicated `--z-toolbar: 150` in the z-index layer stack, and use portals for dropdown popovers.
 
-### 4. **Scene editor lacks visual polish**
-- **Location:** `SceneEditorPage.tsx`, `scene-editor.css`
-- **Problem:** The scene editor is the core creative surface but uses basic styling. No clear toolbar grouping, no zoom indicator, no minimap hint.
-- **Solution:** Add a proper editor toolbar bar with grouped icon buttons (like Figma's top bar), zoom percentage display, and a status bar at the bottom showing entity count, selected entity, and grid size.
+### 4. **`AICommandPage.tsx` is 578 lines — needs decomposition**
+   - Location: `apps/web/src/pages/AICommandPage.tsx`
+   - Problem: Monolithic component mixing chat UI, API calls, state management, and change-application logic.
+   - Solution: Extract into `AIChatPanel`, `AIMessageBubble`, `AICodeChangeCard`, `useAICommand` hook. Follow the same decomposition pattern used for `GamePreviewPage` (refactor in 89d452a).
 
-### 5. **Error states are functional but not helpful**
-- **Location:** `DashboardPage.tsx` error state
-- **Problem:** Generic "Failed to load projects" with retry. No suggestions for what might be wrong (server down? no internet?).
-- **Solution:** Add contextual error guidance:
-```tsx
-<p>Make sure the ClawGame server is running at localhost:3000</p>
-<code className="error-hint">npm run dev</code>
-```
+### 5. **No empty/placeholder states for sub-pages**
+   - Location: `EditorPage.tsx`, `SceneEditorPage.tsx`
+   - Problem: When a new project has no code or no entities, the editor areas may look broken rather than intentionally empty.
+   - Solution: Add guided empty states with AI prompts:
+   ```tsx
+   <div className="editor-empty-state">
+     <Bot size={48} />
+     <h3>No code yet</h3>
+     <p>Ask AI to generate your first game script</p>
+     <button onClick={() => openAI()}>Generate with AI</button>
+   </div>
+   ```
 
-### 6. **Loading states are generic**
-- **Location:** `PageLoader` in `App.tsx`
-- **Problem:** "Loading..." text with spinner. Doesn't tell users what's loading.
-- **Solution:** Pass context:
-```tsx
-function PageLoader({ page }: { page?: string }) {
-  return (
-    <div className="loading">
-      <div className="build-spinner" />
-      Loading {page || 'page'}...
-    </div>
-  );
-}
-```
+### 6. **Mobile experience is an afterthought**
+   - Location: `game-hub.css` has one `@media (max-width: 768px)` block
+   - Problem: Game dev on mobile isn't primary, but the dashboard and project browsing should work on tablets. Currently, the sidebar collapses poorly and touch targets are small.
+   - Solution: Add a collapsible sidebar with hamburger toggle. Ensure minimum 44px touch targets on nav items.
+
+### 7. **No loading skeletons on data-fetch pages**
+   - Location: `DashboardPage.tsx`, `OpenProjectPage.tsx`
+   - Problem: Shows a spinner + "Loading..." text. A `Skeleton.tsx` component exists but isn't used consistently.
+   - Solution: Replace spinners with content-shaped skeletons (card shapes for projects, text lines for lists).
 
 ---
 
 ## 📐 Layout Recommendations
 
 ### Navigation
-- **Add breadcrumbs** inside project context. `Dashboard > My Game > Scene Editor` helps orientation.
-- **Keyboard shortcuts hint** in sidebar footer — show `⌘K` prominently, and `?` for help.
-- Consider **collapsible sidebar** (`--sidebar-collapsed-width: 64px`) for more canvas space in editors. Already defined in theme but not implemented.
+- **Sidebar (240px)**: Good width. Consider a collapsed mode (64px, icon-only) for editor pages where screen real estate matters. Toggle with `⌘B`.
+- **Breadcrumb**: Add breadcrumb below header in project pages: `Projects > MyGame > Scene Editor`. Helps orientation.
+- **AI always reachable**: The FAB is good. Make it pulse subtly when AI has a suggestion (e.g., after a save or error).
 
 ### Main Content Area
-- The main content area needs consistent **max-width constraints** on dashboard pages (text-heavy content is hard to read at 1400px+). Add `max-width: 1200px; margin: 0 auto;` for dashboard, full-width for editors.
-- Add a **status bar** at the bottom of editor pages (like VS Code) showing: project name, save status, AI status (connected/demo), entity count.
+- Dashboard: Solid. The hero → quick actions → projects → tips flow is logical.
+- Editor pages: Need a status bar at the bottom (like VS Code) showing: project name, AI status, save state, last error.
 
 ### Panels/Sidebars
-- Scene editor panels (Asset Browser, Property Inspector) need **resizable handles**. Fixed-width panels feel rigid.
-- Panel headers should have **collapse/expand toggles**.
+- Scene Editor's three-panel layout (Assets | Canvas | Properties) is the right call. Ensure panels are resizable with drag handles.
+- Consider a "focus mode" that hides all panels for maximum canvas/code visibility.
 
 ---
 
 ## 🎭 Visual Elements
 
 ### Colors
-The existing palette is solid. Minor additions:
+The existing palette is solid. Minor tweaks:
 ```css
-/* Missing from theme — add these */
---gradient-surface: linear-gradient(180deg, var(--card) 0%, var(--bg) 100%);
---gradient-ai-hero: linear-gradient(135deg, #1e1b4b 0%, #0f172a 50%, #164e63 100%);
---text-on-accent: #ffffff;
---focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+/* Recommended additions */
+--ai-gradient-warm: linear-gradient(135deg, #8b5cf6, #ec4899); /* for hero/featured elements */
+--surface-glass: rgba(30, 41, 59, 0.7); /* for floating panels with backdrop-filter */
 ```
 
 ### Typography
-Good choices (Inter + JetBrains Mono). One issue:
-- **Font loading:** `@import url(google fonts)` in `index.css` is a render-blocking request. Use `<link rel="preload">` in HTML or self-host fonts for faster FCP.
+Current choices (Inter + JetBrains Mono) are excellent. No changes needed.
 
 ### Spacing
-The scale is comprehensive. No changes needed — just enforce consistency by using the variables everywhere (see inline styles issue above).
+The `--space-*` scale is good. Consider adding:
+```css
+--sidebar-width: 240px;
+--sidebar-collapsed-width: 64px;
+--panel-min-width: 200px;
+```
 
 ---
 
 ## 🔍 Competitive Research
 
 | Platform | What They Do Well | What We Can Learn |
-|----------|-------------------|-------------------|
-| **Construct 3** | Layout editor is intuitive; event sheet is visual and approachable; instant preview; polished dark UI | Visual event system as optional alternative to code; property panels with live preview |
-| **GDevelop** | Open-source trust; beginner-friendly with events; one-click export to mobile/desktop; asset store | Behavior library pattern; community extensions; "ready-made" objects to drag in |
-| **Replit** | AI agent generates entire projects from description; live collaboration; instant deployment | "Describe your game, get a working prototype in 30 seconds" — this should be ClawGame's hero flow |
-| **Ludo.ai** | Market research + game concept generation before building; asset generation | Pre-build ideation phase — help users design before coding |
-| **PlayCanvas** | Real-time collaborative editing; visual scene editor; performance monitoring | Collaborative features (future); visual scene hierarchy tree |
+|----------|------------------|-------------------|
+| **Rosebud AI** | Describe → playable game in seconds. No-code. Chat-first interface. | Make the AI→playable feedback loop instant. Our AI Command page takes too long to show results. |
+| **GDevelop** | Visual event system, one-click preview, extensive example library | Better example browser with instant preview. Our ExamplesPage is static. |
+| **Construct 3** | Polished layout panels, drag-and-drop everywhere, property grid UX | Resizable panels with snap positions. Our scene editor panels are fixed-width. |
+| **Unity** | Hierarchy + Inspector + Scene view triple-panel. Asset store integration. | The three-panel pattern we already use is proven. Unity's Inspector (property grid) is the gold standard for entity editing. |
+| **Ludo.ai** | AI ideation, mechanic suggestions, market research | AI-powered "what should I build next?" suggestions on the dashboard. |
 
 **Key Insights:**
-- **Construct 3 is the benchmark** for web-based game editor UX. Their layout editor and event system are gold-standard.
-- **Replit's AI agent pattern** (describe → working prototype) is the most directly competitive threat. ClawGame must match or exceed this.
-- **GDevelop's zero-code approach** captures a market ClawGame should target with AI — "describe what you want" replaces "learn visual scripting."
-- No existing platform truly nails **AI-native game development**. This is the open lane.
+- **Rosebud is the closest competitor in "AI-first" positioning.** Their chat-to-game loop is the benchmark. ClawGame needs to match or beat that immediacy.
+- **Visual scripting is table stakes.** Even if we're code-first, a visual representation of game logic (like a node graph) would differentiate us from "just an IDE."
+- **Instant preview is the #1 feature users love** across all platforms. Our preview page exists but loading speed matters more than features.
 
 **Features to Consider:**
-- **AI Game Generator wizard** — Multi-step flow: pick genre → describe gameplay → AI generates working prototype → iterate. This is the "killer feature" no one has nailed.
-- **Live AI code annotations** — Inline comments in the code editor explaining what each section does, generated by AI.
-- **Visual diff for AI changes** — When AI proposes code changes, show a diff view (green/red) before applying.
-- **Template marketplace** — Community-shared game templates that users can fork and customize.
+- **AI Auto-suggest sidebar** — When editing code or scenes, show contextual AI suggestions in a narrow panel. Like Copilot completions but for game patterns.
+- **Template gallery with one-click remix** — Instead of "Examples" as a page, make it a gallery where you click a template and immediately get an editable copy.
+- **Live collaboration indicators** — Even if single-player for now, show "AI is thinking..." status prominently.
 
 ---
 
 ## 📋 Priority Fixes
 
-1. **🔴 High: Eliminate inline styles** — Move all `style={{}}` in AICommandPage.tsx to CSS classes. Breaks design system consistency.
-2. **🔴 High: AI sidebar panel** — Make AI assistance available as a slide-out panel on ALL project pages, not just `/ai`. This is the single biggest UX differentiator.
-3. **🟡 Medium: Collapsible sidebar** — Implement the `--sidebar-collapsed-width` already defined in theme.css. Essential for editor workflows where screen real estate matters.
-4. **🟡 Medium: Editor status bar** — Add a bottom status bar showing project state, AI connection, save status. Gives users confidence.
-5. **🟡 Medium: Responsive layout** — Add mobile/tablet breakpoints. At minimum, don't break on iPad.
-6. **🟢 Low: Breadcrumbs** — Nice-to-have for orientation inside project context.
-7. **🟢 Low: Font preloading** — Swap `@import` to `<link preload>` for faster initial paint.
+1. **[High Priority]** Decompose `AICommandPage.tsx` into smaller components — it's the core feature and it's unmaintainable at 578 lines
+2. **[High Priority]** Add project thumbnails to dashboard cards — games are visual, the dashboard should reflect that
+3. **[Medium Priority]** Make AI a slide-over panel instead of a separate page — eliminate context-switching
+4. **[Medium Priority]** Add guided empty states to all editor pages — first-time user experience
+5. **[Medium Priority]** Use Skeleton component consistently instead of spinners
+6. **[Low Priority]** Add breadcrumb navigation in project context
+7. **[Low Priority]** Collapsible sidebar with ⌘B toggle for power users
 
 ---
 
 ## 💡 Creative Ideas
 
-**Innovations to Consider:**
+### Innovations to Consider
 
-- **AI Conversation Memory** — The AI Command page shows chat history per session, but it should persist across sessions and understand the full project context. "Remember when I asked you to add jumping? Now make double-jump."
+- **"AI Director Mode"** — A toggle that overlays AI suggestions directly on the scene canvas (ghost entities showing where AI would place things, dotted paths for movement patterns). Makes AI tangible, not abstract.
 
-- **Generative UI for game entities** — Instead of a static property inspector, let AI generate custom UI panels for complex entity types. A "boss enemy" gets a different inspector than a "coin pickup."
+- **Timeline Scrubber** — A visual timeline at the bottom of the preview page showing the game's state over time. Rewind, scrub forward, click to inspect entity state at that frame. No competitor has this.
 
-- **Instant Prototype Mode** — A one-click "let AI build it" flow from the dashboard. User types a game description, AI generates a working prototype in 15 seconds, user hits play. This is the hero flow.
+- **Diff View for AI Changes** — When AI suggests code changes, show them as a git-style diff with accept/reject per hunk. The "Apply to Project" button is too all-or-nothing.
 
-- **Visual Git for Games** — Show project history as a timeline of screenshots/changes. "Your game 5 AI prompts ago looked like this → now it looks like this."
+### AI-Specific UX
 
-**AI-Specific UX:**
-- **AI progress indicator** — The current pulsing animation is nice but vague. Show actual steps: "Reading project files..." → "Analyzing game structure..." → "Generating player controller..." → "Done (2.3s)"
-- **Confidence indicators on AI suggestions** — The `confidence` field exists in `AICommandResponse.changes[]`. Surface it visually: green (>80%), yellow (50-80%), red (<50%).
-- **"Apply" vs "Preview" for AI changes** — Never auto-apply AI-generated code. Always show preview first, with a clear "Apply Changes" button.
-- **AI typing indicator** — When AI is streaming a response, show text appearing character-by-character (like ChatGPT). More engaging than waiting for full response.
+- **AI should be presented as a conversation, not a form.** The current AI Command page is close but feels like a support chatbot. Frame it as "your game dev partner" with personality.
+- **Show AI thinking process visually** — Use a progress bar or streaming tokens, not a spinner. Users tolerate waiting if they can see progress.
+- **AI-generated content should be visually distinct** — Code written by AI should have a subtle purple left-border or background tint so users can always tell what they wrote vs. what AI generated.
 
 ---
 
@@ -218,10 +195,20 @@ The scale is comprehensive. No changes needed — just enforce consistency by us
 
 | Area | Current | Target | Gap |
 |------|---------|--------|-----|
-| Visual Design | B+ | A | Polished design system; needs more personality/differentiation |
-| User Experience | B | A | Core flows work; AI is too siloed; needs contextual AI everywhere |
-| Accessibility | A- | A | Excellent foundation; keep it up |
-| Innovation | B | A+ | Command palette is great; AI game generator would be the killer feature |
-| Competitiveness | B- | A | Functional but not yet differentiated enough from Construct/GDevelop |
+| Visual Design | B | A | Add project thumbnails, polish empty states, more personality |
+| User Experience | B- | A | AI workflow is disjointed, needs panel-based integration |
+| Accessibility | B+ | A | Good foundation — add ARIA live regions for AI responses, ensure screen reader announces AI state changes |
+| Innovation | B | A+ | Command palette is great; need AI Director mode, timeline scrubber, visual diff to truly stand out |
+| Performance | A- | A | Code splitting done; skeleton loading will close the gap |
 
-**Overall: B (solid foundation, clear path to excellence)**
+---
+
+## Summary
+
+The foundation is genuinely strong. The theme system, command palette, and overall architecture are well-done. The critical path to "best AI-first game dev platform" is:
+
+1. **Make AI ambient** (panel, not page)
+2. **Make games visual** (thumbnails, previews, canvas-first)
+3. **Make the loop fast** (instant preview, streaming AI, one-click templates)
+
+The bones are here. The next iteration should focus on polish and integration rather than new features.
