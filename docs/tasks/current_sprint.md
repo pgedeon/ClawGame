@@ -41,7 +41,7 @@
 |------|--------|-------|
 | Verify AI status indicator is truthful | ✅ DONE | |
 | Validate tab navigation and scene entity creation | ✅ DONE | v0.13.5 |
-| Verify export flow end-to-end | 🔲 DEFERRED | Deferred to M9 — export exists but needs browser smoke test |
+| Verify export flow end-to-end | ✅ DONE | Fixed filename/listExports mismatch, added metadata sidecar |
 | Smoke-test AI Command apply/reject flow | 🔲 DEFERRED | Deferred to M9 — AI→runtime connection gap |
 
 ### Priority 2: Planning and Process Cleanup
