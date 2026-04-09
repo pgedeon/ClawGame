@@ -52,3 +52,9 @@ secrets*.json
 .openclaw/
 openclaw.json
 .openclaw-workspace/
+
+# Editor backup files
+*.orig
+*.patch
+*.rej
+*~
