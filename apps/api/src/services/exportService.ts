@@ -1,6 +1,9 @@
 /**
  * @clawgame/api - Export Service
- * Packages game projects into standalone HTML exports with embedded assets
+ * Packages game projects into standalone HTML exports with embedded assets.
+ *
+ * The export runtime uses the same simulation rules as the web preview
+ * (useGamePreview), ensuring "Export runtime = preview runtime" (M12).
  */
 
 import { readFile, writeFile, mkdir, readdir, stat, unlink } from 'node:fs/promises';
@@ -177,7 +180,11 @@ export class ExportService {
   }
 
   /**
-   * Generate standalone HTML game file
+   * Generate standalone HTML game file.
+   *
+   * The inline runtime mirrors the web preview (useGamePreview) so that
+   * exported games behave identically to what the creator sees in the
+   * editor preview — the core M12 "export runtime = preview runtime" goal.
    */
   private generateGameHTML(
     project: any,
@@ -234,41 +241,9 @@ export class ExportService {
             display: block;
             image-rendering: crisp-edges;
         }
-        #game-ui {
-            position: absolute;
-            top: 1rem;
-            left: 1rem;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(71, 85, 105, 0.3);
-            border-radius: 8px;
-            padding: 0.75rem 1rem;
-            font-family: monospace;
-            font-size: 0.875rem;
-            color: #f1f5f9;
-        }
-        #game-controls {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(71, 85, 105, 0.3);
-            border-radius: 8px;
-            padding: 0.75rem 1rem;
-            font-family: monospace;
-            font-size: 0.875rem;
-            color: #f1f5f9;
-        }
-        .stat { display: flex; justify-content: space-between; margin-bottom: 0.25rem; min-width: 120px; }
-        .stat-label { color: #94a3b8; margin-right: 0.5rem; }
-        .stat-value { color: #8b5cf6; font-weight: 500; }
         #start-screen {
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -277,7 +252,25 @@ export class ExportService {
             z-index: 100;
         }
         #start-screen h1 { font-size: 3rem; margin-bottom: 1rem; color: #8b5cf6; }
-        #start-screen p { font-size: 1.25rem; margin-bottom: 2rem; }
+        #start-screen p { font-size: 1.25rem; margin-bottom: 2rem; color: #94a3b8; }
+        #game-over-screen, #victory-screen {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        #game-over-screen { background: rgba(127, 29, 29, 0.9); }
+        #victory-screen { background: rgba(21, 128, 61, 0.9); }
+        #game-over-screen h1 { font-size: 3rem; color: #fca5a5; margin-bottom: 1rem; }
+        #victory-screen h1 { font-size: 3rem; color: #86efac; margin-bottom: 1rem; }
+        .result-stats { font-size: 1.1rem; color: #e2e8f0; margin-bottom: 1.5rem; }
+        .result-stats div { margin: 0.3rem 0; }
+        .btn { padding: 0.75rem 2rem; border: none; border-radius: 8px; font-size: 1.1rem; cursor: pointer; }
+        .btn:hover { opacity: 0.9; }
+        .btn-restart { background: #8b5cf6; color: #fff; }
         .clawgame-brand {
             position: absolute;
             bottom: 1rem;
@@ -291,277 +284,511 @@ export class ExportService {
 <body>
     <div id="game-container">
         <canvas id="game-canvas"></canvas>
-        <div id="game-ui"></div>
-        <div id="game-controls"></div>
         <div id="start-screen">
             <h1>${project.name}</h1>
-            <p>Press any key to start</p>
+            <p>WASD/Arrows to move · SPACE to shoot · Collect runes to win</p>
+            <p style="font-size:1rem;color:#64748b">Press any key to start</p>
+        </div>
+        <div id="game-over-screen">
+            <h1>💀 Game Over</h1>
+            <div class="result-stats">
+                <div id="go-score"></div>
+                <div id="go-time"></div>
+            </div>
+            <button class="btn btn-restart" onclick="location.reload()">Restart</button>
+        </div>
+        <div id="victory-screen">
+            <h1>🏆 Victory!</h1>
+            <div class="result-stats">
+                <div id="vic-score"></div>
+                <div id="vic-time"></div>
+            </div>
+            <button class="btn btn-restart" onclick="location.reload()">Play Again</button>
         </div>
         <div class="clawgame-brand">Built with ClawGame</div>
     </div>
 
     <script>
-        // Game Data
-        const GAME_DATA = ${JSON.stringify(gameData, null, 2)};
+    // ─── Game Data ──────────────────────────────────────────────
+    const GAME_DATA = ${JSON.stringify(gameData, null, 2)};
 
-        // Game Engine
-        class GameEngine {
-            constructor(canvas) {
-                this.canvas = canvas;
-                this.ctx = canvas.getContext('2d');
-                this.running = false;
-                this.entities = new Map();
-                this.keys = {};
-                this.lastTime = 0;
-                this.frameCount = 0;
-                this.assets = new Map();
+    // ─── Constants (mirrors useGamePreview TYPE_COLORS / TYPE_SIZES) ───
+    const TYPE_COLORS = {
+      player: '#3b82f6', enemy: '#ef4444', collectible: '#f59e0b',
+      obstacle: '#64748b', npc: '#22c55e', item: '#a78bfa', unknown: '#8b5cf6',
+    };
+    const TYPE_SIZES = {
+      player: [32, 48], enemy: [32, 32], collectible: [16, 16],
+      obstacle: [32, 32], npc: [32, 48], item: [16, 16], unknown: [32, 32],
+    };
+
+    // ─── GameEngine (same simulation rules as web preview) ──────
+    class GameEngine {
+      constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.running = false;
+        this.entities = new Map();
+        this.projectiles = [];
+        this.keys = {};
+        this.lastTime = 0;
+        this.frameCount = 0;
+        this.assets = new Map();
+        this.score = 0;
+        this.health = 100;
+        this.mana = 100;
+        this.invincibleTimer = 0;
+        this.gameTime = 0;
+        this.gameOver = false;
+        this.victory = false;
+        this.collectedRuneIds = [];
+        this.defeatedEnemies = [];
+      }
+
+      init() {
+        this.resizeCanvas();
+        window.addEventListener('resize', () => this.resizeCanvas());
+        window.addEventListener('keydown', (e) => {
+          this.keys[e.key.toLowerCase()] = true;
+          if (!this.running) this.start();
+        });
+        window.addEventListener('keyup', (e) => {
+          this.keys[e.key.toLowerCase()] = false;
+        });
+        this.loadAssets();
+        this.setupEntities();
+      }
+
+      resizeCanvas() {
+        const c = this.canvas.parentElement;
+        this.canvas.width = c.clientWidth;
+        this.canvas.height = c.clientHeight;
+      }
+
+      loadAssets() {
+        (GAME_DATA.assets || []).forEach(asset => {
+          this.assets.set(asset.id, { ...asset, image: new Image(), loaded: false });
+          const a = this.assets.get(asset.id);
+          a.image.onload = () => { a.loaded = true; };
+          a.image.src = asset.dataUri;
+        });
+      }
+
+      setupEntities() {
+        (GAME_DATA.scene.entities || []).forEach(e => {
+          const t = e.transform || { x: 400, y: 300, scaleX: 1, scaleY: 1, rotation: 0 };
+          const eType = e.type || 'unknown';
+          const def = TYPE_SIZES[eType] || [32, 32];
+          const comps = e.components || {};
+          this.entities.set(e.id, {
+            id: e.id, type: eType,
+            transform: { ...t },
+            components: comps,
+            color: comps.sprite?.color || TYPE_COLORS[eType] || '#8b5cf6',
+            width: comps.sprite?.width || def[0],
+            height: comps.sprite?.height || def[1],
+            health: comps.stats?.hp || 30,
+            maxHealth: comps.stats?.maxHp || comps.stats?.hp || 30,
+            damage: comps.stats?.damage || 10,
+            enemyType: comps.enemyType || comps.ai?.type || 'slime',
+            patrolOrigin: { x: t.x, y: t.y },
+            patrolOffset: Math.random() * Math.PI * 2,
+            hitFlash: 0, facing: 'right',
+          });
+        });
+      }
+
+      start() {
+        const ss = document.getElementById('start-screen');
+        if (ss) ss.style.display = 'none';
+        this.running = true;
+        this.lastTime = performance.now();
+        this.gameLoop();
+      }
+
+      checkCollision(a, b) {
+        const dx = a.transform.x - b.transform.x;
+        const dy = a.transform.y - b.transform.y;
+        return Math.sqrt(dx * dx + dy * dy) < (a.width + b.width) / 2;
+      }
+
+      // ─── UPDATE (matches preview simulation rules) ────────────
+      update(deltaTime) {
+        if (this.gameOver || this.victory) return;
+        const dt = deltaTime;
+        const dtSec = dt / 1000;
+        const currentTime = performance.now();
+
+        if (this.invincibleTimer > 0) this.invincibleTimer -= dt;
+        this.mana = Math.min(100, this.mana + dt * 0.01);
+        this.gameTime += dt;
+
+        // Projectiles
+        for (let i = this.projectiles.length - 1; i >= 0; i--) {
+          const p = this.projectiles[i];
+          p.x += p.vx * dtSec;
+          p.y += p.vy * dtSec;
+          if (p.x < 0 || p.x > this.canvas.width || p.y < 0 || p.y > this.canvas.height) {
+            this.projectiles.splice(i, 1); continue;
+          }
+          // Hit enemies
+          let hit = false;
+          this.entities.forEach((e) => {
+            if (e.type !== 'enemy' || hit) return;
+            const dx = p.x - e.transform.x, dy = p.y - e.transform.y;
+            if (Math.sqrt(dx*dx+dy*dy) < (e.width + 10) / 2) {
+              e.health -= p.damage; e.hitFlash = 200;
+              if (e.health <= 0) {
+                this.score += 50;
+                this.defeatedEnemies.push(e.id);
+                this.entities.delete(e.id);
+              }
+              hit = true;
             }
-
-            init() {
-                // Setup canvas
-                this.resizeCanvas();
-                window.addEventListener('resize', () => this.resizeCanvas());
-
-                // Setup input
-                window.addEventListener('keydown', (e) => {
-                    this.keys[e.key.toLowerCase()] = true;
-                    if (!this.running && document.getElementById('start-screen')) {
-                        this.start();
-                    }
-                });
-                window.addEventListener('keyup', (e) => {
-                    this.keys[e.key.toLowerCase()] = false;
-                });
-
-                // Load assets
-                this.loadAssets();
-
-                // Setup entities from scene
-                this.setupEntities();
-            }
-
-            resizeCanvas() {
-                const container = this.canvas.parentElement;
-                this.canvas.width = container.clientWidth;
-                this.canvas.height = container.clientHeight;
-            }
-
-            loadAssets() {
-                GAME_DATA.assets.forEach(asset => {
-                    this.assets.set(asset.id, {
-                        ...asset,
-                        image: new Image(),
-                        loaded: false
-                    });
-                    const img = this.assets.get(asset.id).image;
-                    img.onload = () => {
-                        this.assets.get(asset.id).loaded = true;
-                    };
-                    img.src = asset.dataUri;
-                });
-            }
-
-            setupEntities() {
-                GAME_DATA.scene.entities.forEach(e => {
-                    const entity = {
-                        ...e,
-                        vx: 0,
-                        vy: 0,
-                        color: this.getEntityColor(e),
-                    };
-                    this.entities.set(e.id, entity);
-                });
-            }
-
-            getEntityColor(entity) {
-                const sprite = entity.components?.sprite;
-                if (sprite?.color) return sprite.color;
-                if (entity.components?.playerInput) return '#3b82f6';
-                if (entity.components?.ai) return '#ef4444';
-                if (entity.components?.collision?.type === 'collectible') return '#fbbf24';
-                return '#8b5cf6';
-            }
-
-            start() {
-                const startScreen = document.getElementById('start-screen');
-                if (startScreen) {
-                    startScreen.style.display = 'none';
-                }
-                this.running = true;
-                this.lastTime = performance.now();
-                this.gameLoop();
-            }
-
-            update(deltaTime) {
-                this.entities.forEach((entity, id) => {
-                    // Player input
-                    if (entity.components?.playerInput) {
-                        const speed = entity.components.movement?.speed || 200;
-                        entity.vx = 0;
-                        entity.vy = 0;
-
-                        if (this.keys['arrowleft'] || this.keys['a']) entity.vx = -speed;
-                        if (this.keys['arrowright'] || this.keys['d']) entity.vx = speed;
-                        if (this.keys['arrowup'] || this.keys['w']) entity.vy = -speed;
-                        if (this.keys['arrowdown'] || this.keys['s']) entity.vy = speed;
-
-                        entity.transform.x += entity.vx * (deltaTime / 1000);
-                        entity.transform.y += entity.vy * (deltaTime / 1000);
-
-                        // Keep in bounds
-                        const margin = (entity.components.sprite?.width || 32) / 2;
-                        entity.transform.x = Math.max(margin, Math.min(this.canvas.width - margin, entity.transform.x));
-                        entity.transform.y = Math.max(margin, Math.min(this.canvas.height - margin, entity.transform.y));
-                    }
-
-                    // AI patrol
-                    if (entity.components?.ai?.type === 'patrol') {
-                        const time = performance.now() / 1000;
-                        const speed = entity.components.ai.patrolSpeed || 50;
-                        entity.transform.x = 400 + Math.sin(time * speed / 100) * 200;
-                        entity.transform.y = 300 + Math.cos(time * speed / 100) * 100;
-                    }
-
-                    // Coin animation
-                    if (entity.components?.collision?.type === 'collectible') {
-                        entity.transform.rotation += deltaTime * 0.002;
-                    }
-                });
-
-                // Collision detection
-                const player = this.entities.get('player-1');
-                if (player) {
-                    this.entities.forEach((entity, id) => {
-                        if (entity.components?.collision?.type === 'collectible') {
-                            const dx = player.transform.x - entity.transform.x;
-                            const dy = player.transform.y - entity.transform.y;
-                            const distance = Math.sqrt(dx * dx + dy * dy);
-                            const playerWidth = player.components.sprite?.width || 32;
-                            const coinWidth = entity.components.sprite?.width || 16;
-
-                            if (distance < (playerWidth + coinWidth) / 2) {
-                                this.entities.delete(id);
-                            }
-                        }
-                    });
-                }
-            }
-
-            render() {
-                // Clear canvas
-                this.ctx.fillStyle = '#0f172a';
-                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
-                // Draw grid
-                this.ctx.strokeStyle = 'rgba(71, 85, 105, 0.2)';
-                this.ctx.lineWidth = 1;
-                const gridSize = 32;
-
-                for (let x = 0; x < this.canvas.width; x += gridSize) {
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(x, 0);
-                    this.ctx.lineTo(x, this.canvas.height);
-                    this.ctx.stroke();
-                }
-
-                for (let y = 0; y < this.canvas.height; y += gridSize) {
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(0, y);
-                    this.ctx.lineTo(this.canvas.width, y);
-                    this.ctx.stroke();
-                }
-
-                // Draw entities
-                this.entities.forEach((entity, id) => {
-                    const { x, y, scaleX, scaleY, rotation } = entity.transform;
-                    const width = entity.components.sprite?.width || 32;
-                    const height = entity.components.sprite?.height || 32;
-
-                    // Check if we have a sprite image
-                    const spriteRef = entity.components.sprite?.image;
-                    if (spriteRef && this.assets.has(spriteRef)) {
-                        const asset = this.assets.get(spriteRef);
-                        if (asset && asset.loaded) {
-                            this.ctx.save();
-                            this.ctx.translate(x, y);
-                            this.ctx.rotate(rotation || 0);
-                            this.ctx.scale(scaleX || 1, scaleY || 1);
-                            this.ctx.drawImage(asset.image, -width/2, -height/2, width, height);
-                            this.ctx.restore();
-                            return;
-                        }
-                    }
-
-                    // Fallback to colored rectangle
-                    this.ctx.save();
-                    this.ctx.translate(x, y);
-                    this.ctx.rotate(rotation || 0);
-                    this.ctx.scale(scaleX || 1, scaleY || 1);
-
-                    this.ctx.fillStyle = entity.color;
-                    this.ctx.fillRect(-width/2, -height/2, width, height);
-
-                    if (entity.components?.playerInput) {
-                        this.ctx.strokeStyle = '#60a5fa';
-                        this.ctx.lineWidth = 2;
-                        this.ctx.strokeRect(-width/2, -height/2, width, height);
-                    }
-
-                    this.ctx.restore();
-                });
-
-                // Draw UI
-                this.renderUI();
-            }
-
-            renderUI() {
-                const ui = document.getElementById('game-ui');
-                const controls = document.getElementById('game-controls');
-                
-                if (ui && this.frameCount % 30 === 0) {
-                    const fps = Math.round(1000 / (this.lastTime || 16));
-                    ui.innerHTML = \`
-                        <div class="stat">
-                            <span class="stat-label">FPS:</span>
-                            <span class="stat-value">\${fps}</span>
-                        </div>
-                        <div class="stat">
-                            <span class="stat-label">Entities:</span>
-                            <span class="stat-value">\${this.entities.size}</span>
-                        </div>
-                    \`;
-                }
-
-                if (controls && !controls.hasChildNodes()) {
-                    controls.innerHTML = \`
-                        <div>Controls:</div>
-                        <div>WASD / Arrows: Move</div>
-                        <div>Scene: \${GAME_DATA.scene.name}</div>
-                    \`;
-                }
-            }
-
-            gameLoop() {
-                if (!this.running) return;
-
-                const currentTime = performance.now();
-                const deltaTime = currentTime - this.lastTime;
-                this.lastTime = currentTime;
-
-                this.update(deltaTime);
-                this.render();
-
-                this.frameCount++;
-                requestAnimationFrame(() => this.gameLoop());
-            }
+          });
+          if (hit) { this.projectiles.splice(i, 1); continue; }
+          // Hit obstacles
+          this.entities.forEach((e) => {
+            if (e.type !== 'obstacle' || hit) return;
+            const dx = p.x - e.transform.x, dy = p.y - e.transform.y;
+            if (Math.sqrt(dx*dx+dy*dy) < (e.width + 10) / 2) { hit = true; }
+          });
+          if (hit) this.projectiles.splice(i, 1);
         }
 
-        // Initialize game
-        window.addEventListener('DOMContentLoaded', () => {
-            const canvas = document.getElementById('game-canvas');
-            const engine = new GameEngine(canvas);
-            engine.init();
+        // Entities
+        const player = this.entities.get('player') || this.entities.get('player-1');
+        this.entities.forEach((entity, id) => {
+          // Player movement with obstacle collision
+          if (entity.components?.playerInput) {
+            const speed = entity.components?.movement?.speed || 200;
+            let vx = 0, vy = 0;
+            if (this.keys['arrowleft'] || this.keys['a']) vx = -speed;
+            if (this.keys['arrowright'] || this.keys['d']) vx = speed;
+            if (this.keys['arrowup'] || this.keys['w']) vy = -speed;
+            if (this.keys['arrowdown'] || this.keys['s']) vy = speed;
+            const obstacles = [];
+            this.entities.forEach(e => { if (e.type === 'obstacle') obstacles.push(e); });
+            const nextX = entity.transform.x + vx * dtSec;
+            const testX = { ...entity, transform: { ...entity.transform, x: nextX } };
+            if (!obstacles.some(o => id !== o.id && this.checkCollision(testX, o)))
+              entity.transform.x = nextX;
+            const nextY = entity.transform.y + vy * dtSec;
+            const testY = { ...entity, transform: { ...entity.transform, y: nextY } };
+            if (!obstacles.some(o => id !== o.id && this.checkCollision(testY, o)))
+              entity.transform.y = nextY;
+            const margin = entity.width / 2;
+            entity.transform.x = Math.max(margin, Math.min(this.canvas.width - margin, entity.transform.x));
+            entity.transform.y = Math.max(margin, Math.min(this.canvas.height - margin, entity.transform.y));
+            if (vx > 0) entity.facing = 'right';
+            if (vx < 0) entity.facing = 'left';
+          }
+
+          // Enemy: chase player when close, patrol otherwise
+          if (entity.type === 'enemy' && player) {
+            const patrolSpeed = entity.components?.ai?.speed || 50;
+            const dx = player.transform.x - entity.transform.x;
+            const dy = player.transform.y - entity.transform.y;
+            const dist = Math.sqrt(dx*dx+dy*dy);
+            if (dist < 200) {
+              // Chase
+              entity.transform.x += (dx/dist) * patrolSpeed * 0.6 * dtSec;
+              entity.transform.y += (dy/dist) * patrolSpeed * 0.6 * dtSec;
+              // Damage player on contact
+              if (dist < (entity.width + player.width) / 2 && this.invincibleTimer <= 0) {
+                this.health -= (entity.damage || 10);
+                this.invincibleTimer = 1000;
+                if (this.health <= 0) { this.health = 0; this.endGame(false); }
+              }
+            } else {
+              // Patrol (sin/cos around origin)
+              const t = currentTime / 1000;
+              entity.transform.x = entity.patrolOrigin.x + Math.sin(t * (patrolSpeed/100) + entity.patrolOffset) * 100;
+              entity.transform.y = entity.patrolOrigin.y + Math.cos(t * (patrolSpeed/80) + entity.patrolOffset * 2) * 80;
+            }
+            entity.transform.x = Math.max(entity.width/2, Math.min(this.canvas.width - entity.width/2, entity.transform.x));
+            entity.transform.y = Math.max(entity.height/2, Math.min(this.canvas.height - entity.height/2, entity.transform.y));
+            if (entity.hitFlash > 0) entity.hitFlash -= dt;
+          }
+
+          // Collectible rotation
+          if (entity.type === 'collectible') {
+            entity.transform.rotation = (entity.transform.rotation || 0) + dt * 0.003;
+          }
+          // Item rotation
+          if (entity.type === 'item') {
+            entity.transform.rotation = (entity.transform.rotation || 0) + dt * 0.003;
+          }
         });
+
+        // Collectible pickup
+        if (player) {
+          const toDelete = [];
+          this.entities.forEach((item) => {
+            if (item.type !== 'collectible' && item.type !== 'item') return;
+            const dx = player.transform.x - item.transform.x;
+            const dy = player.transform.y - item.transform.y;
+            if (Math.sqrt(dx*dx+dy*dy) < (player.width + item.width) / 2) {
+              const col = item.components?.collectible || item.components?.itemDrop;
+              if (item.type === 'collectible') {
+                if (col?.type === 'health') { this.health = Math.min(100, this.health + (col.healAmount || 30)); }
+                else if (col?.type === 'rune') {
+                  if (!this.collectedRuneIds.includes(item.id)) this.collectedRuneIds.push(item.id);
+                }
+                this.score += col?.value || 10;
+              } else {
+                this.score += 10;
+              }
+              toDelete.push(item.id);
+            }
+          });
+          toDelete.forEach(id => this.entities.delete(id));
+        }
+
+        // Victory: all runes collected
+        const allRunes = (GAME_DATA.scene.entities || []).filter(
+          e => e.type === 'collectible' && e.components?.collectible?.type === 'rune'
+        );
+        if (allRunes.length > 0 && this.collectedRuneIds.length >= allRunes.length) {
+          this.endGame(true);
+        }
+      }
+
+      endGame(won) {
+        if (won) {
+          this.victory = true;
+          const s = document.getElementById('victory-screen');
+          s.style.display = 'flex';
+          document.getElementById('vic-score').textContent = 'Score: ' + this.score;
+          document.getElementById('vic-time').textContent = 'Time: ' + Math.floor(this.gameTime / 1000) + 's';
+        } else {
+          this.gameOver = true;
+          const s = document.getElementById('game-over-screen');
+          s.style.display = 'flex';
+          document.getElementById('go-score').textContent = 'Score: ' + this.score;
+          document.getElementById('go-time').textContent = 'Time: ' + Math.floor(this.gameTime / 1000) + 's';
+        }
+      }
+
+      // ─── RENDER (matches preview rendering) ───────────────────
+      render() {
+        const ctx = this.ctx;
+        const W = this.canvas.width, H = this.canvas.height;
+
+        // Background
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, W, H);
+
+        // Grid
+        ctx.strokeStyle = 'rgba(71, 85, 105, 0.15)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < W; x += 32) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+        for (let y = 0; y < H; y += 32) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+        // Render layers (same order as preview: obstacles, items, collectibles, projectiles, enemies, player)
+        // Obstacles
+        this.entities.forEach(e => {
+          if (e.type !== 'obstacle') return;
+          const { x, y, scaleX, scaleY } = e.transform;
+          const w = e.width, h = e.height;
+          ctx.save(); ctx.translate(x, y); ctx.scale(scaleX, scaleY);
+          ctx.fillStyle = '#475569'; ctx.fillRect(-w/2, -h/2, w, h);
+          ctx.fillStyle = '#64748b'; ctx.fillRect(-w/2, -h/2, w, h * 0.2);
+          ctx.fillStyle = '#334155'; ctx.fillRect(w/2 - w*0.1, -h/2, w*0.1, h);
+          ctx.restore();
+        });
+
+        // Items
+        this.entities.forEach(e => {
+          if (e.type !== 'item') return;
+          const { x, y, rotation } = e.transform;
+          const w = e.width, h = e.height;
+          ctx.save(); ctx.translate(x, y); ctx.rotate(rotation || 0);
+          ctx.fillStyle = e.color; ctx.beginPath(); ctx.roundRect(-w/2, -h/2, w, h, 4); ctx.fill();
+          ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fillRect(-w/4, -h/2+1, w/2, h*0.3);
+          ctx.restore();
+        });
+
+        // Collectibles
+        this.entities.forEach(e => {
+          if (e.type !== 'collectible') return;
+          const { x, y, scaleX, scaleY, rotation } = e.transform;
+          const w = e.width, h = e.height;
+          const col = e.components?.collectible;
+          ctx.save(); ctx.translate(x, y); ctx.rotate(rotation || 0); ctx.scale(scaleX, scaleY);
+          // Glow
+          const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, w);
+          grad.addColorStop(0, e.color + '80'); grad.addColorStop(1, e.color + '00');
+          ctx.fillStyle = grad; ctx.fillRect(-w, -h, w*2, h*2);
+          ctx.fillStyle = e.color; ctx.beginPath();
+          if (col?.type === 'rune') { ctx.moveTo(0,-h/2); ctx.lineTo(w/2,0); ctx.lineTo(0,h/2); ctx.lineTo(-w/2,0); ctx.closePath(); }
+          else if (col?.type === 'health') { ctx.arc(0, 0, w/2, 0, Math.PI*2); }
+          else { ctx.fillRect(-w/2, -h/2, w, h); }
+          ctx.fill();
+          if (col?.type === 'rune') { ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.beginPath(); ctx.arc(0, 0, w/4, 0, Math.PI*2); ctx.fill(); }
+          ctx.restore();
+        });
+
+        // Projectiles
+        this.projectiles.forEach(p => {
+          ctx.save();
+          ctx.fillStyle = p.color || '#fbbf24';
+          ctx.shadowColor = p.color || '#fbbf24'; ctx.shadowBlur = 10;
+          ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI*2); ctx.fill();
+          ctx.restore();
+        });
+
+        // Enemies
+        this.entities.forEach(e => {
+          if (e.type !== 'enemy') return;
+          const { x, y, scaleX, scaleY } = e.transform;
+          const w = e.width, h = e.height;
+          ctx.save(); ctx.translate(x, y); ctx.scale(scaleX, scaleY);
+          // Body
+          ctx.fillStyle = e.hitFlash > 0 ? '#fff' : e.color;
+          ctx.beginPath(); ctx.roundRect(-w/2, -h/2, w, h, 6); ctx.fill();
+          // Eyes
+          ctx.fillStyle = '#fff';
+          ctx.beginPath(); ctx.ellipse(-w/5, -h/5, w/6, h/6, 0, 0, Math.PI*2); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(w/5, -h/5, w/6, h/6, 0, 0, Math.PI*2); ctx.fill();
+          ctx.fillStyle = '#000';
+          ctx.beginPath(); ctx.arc(-w/5, -h/5, w/12, 0, Math.PI*2); ctx.fill();
+          ctx.beginPath(); ctx.arc(w/5, -h/5, w/12, 0, Math.PI*2); ctx.fill();
+          // Health bar
+          const hpPct = e.health / e.maxHealth;
+          ctx.fillStyle = '#1f2937'; ctx.fillRect(-w/2-4, -h/2-10, w+8, 4);
+          ctx.fillStyle = hpPct > 0.5 ? '#22c55e' : hpPct > 0.25 ? '#eab308' : '#ef4444';
+          ctx.fillRect(-w/2-4, -h/2-10, (w+8)*hpPct, 4);
+          ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText(e.health + '/' + e.maxHealth, 0, -h/2-14);
+          ctx.restore();
+        });
+
+        // NPCs
+        this.entities.forEach(e => {
+          if (e.type !== 'npc') return;
+          const { x, y, scaleX, scaleY } = e.transform;
+          const w = e.width, h = e.height;
+          ctx.save(); ctx.translate(x, y); ctx.scale(scaleX, scaleY);
+          ctx.fillStyle = e.color;
+          ctx.beginPath(); ctx.roundRect(-w/2, -h/2, w, h, 10); ctx.fill();
+          // Hat
+          ctx.fillStyle = '#7c3aed';
+          ctx.beginPath(); ctx.moveTo(0, -h/2-16); ctx.lineTo(-w/2+2, -h/2+2); ctx.lineTo(w/2-2, -h/2+2); ctx.closePath(); ctx.fill();
+          // Eyes
+          ctx.fillStyle = '#fff';
+          ctx.beginPath(); ctx.arc(-w/5, -h/8, w/6, 0, Math.PI*2); ctx.fill();
+          ctx.beginPath(); ctx.arc(w/5, -h/8, w/6, 0, Math.PI*2); ctx.fill();
+          ctx.fillStyle = '#1e3a5f';
+          ctx.beginPath(); ctx.arc(-w/5, -h/8, w/12, 0, Math.PI*2); ctx.fill();
+          ctx.beginPath(); ctx.arc(w/5, -h/8, w/12, 0, Math.PI*2); ctx.fill();
+          // Name
+          ctx.fillStyle = '#e9d5ff'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText(e.components?.npc?.name || 'NPC', 0, h/2 + 12);
+          ctx.restore();
+        });
+
+        // Player
+        const player = this.entities.get('player') || this.entities.get('player-1');
+        if (player) {
+          const { x, y, scaleX, scaleY } = player.transform;
+          const w = player.width, h = player.height;
+          ctx.save(); ctx.translate(x, y); ctx.scale(scaleX, scaleY);
+          if (this.invincibleTimer > 0 && Math.floor(this.invincibleTimer / 100) % 2 === 0) ctx.globalAlpha = 0.5;
+          ctx.fillStyle = player.color;
+          ctx.beginPath(); ctx.roundRect(-w/2, -h/2, w, h, 8); ctx.fill();
+          // Eyes
+          ctx.fillStyle = '#fff';
+          ctx.beginPath(); ctx.ellipse(-w/5, -h/6, w/5, h/5, 0, 0, Math.PI*2); ctx.fill();
+          ctx.beginPath(); ctx.ellipse(w/5, -h/6, w/5, h/5, 0, 0, Math.PI*2); ctx.fill();
+          ctx.fillStyle = '#1e3a5f';
+          ctx.beginPath(); ctx.arc(-w/5, -h/6, w/10, 0, Math.PI*2); ctx.fill();
+          ctx.beginPath(); ctx.arc(w/5, -h/6, w/10, 0, Math.PI*2); ctx.fill();
+          // Outline glow
+          ctx.strokeStyle = '#60a5fa'; ctx.lineWidth = 2;
+          ctx.shadowColor = '#60a5fa'; ctx.shadowBlur = 10;
+          ctx.strokeRect(-w/2, -h/2, w, h); ctx.shadowBlur = 0;
+          // Label
+          ctx.fillStyle = '#fff'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+          ctx.shadowColor = '#000'; ctx.shadowBlur = 2; ctx.fillText('YOU', 0, h/2+12); ctx.shadowBlur = 0;
+          ctx.restore();
+        }
+
+        // ─── HUD (matches preview canvas HUD) ──────────────────
+        ctx.fillStyle = 'rgba(0,0,0,0.8)';
+        ctx.beginPath(); ctx.roundRect(10, 10, 200, 130, 8); ctx.fill();
+        ctx.fillStyle = 'white'; ctx.font = 'bold 14px monospace'; ctx.textAlign = 'left';
+        ctx.fillText('Score: ' + this.score, 20, 35);
+        // Health bar
+        ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(20, 45, 100, 10);
+        ctx.fillStyle = this.health > 50 ? '#22c55e' : this.health > 25 ? '#eab308' : '#ef4444';
+        ctx.fillRect(20, 45, 100 * (this.health/100), 10);
+        ctx.fillStyle = 'white'; ctx.font = '9px monospace'; ctx.fillText('HP ' + Math.round(this.health), 125, 54);
+        // Mana bar
+        ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(20, 58, 100, 10);
+        ctx.fillStyle = '#3b82f6'; ctx.fillRect(20, 58, 100 * (this.mana/100), 10);
+        ctx.fillStyle = 'white'; ctx.fillText('MP ' + Math.round(this.mana), 125, 67);
+        ctx.font = '12px monospace';
+        const fps = Math.round(1000 / (this.lastTime || 16));
+        ctx.fillText('FPS: ' + fps, 20, 85);
+        ctx.fillText('Runes: ' + this.collectedRuneIds.length, 20, 100);
+        ctx.fillText('Time: ' + Math.floor(this.gameTime/1000) + 's', 20, 115);
+        ctx.fillText('Entities: ' + this.entities.size, 20, 130);
+
+        // Minimap (matches preview)
+        const mmSize = 120, mmX = this.canvas.width - mmSize - 10, mmY = 10;
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.beginPath(); ctx.roundRect(mmX, mmY, mmSize, mmSize, 6); ctx.fill();
+        ctx.strokeStyle = '#334155'; ctx.lineWidth = 1; ctx.strokeRect(mmX, mmY, mmSize, mmSize);
+        const scX = mmSize / this.canvas.width, scY = mmSize / this.canvas.height;
+        this.entities.forEach(e => {
+          ctx.fillStyle = TYPE_COLORS[e.type] || '#8b5cf6';
+          ctx.fillRect(mmX + e.transform.x * scX - 2, mmY + e.transform.y * scY - 2, 4, 4);
+        });
+      }
+
+      gameLoop() {
+        if (!this.running) return;
+        const now = performance.now();
+        const dt = Math.min(now - this.lastTime, 50);
+        this.lastTime = now;
+        this.update(dt);
+        this.render();
+        this.frameCount++;
+        requestAnimationFrame(() => this.gameLoop());
+      }
+    }
+
+    // ─── Initialize ────────────────────────────────────────────
+    window.addEventListener('DOMContentLoaded', () => {
+      const canvas = document.getElementById('game-canvas');
+      const engine = new GameEngine(canvas);
+      engine.init();
+
+      // SPACE to shoot (matches preview)
+      let lastShotTime = 0;
+      window.addEventListener('keydown', (e) => {
+        if (e.key !== ' ' || !engine.running || engine.gameOver || engine.victory) return;
+        e.preventDefault();
+        const now = performance.now();
+        if (now - lastShotTime < 300) return;
+        lastShotTime = now;
+        const player = engine.entities.get('player') || engine.entities.get('player-1');
+        if (!player) return;
+        let dx = 0, dy = 0;
+        if (engine.keys['arrowleft'] || engine.keys['a']) dx = -1;
+        else if (engine.keys['arrowright'] || engine.keys['d']) dx = 1;
+        else if (engine.keys['arrowup'] || engine.keys['w']) dy = -1;
+        else if (engine.keys['arrowdown'] || engine.keys['s']) dy = 1;
+        else dx = 1;
+        if (dx !== 0 && dy !== 0) { const l = Math.sqrt(dx*dx+dy*dy); dx/=l; dy/=l; }
+        engine.projectiles.push({
+          x: player.transform.x, y: player.transform.y,
+          vx: dx * 500, vy: dy * 500,
+          damage: 10, color: '#fbbf24', createdAt: now,
+        });
+      });
+    });
     </script>
 </body>
 </html>`;
