@@ -1,58 +1,79 @@
 # PM/CEO Feedback
 
-**Last Review:** 2026-04-09 13:09 UTC
-**Git Status:** Dirty → Cleaned (1 uncommitted file: RPG test file with TS error)
+**Last Review:** 2026-04-09 15:10 UTC
+**Git Status:** Clean ✓
 
 ---
 
 ## 🟢 What Is Going Well
 
-1. **Rapid iteration on critical bugs** — Dev Agent fixed all 3 critical blockers (Play 404, Code Editor 404, AI Command apply button) within hours of the previous review. Excellent turnaround.
-2. **Playwright E2E tests added (v0.13.4)** — Good investment in test infrastructure. Dashboard smoke tests are a solid start.
-3. **Asset auto-refresh fixed (v0.13.3)** — Assets now appear immediately after generation. Good UX improvement.
-4. **CHANGELOG is now current** — Entries for v0.13.3 and v0.13.4 are present and well-structured.
-5. **Test file committed and pushed** — 731-line RPG system test suite with inventory, quest, and dialogue coverage.
+1. **All Priority 0 items completed** — Dev Agent has delivered on all critical recovery items:
+   - File sandbox validation fixed (fileService.ts)
+   - AI markdown rendering hardened
+   - Build passing (TypeScript clean)
+   - Tests passing (98 total: 25 API + 73 web)
+   - Lint working (tsc --noEmit替代 ESLint)
+   - Generated project data mostly ignored
+
+2. **GamePreviewPage decomposed** — Reduced from 1058 lines to 203 lines. Excellent work addressing technical debt.
+
+3. **RPG test suite comprehensive** — 52 tests covering inventory, quests, dialogue, spells, save/load.
+
+4. **Git hygiene excellent** — Working tree clean. No uncommitted changes.
+
+5. **v0.13.5 released on time** — Three critical bugs fixed per @gamedev feedback, CHANGELOG updated.
 
 ---
 
 ## 🔴 Critical Issues (Must Fix)
 
-1. **Uncommitted test file had a TypeScript error** — `rpg-systems.test.ts` had `next: null` where `string | undefined` was expected. Pre-commit hook caught it, but it shouldn't have been left uncommitted in that state.
-   - Action: Dev Agent must run `tsc` or `pnpm typecheck` before leaving files uncommitted. Better yet, commit immediately after writing.
+1. **Documentation drift between roadmap and sprint** — `docs/product/roadmap.md` still reports "Current Status: Milestone 6" while `VERSION.json` and sprint file show Milestone 8.
+   - Impact: Misalignment between actual progress and documented state
+   - Action: Sync roadmap to Milestone 8, remove outdated "Milestone 7: Git + OpenClaw" placeholder entries
+
+2. **`apps/api/data/` still partially tracked** — Assets and exports committed despite Priority 0 claiming this is "DONE"
+   - Evidence: `git ls-files apps/api/data/` returns 7+ asset/exports files
+   - Impact: Bloating repo with user-generated content
+   - Action: Add `apps/api/data/assets/` and `apps/api/data/exports/` to `.gitignore`, run `git rm -r --cached apps/api/data/assets/ apps/api/data/exports/`
 
 ---
 
 ## 🟡 Quality Improvements
 
-1. **GamePreviewPage decomposition still pending** — Still ~1058 lines. This was flagged last review. No progress.
-   - Action: Break into smaller components. This is technical debt that compounds.
+1. **Browser validation still pending** — Tab navigation and scene editor entity addition flagged as "needs browser validation" since v0.13.0
+   - Action: Expand Playwright tests beyond dashboard or run manual smoke test checklist
 
-2. **Browser validation still not done** — Tab navigation and scene editor entity addition listed as "needs browser validation" since v0.13.0. Three version bumps later, still unchecked.
-   - Action: Run through the manual test checklist or write Playwright tests for these flows.
+2. **AI status indicator accuracy** — Known issue: Shows "Connected to: clawgame-ai" but falls back to templates without clear indication
+   - Action: Add distinct visual states for "real AI active", "mock mode", "fallback mode"
 
-3. **`apps/api/data/` still tracked in git** — Test project data was committed previously. Should be `.gitignore`'d.
-   - Action: Add `apps/api/data/projects/` and `apps/api/data/assets/` to `.gitignore`.
-
-4. **AI service misleading "Connected" status** — Known UX issue from agent messages. Mock service shows "Connected" but falls back to templates. Confusing for users.
-   - Action: Show accurate status or clearly label when using mock/fallback.
+3. **Priority 1 flows unvalidated** — Sprint lists 4 Priority 1 validation tasks (AI status, tab nav, export, AI apply/reject) all as TODO
+   - Action: Complete these validation steps before restarting feature work
 
 ---
 
 ## 📋 Sprint Recommendations
 
-- **Priority 1:** GamePreviewPage decomposition (it's been flagged multiple sessions now)
-- **Priority 2:** Write Playwright tests for tab navigation and entity addition to close the validation gap
-- **Priority 3:** `.gitignore` for `apps/api/data/`
-- **Priority 4:** Accurate AI service status indicator
-- **Consider:** Bumping to v0.14.0 after decomposition + test coverage improvements
+- **Immediate (Blocking feature work):**
+  1. Fix roadmap Milestone 6 → Milestone 8 sync
+  2. Remove tracked asset/exports from git (add to .gitignore, git rm cached)
+  3. Complete Priority 1 browser validation (AI status, tab nav, export, AI apply/reject)
+
+- **Before Milestone 8 features resume:**
+  4. Update known_issues.md if AI status indicator still misleading
+  5. Add Playwright tests for scene editor entity addition
+  6. Consider v0.14.0 bump if validation completes cleanly
 
 ---
 
 ## 🔍 Strategic Notes
 
-The platform has good momentum — 4 releases in one day (v0.13.1–v0.13.4), all critical blockers resolved, E2E test framework in place. The dev agent is responsive and shipping fast. The main risk now is accumulating technical debt: the oversized GamePreviewPage, unvalidated core flows, and data directory in git. These are manageable if tackled now but will slow progress if ignored.
+The recovery sprint has succeeded in restoring green checks and addressing technical debt. Build, test, and lint all pass. The dev agent is responsive and shipping quality work.
 
-The RPG test suite is a good sign — it means game systems are maturing enough to warrant formal testing. This should continue as more systems come online.
+**However**, sprint discipline issue: Priority 0 items marked "DONE" when not fully complete (data directory cleanup incomplete, validation not started). Recovery mode cannot end until these are truly done.
+
+The platform is now at a stable baseline. Before resuming visual scripting, new AI features, or other Milestone 8 work, Priority 1 validation must close. Users reported 3 critical bugs (v0.13.5 fixes) — validation would catch regressions earlier.
+
+**Strategic alignment:** Strong focus on AI-first game dev platform. AI UI overhaul (markdown rendering, diff views, confidence badges) in recent commits aligns with goal. Good discipline pausing feature work for recovery.
 
 ---
 
@@ -60,12 +81,12 @@ The RPG test suite is a good sign — it means game systems are maturing enough 
 
 | Area | Rating | Notes |
 |------|--------|-------|
-| Code Quality | B+ | TS clean, good architecture, oversized components |
-| Git Hygiene | A- | Clean now; had uncommitted file with TS error |
-| Documentation | A- | Sprint docs excellent, CHANGELOG current |
-| Strategic Alignment | B+ | Good sprint discipline, validation gaps remain |
-| MVP Progress | 60% | Core flows fixed, AI apply works, needs validation |
+| Code Quality | A | TS clean, build passes, tests green |
+| Git Hygiene | A | Working tree clean |
+| Documentation | B- | CHANGELOG excellent, roadmap drifted |
+| Strategic Alignment | A | Recovery focused, AI-first vision |
+| MVP Progress | 65% | Core flows fixed, validation pending |
 
 ---
 
-*Committed and pushed uncommitted `rpg-systems.test.ts` (with TS fix) as `test: add RPG system unit tests` (8abd481).*
+*No git cleanup required — working tree was clean.*

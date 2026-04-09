@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <rect width="64" height="64" fill="transparent"/>
-  <rect x="9.6" y="9.6" width="44.8" height="44.8" rx="6" fill="#e94560" stroke="#0f3460" stroke-width="2"/>
-  <circle cx="22.4" cy="25.6" r="3.84" fill="#fff"/>
-  <circle cx="41.6" cy="25.6" r="3.84" fill="#fff"/>
-  <rect x="22.4" y="38.4" width="19.2" height="3.84" rx="3" fill="#16213e"/>
-  <text x="32" y="60.8" text-anchor="middle" font-size="7" fill="#0f3460">Sprite</text>
-</svg>

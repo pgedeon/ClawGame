@@ -1,10 +1,12 @@
 # ClawGame Roadmap
 
-## Current Status: Milestone 6 — IN PROGRESS 🚧
+## Current Status: Milestone 8 — Recovery & Feature Expansion 🚧
 
-**Goal:** Ship real AI asset generation, add test coverage, connect scene editor to assets, backend quality.
+**Goal:** Restore repository trust, validate core flows, then expand AI-first features.
 
 **Started:** 2026-04-08
+
+
 
 ---
 
@@ -106,21 +108,25 @@ Built for Eclipse of Runes, reusable across all ClawGame projects.
 
 ## Future Milestones
 
-### Milestone 7: Git + OpenClaw Operations 🔄
+### Milestone 7: Git + OpenClaw Operations ✅ (v0.13.0)
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Git integration UI | ⏳ Not Started | Git interface in web dashboard |
+| Git integration UI | ✅ Done | Git Center page in web dashboard |
 | Auto-commit on save | ⏳ Not Started | Auto-commit code changes |
 | Branch management | ⏳ Not Started | Create/switch branches |
 
-### Milestone 8: Visual Scripting ✨
+### Milestone 8: Feature Expansion 🚧 (v0.13.0 → current)
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Node-based event system | ⏳ Not Started | Visual scripting editor |
-| AI-assisted scripting | ⏳ Not Started | AI generates visual logic |
-| Debug visualizer | ⏳ Not Started | Visual debugging tools |
+| AI UI overhaul (markdown, diff, confidence) | ✅ Done | v0.13.3 — Rich AI responses |
+| GamePreviewPage decomposition | ✅ Done | v0.13.4 — 1058→203 lines |
+| Critical bug fixes (AI context, preview, editor) | ✅ Done | v0.13.5 |
+| Recovery sprint (build/test/lint green) | ✅ Done | v0.13.5 |
+| AI status indicator accuracy | ⏳ In Progress | Distinguish real/mock/fallback |
+| Playwright browser testing | ⏳ Not Started | Automated smoke tests |
+| Visual scripting foundation | ⏳ Not Started | Node-based event system |
 
 ---
 
@@ -155,4 +161,4 @@ See also:
 - [UI/UX Feedback](../ai/uiux_feedback.md)
 - [Game Dev Feedback](../ai/game_dev_feedback.md)
 
-## Last Updated: 2026-04-08
+## Last Updated: 2026-04-09

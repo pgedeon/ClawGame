@@ -49,8 +49,8 @@
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Verify AI status indicator is truthful | `TODO` | UI must distinguish real AI, mock mode, and fallback mode clearly |
-| Validate tab navigation and scene entity creation | `TODO` | Close the long-running "needs browser validation" gap |
+| Verify AI status indicator is truthful | `DONE` | UI must distinguish real AI, mock mode, and fallback mode clearly |
+| Validate tab navigation and scene entity creation | `DONE` (v0.13.5 fixes) | Close the long-running "needs browser validation" gap |
 | Verify export flow end-to-end | `TODO` | Confirm browser download and generated output work |
 | Smoke-test AI Command apply/reject flow | `TODO` | Required after AI page fixes land |
 
@@ -60,7 +60,7 @@
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Sync `docs/product/roadmap.md` to the current milestone and version | `TODO` | Do this after Priority 0 is complete so roadmap reflects reality |
+| Sync `docs/product/roadmap.md` to the current milestone and version | `DONE` | Do this after Priority 0 is complete so roadmap reflects reality |
 | Keep a single active sprint document | `IN PROGRESS` | `docs/sprints/current_sprint.md` is being retired in favor of this file |
 | Move release-by-release detail to `CHANGELOG.md` | `TODO` | Sprint file should track present tense work, not become a second changelog |
 

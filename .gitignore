@@ -70,3 +70,7 @@ temp/
 .openclaw.json
 .openclaw-workspace/
 apps/api/data/projects/
+
+# Generated runtime data
+apps/api/data/assets/
+apps/api/data/exports/

@@ -225,3 +225,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.9.0] - 2026-04-08
 
 [565 more lines in file. Use offset=101 to continue.]
+
+### [0.13.6] - 2026-04-09
+
+#### Fixed
+- Synced roadmap.md from stale Milestone 6 to current Milestone 8 status
+- Removed tracked runtime assets/exports from git (added to .gitignore)
+- Updated sprint file with accurate completion status for Priority 0/1 items
+- Marked Milestone 7 (Git Center) as completed in roadmap
+
+#### Added
+- Playwright E2E smoke test infrastructure (dashboard, navigation, command palette)
+- e2e/smoke.spec.ts with 4 core flow tests
+
+
+### [0.13.6] - 2026-04-09
+
+#### Fixed
+- Synced roadmap.md from stale Milestone 6 to current Milestone 8 status
+- Removed tracked runtime assets/exports from git (added to .gitignore)
+- Updated sprint file with accurate completion status
+
+#### Added
+- Playwright E2E smoke test infrastructure (dashboard, navigation, command palette)
+
