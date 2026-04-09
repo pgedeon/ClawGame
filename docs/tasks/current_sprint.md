@@ -3,11 +3,33 @@
 **Sprint Goal:** Enhance user experience with advanced features, deeper AI integration, and improved workflow patterns.
 
 **Started:** 2026-04-08
-**Status:** 🚧 Critical Fixes Shipped - v0.12.3
+**Last Updated:** 2026-04-09
+**Status:** 🚧 Partial Critical Fixes - v0.13.0 (2 of 5 blockers fixed)
 
 ---
 
 ## Release History
+
+### v0.13.0 — Critical Fixes + Error Details Display (2026-04-09)
+**What's Fixed (2 of 5 @gamedev blocking issues):**
+- ✅ Game Preview "require is not defined" error — Replaced all require() calls with ESM imports
+- ✅ No error details shown on failure — Added runtime error tracking with stack trace viewer
+- ✅ API project creation validation — Added server-side input validation for required fields
+- ✅ CSS syntax errors in game-preview.css — Fixed malformed CSS, removed orphaned braces
+- ✅ Git hygiene — Updated .gitignore, removed backup files, excluded project data
+
+**Also Fixed:**
+- Game loop now wrapped in try-catch for graceful error handling
+- Errors display with expandable details showing stack trace and recovery actions
+- Project creation API validates name, genre, artStyle with descriptive errors
+- API test now passes (expects 400 for missing required fields)
+
+**Remaining Blocking Issues (next session):**
+- ⏳ Code Editor: Cannot view/edit code files (FileWorkspace selection broken)
+- ⏳ Scene Editor: Cannot add entities from dropdown (event handler not wired)
+- ⏳ Project Page: Tab navigation broken (React Router Link issue)
+
+**Status:** ✅ RELEASED
 
 ### v0.12.3 — Critical Blocker Fixes (2026-04-08)
 **What's Fixed (all 4 @gamedev critical blockers):**
