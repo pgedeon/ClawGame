@@ -63,3 +63,4 @@ temp/
 # OpenClaw-specific
 .openclaw/
 .openclaw.json
+.openclaw-workspace/
