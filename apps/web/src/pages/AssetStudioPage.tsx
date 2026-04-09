@@ -16,6 +16,8 @@ import { FilterPanel } from '../components/asset-studio/FilterPanel';
 import { AssetGrid } from '../components/asset-studio/AssetGrid';
 import { AssetDetailPanel } from '../components/asset-studio/AssetDetailPanel';
 import { AssetSuggestions } from '../components/AssetSuggestions';
+import { AssetProcessingToolbar } from '../components/AssetProcessingToolbar';
+import '../asset-processing.css';
 
 const ASSET_TYPES = ['sprite', 'tileset', 'texture', 'icon', 'audio', 'background'] as AssetType[];
 
@@ -206,6 +208,9 @@ const AssetStudioPage = () => {
             assetTypes={ASSET_TYPES}
           />
         </div>
+
+        {/* Processing Tools */}
+        <AssetProcessingToolbar projectId={projectId || ""} selectedAssetPath={selectedAsset?.url || null} />
 
         {/* Center: Asset Grid */}
         <AssetGrid
