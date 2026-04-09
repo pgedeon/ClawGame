@@ -313,3 +313,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Asset generation fails silently — Implemented pollAndCreateAssets to return created asset IDs
 - @gamedev critical blocking issues #1, #2, #3 all resolved
 
+
+### [0.13.2] - 2026-04-09
+
+#### Added
+- "Apply to Project" button on each AI Command proposed change
+- "Apply All" button for responses with multiple file changes
+- Code preview (up to 500 lines) in each change item
+- Visual status badges: Applied (green), Applying (spinner), No Content (warning)
+- CSS classes for cancel/retry buttons (replaced inline styles)
+
+#### Changed
+- AI Command change items now show line count and code preview
+- Applied changes tracked per-session to prevent duplicate writes
+
+#### Fixed
+- AI-generated code can now be applied to project files (was the #1 blocker from @gamedev)
+- Inline styles in AICommandPage moved to CSS classes (design system consistency)
