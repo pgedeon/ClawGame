@@ -263,3 +263,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Fixed
 - TypeScript compilation: fixed SpellRecipe pattern/grid interface mismatch
 - TypeScript compilation: fixed ElementType null handling in crafting grid
+
+## [0.13.0] - 2026-04-09
+
+#### Fixed
+- **Game Preview Runtime Errors** — `require is not defined` error fixed by replacing all CommonJS `require()` calls with ESM imports
+  - Added imports: InventoryManager, QuestManager, DialogueManager, SpellCraftingManager, SaveLoadManager
+  - Replaced `new (require(...).Class)()` patterns with direct ESM imports
+- **Game Loop Error Handling** — Wrapped game loop in try-catch to capture runtime errors gracefully
+  - Added `runtimeError` and `runtimeErrorStack` state variables
+  - Errors now display with expandable stack trace in error panel
+  - Added Restart Game / Back to Editor actions for recovery
+- **CSS Syntax Errors** — Fixed malformed CSS in game-preview.css
+  - Removed orphaned closing braces `}` from `.game-preview-container`
+  - Fixed broken `.game-preview-canvas-container` declaration
+  - Clean build warnings eliminated
+- **Project Creation API Validation** — Added server-side input validation for `POST /api/projects`
+  - Validate required fields: name, genre, artStyle
+  - Check string lengths (name ≤ 100, description ≤ 500)
+  - Validate genre against allowed values: platformer, rpg, action, puzzle, adventure, simulation, strategy, other
+  - Validate artStyle against allowed values: pixel, vector, 3d, mixed, other
+  - Returns 400 with descriptive error message for invalid input
+  - API test now passes for validation requirement
+
+#### Changed
+- **Git Hygiene** — Updated .gitignore to exclude temporary and generated files
+  - Added patterns: *.orig, *.patch, *.bak, *~ (backup files)
+  - Exclude .openclaw/, .openclaw.json (OpenClaw config)
+  - Exclude data/projects/*/ (actual project data, keep .gitkeep)
+
+#### Security
+- No changes
+
+#### Known Issues
+- None new (existing issues tracked in separate feedback docs)

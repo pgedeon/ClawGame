@@ -1,8 +1,8 @@
 {
-  "version": "0.12.5",
-  "codename": "decomposition-and-tests",
+  "version": "0.13.0",
+  "codename": "critical-fixes",
   "milestone": 8,
   "milestoneName": "Feature Expansion",
-  "releaseDate": "2026-04-08",
+  "releaseDate": "2026-04-09",
   "status": "in-progress"
 }
