@@ -8,7 +8,8 @@
 }
 
 .game-preview-container {
-  height: 100vh;
+  flex: 1;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -19,7 +20,7 @@
   position: relative;
   width: 100%;
   max-width: 100%;
-  height: 95vh;
+  height: calc(100vh - 140px);
   background: rgba(15, 23, 42, 0.5);
   border: 1px solid rgba(71, 85, 105, 0.3);
   border-radius: var(--radius-lg);
