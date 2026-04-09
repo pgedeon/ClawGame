@@ -1,0 +1,11 @@
+--- a/apps/web/src/pages/GamePreviewPage.tsx
++++ b/apps/web/src/pages/GamePreviewPage.tsx
+@@ -489,7 +489,7 @@ const GamePreviewContent: React.FC = () => {
+             if (dx !== 0 && dy !== 0) { const l = Math.sqrt(dx*dx+dy*dy); dx/=l; dy/=l; }
+
+             if (spell.effectType === 'heal') {
+-              health = Math.min(100, health - spell.damage);
++              health = Math.min(100, health + spell.damage);
+             } else if (spell.effectType === 'projectile') {
+               projectiles.push({
+                 id: `spell-${Date.now()}-${Math.random()}`,

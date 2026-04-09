@@ -1,0 +1,236 @@
+/**
+ * @clawgame/web - Scene Hierarchy Tree Styles
+ * Tree view for entity management with type icons, visibility toggles, and grouping.
+ */
+
+.scene-hierarchy-tree {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  outline: none;
+}
+
+.scene-hierarchy-tree:focus {
+  box-shadow: inset 0 0 0 2px var(--primary, #6366f1);
+  border-radius: var(--radius-sm, 4px);
+}
+
+/* Header */
+.hierarchy-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--surface, #1e293b);
+  border-bottom: 1px solid var(--border-strong, #475569);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fg-secondary, #94a3b8);
+  flex-shrink: 0;
+}
+
+.hierarchy-toggle-all {
+  background: none;
+  border: none;
+  color: var(--fg-secondary, #94a3b8);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  border-radius: 3px;
+  transition: background 0.15s;
+}
+
+.hierarchy-toggle-all:hover {
+  background: var(--surface-alt, #334155);
+  color: var(--fg, #f1f5f9);
+}
+
+.hierarchy-title {
+  flex: 1;
+}
+
+.hierarchy-count {
+  background: var(--primary, #6366f1);
+  color: white;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-weight: 700;
+  min-width: 18px;
+  text-align: center;
+}
+
+/* Empty state */
+.hierarchy-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--text-muted, #8896a8);
+}
+
+.hierarchy-empty p {
+  margin: 4px 0;
+  font-size: 13px;
+}
+
+.hierarchy-empty .hint {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+/* Groups */
+.hierarchy-groups {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.hierarchy-groups::-webkit-scrollbar {
+  width: 6px;
+}
+
+.hierarchy-groups::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.hierarchy-groups::-webkit-scrollbar-thumb {
+  background: var(--border-strong, #475569);
+  border-radius: 3px;
+}
+
+.hierarchy-group {
+  /* group container */
+}
+
+.hierarchy-group-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 12px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border, #334155);
+  color: var(--fg, #f1f5f9);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.hierarchy-group-header:hover {
+  background: var(--surface-alt, #334155);
+}
+
+.group-chevron {
+  display: flex;
+  align-items: center;
+  color: var(--fg-secondary, #94a3b8);
+}
+
+.group-icon {
+  font-size: 14px;
+}
+
+.group-label {
+  flex: 1;
+}
+
+.group-count {
+  font-size: 10px;
+  color: var(--text-muted, #8896a8);
+  background: var(--surface-alt, #334155);
+  padding: 1px 5px;
+  border-radius: 8px;
+}
+
+/* Entity items */
+.hierarchy-group-entities {
+  /* entity list within group */
+}
+
+.hierarchy-entity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 12px 6px 32px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.3);
+  color: var(--fg, #f1f5f9);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  text-align: left;
+  transition: all 0.15s;
+}
+
+.hierarchy-entity:hover {
+  background: var(--surface-alt, #334155);
+}
+
+.hierarchy-entity.selected {
+  background: var(--primary, #6366f1);
+  color: white;
+  border-color: transparent;
+}
+
+.hierarchy-entity.selected .visibility-toggle {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.hierarchy-entity.selected .visibility-toggle:hover {
+  color: white;
+}
+
+.hierarchy-entity.hidden {
+  opacity: 0.45;
+}
+
+.hierarchy-entity.hidden .entity-name {
+  text-decoration: line-through;
+}
+
+.entity-type-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.entity-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.visibility-toggle {
+  background: none;
+  border: none;
+  color: var(--fg-secondary, #94a3b8);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  border-radius: 3px;
+  opacity: 0;
+  transition: all 0.15s;
+}
+
+.hierarchy-entity:hover .visibility-toggle,
+.visibility-toggle.is-hidden {
+  opacity: 1;
+}
+
+.visibility-toggle:hover {
+  color: var(--fg, #f1f5f9);
+  background: var(--surface-alt, #334155);
+}
+
+.visibility-toggle.is-hidden {
+  color: var(--text-muted, #8896a8);
+}

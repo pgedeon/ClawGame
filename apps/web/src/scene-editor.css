@@ -1,6 +1,7 @@
 /**
  * @clawgame/web - Scene Editor Styles
  * Visual editor for 2D scenes with entity placement and property editing
+ * v0.12.6: Enhanced visual hierarchy with elevation layers and depth separation
  */
 
 .scene-editor-page {
@@ -11,14 +12,19 @@
   color: var(--fg);
 }
 
-.scene-editor-page .page-header {
+/* ═══════════════════════════════════════════════════════════
+   HEADER (elevation-1)
+   ═══════════════════════════════════════════════════════════ */
+.scene-editor-page .scene-editor-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: var(--space-md) var(--space-lg);
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  background: var(--surface, #1e293b);
+  border-bottom: 2px solid var(--border-strong, #475569);
   flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  z-index: 10;
 }
 
 .scene-editor-page .project-info h1 {
@@ -30,12 +36,12 @@
 .scene-editor-page .project-info p {
   margin: var(--space-xs) 0 0 0;
   font-size: var(--text-sm);
-  color: var(--fg-secondary);
+  color: var(--fg-secondary, #94a3b8);
 }
 
 .scene-editor-page .project-name {
   font-weight: 500;
-  color: var(--primary);
+  color: var(--primary, #6366f1);
 }
 
 .scene-editor-page .editor-controls {
@@ -54,9 +60,9 @@
   align-items: center;
   gap: var(--space-xs);
   padding: var(--space-sm) var(--space-md);
-  background: var(--surface-alt);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  background: var(--surface-alt, #334155);
+  border: 1px solid var(--border, #475569);
+  border-radius: var(--radius-md, 8px);
   color: var(--fg);
   cursor: pointer;
   font-size: var(--text-sm);
@@ -64,45 +70,27 @@
 }
 
 .scene-editor-page .tool-btn:hover {
-  background: var(--surface-alt-2);
+  background: var(--surface, #1e293b);
+  border-color: var(--primary, #6366f1);
 }
 
 .scene-editor-page .tool-btn.active {
-  background: var(--primary);
+  background: var(--primary, #6366f1);
   color: white;
-  border-color: var(--primary);
+  border-color: var(--primary, #6366f1);
 }
 
-.scene-editor-page .zoom-controls {
+/* ═══════════════════════════════════════════════════════════
+   TOOL OPTIONS BAR (elevation-2)
+   ═══════════════════════════════════════════════════════════ */
+.scene-editor-page .tool-options {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-sm) var(--space-md);
-  background: var(--surface-alt);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-}
-
-.scene-editor-page .zoom-controls button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: var(--text-lg);
-  color: var(--fg-secondary);
-  padding: 0 var(--space-xs);
-  min-width: 24px;
-}
-
-.scene-editor-page .zoom-controls button:hover {
-  color: var(--primary);
-}
-
-.scene-editor-page .zoom-controls span {
-  min-width: 48px;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-  font-weight: 500;
+  justify-content: space-between;
+  padding: 8px 24px;
+  background: var(--surface-alt, #334155);
+  border-bottom: 1px solid var(--border, #475569);
+  flex-shrink: 0;
 }
 
 .scene-editor-page .view-options {
@@ -117,103 +105,35 @@
   font-size: var(--text-sm);
   cursor: pointer;
   user-select: none;
+  color: var(--fg-secondary, #94a3b8);
 }
 
 .scene-editor-page .option-toggle input[type="checkbox"] {
   cursor: pointer;
+  accent-color: var(--primary, #6366f1);
 }
 
-.scene-editor-page .save-btn {
-  padding: var(--space-sm) var(--space-md);
-  background: var(--primary);
-  color: white;
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.scene-editor-page .save-btn:hover {
-  background: var(--primary-hover);
-}
-
-.scene-editor-page .error-banner {
-  padding: var(--space-md) var(--space-lg);
-  background: #fee2e2;
-  color: #991b1b;
-  border-bottom: 1px solid #fecaca;
-}
-
+/* ═══════════════════════════════════════════════════════════
+   EDITOR MAIN AREA
+   ═══════════════════════════════════════════════════════════ */
 .scene-editor-page .scene-editor-container {
   display: flex;
   flex: 1;
   overflow: hidden;
+  position: relative;
 }
 
-/* Entity Templates Panel */
-.scene-editor-page .entity-templates {
-  position: absolute;
-  left: var(--space-lg);
-  top: 140px;
-  z-index: 10;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-md);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  min-width: 200px;
-}
-
-.scene-editor-page .entity-templates h3 {
-  margin: 0 0 var(--space-md) 0;
-  font-size: var(--text-base);
-  font-weight: 600;
-}
-
-.scene-editor-page .template-grid {
-  display: grid;
-  gap: var(--space-sm);
-}
-
-.scene-editor-page .template-btn {
-  padding: var(--space-sm) var(--space-md);
-  background: var(--surface-alt);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  color: var(--fg);
-  cursor: pointer;
-  font-size: var(--text-sm);
-  transition: all 0.2s;
-  text-align: left;
-}
-
-.scene-editor-page .template-btn:hover {
-  background: var(--surface-alt-2);
-  border-color: var(--primary);
-}
-
-.scene-editor-page .template-btn.selected {
-  background: var(--primary);
-  color: white;
-  border-color: var(--primary);
-}
-
-.scene-editor-page .hint {
-  margin: var(--space-md) 0 0 0;
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-  line-height: var(--leading-normal);
-}
-
-/* Asset Browser Panel */
+/* ═══════════════════════════════════════════════════════════
+   LEFT PANEL - ASSET BROWSER (elevation-1)
+   ═══════════════════════════════════════════════════════════ */
 .scene-editor-page .asset-browser {
   width: 280px;
-  background: var(--surface);
-  border-right: 1px solid var(--border);
+  background: var(--bg, #0f172a);
+  border-right: 2px solid var(--border-strong, #475569);
   padding: var(--space-md);
   overflow-y: auto;
   flex-shrink: 0;
+  z-index: 5;
 }
 
 .scene-editor-page .asset-browser-header {
@@ -236,9 +156,9 @@
 
 .scene-editor-page .asset-browser-controls button {
   padding: var(--space-xs) var(--space-sm);
-  background: var(--surface-alt);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  background: var(--surface-alt, #334155);
+  border: 1px solid var(--border, #475569);
+  border-radius: var(--radius-sm, 4px);
   color: var(--fg);
   cursor: pointer;
   font-size: var(--text-xs);
@@ -246,7 +166,8 @@
 }
 
 .scene-editor-page .asset-browser-controls button:hover {
-  background: var(--surface-alt-2);
+  background: var(--surface, #1e293b);
+  border-color: var(--primary, #6366f1);
 }
 
 .scene-editor-page .asset-search {
@@ -257,16 +178,16 @@
 .scene-editor-page .asset-search input {
   width: 100%;
   padding: var(--space-sm);
-  background: var(--surface-alt);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  background: var(--surface-alt, #334155);
+  border: 1px solid var(--border, #475569);
+  border-radius: var(--radius-sm, 4px);
   color: var(--fg);
   font-size: var(--text-sm);
 }
 
 .scene-editor-page .asset-search input:focus {
   outline: none;
-  border-color: var(--primary);
+  border-color: var(--primary, #6366f1);
 }
 
 .scene-editor-page .asset-filters {
@@ -277,9 +198,9 @@
 
 .scene-editor-page .asset-filter {
   padding: var(--space-xs) var(--space-sm);
-  background: var(--surface-alt);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  background: var(--surface-alt, #334155);
+  border: 1px solid var(--border, #475569);
+  border-radius: var(--radius-sm, 4px);
   color: var(--fg);
   font-size: var(--text-xs);
   cursor: pointer;
@@ -287,13 +208,13 @@
 }
 
 .scene-editor-page .asset-filter:hover {
-  background: var(--surface-alt-2);
+  background: var(--surface, #1e293b);
 }
 
 .scene-editor-page .asset-filter.active {
-  background: var(--primary);
+  background: var(--primary, #6366f1);
   color: white;
-  border-color: var(--primary);
+  border-color: var(--primary, #6366f1);
 }
 
 .scene-editor-page .asset-grid {
@@ -304,9 +225,9 @@
 
 .scene-editor-page .asset-item {
   aspect-ratio: 1;
-  background: var(--surface-alt);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  background: var(--surface-alt, #334155);
+  border: 1px solid var(--border, #475569);
+  border-radius: var(--radius-sm, 4px);
   cursor: pointer;
   position: relative;
   overflow: hidden;
@@ -317,8 +238,9 @@
 }
 
 .scene-editor-page .asset-item:hover {
-  border-color: var(--primary);
+  border-color: var(--primary, #6366f1);
   transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
 }
 
 .scene-editor-page .asset-item.dragging {
@@ -328,7 +250,7 @@
 
 .scene-editor-page .asset-item .asset-icon {
   font-size: 24px;
-  color: var(--fg-secondary);
+  color: var(--fg-secondary, #94a3b8);
 }
 
 .scene-editor-page .asset-item .asset-preview {
@@ -353,26 +275,28 @@
 }
 
 .scene-editor-page .asset-item.selected {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 2px var(--primary);
+  border-color: var(--primary, #6366f1);
+  box-shadow: 0 0 0 2px var(--primary, #6366f1);
 }
 
 .scene-editor-page .asset-item .ai-badge {
   position: absolute;
   top: 2px;
   right: 2px;
-  background: var(--primary);
+  background: var(--primary, #6366f1);
   color: white;
   font-size: 8px;
   padding: 2px 4px;
   border-radius: 2px;
 }
 
-/* Canvas Container */
+/* ═══════════════════════════════════════════════════════════
+   CENTER PANEL - CANVAS (elevation-0, deepest/darkest)
+   ═══════════════════════════════════════════════════════════ */
 .scene-editor-page .canvas-container {
   flex: 1;
   position: relative;
-  background: #f9fafb;
+  background: #0a0a0f;
   overflow: hidden;
 }
 
@@ -385,18 +309,27 @@
   cursor: grabbing;
 }
 
-/* Inspector Panel */
+/* ═══════════════════════════════════════════════════════════
+   RIGHT PANEL - INSPECTOR (elevation-1)
+   ═══════════════════════════════════════════════════════════ */
 .scene-editor-page .inspector-panel {
   width: 320px;
-  background: var(--surface);
-  border-left: 1px solid var(--border);
+  background: var(--bg, #0f172a);
+  border-left: 2px solid var(--border-strong, #475569);
   padding: var(--space-md);
   overflow-y: auto;
   flex-shrink: 0;
+  z-index: 5;
 }
 
 .scene-editor-page .inspector-section {
   margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--border, #334155);
+}
+
+.scene-editor-page .inspector-section:last-child {
+  border-bottom: none;
 }
 
 .scene-editor-page .inspector-section h3 {
@@ -404,6 +337,9 @@
   font-size: var(--text-base);
   font-weight: 600;
   color: var(--fg);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .scene-editor-page .entity-info,
@@ -418,31 +354,31 @@
 .scene-editor-page .entity-info label,
 .scene-editor-page .property-row label {
   font-size: var(--text-sm);
-  color: var(--fg-secondary);
+  color: var(--fg-secondary, #94a3b8);
   font-weight: 500;
 }
 
 .scene-editor-page .entity-info input,
 .scene-editor-page .property-row input {
   padding: var(--space-xs) var(--space-sm);
-  background: var(--surface-alt);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  background: var(--surface-alt, #334155);
+  border: 1px solid var(--border, #475569);
+  border-radius: var(--radius-sm, 4px);
   color: var(--fg);
   font-size: var(--text-sm);
   width: 100%;
 }
 
 .scene-editor-page .entity-info input.readonly {
-  background: var(--surface-alt-2);
-  color: var(--fg-secondary);
+  background: var(--surface-alt-2, #1e293b);
+  color: var(--fg-secondary, #94a3b8);
   cursor: not-allowed;
 }
 
 .scene-editor-page .entity-info input:focus,
 .scene-editor-page .property-row input:focus {
   outline: none;
-  border-color: var(--primary);
+  border-color: var(--primary, #6366f1);
 }
 
 .scene-editor-page .component-list {
@@ -456,9 +392,9 @@
   justify-content: space-between;
   align-items: center;
   padding: var(--space-sm);
-  background: var(--surface-alt);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  background: var(--surface-alt, #334155);
+  border: 1px solid var(--border, #475569);
+  border-radius: var(--radius-sm, 4px);
 }
 
 .scene-editor-page .component-name {
@@ -470,7 +406,7 @@
 .scene-editor-page .component-item .remove-btn {
   background: none;
   border: none;
-  color: var(--error);
+  color: var(--error, #ef4444);
   cursor: pointer;
   padding: var(--space-xs);
   font-size: var(--text-sm);
@@ -490,9 +426,9 @@
 
 .scene-editor-page .component-buttons button {
   padding: var(--space-sm);
-  background: var(--surface-alt);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  background: var(--surface-alt, #334155);
+  border: 1px solid var(--border, #475569);
+  border-radius: var(--radius-sm, 4px);
   color: var(--fg);
   cursor: pointer;
   font-size: var(--text-sm);
@@ -500,8 +436,8 @@
 }
 
 .scene-editor-page .component-buttons button:hover:not(:disabled) {
-  background: var(--surface-alt-2);
-  border-color: var(--primary);
+  background: var(--surface, #1e293b);
+  border-color: var(--primary, #6366f1);
 }
 
 .scene-editor-page .component-buttons button:disabled {
@@ -517,8 +453,8 @@
 
 .scene-editor-page .action-buttons button {
   padding: var(--space-sm);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--border, #475569);
+  border-radius: var(--radius-md, 8px);
   color: var(--fg);
   cursor: pointer;
   font-size: var(--text-sm);
@@ -536,18 +472,18 @@
 }
 
 .scene-editor-page .action-buttons .duplicate-btn {
-  background: var(--surface-alt);
+  background: var(--surface-alt, #334155);
 }
 
 .scene-editor-page .action-buttons .duplicate-btn:hover {
-  background: var(--surface-alt-2);
-  border-color: var(--primary);
+  background: var(--surface, #1e293b);
+  border-color: var(--primary, #6366f1);
 }
 
 .scene-editor-page .inspector-placeholder {
   text-align: center;
   padding: var(--space-2xl) var(--space-md);
-  color: var(--fg-secondary);
+  color: var(--fg-secondary, #94a3b8);
 }
 
 .scene-editor-page .inspector-placeholder p {
@@ -556,6 +492,9 @@
   line-height: var(--leading-normal);
 }
 
+/* ═══════════════════════════════════════════════════════════
+   ENTITY LIST (in inspector - now replaced by hierarchy tree)
+   ═══════════════════════════════════════════════════════════ */
 .scene-editor-page .entity-list {
   display: flex;
   flex-direction: column;
@@ -569,46 +508,56 @@
 }
 
 .scene-editor-page .entity-list::-webkit-scrollbar-track {
-  background: var(--surface-alt);
-  border-radius: var(--radius-sm);
+  background: var(--surface-alt, #334155);
+  border-radius: var(--radius-sm, 4px);
 }
 
 .scene-editor-page .entity-list::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
-  border-radius: var(--radius-sm);
+  background: var(--border-strong, #475569);
+  border-radius: var(--radius-sm, 4px);
 }
 
 .scene-editor-page .entity-item {
   padding: var(--space-sm);
-  background: var(--surface-alt);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  background: var(--surface-alt, #334155);
+  border: 1px solid var(--border, #475569);
+  border-radius: var(--radius-sm, 4px);
   color: var(--fg);
   cursor: pointer;
   font-size: var(--text-sm);
   text-align: left;
   transition: all 0.2s;
-  font-family: var(--font-mono);
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
 }
 
 .scene-editor-page .entity-item:hover {
-  background: var(--surface-alt-2);
-  border-color: var(--primary);
+  background: var(--surface, #1e293b);
+  border-color: var(--primary, #6366f1);
 }
 
 .scene-editor-page .entity-item.selected {
-  background: var(--primary);
+  background: var(--primary, #6366f1);
   color: white;
-  border-color: var(--primary);
+  border-color: var(--primary, #6366f1);
 }
 
+/* ═══════════════════════════════════════════════════════════
+   LOADING & ERROR STATES
+   ═══════════════════════════════════════════════════════════ */
 .scene-editor-page .loading {
   display: flex;
   align-items: center;
   justify-content: center;
   height: 100vh;
   font-size: var(--text-lg);
-  color: var(--fg-secondary);
+  color: var(--fg-secondary, #94a3b8);
+}
+
+.scene-editor-page .error-banner {
+  padding: var(--space-md) var(--space-lg);
+  background: #fee2e2;
+  color: #991b1b;
+  border-bottom: 1px solid #fecaca;
 }
 
 .scene-editor-page .error-state {
@@ -635,9 +584,47 @@
 .scene-editor-page .error-state p {
   margin: 0;
   font-size: var(--text-base);
-  color: var(--fg-secondary);
+  color: var(--fg-secondary, #94a3b8);
 }
-/* ═══ Template Picker Dropdown ═══ */
+
+/* ═══════════════════════════════════════════════════════════
+   ZOOM CONTROLS
+   ═══════════════════════════════════════════════════════════ */
+.scene-editor-page .zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--surface-alt, #334155);
+  border: 1px solid var(--border, #475569);
+  border-radius: var(--radius-md, 8px);
+  font-size: var(--text-sm);
+}
+
+.scene-editor-page .zoom-controls button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--text-lg);
+  color: var(--fg-secondary, #94a3b8);
+  padding: 0 var(--space-xs);
+  min-width: 24px;
+}
+
+.scene-editor-page .zoom-controls button:hover {
+  color: var(--primary, #6366f1);
+}
+
+.scene-editor-page .zoom-controls span {
+  min-width: 48px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TEMPLATE PICKER DROPDOWN
+   ═══════════════════════════════════════════════════════════ */
 .template-picker-dropdown {
   position: absolute;
   top: 100%;
@@ -645,7 +632,7 @@
   margin-top: 4px;
   width: 220px;
   background: var(--surface, #1e293b);
-  border: 1px solid var(--border, #334155);
+  border: 1px solid var(--border-strong, #475569);
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   z-index: 100;
@@ -657,7 +644,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--border, #334155);
+  border-bottom: 1px solid var(--border, #475569);
   font-size: 12px;
   font-weight: 600;
   color: var(--fg-secondary, #94a3b8);
@@ -687,7 +674,7 @@
   padding: 10px 14px;
   background: none;
   border: none;
-  border-bottom: 1px solid var(--border, rgba(51, 65, 85, 0.5));
+  border-bottom: 1px solid rgba(51, 65, 85, 0.5);
   cursor: pointer;
   text-align: left;
   color: var(--fg, #f1f5f9);
@@ -713,7 +700,7 @@
   margin-top: 2px;
 }
 
-/* Saving indicator on save button */
+/* Saving indicator */
 .editor-actions .action-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom';
-import { FileCode, Bot, Palette, Play, Layers } from 'lucide-react';
+import { FileCode, Bot, Palette, Play, Layers, ArrowLeft } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { api, type ProjectListItem } from '../api/client';
 import { sidebarItems } from '../constants/sidebar';
 import { ToastProvider, ToastList } from './Toast';
 import { AIFAB } from './AIFAB';
 import { CommandPalette, useCommandPaletteToggle } from './CommandPalette';
+import { SkipLink } from './SkipLink';
 import { logger } from '../utils/logger';
 
 interface SidebarNavItem {
@@ -64,10 +65,13 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
   return (
     <ToastProvider>
       <div className="app-layout">
-        <nav className="sidebar">
+        {/* Skip link for accessibility */}
+        <SkipLink />
+
+        <nav className="sidebar" role="navigation" aria-label="Main navigation">
           <div className="sidebar-header">
             <h1>🎮 ClawGame</h1>
-            {currentProject && (
+            {!isInProjectContext && currentProject && (
               <p className="sidebar-project-name">
                 {currentProject.name}
               </p>
@@ -83,25 +87,17 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
           </div>
 
           <div className="sidebar-nav">
-            {sidebarItems.map((item) => {
-              const isActive = location.pathname === item.path ||
-                (item.path !== '/' && location.pathname.startsWith(item.path));
-              const Icon = item.icon;
-
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`nav-item ${isActive ? 'active' : ''}`}
-                >
-                  <Icon size={20} className="nav-icon" />
-                  <span className="nav-text">{item.label}</span>
-                </Link>
-              );
-            })}
-            {isInProjectContext && projectId && currentProject && (
+            {isInProjectContext && currentProject && (
               <>
-                <div className="sidebar-section-title">Project</div>
+                {/* Project context indicator */}
+                <div className="sidebar-project-context">
+                  <span className="project-context-dot" />
+                  <span className="project-context-name" title={currentProject.name}>
+                    {currentProject.name}
+                  </span>
+                </div>
+
+                {/* Project navigation */}
                 {projectNavItems.map((item) => {
                   const isActive = location.pathname === item.path ||
                     (item.path !== '/' && location.pathname.startsWith(item.path));
@@ -112,18 +108,42 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
                       key={item.path}
                       to={item.path}
                       className={`nav-item ${isActive ? 'active' : ''}`}
+                      role="menuitem"
                     >
                       <Icon size={20} className="nav-icon" />
                       <span className="nav-text">{item.label}</span>
                     </Link>
                   );
                 })}
+
+                {/* Back to projects */}
+                <div className="sidebar-section-title" />
+                <Link to="/" className="sidebar-back-link" role="menuitem">
+                  <ArrowLeft size={18} />
+                  <span>All Projects</span>
+                </Link>
               </>
-            )}
+            ) || sidebarItems.map((item) => {
+              const isActive = location.pathname === item.path ||
+                (item.path !== '/' && location.pathname.startsWith(item.path));
+              const Icon = item.icon;
+
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`nav-item ${isActive ? 'active' : ''}`}
+                  role="menuitem"
+                >
+                  <Icon size={20} className="nav-icon" />
+                  <span className="nav-text">{item.label}</span>
+                </Link>
+              );
+            })}
           </div>
         </nav>
 
-        <main className="main-content">
+        <main className="main-content" id="main-content" role="main">
           {children || <Outlet />}
         </main>
 
@@ -139,7 +159,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
           projectId={projectId || undefined}
         />
       </div>
-        <ToastList />
+      <ToastList />
     </ToastProvider>
   );
 }
