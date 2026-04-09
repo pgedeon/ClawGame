@@ -74,7 +74,7 @@ const GamePreviewContent: React.FC = () => {
         </div>
 
         {/* Canvas */}
-        <div className="game-preview-canvas-wrapper">
+        <div className="game-preview-canvas-container">
           <canvas ref={canvasRef} className="game-preview-canvas" />
 
           {/* Notifications */}

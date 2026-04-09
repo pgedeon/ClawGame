@@ -20,7 +20,7 @@
   position: relative;
   width: 100%;
   max-width: 100%;
-  height: calc(100vh - 140px);
+  height: calc(100vh - 64px);
   background: rgba(15, 23, 42, 0.5);
   border: 1px solid rgba(71, 85, 105, 0.3);
   border-radius: var(--radius-lg);
@@ -769,7 +769,7 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .game-preview-canvas-container {
-    height: 70vh;
+    height: calc(100vh - 56px);
     border-radius: 0;
   }
 
