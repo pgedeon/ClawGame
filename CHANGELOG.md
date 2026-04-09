@@ -5,6 +5,20 @@ All notable changes to ClawGame will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.3] - 2026-04-09
+
+#### Fixed
+- **Asset list auto-refresh after generation** — Assets now appear immediately when generation completes
+  - Added detection for newly completed generations
+  - Immediate asset list refresh when generation status is 'completed'
+  - No longer requires manual "Refresh assets" button click
+  - Toast notification confirms when new assets are generated
+
+#### Changed
+- Removed project data from git tracking (apps/api/data/projects/*)
+  - Project files should be gitignore'd for user privacy
+  - Data directory now properly excluded from version control
+
 ## [0.12.1] - 2026-04-08
 
 #### Fixed
@@ -95,7 +109,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Added
 - **Scene analysis API endpoint** — POST /api/projects/:id/scene-analysis reads actual scene.json files
-- **SceneAnalysis interface** — captures entity composition, flags (player/enemies/platforms/etc), dominantGenre inference
+- **SceneAnalysis interface** — captures entity composition, flags (player/enemies/platforms/etc.), dominantGenre inference
 - **Genre-specific AI asset suggestions** — Platformer backgrounds, RPG tilesets based on detected game type
 - **Real-time scene detection** — AssetSuggestions analyzes scene composition instead of hardcoded values
 
@@ -328,5 +342,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Applied changes tracked per-session to prevent duplicate writes
 
 #### Fixed
-- AI-generated code can now be applied to project files (was the #1 blocker from @gamedev)
+- AI-generated code can now be applied to project files (was #1 blocker from @gamedev)
 - Inline styles in AICommandPage moved to CSS classes (design system consistency)
