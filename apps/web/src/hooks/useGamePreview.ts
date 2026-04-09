@@ -118,11 +118,12 @@ export const GENRE_CONTROLS: Record<string, {
     ],
   },
   strategy: {
-    title: 'Strategy', description: 'Plan your moves and outsmart the opponent!',
+    title: 'Tower Defense', description: 'Defend the Sacred Bean from caffeine-crazed office workers!',
     items: [
-      { icon: '🎯', text: 'Click to select and move units' },
-      { icon: '⚔️', text: 'Manage resources' },
-      { icon: '🏰', text: 'Build and defend' },
+      { icon: '🎯', text: 'WASD to move your espresso machine' },
+      { icon: '☕', text: 'SPACE to shoot espresso shots' },
+      { icon: '🏗️', text: 'T to place a Coffee Trap tower (30 mana)' },
+      { icon: '🛡️', text: 'Defend the Sacred Bean at all costs!' },
     ],
   },
   default: {
@@ -408,6 +409,37 @@ export function useGamePreview(
     const collectedRuneIds: string[] = [];
     const defeatedEnemies: string[] = [];
 
+    /* ═══ TOWER DEFENSE MODE (strategy genre) ═══ */
+    const isTDMode = projectGenre === 'strategy';
+    const towers: any[] = [];
+    let tdWaveIndex = 0;
+    let tdWaveTimer = 0;
+    let tdSpawnQueue: any[] = [];
+    let tdSpawnTimer = 0;
+    let tdCoreHealth = 0;
+    let tdMaxCoreHealth = 0;
+    let tdWaveMessage = '';
+    let tdWaveMessageTimer = 0;
+    let tdEnemiesAlive = 0;
+    let tdAllWavesDone = false;
+    let tdEnemyIdCounter = 0;
+
+    const tdWaves: any[] = (activeScene as any).waves || [
+      { enemies: [{ type: 'intern', count: 5, hp: 25, speed: 80, color: '#86efac', size: 22, score: 10 }], delay: 3000, message: 'Wave 1: Interns smell fresh coffee...' },
+      { enemies: [{ type: 'manager', count: 4, hp: 60, speed: 60, color: '#fbbf24', size: 28, score: 25 }], delay: 5000, message: 'Wave 2: Middle management!' },
+      { enemies: [{ type: 'intern', count: 8, hp: 30, speed: 100, color: '#86efac', size: 22, score: 10 }, { type: 'manager', count: 3, hp: 70, speed: 55, color: '#fbbf24', size: 28, score: 25 }], delay: 6000, message: 'Wave 3: The interns told their friends...' },
+      { enemies: [{ type: 'it-guy', count: 5, hp: 45, speed: 120, color: '#60a5fa', size: 24, score: 30 }], delay: 6000, message: 'Wave 4: IT detected caffeine on the network!' },
+      { enemies: [{ type: 'ceo', count: 1, hp: 300, speed: 40, color: '#f43f5e', size: 40, score: 200 }, { type: 'manager', count: 6, hp: 90, speed: 60, color: '#fbbf24', size: 28, score: 25 }], delay: 8000, message: 'Wave 5: THE CEO WANTS A TRIPLE SOY LATTE!' },
+    ];
+
+    if (isTDMode) {
+      const coreEntity = Array.from(entities.values()).find((e: any) => e.id === 'core-bean');
+      if (coreEntity) {
+        tdCoreHealth = coreEntity.health || coreEntity.maxHealth || 500;
+        tdMaxCoreHealth = tdCoreHealth;
+      }
+    }
+
     const inventory = inventoryRef.current as any;
     const questMgr = questMgrRef.current as any;
     const dialogueMgr = dialogueMgrRef.current as any;
@@ -482,6 +514,20 @@ export function useGamePreview(
         return;
       }
 
+
+      // TD: Tower placement
+      if (k === 't' && isTDMode && gameStarted && !gamePaused) {
+        const player = entities.get('player') || entities.get('player-1');
+        if (player && mana >= 30) {
+          mana -= 30;
+          towers.push({
+            id: `tower-${Date.now()}`,
+            x: player.transform.x, y: player.transform.y,
+            range: 150, damage: 15, fireRate: 800,
+            lastShot: 0, color: '#D2691E',
+          });
+        }
+      }
       if (!gameStarted || gameOver || victory) return;
 
       if (k === 'i') { e.preventDefault(); setActivePanel(p => p === 'inventory' ? 'none' : 'inventory'); syncRPGState(); return; }
@@ -624,6 +670,30 @@ export function useGamePreview(
         }
 
         if (entity.type === 'enemy' && gameStarted) {
+          if (isTDMode) {
+            // TD: Enemies move toward the core
+            const core = entities.get('core-bean');
+            const target = core || (entities.get('player') || entities.get('player-1'));
+            const patrolSpeed = entity.tdSpeed || entity.components?.ai?.speed || 60;
+            if (target) {
+              const dx = target.transform.x - entity.transform.x;
+              const dy = target.transform.y - entity.transform.y;
+              const dist = Math.sqrt(dx*dx+dy*dy);
+              if (dist > 5) {
+                entity.transform.x += (dx/dist) * patrolSpeed * (deltaTime/1000);
+                entity.transform.y += (dy/dist) * patrolSpeed * (deltaTime/1000);
+              }
+              if (dist < 30) {
+                tdCoreHealth -= (entity.damage || 5);
+                tdEnemiesAlive--;
+                entities.delete(entity.id);
+                if (tdCoreHealth <= 0) { tdCoreHealth = 0; setGameOver(true); }
+              }
+            }
+            entity.transform.x = Math.max(entity.width/2, Math.min(canvas.width - entity.width/2, entity.transform.x));
+            entity.transform.y = Math.max(entity.height/2, Math.min(canvas.height - entity.height/2, entity.transform.y));
+            if (entity.hitFlash > 0) entity.hitFlash -= deltaTime;
+          } else {
           const player = entities.get('player') || entities.get('player-1');
           const patrolSpeed = entity.components?.ai?.speed || 50;
           if (player) {
@@ -648,6 +718,7 @@ export function useGamePreview(
           entity.transform.x = Math.max(entity.width/2, Math.min(canvas.width - entity.width/2, entity.transform.x));
           entity.transform.y = Math.max(entity.height/2, Math.min(canvas.height - entity.height/2, entity.transform.y));
           if (entity.hitFlash > 0) entity.hitFlash -= deltaTime;
+          }
         }
 
         if (entity.type === 'collectible' || entity.type === 'item') {
@@ -681,6 +752,77 @@ export function useGamePreview(
 
       const allRunes = activeScene.entities.filter(e => e.type === 'collectible' && e.components?.collectible?.type === 'rune');
       if (allRunes.length > 0 && collectedRuneIds.length >= allRunes.length) setVictory(true);
+
+
+      /* ═══ TD WAVE SPAWNING ═══ */
+      if (isTDMode && !tdAllWavesDone) {
+        tdWaveTimer += deltaTime;
+        if (tdSpawnQueue.length === 0 && tdEnemiesAlive <= 0 && tdWaveIndex < tdWaves.length) {
+          if (tdWaveTimer >= (tdWaves[tdWaveIndex].delay || 5000)) {
+            const wave = tdWaves[tdWaveIndex];
+            tdWaveMessage = wave.message || `Wave ${tdWaveIndex + 1}`;
+            tdWaveMessageTimer = 3000;
+            for (const eg of wave.enemies) {
+              for (let j = 0; j < eg.count; j++) { tdSpawnQueue.push(eg); }
+            }
+            tdSpawnTimer = 0; tdWaveIndex++;
+            if (tdWaveIndex >= tdWaves.length) tdAllWavesDone = true;
+          }
+        }
+        if (tdSpawnQueue.length > 0) {
+          tdSpawnTimer += deltaTime;
+          if (tdSpawnTimer >= 600) {
+            tdSpawnTimer = 0;
+            const eg = tdSpawnQueue.shift();
+            const spawnX = 100 + Math.random() * (canvas.width - 200);
+            tdEnemyIdCounter++;
+            entities.set(`td-enemy-${tdEnemyIdCounter}`, {
+              id: `td-enemy-${tdEnemyIdCounter}`, type: 'enemy',
+              transform: { x: spawnX, y: -20, scaleX: 1, scaleY: 1, rotation: 0 },
+              components: {}, vx: 0, vy: 0,
+              color: eg.color || '#86efac',
+              width: eg.size || 24, height: eg.size || 24,
+              health: eg.hp || 30, maxHealth: eg.hp || 30,
+              damage: 15, tdSpeed: eg.speed || 80,
+              enemyType: eg.type || 'intern',
+              patrolOrigin: { x: spawnX, y: -20 },
+              patrolOffset: Math.random() * Math.PI * 2,
+              hitFlash: 0, facing: 'down',
+              scoreValue: eg.score || 10,
+            });
+            tdEnemiesAlive++;
+          }
+        }
+        if (tdAllWavesDone && tdEnemiesAlive <= 0 && tdSpawnQueue.length === 0) { setVictory(true); }
+      }
+      if (tdWaveMessageTimer > 0) tdWaveMessageTimer -= deltaTime;
+
+      /* ═══ TD TOWER SHOOTING ═══ */
+      if (isTDMode) {
+        const ct = performance.now();
+        for (const tower of towers) {
+          if (ct - tower.lastShot < tower.fireRate) continue;
+          let nearest: any = null, nearestDist = Infinity;
+          entities.forEach((e: any) => {
+            if (e.type !== 'enemy') return;
+            const dx = e.transform.x - tower.x; const dy = e.transform.y - tower.y;
+            const d = Math.sqrt(dx*dx+dy*dy);
+            if (d < tower.range && d < nearestDist) { nearest = e; nearestDist = d; }
+          });
+          if (nearest) {
+            tower.lastShot = ct;
+            const dx = nearest.transform.x - tower.x; const dy = nearest.transform.y - tower.y;
+            const d = Math.sqrt(dx*dx+dy*dy) || 1;
+            projectiles.push({
+              id: `tp-${Date.now()}-${Math.random()}`,
+              x: tower.x, y: tower.y,
+              vx: (dx/d) * 350, vy: (dy/d) * 350,
+              damage: tower.damage, color: '#8B4513',
+              createdAt: ct,
+            });
+          }
+        }
+      }
 
       frameCount++;
       if (frameCount % 10 === 0) { setPlayerScore(score); setPlayerHealth(health); setPlayerMana(mana); }
@@ -800,11 +942,58 @@ export function useGamePreview(
         ctx.restore();
       }
 
+
+      /* ═══ TD TOWER RENDERING ═══ */
+      if (isTDMode) {
+        for (const tower of towers) {
+          ctx.save(); ctx.translate(tower.x, tower.y);
+          ctx.strokeStyle = 'rgba(210,105,30,0.15)'; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.arc(0, 0, tower.range, 0, Math.PI*2); ctx.stroke();
+          ctx.fillStyle = '#D2691E';
+          ctx.beginPath(); ctx.roundRect(-10, -6, 20, 16, 3); ctx.fill();
+          ctx.fillStyle = '#8B4513';
+          ctx.beginPath(); ctx.arc(0, -6, 8, Math.PI, 0); ctx.fill();
+          ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 1.5;
+          const st = performance.now() / 1000;
+          ctx.beginPath(); ctx.moveTo(-3, -12); ctx.quadraticCurveTo(-3+Math.sin(st*3)*3, -20, -3, -26); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(3, -12); ctx.quadraticCurveTo(3+Math.sin(st*3+1)*3, -20, 3, -26); ctx.stroke();
+          ctx.restore();
+        }
+        // Core health bar
+        const core = entities.get('core-bean');
+        if (core && tdMaxCoreHealth > 0) {
+          const cx = core.transform.x, cy = core.transform.y;
+          const barW = 60, barH = 6;
+          ctx.fillStyle = '#1f2937'; ctx.fillRect(cx - barW/2, cy + 30, barW, barH);
+          const pct = tdCoreHealth / tdMaxCoreHealth;
+          ctx.fillStyle = pct > 0.5 ? '#22c55e' : pct > 0.25 ? '#eab308' : '#ef4444';
+          ctx.fillRect(cx - barW/2, cy + 30, barW * pct, barH);
+          ctx.fillStyle = '#fff'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText(`☕ ${tdCoreHealth}/${tdMaxCoreHealth}`, cx, cy + 44);
+        }
+      }
+
       // Canvas HUD
       const stats = gameStatsRef.current;
       ctx.fillStyle = 'rgba(0,0,0,0.8)'; ctx.beginPath(); ctx.roundRect(10, 10, 200, 150, 8); ctx.fill();
       ctx.fillStyle = 'white'; ctx.font = 'bold 14px monospace'; ctx.textAlign = 'left';
       ctx.fillText(`Score: ${score}`, 20, 35);
+      if (isTDMode) {
+        ctx.fillStyle = '#fbbf24'; ctx.font = 'bold 12px monospace';
+        ctx.fillText(`Wave: ${tdWaveIndex}/${tdWaves.length}`, 20, 100);
+        ctx.fillText(`Towers: ${towers.length}`, 20, 115);
+        ctx.fillText(`Enemies: ${tdEnemiesAlive}`, 20, 130);
+        ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(20, 135, 100, 10);
+        ctx.fillStyle = tdCoreHealth > tdMaxCoreHealth * 0.5 ? '#22c55e' : tdCoreHealth > tdMaxCoreHealth * 0.25 ? '#eab308' : '#ef4444';
+        ctx.fillRect(20, 135, 100 * (tdCoreHealth / tdMaxCoreHealth), 10);
+        ctx.fillStyle = '#fff'; ctx.font = '9px monospace'; ctx.fillText(`Bean HP`, 125, 144);
+        ctx.fillStyle = '#94a3b8'; ctx.font = '10px monospace'; ctx.fillText(`[T] Place tower (30 mana)`, 20, 160);
+        if (tdWaveMessageTimer > 0) {
+          const alpha = Math.min(1, tdWaveMessageTimer / 1000);
+          ctx.fillStyle = `rgba(251,191,36,${alpha})`; ctx.font = 'bold 18px sans-serif'; ctx.textAlign = 'center';
+          ctx.fillText(tdWaveMessage, canvas.width/2, 50); ctx.textAlign = 'left';
+        }
+      }
       ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(20, 45, 100, 10);
       ctx.fillStyle = health > 50 ? '#22c55e' : health > 25 ? '#eab308' : '#ef4444';
       ctx.fillRect(20, 45, 100 * (health/100), 10);
