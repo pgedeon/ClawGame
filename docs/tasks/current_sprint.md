@@ -12,7 +12,7 @@
 |-------------|--------|-------|
 | SFX generation with batch pack planning | ✅ Done | Service + API routes + 12 tests. Genre-aware packs (platformer, RPG, shooter, tower defense, puzzle) |
 | Multi-model image generation with style presets | ✅ Done | 24 curated presets (character/enemy/NPC/prop/background/tileset/icon/effect/UI), API routes + 17 tests |
-| Quick Sprites workflow | 📋 TODO | Prompt-to-sprite-sheet pipeline |
+| Quick Sprites workflow | ✅ Done | Service + routes + 14 tests. Prompt-to-sheet with animation presets, frame grid, placeholder SVG |
 | Seamless texture and tile generation | 📋 TODO | |
 | Background removal / outpainting | 📋 TODO | |
 | Music generation for theme/ambient/battle | 📋 TODO | |
@@ -23,7 +23,7 @@
 | Gate | Status |
 |------|--------|
 | `pnpm build` | ✅ Pass |
-| `pnpm test` | ✅ Pass (152 tests: 79 API + 73 web) |
+| `pnpm test` | ✅ Pass (166 tests: 93 API + 73 web) |
 | `pnpm typecheck` | ✅ Pass |
 
 ---

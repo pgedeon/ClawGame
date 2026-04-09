@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+### Added
+- **Quick Sprites workflow** (M11): Prompt-to-sprite-sheet pipeline with animation presets, frame grid generation, placeholder SVG output, and CRUD API routes (`/api/projects/:id/sprites/*`). 14 tests.
+
 All notable changes to ClawGame will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),

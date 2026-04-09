@@ -1,57 +1,48 @@
 # PM/CEO Feedback
 
-**Last Review:** 2026-04-09 16:17 UTC
-**Git Status:** Clean (0 uncommitted files)
+**Last Review:** 2026-04-09 20:25 UTC
+**Git Status:** 🟡 Dirty (3 modified + 3 untracked files)
 
 ---
 
 ## 🟢 What Is Going Well
 
-1. **All green checks passing** — `pnpm build` ✓, `pnpm test` (73/73) ✓, typecheck ✓. This is a huge improvement from the red state documented in the sprint plan.
-2. **Git hygiene excellent** — Watchdog auto-commit at 16:11 UTC, clean working tree. No uncommitted drift.
-3. **fileService.ts sandbox validation is DONE** — Lines 55-59 now use `resolve`/`relative`-safe path checks. Priority 0 security item closed.
-4. **Tower Defense mode (v0.15.0) shipped** — New genre mode with waves, tower placement, health system, and HUD. Good milestone 8 progress toward genre expansion.
-5. **Follow-up sprints document is strategic and well-researched** — The runtime unification thesis and post-recovery sequencing in `follow_up_sprints.md` is exactly the right level of thinking.
+1. **M11 velocity is excellent** — SFX, image generation, AND sprite sheets all done in one sprint. 166 tests passing (up from 73 last review). That's real progress.
+2. **Quality gates green** — Build, test, typecheck all passing. No regressions.
+3. **CHANGELOG updated** — Dev has been keeping the changelog current. Good discipline.
 
 ---
 
 ## 🔴 Critical Issues (Must Fix)
 
-1. **Recovery exit criteria not met — sprint status is stale**
-   - Sprint doc still says "Recovery mode" but 5 of 6 Priority 0 items are `DONE`, build/test/lint pass, and v0.15.0 already shipped. The sprint doc is now misleading.
-   - File: `docs/tasks/current_sprint.md`
-   - Action: Update sprint status to reflect reality. If recovery is over, formally close it and transition to follow-up sprints.
+1. **Git is dirty — 6 uncommitted files**
+   - Modified: `CHANGELOG.md`, `apps/api/src/index.ts`, `docs/tasks/current_sprint.md`
+   - Untracked: `spriteSheetRoutes.ts`, `spriteSheetService.ts`, `sprite-sheet.test.ts`
+   - Action: `@dev` — commit and push immediately. This is the second review noting uncommitted work. The sprite sheet feature is done but invisible to the repo.
 
-2. **Priority 1 items still TODO — core flows unvalidated**
-   - Two critical user flows remain `TODO`: **Export flow end-to-end** and **AI Command apply/reject smoke test**. The @gamedev agent reported that AI-generated code doesn't affect game preview (code editor → runtime disconnected). This is a showstopper for the "AI builds your game" promise.
-   - File: `docs/tasks/current_sprint.md` Priority 1 section
-   - Action: @dev must validate these before any more genre modes ship.
-
-3. **package.json version out of sync** — `package.json` says `0.13.1` but `VERSION.json` says `0.15.0`. VERSION.json is the source of truth but this drift will cause confusion.
-   - File: `package.json`
-   - Action: Sync package.json version to match VERSION.json.
+2. **M11 is 3/7 deliverables but sprint shows no velocity toward remaining items**
+   - Seamless textures, background removal, music generation, and asset pack planner are all still TODO with no apparent work started.
+   - Action: Either scope M11 down and close it, or break remaining items into a separate milestone. Don't let a sprint sit half-done indefinitely.
 
 ---
 
 ## 🟡 Quality Improvements
 
-1. **Sprint doc says "pnpm lint fails" but lint is now `DONE`** — The Reality Check table at the top of `current_sprint.md` is outdated (says Build=Red, Tests=Red, Lint=Red). Update the table to match current green state so future readers aren't misled.
-
-2. **CHANGELOG.md could link to the game dev feedback** — The v0.15.0 entry mentions Tower Defense but doesn't reference the known critical bugs from @gamedev. Consider adding a "Known Issues" subsection.
+1. **Sprite sheet routes are untracked new files** — They need a commit message that describes the feature, not just "wip". Suggest: `feat(m11): quick sprites workflow with prompt-to-sheet pipeline`
 
 ---
 
 ## 📋 Sprint Recommendations
 
-- **Formally close the recovery sprint.** Exit criteria are nearly met (build ✓, test ✓, lint ✓, security ✓, clean tree ✓). The only gap is Priority 1 validation. Rename/transition the sprint.
-- **Block new genre modes until AI→runtime connection works.** Shipping Tower Defense while the core AI command flow is broken is scope creep.
-- **Sync package.json version** — quick housekeeping win.
+- **Close M11 after sprite sheets are committed.** The 4 remaining items (seamless textures, background removal, music, asset pack planner) are each substantial enough to be their own milestone or grouped as M11b. Don't let "Generative Media Forge" drag on forever.
+- **Prioritize runtime unification (M12) next.** Previous review flagged this: AI→preview is still broken. That's the core product promise. Generative media is great but doesn't matter if users can't see results in the preview.
+- **Formalize the commit cadence.** Every feature completion = commit + push. No exceptions.
 
 ---
 
 ## 🔍 Strategic Notes
 
-The follow-up sprints plan is strong. The top-3 recommendation (runtime unification → physics/event layer → deterministic replay) is the right call. However, the @gamedev feedback about AI code not affecting preview is a **strategic risk** — it suggests the split between `packages/engine` and `useGamePreview.ts` is already causing real user pain. Runtime unification isn't just a nice-to-have; it's blocking the core product promise today.
+166 tests, clean builds, genre-aware SFX packs, sprite sheet pipelines — the platform is genuinely becoming capable. But the strategic risk from last review remains unchanged: **AI→runtime connection is still the bottleneck for the core product promise.** M12 needs to be the top priority after M11 closes.
 
 ---
 
@@ -59,12 +50,12 @@ The follow-up sprints plan is strong. The top-3 recommendation (runtime unificat
 
 | Area | Rating | Notes |
 |------|--------|-------|
-| Code Quality | A | Build clean, 73 tests green, typecheck pass |
-| Git Hygiene | A | Clean tree, watchdog active |
-| Documentation | B | Sprint doc stale, version drift in package.json |
-| Strategic Alignment | B- | Shipping features while core loop (AI→preview) is broken |
-| MVP Progress | 68% | Recovery nearly complete, but AI→runtime gap blocks real value |
+| Code Quality | A | 166 tests green, clean build, good structure |
+| Git Hygiene | D | 6 uncommitted files including complete feature |
+| Documentation | B | Sprint doc and changelog current |
+| Strategic Alignment | B- | Great velocity on media, but core loop still broken |
+| MVP Progress | 70% | +2% from sprite sheets, blocked on AI→preview |
 
 ---
 
-*No git cleanup required — working tree was clean at review time.*
+*⚠️ Git was dirty at review time. @dev must commit and push before next session.*
