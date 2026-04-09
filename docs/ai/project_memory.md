@@ -1,10 +1,10 @@
 # ClawGame Project Memory
 
 ## Project Overview
-- **Status:** Milestone 8 Phase 2 Complete — Scene Editor AI Integration
-- **Current Version:** v0.11.0 (ai-integration)
-- **Current Stage:** M8 Feature Expansion with contextual AI assistance in scene editor
-- **Next Phase:** M8 Phase 3 — Experience Enhancement (performance, error handling, advanced AI)
+- **Status:** Recovery Complete — Transitioning to M9 AI Creator Workspace
+- **Current Version:** v0.15.0 (tower-defense)
+- **Current Stage:** Post-recovery; starting M9 AI Creator Workspace
+- **Next Phase:** M9 AI Creator Workspace (ambient AI, prompt recipes, plan/apply/review workflow)
 - **Timeline:** Scene Editor AI provides contextual co-pilot experience during game editing
 
 ## Key Documents
