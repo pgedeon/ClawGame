@@ -89,10 +89,19 @@ const AssetStudioPage = () => {
       const active = updated.find(g => g.status === 'generating');
       if (active) setActiveGeneration(active);
 
-      const newCompleted = updated.filter(
-        g => g.status === 'completed' && g.result?.svg && generations.find(og => og.id === g.id)?.status !== 'completed'
+      // Check for newly completed generations
+      const newlyCompleted = updated.filter(
+        g => g.status === 'completed' && !generations.find(og => og.id === g.id)
       );
-      if (newCompleted.length > 0) pollGenerations();
+
+      if (newlyCompleted.length > 0) {
+        // Immediately refresh assets for newly completed generations
+        await loadAssets();
+        showToast({ type: 'success', message: `✅ Generated ${newlyCompleted.length} new assets!` });
+
+        // Also poll to ensure consistency
+        pollGenerations();
+      }
     } catch (error: any) {
       logger.error('Failed to check generation progress:', error);
     }
@@ -102,9 +111,9 @@ const AssetStudioPage = () => {
     if (!projectId) return;
     try {
       const result = await api.pollGenerations(projectId);
-      if (result.created.length > 0) {
-        showToast({ type: 'success', message: `✅ Generated ${result.created.length} new assets!` });
-        loadAssets();
+      if (result.created.length > 0 && !generations.some(g => result.created.includes(g.id))) {
+        // Don't double-toast if we already showed it in checkGenerationProgress
+        await loadAssets();
       }
       if (result.errors.length > 0) {
         showToast({ type: 'error', message: `❌ ${result.errors.length} generation(s) failed` });
@@ -135,8 +144,22 @@ const AssetStudioPage = () => {
   };
 
   const handleGenerationStarted = (gen: GenerationStatus) => {
-    setGenerations(prevGens => [gen, ...prevGens]);
+    setGenerations(prevGens => {
+      const exists = prevGens.some(g => g.id === gen.id);
+      if (!exists) {
+        return [gen, ...prevGens];
+      }
+      return prevGens;
+    });
     setActiveGeneration(gen);
+
+    // If generation is already completed (synchronous), immediately refresh assets
+    if (gen.status === 'completed') {
+      setTimeout(() => {
+        loadAssets();
+        showToast({ type: 'success', message: `✅ Generated asset successfully!` });
+      }, 500);
+    }
   };
 
   // Filter assets locally for grid display
