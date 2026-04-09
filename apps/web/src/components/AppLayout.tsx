@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom';
-import { FileCode, Bot, Palette, Play, Layers, ArrowLeft } from 'lucide-react';
+import { FileCode, Bot, Palette, Play, Layers, ArrowLeft, StickyNote } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { api, type ProjectListItem } from '../api/client';
 import { sidebarItems } from '../constants/sidebar';
@@ -8,7 +8,9 @@ import { ToastProvider, ToastList } from './Toast';
 import { AIFAB } from './AIFAB';
 import { CommandPalette, useCommandPaletteToggle } from './CommandPalette';
 import { SkipLink } from './SkipLink';
+import { ProjectNotesPanel } from './ProjectNotesPanel';
 import { logger } from '../utils/logger';
+import '../project-notes.css';
 
 interface SidebarNavItem {
   path: string;
@@ -20,6 +22,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
   const [projects, setProjects] = useState<ProjectListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentProject, setCurrentProject] = useState<ProjectListItem | null>(null);
+  const [showNotes, setShowNotes] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -116,6 +119,17 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
                   );
                 })}
 
+                {/* Notes toggle */}
+                <button
+                  className={`nav-item ${showNotes ? 'active' : ''}`}
+                  onClick={() => setShowNotes(!showNotes)}
+                  role="menuitem"
+                  style={{ background: 'none', border: 'none', width: '100%', cursor: 'pointer' }}
+                >
+                  <StickyNote size={20} className="nav-icon" />
+                  <span className="nav-text">Notes</span>
+                </button>
+
                 {/* Back to projects */}
                 <div className="sidebar-section-title" />
                 <Link to="/" className="sidebar-back-link" role="menuitem">
@@ -146,6 +160,13 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
         <main className="main-content" id="main-content" role="main">
           {children || <Outlet />}
         </main>
+
+        {/* Project Notes Panel — slides in from right */}
+        {showNotes && projectId && (
+          <div className="project-notes-panel">
+            <ProjectNotesPanel projectId={projectId} />
+          </div>
+        )}
 
         {/* Floating AI button — visible on project pages */}
         {isInProjectContext && (
