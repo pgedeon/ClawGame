@@ -10,6 +10,7 @@
  * - Movement system
  * - AI system (patrol, chase)
  * - Render system (sprites, hitboxes, grid)
+ * - Data-driven scene loading with asset resolution
  */
 
 // Re-export all types (canonical schema)
@@ -27,3 +28,7 @@ export { InputSystem } from './systems/InputSystem';
 export { MovementSystem } from './systems/MovementSystem';
 export { AISystem } from './systems/AISystem';
 export { RenderSystem } from './systems/RenderSystem';
+
+// Re-export scene loader
+export { SceneLoader } from './SceneLoader';
+export type { AssetResolver, SceneLoaderOptions, SceneLoadResult } from './SceneLoader';

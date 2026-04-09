@@ -4,6 +4,7 @@
 ### Added
 - **Engine Events Bus** (M12): Typed `EventBus` class in `@clawgame/engine` with on/once/onAny/clear/history/mute. 20 predefined event types covering lifecycle, entity, input, gameplay, and AI events. Integrated into `Engine` class (emits scene:load, scene:unload, engine:start, engine:stop, engine:error). 20 tests.
 - **Canonical Entity/Component Schema** (M12): Unified `SerializableEntity` and runtime `Entity` types in `@clawgame/engine`. Added conversion utilities (`toRuntimeEntity`, `toSerializableEntity`, `toRuntimeScene`, `toSerializableScene`). New component types: `StatsComponent`, `PlayerInputComponent`, `CollectibleComponent`, `PhysicsComponent`, `TriggerComponent`, `CameraComponent`, `AnimationComponent`. Scene editor imports from engine schema instead of duplicating types. 6 tests.
+- **Data-driven Scene Loader** (M12): `SceneLoader` class in `@clawgame/engine` with pluggable `AssetResolver`, image caching, and `loadIntoEngine()` for data-driven scene loading. Single canonical path for editor, preview, export, and AI-generated scenes. 11 tests.
 ### Added
 - **Quick Sprites workflow** (M11): Prompt-to-sprite-sheet pipeline with animation presets, frame grid generation, placeholder SVG output, and CRUD API routes (`/api/projects/:id/sprites/*`). 14 tests.
 
