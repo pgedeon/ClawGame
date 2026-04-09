@@ -5,6 +5,17 @@ All notable changes to ClawGame will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [0.16.0] - 2026-04-09
+
+#### Added
+- **Prompt Recipe Library** — Predefined prompt recipes for common game development tasks, accessible from the AI assistant panel (M9 AI Creator Workspace)
+  - 10 curated recipes across 5 categories: Combat, Scenes, AI, Assets, Code, Gameplay
+  - Searchable and filterable by category
+  - Recipes include parameterized placeholders for customization
+  - Integrated into the floating AI panel (AIFAB) with toggle and empty-state access
+  - New PromptRecipeLibrary component with full CSS styling
+
 ## [0.13.5] - 2026-04-09
 
 #### Fixed

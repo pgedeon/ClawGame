@@ -2,7 +2,7 @@
 
 ## Project Overview
 - **Status:** Recovery Complete — Transitioning to M9 AI Creator Workspace
-- **Current Version:** v0.15.0 (tower-defense)
+- **Current Version: v0.16.0 (prompt-recipes)
 - **Current Stage:** Post-recovery; starting M9 AI Creator Workspace
 - **Next Phase:** M9 AI Creator Workspace (ambient AI, prompt recipes, plan/apply/review workflow)
 - **Timeline:** Scene Editor AI provides contextual co-pilot experience during game editing
@@ -36,7 +36,7 @@
 - 📋 **M8 Phase 3:** Experience Enhancement (performance, error handling, advanced AI)
 - 📋 **M8 Phase 4:** Production Features (test coverage, mobile features)
 
-## Current Capabilities (v0.11.0)
+## Current Capabilities (v0.16.0)
 - **Template System:** 8 professional game templates with progressive difficulty, filtering, search
 - **Scene Editor AI:** Contextual AI assistant (SceneEditorAIBar) with 5 quick actions
   - Explain Entity, Fix Scene Issues, Generate Code, Create Component, Optimize Layout
@@ -64,6 +64,7 @@
 - ✅ Scene Editor AI with contextual entity assistance
 - ✅ Asset generation via LLM-powered SVG creation
 - ✅ Export system with AI-generated games
+- ✅ **Prompt Recipe Library** — 10 curated recipes (Combat, Scenes, AI, Assets, Code, Gameplay) in AI assistant panel
 - 📋 Visual scripting editor (M9?)
 - 📋 AI-powered asset suggestions based on scene context
 

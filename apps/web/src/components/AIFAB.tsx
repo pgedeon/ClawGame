@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bot, X, Send, Sparkles, Wifi, WifiOff } from 'lucide-react';
+import { Bot, X, Send, Sparkles, Wifi, WifiOff, BookOpen } from 'lucide-react';
 import { useToast } from './Toast';
 import { api } from '../api/client';
 import { MarkdownRenderer } from './MarkdownRenderer';
+import { PromptRecipeLibrary, type PromptRecipe } from './PromptRecipeLibrary';
 import '../ai-fab.css';
 
 interface AIFABProps {
@@ -25,6 +26,7 @@ export function AIFAB({ projectId }: AIFABProps) {
   const [aiStatus, setAiStatus] = useState<'checking' | 'connected' | 'offline'>('checking');
   const [lastAction, setLastAction] = useState<string>('');
   const [showTooltip, setShowTooltip] = useState(false);
+  const [showRecipes, setShowRecipes] = useState(false);
   const { showToast } = useToast();
   const fabRef = useRef<HTMLButtonElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -54,14 +56,15 @@ export function AIFAB({ projectId }: AIFABProps) {
 
   const togglePanel = () => setIsOpen(prev => !prev);
 
-  const handleSend = async () => {
-    const text = input.trim();
+  const handleSend = async (overrideText?: string) => {
+    const text = (overrideText ?? input).trim();
     if (!text) return;
     const userMsg: ChatMessage = { id: `u-${Date.now()}`, role: 'user', content: text, timestamp: Date.now() };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setIsThinking(true);
     setLastAction(text.slice(0, 30));
+    setShowRecipes(false);
 
     if (!projectId) {
       setMessages(prev => [...prev, { id: `a-${Date.now()}`, role: 'assistant', content: "I'd love to help, but no project is open. Please open a project first.", timestamp: Date.now() }]);
@@ -86,6 +89,21 @@ export function AIFAB({ projectId }: AIFABProps) {
     } finally {
       setIsThinking(false);
     }
+  };
+
+  const handleRecipeSelect = (recipe: PromptRecipe) => {
+    // Replace {placeholders} with generic defaults for now; user can edit before sending
+    let prompt = recipe.prompt
+      .replace(/\{[^}]+\}/g, (match) => {
+        const inner = match.slice(1, -1);
+        // If it's a pipe-separated choice, pick the first
+        if (inner.includes('|')) return inner.split('|')[0];
+        // If it has a colon like {length:3|5|7}, use the key
+        if (inner.includes(':')) return inner.split(':')[0];
+        return `[${inner}]`;
+      });
+    setInput(prompt);
+    setShowRecipes(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -128,40 +146,64 @@ export function AIFAB({ projectId }: AIFABProps) {
             </div>
           </div>
 
-          <div className="ai-panel-messages">
-            {messages.length === 0 && (
-              <div className="ai-panel-empty">
-                <Bot size={32} />
-                <p>Hi! I'm your AI game dev assistant.</p>
-                <p className="ai-panel-hint">
-                  Ask me to generate code, create entities, or build scenes.
-                  {aiStatus === 'connected' && <><br /><small>🟢 Connected to AI — I can generate real code for your game.</small></>}
-                  {aiStatus === 'offline' && <><br /><small>🔴 AI offline — I'll use local templates. Specific commands work best.</small></>}
-                </p>
-              </div>
-            )}
-            {messages.map(msg => (
-              <div key={msg.id} className={`ai-msg ai-msg--${msg.role}`}>
-                <div className="ai-msg-avatar">{msg.role === 'user' ? '👤' : '🤖'}</div>
-                <div className="ai-msg-content">
-                  <MarkdownRenderer content={msg.content} />
+          {/* Recipes toggle */}
+          <button
+            className="ai-panel-recipes-toggle"
+            onClick={() => setShowRecipes(!showRecipes)}
+          >
+            <BookOpen size={13} />
+            {showRecipes ? 'Hide recipes' : 'Prompt Recipes'}
+          </button>
+
+          {/* Recipe library (inline, replaces messages when shown) */}
+          {showRecipes ? (
+            <PromptRecipeLibrary
+              onSelect={handleRecipeSelect}
+            />
+          ) : (
+            <div className="ai-panel-messages">
+              {messages.length === 0 && (
+                <div className="ai-panel-empty">
+                  <Bot size={32} />
+                  <p>Hi! I'm your AI game dev assistant.</p>
+                  <p className="ai-panel-hint">
+                    Ask me to generate code, create entities, or build scenes.
+                    {aiStatus === 'connected' && <><br /><small>🟢 Connected to AI — I can generate real code for your game.</small></>}
+                    {aiStatus === 'offline' && <><br /><small>🔴 AI offline — I'll use local templates. Specific commands work best.</small></>}
+                  </p>
+                  <button
+                    className="ai-panel-recipes-toggle"
+                    onClick={() => setShowRecipes(true)}
+                    style={{ marginTop: 8, fontSize: '0.8rem' }}
+                  >
+                    <BookOpen size={13} />
+                    Or pick a prompt recipe →
+                  </button>
                 </div>
-              </div>
-            ))}
-            {isThinking && (
-              <div className="ai-msg ai-msg--assistant">
-                <div className="ai-msg-avatar">🤖</div>
-                <div className="ai-msg-content ai-msg-thinking">
-                  <div className="ai-skeleton-response">
-                    <div className="skeleton-line skeleton-w80"></div>
-                    <div className="skeleton-line skeleton-w60"></div>
-                    <div className="skeleton-line skeleton-w40"></div>
+              )}
+              {messages.map(msg => (
+                <div key={msg.id} className={`ai-msg ai-msg--${msg.role}`}>
+                  <div className="ai-msg-avatar">{msg.role === 'user' ? '👤' : '🤖'}</div>
+                  <div className="ai-msg-content">
+                    <MarkdownRenderer content={msg.content} />
                   </div>
                 </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
+              ))}
+              {isThinking && (
+                <div className="ai-msg ai-msg--assistant">
+                  <div className="ai-msg-avatar">🤖</div>
+                  <div className="ai-msg-content ai-msg-thinking">
+                    <div className="ai-skeleton-response">
+                      <div className="skeleton-line skeleton-w80"></div>
+                      <div className="skeleton-line skeleton-w60"></div>
+                      <div className="skeleton-line skeleton-w40"></div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
 
           <div className="ai-panel-input">
             <input
@@ -173,7 +215,7 @@ export function AIFAB({ projectId }: AIFABProps) {
               disabled={isThinking}
               autoFocus
             />
-            <button className="ai-panel-send" onClick={handleSend} disabled={!input.trim() || isThinking} aria-label="Send message">
+            <button className="ai-panel-send" onClick={() => handleSend()} disabled={!input.trim() || isThinking} aria-label="Send message">
               <Send size={16} />
             </button>
           </div>
