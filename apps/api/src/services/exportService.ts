@@ -3,7 +3,7 @@
  * Packages game projects into standalone HTML exports with embedded assets
  */
 
-import { readFile, writeFile, access, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, readdir, stat, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
 import { FastifyLoggerInstance } from 'fastify';
@@ -25,6 +25,16 @@ export interface ExportResult {
   size: number;
   filename: string;
   downloadUrl: string;
+  createdAt: string;
+  includesAssets: boolean;
+  assetCount: number;
+}
+
+/** Metadata stored alongside each export for reliable listing */
+interface ExportMetadata {
+  projectId: string;
+  projectName: string;
+  version: string;
   createdAt: string;
   includesAssets: boolean;
   assetCount: number;
@@ -94,14 +104,25 @@ export class ExportService {
     // Generate HTML
     const html = this.generateGameHTML(project, sceneData, assetData, includeAssets);
 
-    // Write export file
+    // Write export file — include projectId in filename for reliable listing
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `${project.name.replace(/[^a-zA-Z0-9-]/g, '-')}-${timestamp}.html`;
+    const safeName = project.name.replace(/[^a-zA-Z0-9-]/g, '-');
+    const filename = `${projectId}-${safeName}-${timestamp}.html`;
     const filePath = join(exportsDir, filename);
 
     await writeFile(filePath, html, 'utf-8');
 
-    const fileStats = await access(filePath).then(() => ({ exists: true })).catch(() => ({ exists: true }));
+    // Write metadata sidecar for accurate listing
+    const metadata: ExportMetadata = {
+      projectId,
+      projectName: project.name,
+      version: project.version || '1.0.0',
+      createdAt: new Date().toISOString(),
+      includesAssets: includeAssets,
+      assetCount: assetData.length,
+    };
+    const metaPath = join(exportsDir, `${filename}.meta.json`);
+    await writeFile(metaPath, JSON.stringify(metadata, null, 2), 'utf-8');
 
     const result: ExportResult = {
       projectId,
@@ -111,7 +132,7 @@ export class ExportService {
       size: Buffer.byteLength(html, 'utf-8'),
       filename,
       downloadUrl: `/api/projects/${projectId}/exports/${filename}`,
-      createdAt: new Date().toISOString(),
+      createdAt: metadata.createdAt,
       includesAssets: includeAssets,
       assetCount: assetData.length,
     };
@@ -564,54 +585,72 @@ export class ExportService {
   }
 
   /**
-   * List exports for a project
+   * List exports for a project using metadata sidecar files
    */
   async listExports(projectId: string): Promise<ExportResult[]> {
     const exportsDir = await this.ensureExportsDir();
-    const files = await import('node:fs/promises').then(fs => fs.readdir(exportsDir));
+    const files = await readdir(exportsDir);
 
-    const exports: ExportResult[] = [];
+    const results: ExportResult[] = [];
 
     for (const file of files) {
-      if (!file.includes(projectId) || !file.endsWith('.html')) {
-        continue;
+      // Only process metadata sidecars for this project
+      if (!file.endsWith('.meta.json')) continue;
+
+      // Read metadata to check projectId
+      const metaPath = join(exportsDir, file);
+      try {
+        const metaContent = await readFile(metaPath, 'utf-8');
+        const meta: ExportMetadata = JSON.parse(metaContent);
+
+        if (meta.projectId !== projectId) continue;
+
+        // The HTML file is the meta filename without the .meta.json suffix
+        const htmlFilename = file.replace(/\.meta\.json$/, '');
+        const htmlPath = join(exportsDir, htmlFilename);
+
+        if (!existsSync(htmlPath)) continue;
+
+        const stats = await stat(htmlPath);
+
+        results.push({
+          projectId: meta.projectId,
+          projectName: meta.projectName,
+          version: meta.version,
+          format: 'html',
+          size: stats.size,
+          filename: htmlFilename,
+          downloadUrl: `/api/projects/${projectId}/exports/${htmlFilename}`,
+          createdAt: meta.createdAt,
+          includesAssets: meta.includesAssets,
+          assetCount: meta.assetCount,
+        });
+      } catch (err) {
+        this.logger.warn({ file, err }, 'Failed to read export metadata');
       }
-
-      const filePath = join(exportsDir, file);
-      const fs = await import('node:fs/promises');
-      const stats = await fs.stat(filePath);
-
-      exports.push({
-        projectId,
-        projectName: file.replace(/-.*\.html$/, ''),
-        version: '1.0.0',
-        format: 'html',
-        size: stats.size,
-        filename: file,
-        downloadUrl: `/api/projects/${projectId}/exports/${file}`,
-        createdAt: stats.mtime.toISOString(),
-        includesAssets: true,
-        assetCount: 0,
-      });
     }
 
-    exports.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-    return exports;
+    return results;
   }
 
   /**
-   * Delete export file
+   * Delete export file and its metadata sidecar
    */
   async deleteExport(filename: string): Promise<boolean> {
     const filePath = join(EXPORTS_DIR, filename);
+    const metaPath = join(EXPORTS_DIR, `${filename}.meta.json`);
 
-    if (!existsSync(filePath)) {
+    const htmlExists = existsSync(filePath);
+    const metaExists = existsSync(metaPath);
+
+    if (!htmlExists && !metaExists) {
       return false;
     }
 
-    const fs = await import('node:fs/promises');
-    await fs.unlink(filePath);
+    if (htmlExists) await unlink(filePath);
+    if (metaExists) await unlink(metaPath);
 
     this.logger.info({ filename }, 'Export deleted');
 

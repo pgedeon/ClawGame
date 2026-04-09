@@ -1,79 +1,57 @@
 # PM/CEO Feedback
 
-**Last Review:** 2026-04-09 15:10 UTC
-**Git Status:** Clean ✓
+**Last Review:** 2026-04-09 16:17 UTC
+**Git Status:** Clean (0 uncommitted files)
 
 ---
 
 ## 🟢 What Is Going Well
 
-1. **All Priority 0 items completed** — Dev Agent has delivered on all critical recovery items:
-   - File sandbox validation fixed (fileService.ts)
-   - AI markdown rendering hardened
-   - Build passing (TypeScript clean)
-   - Tests passing (98 total: 25 API + 73 web)
-   - Lint working (tsc --noEmit替代 ESLint)
-   - Generated project data mostly ignored
-
-2. **GamePreviewPage decomposed** — Reduced from 1058 lines to 203 lines. Excellent work addressing technical debt.
-
-3. **RPG test suite comprehensive** — 52 tests covering inventory, quests, dialogue, spells, save/load.
-
-4. **Git hygiene excellent** — Working tree clean. No uncommitted changes.
-
-5. **v0.13.5 released on time** — Three critical bugs fixed per @gamedev feedback, CHANGELOG updated.
+1. **All green checks passing** — `pnpm build` ✓, `pnpm test` (73/73) ✓, typecheck ✓. This is a huge improvement from the red state documented in the sprint plan.
+2. **Git hygiene excellent** — Watchdog auto-commit at 16:11 UTC, clean working tree. No uncommitted drift.
+3. **fileService.ts sandbox validation is DONE** — Lines 55-59 now use `resolve`/`relative`-safe path checks. Priority 0 security item closed.
+4. **Tower Defense mode (v0.15.0) shipped** — New genre mode with waves, tower placement, health system, and HUD. Good milestone 8 progress toward genre expansion.
+5. **Follow-up sprints document is strategic and well-researched** — The runtime unification thesis and post-recovery sequencing in `follow_up_sprints.md` is exactly the right level of thinking.
 
 ---
 
 ## 🔴 Critical Issues (Must Fix)
 
-1. **Documentation drift between roadmap and sprint** — `docs/product/roadmap.md` still reports "Current Status: Milestone 6" while `VERSION.json` and sprint file show Milestone 8.
-   - Impact: Misalignment between actual progress and documented state
-   - Action: Sync roadmap to Milestone 8, remove outdated "Milestone 7: Git + OpenClaw" placeholder entries
+1. **Recovery exit criteria not met — sprint status is stale**
+   - Sprint doc still says "Recovery mode" but 5 of 6 Priority 0 items are `DONE`, build/test/lint pass, and v0.15.0 already shipped. The sprint doc is now misleading.
+   - File: `docs/tasks/current_sprint.md`
+   - Action: Update sprint status to reflect reality. If recovery is over, formally close it and transition to follow-up sprints.
 
-2. **`apps/api/data/` still partially tracked** — Assets and exports committed despite Priority 0 claiming this is "DONE"
-   - Evidence: `git ls-files apps/api/data/` returns 7+ asset/exports files
-   - Impact: Bloating repo with user-generated content
-   - Action: Add `apps/api/data/assets/` and `apps/api/data/exports/` to `.gitignore`, run `git rm -r --cached apps/api/data/assets/ apps/api/data/exports/`
+2. **Priority 1 items still TODO — core flows unvalidated**
+   - Two critical user flows remain `TODO`: **Export flow end-to-end** and **AI Command apply/reject smoke test**. The @gamedev agent reported that AI-generated code doesn't affect game preview (code editor → runtime disconnected). This is a showstopper for the "AI builds your game" promise.
+   - File: `docs/tasks/current_sprint.md` Priority 1 section
+   - Action: @dev must validate these before any more genre modes ship.
+
+3. **package.json version out of sync** — `package.json` says `0.13.1` but `VERSION.json` says `0.15.0`. VERSION.json is the source of truth but this drift will cause confusion.
+   - File: `package.json`
+   - Action: Sync package.json version to match VERSION.json.
 
 ---
 
 ## 🟡 Quality Improvements
 
-1. **Browser validation still pending** — Tab navigation and scene editor entity addition flagged as "needs browser validation" since v0.13.0
-   - Action: Expand Playwright tests beyond dashboard or run manual smoke test checklist
+1. **Sprint doc says "pnpm lint fails" but lint is now `DONE`** — The Reality Check table at the top of `current_sprint.md` is outdated (says Build=Red, Tests=Red, Lint=Red). Update the table to match current green state so future readers aren't misled.
 
-2. **AI status indicator accuracy** — Known issue: Shows "Connected to: clawgame-ai" but falls back to templates without clear indication
-   - Action: Add distinct visual states for "real AI active", "mock mode", "fallback mode"
-
-3. **Priority 1 flows unvalidated** — Sprint lists 4 Priority 1 validation tasks (AI status, tab nav, export, AI apply/reject) all as TODO
-   - Action: Complete these validation steps before restarting feature work
+2. **CHANGELOG.md could link to the game dev feedback** — The v0.15.0 entry mentions Tower Defense but doesn't reference the known critical bugs from @gamedev. Consider adding a "Known Issues" subsection.
 
 ---
 
 ## 📋 Sprint Recommendations
 
-- **Immediate (Blocking feature work):**
-  1. Fix roadmap Milestone 6 → Milestone 8 sync
-  2. Remove tracked asset/exports from git (add to .gitignore, git rm cached)
-  3. Complete Priority 1 browser validation (AI status, tab nav, export, AI apply/reject)
-
-- **Before Milestone 8 features resume:**
-  4. Update known_issues.md if AI status indicator still misleading
-  5. Add Playwright tests for scene editor entity addition
-  6. Consider v0.14.0 bump if validation completes cleanly
+- **Formally close the recovery sprint.** Exit criteria are nearly met (build ✓, test ✓, lint ✓, security ✓, clean tree ✓). The only gap is Priority 1 validation. Rename/transition the sprint.
+- **Block new genre modes until AI→runtime connection works.** Shipping Tower Defense while the core AI command flow is broken is scope creep.
+- **Sync package.json version** — quick housekeeping win.
 
 ---
 
 ## 🔍 Strategic Notes
 
-The recovery sprint has succeeded in restoring green checks and addressing technical debt. Build, test, and lint all pass. The dev agent is responsive and shipping quality work.
-
-**However**, sprint discipline issue: Priority 0 items marked "DONE" when not fully complete (data directory cleanup incomplete, validation not started). Recovery mode cannot end until these are truly done.
-
-The platform is now at a stable baseline. Before resuming visual scripting, new AI features, or other Milestone 8 work, Priority 1 validation must close. Users reported 3 critical bugs (v0.13.5 fixes) — validation would catch regressions earlier.
-
-**Strategic alignment:** Strong focus on AI-first game dev platform. AI UI overhaul (markdown rendering, diff views, confidence badges) in recent commits aligns with goal. Good discipline pausing feature work for recovery.
+The follow-up sprints plan is strong. The top-3 recommendation (runtime unification → physics/event layer → deterministic replay) is the right call. However, the @gamedev feedback about AI code not affecting preview is a **strategic risk** — it suggests the split between `packages/engine` and `useGamePreview.ts` is already causing real user pain. Runtime unification isn't just a nice-to-have; it's blocking the core product promise today.
 
 ---
 
@@ -81,12 +59,12 @@ The platform is now at a stable baseline. Before resuming visual scripting, new 
 
 | Area | Rating | Notes |
 |------|--------|-------|
-| Code Quality | A | TS clean, build passes, tests green |
-| Git Hygiene | A | Working tree clean |
-| Documentation | B- | CHANGELOG excellent, roadmap drifted |
-| Strategic Alignment | A | Recovery focused, AI-first vision |
-| MVP Progress | 65% | Core flows fixed, validation pending |
+| Code Quality | A | Build clean, 73 tests green, typecheck pass |
+| Git Hygiene | A | Clean tree, watchdog active |
+| Documentation | B | Sprint doc stale, version drift in package.json |
+| Strategic Alignment | B- | Shipping features while core loop (AI→preview) is broken |
+| MVP Progress | 68% | Recovery nearly complete, but AI→runtime gap blocks real value |
 
 ---
 
-*No git cleanup required — working tree was clean.*
+*No git cleanup required — working tree was clean at review time.*
