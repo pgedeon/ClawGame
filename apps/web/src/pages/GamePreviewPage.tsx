@@ -20,6 +20,12 @@ import type { GameNotification, ElementType, SpellRecipe } from '../rpg/types';
 import { useSceneLoader, type ProjectScene } from '../hooks/useSceneLoader';
 import { RPGPanels, type UIPanel, type SaveSlotInfo } from '../components/game/RPGPanels';
 
+import { InventoryManager } from '../rpg/inventory';
+import { QuestManager } from '../rpg/quests';
+import { DialogueManager } from '../rpg/dialogue';
+import { SpellCraftingManager } from '../rpg/spellcrafting';
+import { SaveLoadManager } from '../rpg/saveload';
+
 /* ─── Types ─── */
 interface GameStats { fps: number; entities: number; memory: string; }
 
@@ -108,6 +114,8 @@ const GamePreviewContent: React.FC = () => {
   const [gameOver, setGameOver] = useState(false);
   const [victory, setVictory] = useState(false);
   const [playerScore, setPlayerScore] = useState(0);
+  const [runtimeError, setRuntimeError] = useState<string | null>(null);
+  const [runtimeErrorStack, setRuntimeErrorStack] = useState<string>('');
   const [playerHealth, setPlayerHealth] = useState(100);
   const [playerMana, setPlayerMana] = useState(100);
   const [collectedRunes, setCollectedRunes] = useState<string[]>([]);
@@ -129,11 +137,11 @@ const GamePreviewContent: React.FC = () => {
   const [questHUDText, setQuestHUDText] = useState('');
 
   /* RPG managers (refs to survive re-renders) */
-  const inventoryRef = useRef(new (require('../rpg/inventory').InventoryManager)());
-  const questMgrRef = useRef(new (require('../rpg/quests').QuestManager)());
-  const dialogueMgrRef = useRef(new (require('../rpg/dialogue').DialogueManager)());
-  const spellMgrRef = useRef(new (require('../rpg/spellcrafting').SpellCraftingManager)());
-  const saveMgrRef = useRef(new (require('../rpg/saveload').SaveLoadManager)());
+  const inventoryRef = useRef(new InventoryManager());
+  const questMgrRef = useRef(new QuestManager());
+  const dialogueMgrRef = useRef(new DialogueManager());
+  const spellMgrRef = useRef(new SpellCraftingManager());
+  const saveMgrRef = useRef(new SaveLoadManager());
 
   /* Game loop mutable state */
   const gameLoopState = useRef<any>(null);
@@ -223,8 +231,10 @@ const GamePreviewContent: React.FC = () => {
     }
   }, [craftResult, syncRPGState]);
 
-  const handleAssignHotkey = useCallback((spellId: string, hotkey: number) => {
-    spellMgrRef.current.assignHotkey(spellId, hotkey || null);
+  const handleAssignHotkey = useCallback((spellId: string, hotkey: number | null) => {
+    if (hotkey !== null && !isNaN(hotkey)) {
+      spellMgrRef.current.assignHotkey(spellId, hotkey);
+    }
     syncRPGState();
   }, [syncRPGState]);
 
@@ -273,7 +283,7 @@ const GamePreviewContent: React.FC = () => {
 
   const handleDialogueChoice = useCallback((index: number | undefined) => {
     if (index !== undefined) {
-      dialogueMgrRef.current.chooseOption(index);
+      dialogueMgrRef.current.advance(index);
     } else {
       dialogueMgrRef.current.advance();
     }
@@ -288,7 +298,11 @@ const GamePreviewContent: React.FC = () => {
 
   /* ─── Game controls ─── */
 
-  const handleStartGame = useCallback(() => setGameStarted(true), []);
+  const handleStartGame = useCallback(() => {
+    setGameStarted(true);
+    setRuntimeError(null);
+    setRuntimeErrorStack('');
+  }, []);
 
   const handleRestart = useCallback(() => {
     setGameOver(false);

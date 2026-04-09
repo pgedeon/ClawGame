@@ -8,6 +8,55 @@ const PROJECTS_DIR = process.env.PROJECTS_DIR || './data/projects';
 // Global reference to project service (initialized with logger)
 let projectServiceInstance: ProjectService | null = null;
 
+// Validate project creation input
+function validateCreateProjectInput(input: any): { valid: boolean; error?: string } {
+  if (!input || typeof input !== 'object') {
+    return { valid: false, error: 'Request body is required' };
+  }
+
+  const { name, genre, artStyle } = input;
+
+  // Name is required
+  if (!name || typeof name !== 'string' || name.trim().length === 0) {
+    return { valid: false, error: 'Project name is required' };
+  }
+
+  if (name.trim().length > 100) {
+    return { valid: false, error: 'Project name must be 100 characters or less' };
+  }
+
+  // Genre is required
+  if (!genre || typeof genre !== 'string' || genre.trim().length === 0) {
+    return { valid: false, error: 'Genre is required' };
+  }
+
+  const validGenres = ['platformer', 'rpg', 'action', 'puzzle', 'adventure', 'simulation', 'strategy', 'other'];
+  if (!validGenres.includes(genre.toLowerCase())) {
+    return { valid: false, error: `Genre must be one of: ${validGenres.join(', ')}` };
+  }
+
+  // Art style is required
+  if (!artStyle || typeof artStyle !== 'string' || artStyle.trim().length === 0) {
+    return { valid: false, error: 'Art style is required' };
+  }
+
+  const validArtStyles = ['pixel', 'vector', '3d', 'mixed', 'other'];
+  if (!validArtStyles.includes(artStyle.toLowerCase())) {
+    return { valid: false, error: `Art style must be one of: ${validArtStyles.join(', ')}` };
+  }
+
+  // Description is optional but must be a string if provided
+  if (input.description !== undefined && typeof input.description !== 'string') {
+    return { valid: false, error: 'Description must be a string' };
+  }
+
+  if (input.description && input.description.length > 500) {
+    return { valid: false, error: 'Description must be 500 characters or less' };
+  }
+
+  return { valid: true };
+}
+
 export async function projectRoutes(app: FastifyInstance) {
   // Initialize project service with logger on first use
   if (!projectServiceInstance) {
@@ -50,6 +99,13 @@ export async function projectRoutes(app: FastifyInstance) {
   app.post<{ Body: CreateProjectInput }>(
     '/api/projects',
     async (request, reply) => {
+      // Validate input before processing
+      const validation = validateCreateProjectInput(request.body);
+      if (!validation.valid) {
+        reply.code(400);
+        return { error: validation.error };
+      }
+
       try {
         const result = await projectServiceInstance!.createProject(request.body);
         reply.code(201);
