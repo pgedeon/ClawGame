@@ -1,43 +1,41 @@
-# Current Sprint: M9 — AI Creator Workspace
+# Current Sprint: M10 — Asset Factory Core
 
-**Status:** M9 In Progress  
+**Status:** M10 Complete ✅  
 **Started:** 2026-04-09  
-**Sprint:** M9 AI Creator Workspace → [`docs/sprints/follow_up_sprints.md`](../sprints/follow_up_sprints.md)
+**Sprint:** M10 Asset Factory Core → [`docs/sprints/follow_up_sprints.md`](../sprints/follow_up_sprints.md)
 
 ---
 
-## M9 Exit Criteria
+## M10 Exit Criteria
 
 | Criterion | Status |
 |-----------|--------|
-| AI accessible without leaving editor, scene, asset, or preview flows | ✅ AIFAB in AppLayout (all pages) |
-| Prompts can target files, entities, scenes, or asset groups | ✅ Context injection (page, scene, entities) |
-| Notes and prompt recipes are saved per project | ✅ ProjectNotesPanel + PromptRecipeLibrary |
-| AI can open a preview target and reason about current game context | ✅ Page context passed to AI commands |
-| Model profiles and BYO provider configuration | ✅ AISettingsPage with health check |
+| Sprite analyzer detects frame grids and color palettes | ✅ analyzeSprite |
+| Slicer splits sprite sheets into frames with manifests | ✅ sliceSpriteSheet |
+| Pixel pipeline with configurable block size and edge cleanup | ✅ pixelize |
+| Tileset forge assembles tiles into sheets | ✅ assembleTileset |
+| Batch utilities (resize, convert, trim, crop) | ✅ batchProcess |
+| UI toolbar integrated into Asset Studio | ✅ AssetProcessingToolbar |
 
-### M9 Deliverables — Progress
+### M10 Deliverables
 
-| Deliverable | Status | Commits |
-|-------------|--------|---------|
-| Ambient AI side panel (AIFAB) | ✅ Already existed, enhanced with context | e6af36b, 97896fd |
-| Project Notes Panel | ✅ New — goals, constraints, TODOs, custom sections | 25e7e37 |
-| AI context injection (page, scene, entities) | ✅ Extended API types + AIFAB integration | 97896fd |
-| AI Settings page (model status, provider config) | ✅ New — connection health, config guide | 03a775b |
-| Prompt Recipe Library | ✅ Already existed — 10 recipes across 5 categories | pre-existing |
+| Deliverable | File |
+|-------------|------|
+| Image processing service (sharp) | `apps/api/src/services/imageProcessingService.ts` |
+| API routes (6 endpoints) | `apps/api/src/routes/imageProcessingRoutes.ts` |
+| Frontend toolbar | `apps/web/src/components/AssetProcessingToolbar.tsx` |
+| Toolbar styles | `apps/web/src/asset-processing.css` |
 
 ### Commits This Sprint
 
-1. `25e7e37` — feat(M9): ProjectNotesPanel — per-project notes, goals, TODOs
-2. `97896fd` — feat(M9): AI context injection — pass page context and scene info to AIFAB
-3. `03a775b` — feat(M9): AI Settings page — model status, provider config, connection health
+1. `24bd8f4` — feat(M10): Asset Factory Core — image processing pipeline
 
 ---
 
-## Recovery Sprint — CLOSED ✅
+## Previous Sprints — CLOSED ✅
 
-**Closed:** 2026-04-09  
-All exit criteria met. See git history for details.
+- **M9** — AI Creator Workspace (4 commits)
+- **Recovery** — Quality gates, security fixes, export bug (closed 2026-04-09)
 
 ---
 
