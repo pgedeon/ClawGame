@@ -17,6 +17,12 @@ import { subscribeNotifications } from '../rpg/notifications';
 import { SPELL_RECIPES } from '../rpg/data/recipes';
 import type { GameNotification, ElementType, SpellRecipe } from '../rpg/types';
 
+import { InventoryManager } from '../rpg/inventory';
+import { QuestManager } from '../rpg/quests';
+import { DialogueManager } from '../rpg/dialogue';
+import { SpellCraftingManager } from '../rpg/spellcrafting';
+import { SaveLoadManager } from '../rpg/saveload';
+
 import { useSceneLoader, type ProjectScene } from '../hooks/useSceneLoader';
 import { RPGPanels, type UIPanel, type SaveSlotInfo } from '../components/game/RPGPanels';
 
@@ -74,11 +80,11 @@ const GamePreviewContent: React.FC = () => {
   const [questHUDText, setQuestHUDText] = useState('');
 
   /* RPG managers (refs to survive re-renders) */
-  const inventoryRef = useRef(new (require('../rpg/inventory').InventoryManager)());
-  const questMgrRef = useRef(new (require('../rpg/quests').QuestManager)());
-  const dialogueMgrRef = useRef(new (require('../rpg/dialogue').DialogueManager)());
-  const spellMgrRef = useRef(new (require('../rpg/spellcrafting').SpellCraftingManager)());
-  const saveMgrRef = useRef(new (require('../rpg/saveload').SaveLoadManager)());
+  const inventoryRef = useRef(new InventoryManager());
+  const questMgrRef = useRef(new QuestManager());
+  const dialogueMgrRef = useRef(new DialogueManager());
+  const spellMgrRef = useRef(new SpellCraftingManager());
+  const saveMgrRef = useRef(new SaveLoadManager());
 
   /* Game loop mutable state */
   const gameLoopState = useRef<any>(null);
@@ -166,7 +172,7 @@ const GamePreviewContent: React.FC = () => {
   }, [craftResult, syncRPGState]);
 
   const handleAssignHotkey = useCallback((spellId: string, hotkey: number) => {
-    spellMgrRef.current.assignHotkey(spellId, hotkey || null);
+    spellMgrRef.current.assignHotkey(spellId, hotkey);
     syncRPGState();
   }, [syncRPGState]);
 
@@ -215,7 +221,7 @@ const GamePreviewContent: React.FC = () => {
 
   const handleDialogueChoice = useCallback((index: number | undefined) => {
     if (index !== undefined) {
-      dialogueMgrRef.current.chooseOption(index);
+      dialogueMgrRef.current.advance(index);
     } else {
       dialogueMgrRef.current.advance();
     }
@@ -273,13 +279,13 @@ const GamePreviewContent: React.FC = () => {
         id: entity.id, type: eType, transform: { ...t },
         components: entity.components || {},
         vx: 0, vy: 0,
-        color: entity.components.sprite?.color || TYPE_COLORS[eType] || '#8b5cf6',
-        width: entity.components.sprite?.width || defaultSize[0],
-        height: entity.components.sprite?.height || defaultSize[1],
-        health: entity.components.stats?.hp || 30,
-        maxHealth: entity.components.stats?.maxHp || 30,
-        damage: entity.components.stats?.damage || 10,
-        enemyType: entity.components.enemyType || entity.components.ai?.type || 'slime',
+        color: entity.components?.sprite?.color || TYPE_COLORS[eType] || '#8b5cf6',
+        width: entity.components?.sprite?.width || defaultSize[0],
+        height: entity.components?.sprite?.height || defaultSize[1],
+        health: entity.components?.stats?.hp || 30,
+        maxHealth: entity.components?.stats?.maxHp || 30,
+        damage: entity.components?.stats?.damage || 10,
+        enemyType: entity.components?.enemyType || entity.components?.ai?.type || 'slime',
         patrolOrigin: { x: t.x, y: t.y },
         patrolOffset: Math.random() * Math.PI * 2,
         hitFlash: 0, facing: 'right',
@@ -508,7 +514,7 @@ const GamePreviewContent: React.FC = () => {
       // Update entities
       entities.forEach((entity: any, id: string) => {
         if (entity.components?.playerInput) {
-          const speed = entity.components.movement?.speed || 200;
+          const speed = entity.components?.movement?.speed || 200;
           let newVx = 0, newVy = 0;
           if (keys['arrowleft'] || keys['a']) newVx = -speed;
           if (keys['arrowright'] || keys['d']) newVx = speed;
@@ -530,7 +536,7 @@ const GamePreviewContent: React.FC = () => {
 
         if (entity.type === 'enemy' && gameStarted) {
           const player = entities.get('player') || entities.get('player-1');
-          const patrolSpeed = entity.components.ai?.speed || 50;
+          const patrolSpeed = entity.components?.ai?.speed || 50;
           if (player) {
             const dx = player.transform.x - entity.transform.x;
             const dy = player.transform.y - entity.transform.y;
@@ -591,7 +597,7 @@ const GamePreviewContent: React.FC = () => {
       }
 
       // Win condition
-      const allRunes = projectScene.entities.filter(e => e.type === 'collectible' && e.components.collectible?.type === 'rune');
+      const allRunes = projectScene.entities.filter(e => e.type === 'collectible' && e.components?.collectible?.type === 'rune');
       if (allRunes.length > 0 && collectedRuneIds.length >= allRunes.length) setVictory(true);
 
       // Stats
