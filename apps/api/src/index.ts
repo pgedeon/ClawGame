@@ -14,6 +14,7 @@ import { saveRoutes } from './routes/saves';
 import { gitRoutes } from './routes/git';
 import { imageProcessingRoutes } from './routes/imageProcessingRoutes';
 import { sfxRoutes } from './routes/sfxRoutes';
+import { imageStylePresetRoutes } from './routes/imageStylePresetRoutes';
 
 // Load version from VERSION.json at project root
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -58,6 +59,7 @@ app.register(saveRoutes);
 app.register(gitRoutes);
 app.register(imageProcessingRoutes);
 app.register(sfxRoutes);
+app.register(imageStylePresetRoutes);
 
 const start = async () => {
   try {
