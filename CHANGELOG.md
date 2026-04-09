@@ -249,3 +249,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Added
 - Playwright E2E smoke test infrastructure (dashboard, navigation, command palette)
 
+
+### [0.14.0] - 2026-04-09
+
+#### Added
+- Camera follow system in game preview — viewport centers on player entity
+- Extended world grid and ground plane for better visual context
+- Playwright E2E smoke test infrastructure
+
+#### Fixed
+- Synced roadmap.md from stale Milestone 6 to Milestone 8
+- Removed tracked runtime assets/exports from git
+- Projectile out-of-bounds check uses world coordinates
