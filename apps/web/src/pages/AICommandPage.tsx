@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { Sparkles, Send, RefreshCw, X } from 'lucide-react';
+import { Sparkles, Send, RefreshCw, X, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { api, type AICommandRequest, type AICommandResponse, type AICommandHistory } from '../api/client';
 import { useToast } from '../components/Toast';
 import '../ai-thinking.css';
@@ -21,6 +21,8 @@ export function AICommandPage() {
   const [isRealAI, setIsRealAI] = useState(false);
   const [commandHistory, setCommandHistory] = useState<AICommandHistory[]>([]);
   const [lastFailedPrompt, setLastFailedPrompt] = useState<string | null>(null);
+  const [appliedChanges, setAppliedChanges] = useState<Set<string>>(new Set()); // tracks "responseId-changeIdx"
+  const [applyingChanges, setApplyingChanges] = useState<Set<string>>(new Set());
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Load initial welcome message and check AI status
@@ -37,7 +39,6 @@ export function AICommandPage() {
       const isReal = health.service !== 'mock-ai-preview';
       setIsRealAI(isReal);
       
-      // Set welcome message based on AI status
       setMessages([{
         type: 'assistant',
         content: isReal 
@@ -47,7 +48,6 @@ export function AICommandPage() {
       }]);
     } catch (err) {
       logger.error('Failed to check AI status:', err);
-      // Default to preview mode if API not reachable
       setMessages([{
         type: 'assistant',
         content: '🤖 Welcome to AI Command\n\nThis is a demonstration of AI-powered game development features.\n\nNote: Could not connect to the API server. Make sure the backend is running at http://localhost:3000',
@@ -59,7 +59,6 @@ export function AICommandPage() {
 
   const loadCommandHistory = async () => {
     if (!projectId) return;
-    
     try {
       const history = await api.getAIHistory(projectId, 10);
       setCommandHistory(history.history);
@@ -74,14 +73,84 @@ export function AICommandPage() {
       abortControllerRef.current = null;
     }
     setIsLoading(false);
-    setMessages(prev => [
-      ...prev,
-      {
-        type: 'assistant',
-        content: '⏹️ Request cancelled.',
-        timestamp: new Date(),
+    setMessages(prev => [...prev, {
+      type: 'assistant',
+      content: '⏹️ Request cancelled.',
+      timestamp: new Date(),
+    }]);
+  };
+
+  const handleApplyChange = async (responseId: string, changeIdx: number) => {
+    if (!projectId) return;
+    const key = `${responseId}-${changeIdx}`;
+    
+    // Find the message with this change
+    const msg = messages.find(m => m.response?.id === responseId);
+    if (!msg?.response?.changes?.[changeIdx]) return;
+    
+    const change = msg.response.changes[changeIdx];
+    if (!change.newContent) {
+      showToast({ type: 'error', message: 'No code content to apply' });
+      return;
+    }
+
+    setApplyingChanges(prev => new Set(prev).add(key));
+    
+    try {
+      await api.writeFile(projectId, change.path, change.newContent);
+      setAppliedChanges(prev => new Set(prev).add(key));
+      showToast({ type: 'success', message: `Applied ${change.path} to project` });
+    } catch (error: any) {
+      logger.error('Failed to apply change:', error);
+      showToast({ type: 'error', message: `Failed to apply: ${error.message || 'Unknown error'}` });
+    } finally {
+      setApplyingChanges(prev => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }
+  };
+
+  const handleApplyAllChanges = async (responseId: string) => {
+    if (!projectId) return;
+    const msg = messages.find(m => m.response?.id === responseId);
+    if (!msg?.response?.changes) return;
+    
+    const changes = msg.response.changes;
+    let applied = 0;
+    let failed = 0;
+    
+    for (let i = 0; i < changes.length; i++) {
+      const change = changes[i];
+      if (!change.newContent) continue;
+      
+      const key = `${responseId}-${i}`;
+      if (appliedChanges.has(key)) continue; // already applied
+      
+      setApplyingChanges(prev => new Set(prev).add(key));
+      
+      try {
+        await api.writeFile(projectId, change.path, change.newContent);
+        setAppliedChanges(prev => new Set(prev).add(key));
+        applied++;
+      } catch {
+        failed++;
+      } finally {
+        setApplyingChanges(prev => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        });
       }
-    ]);
+    }
+    
+    if (applied > 0) {
+      showToast({ type: 'success', message: `Applied ${applied} file${applied > 1 ? 's' : ''} to project` });
+    }
+    if (failed > 0) {
+      showToast({ type: 'error', message: `Failed to apply ${failed} file${failed > 1 ? 's' : ''}` });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent, overridePrompt?: string) => {
@@ -92,19 +161,13 @@ export function AICommandPage() {
     setInput('');
     setLastFailedPrompt(null);
 
-    // Add user message
-    setMessages(prev => [
-      ...prev,
-      {
-        type: 'user',
-        content: userMessage,
-        timestamp: new Date(),
-      }
-    ]);
+    setMessages(prev => [...prev, {
+      type: 'user',
+      content: userMessage,
+      timestamp: new Date(),
+    }]);
 
     setIsLoading(true);
-
-    // Set up abort controller for cancellation
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
 
@@ -117,38 +180,29 @@ export function AICommandPage() {
 
       const result = await api.processAICommand(projectId, commandRequest);
       
-      // Add assistant response
-      setMessages(prev => [
-        ...prev,
-        {
-          type: 'assistant',
-          content: result.response.fromFallback
-            ? `⚠️ **AI service offline — using local code generation**\n\n${result.response.content}\n\n_*The external AI is currently unreachable. This response was generated locally with game-ready code templates. Try specific commands like "add player movement" or "create enemy patrol".*_`
-            : result.response.content,
-          timestamp: new Date(),
-          response: result.response,
-        }
-      ]);
+      setMessages(prev => [...prev, {
+        type: 'assistant',
+        content: result.response.fromFallback
+          ? `⚠️ **AI service offline — using local code generation**\n\n${result.response.content}\n\n_*The external AI is currently unreachable. This response was generated locally with game-ready code templates. Try specific commands like "add player movement" or "create enemy patrol".*_`
+          : result.response.content,
+        timestamp: new Date(),
+        response: result.response,
+      }]);
 
-      // Reload history to get updated command list
       await loadCommandHistory();
     } catch (error: any) {
-      if (abortController.signal.aborted) return; // cancelled, already handled
+      if (abortController.signal.aborted) return;
       
       logger.error('Failed to process AI command:', error);
-      
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       const isTimeout = errorMsg.includes('timeout');
       
-      setMessages(prev => [
-        ...prev,
-        {
-          type: 'assistant',
-          content: `❌ ${isTimeout ? 'Request timed out. The AI is taking too long to respond — try a shorter or more specific prompt.' : `Error: ${errorMsg}`}`,
-          timestamp: new Date(),
-          isError: true,
-        }
-      ]);
+      setMessages(prev => [...prev, {
+        type: 'assistant',
+        content: `❌ ${isTimeout ? 'Request timed out. The AI is taking too long to respond — try a shorter or more specific prompt.' : `Error: ${errorMsg}`}`,
+        timestamp: new Date(),
+        isError: true,
+      }]);
       setLastFailedPrompt(userMessage);
     } finally {
       setIsLoading(false);
@@ -203,29 +257,19 @@ export function AICommandPage() {
                 {message.response ? (
                   <div className="ai-response">
                     {message.response.type === 'explanation' && (
-                      <div className="response-type explanation">
-                        📖 Explanation
-                      </div>
+                      <div className="response-type explanation">📖 Explanation</div>
                     )}
                     {message.response.type === 'change' && (
-                      <div className="response-type change">
-                        ✨ Code Change
-                      </div>
+                      <div className="response-type change">✨ Code Change</div>
                     )}
                     {message.response.type === 'fix' && (
-                      <div className="response-type fix">
-                        🔧 Fix
-                      </div>
+                      <div className="response-type fix">🔧 Fix</div>
                     )}
                     {message.response.type === 'analysis' && (
-                      <div className="response-type analysis">
-                        🔍 Analysis
-                      </div>
+                      <div className="response-type analysis">🔍 Analysis</div>
                     )}
                     {message.response.type === 'error' && (
-                      <div className="response-type error">
-                        ❌ Error
-                      </div>
+                      <div className="response-type error">❌ Error</div>
                     )}
                     {message.response.title && (
                       <h3>{message.response.title}</h3>
@@ -237,16 +281,72 @@ export function AICommandPage() {
                     </div>
                     {message.response.changes && message.response.changes.length > 0 && (
                       <div className="changes-list">
-                        <h4>Proposed Changes:</h4>
-                        {message.response.changes.map((change, idx) => (
-                          <div key={idx} className="change-item">
-                            <div className="change-path">{change.path}</div>
-                            <div className="change-summary">{change.summary}</div>
-                            <div className="change-confidence">
-                              Confidence: {Math.round(change.confidence * 100)}%
+                        <div className="changes-list-header">
+                          <h4>Proposed Changes:</h4>
+                          {message.response.changes.length > 1 && (
+                            <button
+                              className="apply-all-btn"
+                              onClick={() => handleApplyAllChanges(message.response!.id)}
+                              disabled={message.response.changes!.every((_, idx) => 
+                                appliedChanges.has(`${message.response!.id}-${idx}`)
+                              )}
+                            >
+                              <CheckCircle2 size={14} /> Apply All to Project
+                            </button>
+                          )}
+                        </div>
+                        {message.response.changes.map((change, idx) => {
+                          const key = `${message.response!.id}-${idx}`;
+                          const isApplied = appliedChanges.has(key);
+                          const isApplying = applyingChanges.has(key);
+                          return (
+                            <div key={idx} className={`change-item ${isApplied ? 'applied' : ''}`}>
+                              <div className="change-path">{change.path}</div>
+                              <div className="change-summary">{change.summary}</div>
+                              <div className="change-meta">
+                                <span className="change-confidence">
+                                  Confidence: {Math.round(change.confidence * 100)}%
+                                </span>
+                                {change.newContent && (
+                                  <span className="change-lines">
+                                    {change.newContent.split('\n').length} lines
+                                  </span>
+                                )}
+                              </div>
+                              {change.newContent && (
+                                <div className="change-code-preview">
+                                  <pre><code>{change.newContent.length > 500 
+                                    ? change.newContent.slice(0, 500) + '\n... (truncated)'
+                                    : change.newContent
+                                  }</code></pre>
+                                </div>
+                              )}
+                              <div className="change-actions">
+                                {isApplied ? (
+                                  <span className="applied-badge">
+                                    <CheckCircle2 size={14} /> Applied
+                                  </span>
+                                ) : change.newContent ? (
+                                  <button
+                                    className="apply-btn"
+                                    onClick={() => handleApplyChange(message.response!.id, idx)}
+                                    disabled={isApplying}
+                                  >
+                                    {isApplying ? (
+                                      <><RefreshCw size={14} className="spinning" /> Applying...</>
+                                    ) : (
+                                      <><CheckCircle2 size={14} /> Apply to Project</>
+                                    )}
+                                  </button>
+                                ) : (
+                                  <span className="no-content-badge">
+                                    <AlertTriangle size={14} /> No code content available
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                     {message.response.nextSteps && message.response.nextSteps.length > 0 && (
@@ -274,19 +374,6 @@ export function AICommandPage() {
                       <button 
                         className="retry-btn"
                         onClick={handleRetryLastPrompt}
-                        style={{
-                          marginTop: '12px',
-                          padding: '8px 16px',
-                          background: '#6366f1',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                        }}
                       >
                         <RefreshCw size={14} /> Retry
                       </button>
@@ -317,22 +404,7 @@ export function AICommandPage() {
                     <div className="thinking-step">Generating response...</div>
                   </div>
                 </div>
-                <button
-                  onClick={handleCancel}
-                  style={{
-                    marginTop: '12px',
-                    padding: '8px 16px',
-                    background: 'rgba(239, 68, 68, 0.15)',
-                    color: '#ef4444',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '13px',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
-                >
+                <button className="cancel-btn" onClick={handleCancel}>
                   <X size={14} /> Cancel
                 </button>
               </div>
@@ -340,7 +412,7 @@ export function AICommandPage() {
           )}
         </div>
 
-        {/* Input Form — always enabled (not disabled during loading) */}
+        {/* Input Form */}
         <div className="ai-input-container">
           <form onSubmit={handleSubmit}>
             <div className="input-wrapper">
