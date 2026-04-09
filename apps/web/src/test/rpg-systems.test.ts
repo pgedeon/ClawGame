@@ -412,20 +412,30 @@ describe('QuestManager', () => {
   describe('getActiveQuests', () => {
     it('should return only active quests', () => {
       questManager.addQuest(createTestQuest());
-      // Create another quest that will be completed
+      // Create another quest targeting a different enemy (stays active)
       const anotherQuest: Quest = {
         ...createTestQuest(),
         id: 'quest-2',
+        objectives: [
+          {
+            id: 'obj-goblin',
+            type: 'kill',
+            description: 'Defeat goblins',
+            targetId: 'goblin',
+            currentCount: 0,
+            requiredCount: 5,
+          },
+        ],
       };
       questManager.addQuest(anotherQuest);
-      // Complete the second quest by marking objectives
+      // Complete quest-1 by killing slimes; quest-2 targets goblins so stays active
       for (let i = 0; i < 5; i++) {
         questManager.onKill('slime');
       }
 
       const activeQuests = questManager.getActiveQuests();
       expect(activeQuests).toHaveLength(1);
-      expect(activeQuests[0].id).toBe('quest-2'); // quest-2 is the one we just added
+      expect(activeQuests[0].id).toBe('quest-2'); // quest-2 targets goblins, stays active
     });
   });
 

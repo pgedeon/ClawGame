@@ -69,3 +69,4 @@ temp/
 .openclaw/
 .openclaw.json
 .openclaw-workspace/
+apps/api/data/projects/

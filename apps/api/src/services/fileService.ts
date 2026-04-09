@@ -1,5 +1,5 @@
 import { readFile, writeFile, readdir, stat, mkdir, rm, unlink } from 'node:fs/promises';
-import { join, relative, extname, basename, dirname } from 'node:path';
+import { join, resolve, relative, extname, basename, dirname } from 'node:path';
 
 const PROJECTS_DIR = join(process.cwd(), 'data', 'projects');
 
@@ -52,10 +52,11 @@ function isTextFile(ext: string): boolean {
 }
 
 function isAllowedPath(projectId: string, filePath: string): boolean {
-  const projectDir = join(PROJECTS_DIR, projectId);
-  const resolved = join(projectDir, filePath);
-  // Ensure the resolved path is within the project directory
-  return resolved.startsWith(projectDir);
+  const projectDir = resolve(PROJECTS_DIR, projectId);
+  const resolved = resolve(projectDir, filePath);
+  // Ensure the resolved path is within the project directory (resolve-safe)
+  const rel = relative(projectDir, resolved);
+  return !rel.startsWith('..') && !resolve(rel).startsWith('..');
 }
 
 export async function getFileTree(projectId: string, subPath: string = '', depth: number = 0, maxDepth: number = 5): Promise<FileNode[]> {
