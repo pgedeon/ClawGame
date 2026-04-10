@@ -17,6 +17,18 @@ export { BehaviorPresets } from './BehaviorPresets';
 export type { PatrolConfig, ChaseConfig, AlertChaseConfig, GuardConfig } from './BehaviorPresets';
 export type { BehaviorBinding } from './types';
 
+// Re-export AI-assisted graph generation
+export {
+  generateFromDescription,
+  registerPattern,
+  getAvailablePatterns,
+} from './AIGraphGenerator';
+export type {
+  GraphGenerationResult,
+  BehaviorPattern,
+  ParseContext,
+} from './AIGraphGenerator';
+
 // Re-export navigation system
 export {
   createWaypoint,
