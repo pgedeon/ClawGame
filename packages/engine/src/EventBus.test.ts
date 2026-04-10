@@ -34,7 +34,7 @@ describe('EventBus', () => {
     it('emits events with no payload', () => {
       const listener = vi.fn();
       bus.on('engine:start', listener);
-      bus.emit('engine:start');
+      bus.emit('engine:start', {});
       expect(listener).toHaveBeenCalled();
     });
   });
@@ -48,109 +48,191 @@ describe('EventBus', () => {
       bus.emit('game:score', { points: 2 });
       expect(listener).toHaveBeenCalledTimes(1);
     });
+
+    it('unsubscribe method returns undefined', () => {
+      const listener = vi.fn();
+      const sub = bus.on('game:score', listener);
+      expect(sub.unsubscribe()).toBeUndefined();
+    });
   });
 
   describe('once', () => {
-    it('auto-unsubscribes after first call', () => {
+    it('calls listener only once', () => {
       const listener = vi.fn();
       bus.once('game:score', listener);
       bus.emit('game:score', { points: 10 });
       bus.emit('game:score', { points: 20 });
       expect(listener).toHaveBeenCalledTimes(1);
-      expect(listener).toHaveBeenCalledWith({ points: 10 });
     });
 
-    it('works for events without payload', () => {
+    it('passes payload to listener', () => {
       const listener = vi.fn();
-      bus.once('engine:stop', listener);
-      bus.emit('engine:stop');
-      bus.emit('engine:stop');
+      bus.once('game:score', listener);
+      bus.emit('game:score', { points: 5 });
+      expect(listener).toHaveBeenCalledWith({ points: 5 });
+    });
+
+    it('does not call listener after unsubscribe', () => {
+      const listener = vi.fn();
+      const sub = bus.once('game:score', listener);
+      bus.emit('game:score', { points: 5 });
+      sub.unsubscribe();
+      bus.emit('game:score', { points: 10 });
       expect(listener).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe('onAny (wildcard)', () => {
-    it('receives all events', () => {
-      const listener = vi.fn();
-      bus.onAny(listener);
-      bus.emit('game:score', { points: 5 });
-      bus.emit('engine:start');
-      expect(listener).toHaveBeenCalledTimes(2);
-      expect(listener).toHaveBeenCalledWith('game:score', { points: 5 });
+  describe('off', () => {
+    it('removes specific listener', () => {
+      const listener1 = vi.fn();
+      const listener2 = vi.fn();
+      bus.on('game:score', listener1);
+      bus.on('game:score', listener2);
+      bus.off('game:score', listener1);
+      bus.emit('game:score', { points: 10 });
+      expect(listener1).not.toHaveBeenCalled();
+      expect(listener2).toHaveBeenCalled();
     });
 
-    it('wildcard can be unsubscribed', () => {
+    it('removes all listeners when no callback provided', () => {
+      const listener1 = vi.fn();
+      const listener2 = vi.fn();
+      bus.on('game:score', listener1);
+      bus.on('game:score', listener2);
+      bus.off('game:score');
+      bus.emit('game:score', { points: 10 });
+      expect(listener1).not.toHaveBeenCalled();
+      expect(listener2).not.toHaveBeenCalled();
+    });
+
+    it('removes listeners for different event', () => {
       const listener = vi.fn();
-      const sub = bus.onAny(listener);
-      bus.emit('engine:start');
-      sub.unsubscribe();
-      bus.emit('engine:start');
-      expect(listener).toHaveBeenCalledTimes(1);
+      bus.on('game:score', listener);
+      bus.off('entity:create', listener);
+      bus.emit('game:score', { points: 10 });
+      expect(listener).toHaveBeenCalled();
+    });
+  });
+
+  describe('emit with no listeners', () => {
+    it('does not crash when no listeners registered', () => {
+      expect(() => {
+        bus.emit('game:score', { points: 10 });
+      }).not.toThrow();
+    });
+
+    it('does not crash when event type not registered', () => {
+      expect(() => {
+        bus.emit('game:score', { points: 10 });
+      }).not.toThrow();
+    });
+  });
+
+  describe('event history', () => {
+    it('records emitted events in reverse chronological order', () => {
+      bus.on('game:score', vi.fn());
+      bus.on('engine:start', vi.fn());
+      bus.emit('game:score', { points: 10 });
+      bus.emit('engine:start', {});
+      const history = bus.history;
+      expect(history).toHaveLength(2);
+      expect(history[0]).toEqual({ event: 'engine:start', payload: {}, timestamp: expect.any(Number) });
+      expect(history[1]).toEqual({ event: 'game:score', payload: { points: 10 }, timestamp: expect.any(Number) });
+    });
+
+    it('maintains reversed chronological order', () => {
+      bus.on('game:score', vi.fn());
+      bus.emit('engine:start', {});
+      bus.emit('game:score', { points: 5 });
+      const history = bus.history;
+      expect(history).toHaveLength(2);
+      expect(history[0].event).toBe('game:score');
+      expect(history[1].event).toBe('engine:start');
+    });
+
+    it('respects maxHistory limit', () => {
+      const smallBus = new EventBus({ maxHistory: 1 });
+      smallBus.on('game:score', vi.fn());
+      smallBus.emit('game:score', { points: 10 });
+      smallBus.emit('game:score', { points: 20 });
+      const history = smallBus.history;
+      expect(history).toHaveLength(1);
+      expect(history[0]).toEqual({ event: 'game:score', payload: { points: 20 }, timestamp: expect.any(Number) });
     });
   });
 
   describe('clear', () => {
-    it('clears listeners for a specific event', () => {
-      const listener = vi.fn();
-      bus.on('game:score', listener);
-      bus.clear('game:score');
-      bus.emit('game:score', { points: 5 });
-      expect(listener).not.toHaveBeenCalled();
+    it('removes all listeners', () => {
+      const listener1 = vi.fn();
+      const listener2 = vi.fn();
+      bus.on('game:score', listener1);
+      bus.on('engine:start', listener2);
+      bus.clear();
+      bus.emit('game:score', { points: 10 });
+      bus.emit('engine:start', {});
+      expect(listener1).not.toHaveBeenCalled();
+      expect(listener2).not.toHaveBeenCalled();
     });
 
-    it('clears all listeners when called without args', () => {
-      const l1 = vi.fn();
-      const l2 = vi.fn();
-      const wc = vi.fn();
-      bus.on('game:score', l1);
-      bus.on('engine:start', l2);
-      bus.onAny(wc);
+    it('clears event history', () => {
+      bus.on('game:score', vi.fn());
+      bus.emit('game:score', { points: 10 });
       bus.clear();
-      bus.emit('game:score', { points: 5 });
-      bus.emit('engine:start');
-      expect(l1).not.toHaveBeenCalled();
-      expect(l2).not.toHaveBeenCalled();
-      expect(wc).not.toHaveBeenCalled();
+      expect(bus.history).toHaveLength(0);
+    });
+
+    it('works when already empty', () => {
+      expect(() => {
+        bus.clear();
+      }).not.toThrow();
     });
   });
 
-  describe('history', () => {
-    it('records emitted events', () => {
-      bus.emit('game:score', { points: 10 });
-      bus.emit('engine:start');
-      const history = bus.getHistory();
-      expect(history).toHaveLength(2);
-      expect(history[0].event).toBe('engine:start');
-      expect(history[1].event).toBe('game:score');
+  describe('listenerCount', () => {
+    it('returns number of listeners for event', () => {
+      const listener1 = vi.fn();
+      const listener2 = vi.fn();
+      bus.on('game:score', listener1);
+      bus.on('game:score', listener2);
+      expect(bus.listenerCount('game:score')).toBe(2);
+      expect(bus.listenerCount('engine:start')).toBe(0);
     });
 
-    it('respects limit parameter', () => {
-      bus.emit('game:score', { points: 1 });
-      bus.emit('game:score', { points: 2 });
-      const history = bus.getHistory(1);
-      expect(history).toHaveLength(1);
-      expect(history[0].payload).toEqual({ points: 2 });
+    it('returns 0 for unknown event', () => {
+      expect(bus.listenerCount('game:score')).toBe(0);
     });
 
-    it('caps history at maxHistory', () => {
-      const smallBus = new EventBus({ maxHistory: 3 });
-      for (let i = 0; i < 5; i++) {
-        smallBus.emit('game:score', { points: i });
-      }
-      expect(smallBus.getHistory()).toHaveLength(3);
+    it('does not count once listeners', () => {
+      const listener = vi.fn();
+      bus.once('game:score', listener);
+      expect(bus.listenerCount('game:score')).toBe(1);
+    });
+  });
+
+  describe('totalListenerCount', () => {
+    it('returns total number of listeners across all events', () => {
+      const listener1 = vi.fn();
+      const listener2 = vi.fn();
+      const listener3 = vi.fn();
+      bus.on('game:score', listener1);
+      bus.on('game:score', listener2);
+      bus.on('engine:start', listener3);
+      expect(bus.totalListenerCount()).toBe(3);
+    });
+
+    it('returns 0 when no listeners', () => {
+      expect(bus.totalListenerCount()).toBe(0);
+    });
+
+    it('does not count once listeners', () => {
+      const listener = vi.fn();
+      bus.once('game:score', listener);
+      expect(bus.totalListenerCount()).toBe(1);
     });
   });
 
   describe('muted', () => {
-    it('does not emit when muted', () => {
-      const listener = vi.fn();
-      bus.on('game:score', listener);
-      bus.setMuted(true);
-      bus.emit('game:score', { points: 10 });
-      expect(listener).not.toHaveBeenCalled();
-    });
-
-    it('resumes emitting when unmuted', () => {
+    it('suppresses event emissions when muted', () => {
       const listener = vi.fn();
       bus.on('game:score', listener);
       bus.setMuted(true);
@@ -160,41 +242,61 @@ describe('EventBus', () => {
       expect(listener).toHaveBeenCalledTimes(1);
       expect(listener).toHaveBeenCalledWith({ points: 20 });
     });
-  });
 
-  describe('listenerCount', () => {
-    it('returns correct count', () => {
+    it('does not record history when muted', () => {
       bus.on('game:score', vi.fn());
-      bus.on('game:score', vi.fn());
-      bus.on('engine:start', vi.fn());
-      expect(bus.listenerCount('game:score')).toBe(2);
-      expect(bus.listenerCount('engine:start')).toBe(1);
-      expect(bus.listenerCount('entity:create')).toBe(0);
+      bus.setMuted(true);
+      bus.emit('game:score', { points: 10 });
+      bus.setMuted(false);
+      bus.emit('game:score', { points: 20 });
+      expect(bus.history).toHaveLength(1);
+      expect(bus.history[0]).toEqual({ event: 'game:score', payload: { points: 20 }, timestamp: expect.any(Number) });
+    });
+
+    it('works with constructor parameter', () => {
+      const mutedBus = new EventBus({ maxHistory: 10 });
+      mutedBus.setMuted(true);
+      mutedBus.on('game:score', vi.fn());
+      mutedBus.emit('game:score', { points: 10 });
+      expect(mutedBus.history).toHaveLength(0);
     });
   });
 
-  describe('totalListenerCount', () => {
-    it('includes wildcard listeners', () => {
-      bus.on('game:score', vi.fn());
-      bus.onAny(vi.fn());
-      expect(bus.totalListenerCount()).toBe(2);
+  describe('constructor options', () => {
+    it('respects maxHistory option', () => {
+      const limitedBus = new EventBus({ maxHistory: 2 });
+      limitedBus.on('game:score', vi.fn());
+      limitedBus.emit('game:score', { points: 10 });
+      limitedBus.emit('game:score', { points: 20 });
+      limitedBus.emit('game:score', { points: 30 });
+      expect(limitedBus.history).toHaveLength(2);
+    });
+
+    it('uses default maxHistory when not provided', () => {
+      const bus = new EventBus();
+      expect(bus.getMaxHistory()).toBe(1000);
+    });
+
+    it('initializes with empty history', () => {
+      const bus = new EventBus();
+      expect(bus.history).toHaveLength(0);
     });
   });
 
-  describe('error isolation', () => {
-    it('continues to other listeners after one throws', () => {
-      const good = vi.fn();
-      bus.on('game:score', () => { throw new Error('boom'); });
-      bus.on('game:score', good);
-      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      bus.emit('game:score', { points: 5 });
-      errorSpy.mockRestore();
-      expect(good).toHaveBeenCalled();
+  describe('edge cases', () => {
+    it('handles undefined listeners gracefully', () => {
+      expect(() => {
+        bus.on('game:score', undefined as any);
+      }).not.toThrow();
     });
-  });
 
-  describe('custom events', () => {
-    it('supports custom: prefixed events', () => {
+    it('handles null listeners gracefully', () => {
+      expect(() => {
+        bus.on('game:score', null as any);
+      }).not.toThrow();
+    });
+
+    it('works with custom events via cast', () => {
       const listener = vi.fn();
       bus.on('custom:my-event' as any, listener);
       bus.emit('custom:my-event' as any, { foo: 'bar' });

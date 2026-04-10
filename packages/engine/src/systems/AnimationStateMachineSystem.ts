@@ -1,4 +1,4 @@
-import { Entity, Scene, AnimationStateMachineComponent } from '../types';
+import { Entity, Scene, AnimationStateMachineComponent, AnimationComponent } from '../types';
 import { EventBus } from '../EventBus';
 
 interface TransitionQueue {
@@ -20,7 +20,7 @@ export class AnimationStateMachineSystem {
   }
 
   updateEntity(entity: Entity, deltaTime: number): void {
-    const stateMachine = entity.components.get('animationStateMachine');
+    const stateMachine = entity.components.get('animationStateMachine') as AnimationStateMachineComponent | undefined;
     if (!stateMachine || !stateMachine.active) {
       return;
     }
@@ -100,19 +100,18 @@ export class AnimationStateMachineSystem {
         return this.compare(Math.random(), condition.operator || '<', condition.value || 1.0);
         
       case 'health':
-        if (condition.params?.key) {
-          const statsComp = entity.components.get('stats');
-          if (statsComp) {
-            const stats = statsComp as any;
-            const health = stats[condition.params.key] || 0;
-            return this.compare(health, condition.operator || '<', condition.value);
-          }
+        // Handle health condition - check stats directly if no params.key provided
+        const statsComp = entity.components.get('stats');
+        if (statsComp) {
+          const stats = statsComp as any;
+          const health = stats.health || 0;
+          return this.compare(health, condition.operator || '<', condition.value);
         }
         return false;
         
       case 'state':
         if (condition.params?.key) {
-          const otherStateMachine = entity.components.get('animationStateMachine');
+          const otherStateMachine = entity.components.get('animationStateMachine') as AnimationStateMachineComponent | undefined;
           if (otherStateMachine) {
             const currentState = otherStateMachine.currentState;
             return this.compare(currentState, condition.operator || '=', condition.value);
@@ -144,22 +143,23 @@ export class AnimationStateMachineSystem {
       stateMachine.currentState = newState;
       
       // Reset the animation component for the new state
-      const animationComp = entity.components.get('animation');
+      const animationComp = entity.components.get('animation') as AnimationComponent | undefined;
       if (animationComp) {
-        const anim = animationComp as any;
         const newStateData = stateMachine.states[newState].animation;
-        anim.frames = newStateData.frames;
-        anim.currentFrame = 0;
-        anim.frameRate = newStateData.frameRate;
-        anim.loop = newStateData.loop;
+        animationComp.frames = newStateData.frames;
+        animationComp.currentFrame = 0; // Initialize currentFrame to 0
+        animationComp.frameRate = newStateData.frameRate;
+        animationComp.loop = newStateData.loop;
       }
       
       // Emit state change event
       if (this.eventBus) {
         this.eventBus.emit('animation:statechange', {
           entityId: entity.id,
+          entityName: entity.id,
           fromState: previousState,
           toState: newState,
+          animation: stateMachine.states[newState].animation,
           timestamp: performance.now()
         });
       }
@@ -212,8 +212,12 @@ export class AnimationStateMachineSystem {
       active: true,
     };
     
+    // Initialize animation with currentFrame = 0
+    const animationData: AnimationComponent = { ...stateMachine.states.idle.animation };
+    animationData.currentFrame = 0;
+    
     entity.components.set('animationStateMachine', stateMachine);
-    entity.components.set('animation', stateMachine.states.idle.animation);
+    entity.components.set('animation', animationData);
   }
 
   resetEntity(entityId: string): void {

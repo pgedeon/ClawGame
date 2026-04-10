@@ -143,7 +143,7 @@ export class Engine {
       this.isRunning = true;
       this.lastTime = performance.now();
       this.setupEventListeners();
-      this.events.emit('engine:start');
+      this.events.emit('engine:start', {});
       this.gameLoop();
     } catch (error) {
       this.handleError(error as Error);
@@ -156,7 +156,7 @@ export class Engine {
   stop(): void {
     this.isRunning = false;
     this.cleanupEventListeners();
-    this.events.emit('engine:stop');
+    this.events.emit('engine:stop', {});
   }
 
   /**
@@ -187,64 +187,95 @@ export class Engine {
     const deltaTime = (currentTime - this.lastTime) / 1000; // Convert to seconds
     this.lastTime = currentTime;
 
-    try {
-      this.update(deltaTime);
-      this.render();
-      requestAnimationFrame(this.gameLoop);
-    } catch (error) {
-      this.handleError(error as Error);
+    // Update input state from keyboard
+    this.inputSystem.update(this.canvas, this.inputState);
+
+    // Update scene with all systems
+    if (this.scene) {
+      this.physicsSystem.update(this.scene, deltaTime);
+      this.movementSystem.update(this.scene, deltaTime);
+      this.aiSystem.update(this.scene, deltaTime);
+      this.collisionSystem.update(this.scene, deltaTime);
+      this.animationSystem.update(this.scene, deltaTime);
+
+      // Render scene
+      this.renderSystem.update(this.scene, deltaTime);
+
+      // Call user callback if registered
+      if (this.updateCallback) {
+        this.updateCallback(deltaTime);
+      }
+    }
+
+    // Continue the loop
+    requestAnimationFrame(this.gameLoop);
+  };
+
+  /**
+   * Setup event listeners for user input
+   */
+  private setupEventListeners(): void {
+    // Canvas keyboard events
+    window.addEventListener('keydown', this.handleKeyDown);
+    window.addEventListener('keyup', this.handleKeyUp);
+  }
+
+  /**
+   * Cleanup event listeners when stopping
+   */
+  private cleanupEventListeners(): void {
+    window.removeEventListener('keydown', this.handleKeyDown);
+    window.removeEventListener('keyup', this.handleKeyUp);
+  }
+
+  /**
+   * Handle key down events
+   */
+  private handleKeyDown = (event: KeyboardEvent): void => {
+    switch (event.key) {
+      case 'ArrowUp':
+        this.inputState.up = true;
+        break;
+      case 'ArrowDown':
+        this.inputState.down = true;
+        break;
+      case 'ArrowLeft':
+        this.inputState.left = true;
+        break;
+      case 'ArrowRight':
+        this.inputState.right = true;
+        break;
     }
   };
 
   /**
-   * Update all systems
+   * Handle key up events
    */
-  private update(deltaTime: number): void {
-    if (!this.scene) return;
-
-    // Update input state
-    this.inputState = this.inputSystem.getState();
-
-    // Run custom update callback
-    this.updateCallback?.(deltaTime);
-
-    // Run systems in order: animation → movement → physics → AI → collision
-    this.animationSystem.update(this.scene, deltaTime);
-    this.movementSystem.update(this.scene, this.inputState, deltaTime);
-    this.physicsSystem.update(this.scene, deltaTime);
-    this.aiSystem.update(this.scene, deltaTime);
-    this.collisionSystem.update(this.scene);
-  }
+  private handleKeyUp = (event: KeyboardEvent): void => {
+    switch (event.key) {
+      case 'ArrowUp':
+        this.inputState.up = false;
+        break;
+      case 'ArrowDown':
+        this.inputState.down = false;
+        break;
+      case 'ArrowLeft':
+        this.inputState.left = false;
+        break;
+      case 'ArrowRight':
+        this.inputState.right = false;
+        break;
+    }
+  };
 
   /**
-   * Render the scene
-   */
-  private render(): void {
-    if (!this.scene) return;
-
-    this.renderSystem.render(this.scene, this.config);
-  }
-
-  /**
-   * Setup keyboard event listeners
-   */
-  private setupEventListeners(): void {
-    this.inputSystem.attach();
-  }
-
-  /**
-   * Cleanup event listeners
-   */
-  private cleanupEventListeners(): void {
-    this.inputSystem.detach();
-  }
-
-  /**
-   * Handle errors
+   * Handle errors from systems or game loop
    */
   private handleError(error: Error): void {
     console.error('Engine error:', error);
-    this.events.emit('engine:error', { error });
-    this.errorCallback?.(error);
+    if (this.errorCallback) {
+      this.errorCallback(error);
+    }
+    this.events.emit('engine:error', { error, message: error.message, timestamp: performance.now() });
   }
 }

@@ -396,7 +396,14 @@ export class EventBus {
    * @param eventName Optional event name to clear
    */
   clear<T extends keyof EngineEvents>(eventName?: T): void {
-    return this.clearListeners(eventName);
+    this.clearListeners(eventName);
+    if (eventName) {
+      // Clear history for specific event
+      this.eventHistory = this.eventHistory.filter(item => item.event !== eventName);
+    } else {
+      // Clear all history
+      this.eventHistory.length = 0;
+    }
   }
 
   /**
@@ -441,4 +448,10 @@ export class EventBus {
     return this.getListenerCount();
   }
 
+  /**
+   * Get max history limit (for testing)
+   */
+  getMaxHistory(): number {
+    return this.maxHistory;
+  }
 }

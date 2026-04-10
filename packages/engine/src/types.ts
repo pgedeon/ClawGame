@@ -40,33 +40,48 @@ export interface AnimationComponent {
   frameRate: number;
   loop: boolean;
   currentFrame?: number;
+  active?: boolean;
+  states?: { [stateName: string]: AnimationState };
+  currentState?: string;
 }
 
 // ─── Component Types ───
 
 /** Transform component for entity positioning and scaling */
 export interface Transform {
-  position: { x: number; y: number };
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
   rotation?: number;
-  scale?: { x: number; y: number };
+  scaleX?: number;
+  scaleY?: number;
 }
 
 /** Sprite component for visual rendering */
 export interface SpriteComponent {
-  image?: string;
+  image?: HTMLImageElement;
   width?: number;
   height?: number;
   color?: string;
   flipX?: boolean;
   flipY?: boolean;
   opacity?: number;
+  offsetX?: number;
+  offsetY?: number;
+  spriteSheet?: string;
+  frameWidth?: number;
+  frameHeight?: number;
+  assetRef?: string;
 }
 
 /** Movement component for entity physics and velocity */
 export interface MovementComponent {
-  velocity: { x: number; y: number };
-  acceleration: { x: number; y: number };
-  maxSpeed?: { x: number; y: number };
+  vx: number;
+  vy: number;
+  speed?: number;
+  acceleration?: number;
+  maxSpeed?: number;
   friction?: number;
   gravity?: number;
   onGround?: boolean;
@@ -74,6 +89,11 @@ export interface MovementComponent {
 
 /** AI component for behavior and decision making */
 export interface AIComponent {
+  type?: 'patrol' | 'chase' | 'idle' | 'attack';
+  patrolStart?: { x: number; y: number };
+  patrolEnd?: { x: number; y: number };
+  patrolSpeed?: number;
+  targetEntity?: string;
   behavior?: string;
   target?: string;
   state?: string;
@@ -90,6 +110,7 @@ export interface CollisionComponent {
   solid?: boolean;
   trigger?: boolean;
   layers?: string[];
+  type?: 'solid' | 'trigger' | 'sensor' | 'player' | 'enemy' | 'collectible' | 'wall';
 }
 
 /** Stats component for entity attributes and combat */
@@ -121,6 +142,10 @@ export interface PhysicsComponent {
   restitution?: number;
   friction?: number;
   density?: number;
+  gravity?: number;
+  vy?: number;
+  grounded?: boolean;
+  bounce?: number;
 }
 
 /** Trigger component for event-based interactions */
@@ -129,6 +154,9 @@ export interface TriggerComponent {
   onExit?: string;
   onStay?: string;
   condition?: string;
+  event?: string;
+  target?: string;
+  once?: boolean;
 }
 
 /** Camera component for view and viewport control */
@@ -137,6 +165,17 @@ export interface CameraComponent {
   bounds?: { width: number; height: number };
   zoom?: number;
   shake?: number;
+}
+
+/** Renderer configuration for rendering systems */
+export interface RendererConfig {
+  width: number;
+  height: number;
+  backgroundColor?: string;
+  clearCanvas?: boolean;
+  showGrid?: boolean;
+  showHitboxes?: boolean;
+  showFPS?: boolean;
 }
 
 /** Union of all known component types */
@@ -285,9 +324,17 @@ export interface InputState {
   right: boolean;
 }
 
-export interface RendererConfig {
-  width: number;
-  height: number;
-  backgroundColor?: string;
-  clearCanvas?: boolean;
+export interface EngineErrorPayload {
+  error: Error;
+  message?: string;
+  timestamp?: number;
+}
+
+export interface AnimationStateChangeEvent {
+  entityId: string;
+  entityName: string;
+  fromState: string;
+  toState: string;
+  animation: { frames: string[]; frameRate: number; loop: boolean };
+  timestamp?: number;
 }
