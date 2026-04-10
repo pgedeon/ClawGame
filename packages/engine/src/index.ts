@@ -11,6 +11,7 @@
  * - AI system (patrol, chase)
  * - Render system (sprites, hitboxes, grid)
  * - Data-driven scene loading with asset resolution
+ * - Behavior graph executor for visual logic authoring
  */
 
 // Re-export all types (canonical schema)
@@ -36,3 +37,6 @@ export type { CollisionEvent } from './systems/CollisionSystem';
 // Re-export scene loader
 export { SceneLoader } from './SceneLoader';
 export type { AssetResolver, SceneLoaderOptions, SceneLoadResult } from './SceneLoader';
+
+// Re-export behavior graph module
+export * from './behavior';
