@@ -167,13 +167,26 @@ describe('Navigation System', () => {
     });
 
     it('should handle wait time at waypoint', () => {
-      // Move entity to waypoint with wait time
+      // Move entity close to first waypoint with wait time
       path.waypoints[0].waitTime = 1;
       entity.transform.x = 105;
       entity.transform.y = 105;
       
-      // First update - accumulate wait time
+      // First update - within radius, snaps to waypoint and starts waiting
       let result = NavigationSystem.update(
+        entity,
+        [path],
+        state,
+        0.5,
+        100
+      );
+      
+      expect(result.isWaiting).toBe(true);
+      expect(result.waitTimeAccumulator).toBe(0);
+      expect(result.currentWaypointIndex).toBe(0);
+      
+      // Second update - accumulate wait time (0.5s)
+      result = NavigationSystem.update(
         entity,
         [path],
         state,
@@ -185,25 +198,12 @@ describe('Navigation System', () => {
       expect(result.currentWaypointIndex).toBe(0);
       expect(result.isWaiting).toBe(true);
       
-      // Second update - accumulate more wait time
+      // Third update - accumulate more wait time (1.0s total, wait complete)
       result = NavigationSystem.update(
         entity,
         [path],
         state,
         0.5,
-        100
-      );
-      
-      expect(result.waitTimeAccumulator).toBe(1.0);
-      expect(result.currentWaypointIndex).toBe(0);
-      expect(result.isWaiting).toBe(true);
-      
-      // Third update - wait complete, move to next waypoint
-      result = NavigationSystem.update(
-        entity,
-        [path],
-        state,
-        0.1,
         100
       );
       
@@ -344,9 +344,12 @@ describe('Navigation System', () => {
     });
 
     it('should handle single waypoint path', () => {
+      // Place entity within arrival radius of the single waypoint
       const singlePath = createNavigationPath('Single WP', [
         createWaypoint(100, 100),
       ]);
+      entity.transform.x = 105;
+      entity.transform.y = 105;
       state = createNavigationState(singlePath.id);
       
       const result = NavigationSystem.update(
@@ -364,55 +367,38 @@ describe('Navigation System', () => {
   });
 
   describe('Speed Multiplier', () => {
-    let entity: Entity;
-    let normalPath: NavigationPath;
-    let fastPath: NavigationPath;
-    let normalState: NavigationState;
-    let fastState: NavigationState;
-
-    beforeEach(() => {
-      entity = {
-        id: 'test-entity',
-        transform: { x: 0, y: 0 },
-        components: new Map(),
-      };
-      
-      // Use closer waypoints for the test
-      normalPath = createNavigationPath('Normal Path', [
-        createWaypoint(50, 0),
+    it('should use speed multiplier for movement', () => {
+      // Entity at (0,0), waypoint at (100,0) — 100px distance
+      const normalPath = createNavigationPath('Normal Path', [
+        createWaypoint(100, 0),
       ]);
-      
-      fastPath = createNavigationPath('Fast Path', [
-        createWaypoint(50, 0),
+      const fastPath = createNavigationPath('Fast Path', [
+        createWaypoint(100, 0),
       ], {
         speedMultiplier: 2.0,
       });
-      
-      normalState = createNavigationState(normalPath.id);
-      fastState = createNavigationState(fastPath.id);
-    });
 
-    it('should use speed multiplier for movement', () => {
-      // Update both entities for the same duration
-      const normalResult = NavigationSystem.update(
-        { ...entity, transform: { x: 0, y: 0 } },
+      const normalEntity = { id: 'n', transform: { x: 0, y: 0 }, components: new Map() };
+      const fastEntity = { id: 'f', transform: { x: 0, y: 0 }, components: new Map() };
+
+      NavigationSystem.update(
+        normalEntity,
         [normalPath],
-        normalState,
+        createNavigationState(normalPath.id),
         0.1,
-        100
+        100,
       );
-      
-      const fastResult = NavigationSystem.update(
-        { ...entity, transform: { x: 0, y: 0 } },
+      NavigationSystem.update(
+        fastEntity,
         [fastPath],
-        fastState,
+        createNavigationState(fastPath.id),
         0.1,
-        100
+        100,
       );
-      
-      // Fast path should be further along
-      // Normal: 100 * 0.1 = 10px, Fast: 200 * 0.1 = 20px
-      expect(fastResult.currentWaypointIndex).toBeGreaterThan(normalResult.currentWaypointIndex);
+
+      // Normal: 100*1.0*0.1 = 10px → x≈10
+      // Fast: 100*2.0*0.1 = 20px → x≈20
+      expect(fastEntity.transform.x).toBeGreaterThan(normalEntity.transform.x);
     });
   });
 });

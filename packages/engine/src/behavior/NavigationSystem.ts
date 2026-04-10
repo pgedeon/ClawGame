@@ -124,7 +124,12 @@ export const NavigationSystem = {
     if (!state.currentPathId) return state;
 
     const path = paths.find((p) => p.id === state.currentPathId);
-    if (!path || path.waypoints.length === 0) return state;
+    if (!path || path.waypoints.length === 0) {
+      // Invalid or empty path — stop navigation
+      state.currentPathId = null;
+      state.currentWaypointIndex = 0;
+      return state;
+    }
 
     const wp = path.waypoints[state.currentWaypointIndex];
     if (!wp) {
@@ -135,6 +140,7 @@ export const NavigationSystem = {
         state.isWaiting = false;
       } else {
         state.currentPathId = null;
+        state.currentWaypointIndex = 0;
       }
       return state;
     }
@@ -152,6 +158,7 @@ export const NavigationSystem = {
             state.currentWaypointIndex = 0;
           } else {
             state.currentPathId = null;
+            state.currentWaypointIndex = 0;
             return state;
           }
         }
@@ -179,6 +186,7 @@ export const NavigationSystem = {
             state.currentWaypointIndex = 0;
           } else {
             state.currentPathId = null;
+            state.currentWaypointIndex = 0;
           }
         }
       }
