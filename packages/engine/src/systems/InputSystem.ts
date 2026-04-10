@@ -16,88 +16,85 @@ export class InputSystem {
   }
 
   /**
-   * Attach event listeners to the window
+   * Bind to a canvas element for keyboard input
    */
-  attach(): void {
+  bind(canvas: HTMLCanvasElement): void {
     if (this.bound) return;
-
-    window.addEventListener('keydown', this.handleKeyDown);
-    window.addEventListener('keyup', this.handleKeyUp);
     this.bound = true;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (this.isEditableElement(event.target as Element)) return;
+      
+      switch (event.key) {
+        case 'ArrowUp':
+        case 'w':
+        case 'W':
+          this.state.up = true;
+          break;
+        case 'ArrowDown':
+        case 's':
+        case 'S':
+          this.state.down = true;
+          break;
+        case 'ArrowLeft':
+        case 'a':
+        case 'A':
+          this.state.left = true;
+          break;
+        case 'ArrowRight':
+        case 'd':
+        case 'D':
+          this.state.right = true;
+          break;
+      }
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (this.isEditableElement(event.target as Element)) return;
+      
+      switch (event.key) {
+        case 'ArrowUp':
+        case 'w':
+        case 'W':
+          this.state.up = false;
+          break;
+        case 'ArrowDown':
+        case 's':
+        case 'S':
+          this.state.down = false;
+          break;
+        case 'ArrowLeft':
+        case 'a':
+        case 'A':
+          this.state.left = false;
+          break;
+        case 'ArrowRight':
+        case 'd':
+        case 'D':
+          this.state.right = false;
+          break;
+      }
+    };
+
+    canvas.addEventListener('keydown', handleKeyDown);
+    canvas.addEventListener('keyup', handleKeyUp);
   }
 
   /**
-   * Detach event listeners
+   * Remove all event listeners
    */
-  detach(): void {
-    if (!this.bound) return;
-
-    window.removeEventListener('keydown', this.handleKeyDown);
-    window.removeEventListener('keyup', this.handleKeyUp);
+  unbind(): void {
     this.bound = false;
-    this.reset();
-  }
-
-  /**
-   * Reset input state
-   */
-  reset(): void {
     this.state = { up: false, down: false, left: false, right: false };
   }
 
-  private handleKeyDown = (e: KeyboardEvent): void => {
-    let handled = false;
-
-    switch (e.code) {
-      case 'ArrowUp':
-      case 'KeyW':
-        this.state.up = true;
-        handled = true;
-        break;
-      case 'ArrowDown':
-      case 'KeyS':
-        this.state.down = true;
-        handled = true;
-        break;
-      case 'ArrowLeft':
-      case 'KeyA':
-        this.state.left = true;
-        handled = true;
-        break;
-      case 'ArrowRight':
-      case 'KeyD':
-        this.state.right = true;
-        handled = true;
-        break;
-    }
-
-    // Prevent default browser behavior (scrolling, etc.) for game keys
-    // Only when we're not in an input/textarea/contenteditable element
-    if (handled && !this.isEditableElement(e.target as Element)) {
-      e.preventDefault();
-    }
-  };
-
-  private handleKeyUp = (e: KeyboardEvent): void => {
-    switch (e.code) {
-      case 'ArrowUp':
-      case 'KeyW':
-        this.state.up = false;
-        break;
-      case 'ArrowDown':
-      case 'KeyS':
-        this.state.down = false;
-        break;
-      case 'ArrowLeft':
-      case 'KeyA':
-        this.state.left = false;
-        break;
-      case 'ArrowRight':
-      case 'KeyD':
-        this.state.right = false;
-        break;
-    }
-  };
+  /**
+   * Update input state (placeholder for consistent API)
+   */
+  update(canvas: HTMLCanvasElement, inputState: InputState): void {
+    // The bind method handles event listening, no explicit update needed
+    // This method is for consistency with other systems
+  }
 
   /**
    * Check if the event target is an editable element (input, textarea, contenteditable)

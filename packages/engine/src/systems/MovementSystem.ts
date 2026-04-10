@@ -23,10 +23,10 @@ export class MovementSystem {
         movement.vx = 0;
         movement.vy = 0;
 
-        if (input.left) movement.vx -= movement.speed;
-        if (input.right) movement.vx += movement.speed;
-        if (input.up) movement.vy -= movement.speed;
-        if (input.down) movement.vy += movement.speed;
+        if (input.left) movement.vx = (movement.speed ?? 100) * -1;
+        if (input.right) movement.vx = (movement.speed ?? 100) * 1;
+        if (input.up) movement.vy = (movement.speed ?? 100) * -1;
+        if (input.down) movement.vy = (movement.speed ?? 100) * 1;
 
         // Normalize diagonal movement
         if (movement.vx !== 0 && movement.vy !== 0) {

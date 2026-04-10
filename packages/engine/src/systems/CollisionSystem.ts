@@ -109,7 +109,7 @@ export class CollisionSystem {
 
   private handleDamage(player: Entity, enemy: Entity): void {
     const stats = player.components.get('stats') as StatsComponent | undefined;
-    this.eventBus?.emit('collision:damage', {
+    this.eventBus?.emit('collision:damage' as any, {
       playerId: player.id,
       enemyId: enemy.id,
       damage: stats?.defense ? Math.max(1, 10 - stats.defense) : 10,
@@ -125,7 +125,7 @@ export class CollisionSystem {
     if (triggerComp.once && this.triggeredSet.has(key)) return;
     this.triggeredSet.add(key);
 
-    this.eventBus?.emit('collision:trigger', {
+    this.eventBus?.emit('collision:trigger' as any, {
       triggerId: trigger.id,
       entityId: other.id,
       event: triggerComp.event,

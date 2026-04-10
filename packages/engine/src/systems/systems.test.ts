@@ -242,7 +242,7 @@ describe('CollisionSystem', () => {
     sys.attach(bus);
 
     const triggers: any[] = [];
-    bus.on('collision:trigger', (e: any) => triggers.push(e));
+    bus.on('collision:trigger' as any,  (e: any) => triggers.push(e));
 
     const trigger = makeEntity({
       id: 'zone',
@@ -272,7 +272,7 @@ describe('CollisionSystem', () => {
     sys.attach(bus);
 
     const triggers: any[] = [];
-    bus.on('collision:trigger', (e: any) => triggers.push(e));
+    bus.on('collision:trigger' as any,  (e: any) => triggers.push(e));
 
     const trigger = makeEntity({
       id: 'zone',

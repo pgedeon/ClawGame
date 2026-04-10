@@ -1,10 +1,10 @@
 # ClawGame Project Memory
 
 ## Project Overview
-- **Status:** M12 Unified Runtime complete
-- **Current Version:** v0.19.0 (gameplay-authoring)
-- **Current Stage:** M13 Gameplay Authoring Layer (in progress)
-- **Next Phase:** M13 — finish UI deliverables (event graph editor, animation state machines)
+- **Status:** M13 Gameplay Authoring Layer complete
+- **Current Version:** v0.20.0 (playtest-lab)
+- **Current Stage:** M14 Playtest Lab + Publishing (in progress)
+- **Next Phase:** M14 — multi-device preview, replay capture, AI playtest, publishing
 - **Timeline:** Scene Editor AI provides contextual co-pilot experience during game editing
 
 ## Key Documents

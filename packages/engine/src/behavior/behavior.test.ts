@@ -129,7 +129,7 @@ describe('BehaviorExecutor', () => {
     const ctx = makeContext(entity, scene, { events });
 
     let eventFired = false;
-    events.on('custom:test-event', () => { eventFired = true; });
+    events.on('custom:test-event' as any, () => { eventFired = true; });
 
     const status = executor.tick('seq1', ctx);
     expect(status).toBe('success');
@@ -159,7 +159,7 @@ describe('BehaviorExecutor', () => {
     const scene = makeScene([entity]);
     const events = new EventBus();
     let fired = false;
-    events.on('custom:should-not-fire', () => { fired = true; });
+    events.on('custom:should-not-fire' as any, () => { fired = true; });
 
     const ctx = makeContext(entity, scene, { events });
     expect(executor.tick('fail-seq', ctx)).toBe('failure');
@@ -246,7 +246,7 @@ describe('BehaviorExecutor', () => {
     const ctx = makeContext(entity, scene, { events });
 
     let destroyed = false;
-    events.on('custom:entity:destroyed', () => { destroyed = true; });
+    events.on('custom:entity:destroyed' as any, () => { destroyed = true; });
 
     executor.tick('destroy', ctx);
     expect(scene.entities.has('e1')).toBe(false);

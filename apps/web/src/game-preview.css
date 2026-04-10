@@ -835,3 +835,213 @@
     justify-content: center;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   Device Preview Frame (M14: Multi-device layout preview)
+   ═══════════════════════════════════════════════════════════ */
+
+.device-preview-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.device-preview-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(15, 23, 42, 0.9);
+  border-bottom: 1px solid rgba(71, 85, 105, 0.3);
+  position: relative;
+  z-index: 50;
+}
+
+.device-selector-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(71, 85, 105, 0.4);
+  border-radius: var(--radius-md);
+  color: #e2e8f0;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.device-selector-btn:hover {
+  background: rgba(51, 65, 85, 0.8);
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
+.device-dimensions {
+  color: #94a3b8;
+  font-size: 11px;
+  margin-left: 4px;
+}
+
+.device-rotate-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 8px;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(71, 85, 105, 0.4);
+  border-radius: var(--radius-md);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.device-rotate-btn:hover {
+  background: rgba(51, 65, 85, 0.8);
+  color: #e2e8f0;
+}
+
+/* Device dropdown menu */
+.device-menu {
+  position: absolute;
+  top: 100%;
+  left: 12px;
+  margin-top: 4px;
+  background: #1e293b;
+  border: 1px solid rgba(71, 85, 105, 0.5);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  min-width: 240px;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.device-menu-category {
+  padding: 8px 12px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.device-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  color: #cbd5e1;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.device-menu-item:hover {
+  background: rgba(99, 102, 241, 0.15);
+  color: #e2e8f0;
+}
+
+.device-menu-item.active {
+  background: rgba(99, 102, 241, 0.2);
+  color: #818cf8;
+}
+
+.device-menu-item-name {
+  flex: 1;
+  text-align: left;
+}
+
+.device-menu-item-dims {
+  font-size: 11px;
+  color: #64748b;
+}
+
+/* Viewport area */
+.device-preview-viewport {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  background: rgba(2, 6, 23, 0.6);
+}
+
+.device-frame-responsive {
+  width: 100%;
+  height: 100%;
+}
+
+/* Device frames */
+.device-frame {
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 0 0 3px #334155, 0 0 0 5px #1e293b, 0 20px 60px rgba(0, 0, 0, 0.6);
+  transform: scale(1);
+  transition: all 0.3s ease;
+}
+
+.device-frame-phone {
+  border-radius: 24px;
+  box-shadow: 0 0 0 3px #475569, 0 0 0 6px #1e293b, 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.device-frame-tablet {
+  border-radius: 16px;
+  box-shadow: 0 0 0 3px #475569, 0 0 0 5px #1e293b, 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.device-frame-desktop {
+  border-radius: 8px;
+  box-shadow: 0 0 0 3px #334155, 0 0 0 5px #1e293b, 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.device-notch {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40%;
+  height: 20px;
+  background: #0f172a;
+  border-radius: 0 0 12px 12px;
+  z-index: 10;
+}
+
+.device-screen {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  position: relative;
+}
+
+.device-screen canvas {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain;
+}
+
+/* Scale down oversized frames to fit viewport */
+@media (max-width: 1400px) {
+  .device-frame-desktop {
+    transform: scale(0.65);
+    transform-origin: center center;
+  }
+}
+
+@media (max-width: 900px) {
+  .device-frame-tablet {
+    transform: scale(0.6);
+    transform-origin: center center;
+  }
+}
+
+@media (max-width: 500px) {
+  .device-frame-phone {
+    transform: scale(0.85);
+    transform-origin: center center;
+  }
+}

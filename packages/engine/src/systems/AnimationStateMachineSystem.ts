@@ -159,8 +159,7 @@ export class AnimationStateMachineSystem {
           entityName: entity.id,
           fromState: previousState,
           toState: newState,
-          animation: stateMachine.states[newState].animation,
-          timestamp: performance.now()
+          animation: { frames: stateMachine.states[newState].animation.frames, frameRate: stateMachine.states[newState].animation.frameRate, loop: stateMachine.states[newState].animation.loop },
         });
       }
     }

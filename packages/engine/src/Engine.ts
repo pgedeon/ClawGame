@@ -193,9 +193,9 @@ export class Engine {
     // Update scene with all systems
     if (this.scene) {
       this.physicsSystem.update(this.scene, deltaTime);
-      this.movementSystem.update(this.scene, deltaTime);
+      this.movementSystem.update(this.scene, this.inputSystem.getState(), deltaTime);
       this.aiSystem.update(this.scene, deltaTime);
-      this.collisionSystem.update(this.scene, deltaTime);
+      this.collisionSystem.update(this.scene);
       this.animationSystem.update(this.scene, deltaTime);
 
       // Render scene
@@ -276,6 +276,6 @@ export class Engine {
     if (this.errorCallback) {
       this.errorCallback(error);
     }
-    this.events.emit('engine:error', { error, message: error.message, timestamp: performance.now() });
+    this.events.emit('engine:error' as any, { error, message: error.message, timestamp: performance.now() });
   }
 }

@@ -1,4 +1,4 @@
-import { Entity, Scene, AnimationStateMachineComponent } from '../types';
+import { Entity, Scene, AnimationStateMachineComponent, AnimationComponent } from '../types';
 import { EventBus } from '../EventBus';
 
 interface TransitionQueue {
@@ -31,8 +31,10 @@ export class AnimationStateMachineSystem {
   }
 
   updateEntity(entity: Entity, deltaTime: number): void {
-    const stateMachine = entity.components.get('animationStateMachine');
-    if (!stateMachine || !stateMachine.active) {
+    const rawSM = entity.components.get('animationStateMachine');
+    if (!rawSM) return;
+    const stateMachine = rawSM as AnimationStateMachineComponent;
+    if (!stateMachine.active) {
       console.log(`[DEBUG] Entity ${entity.id} has no state machine or not active`);
       return;
     }
@@ -79,7 +81,6 @@ export class AnimationStateMachineSystem {
       if (this.shouldTransition(entity, stateMachine, transition)) {
         console.log(`[DEBUG] Transition condition met for ${entity.id}: ${stateMachine.currentState} -> ${transition.to}`);
         if (transition.delay && transition.delay > 0) {
-          // Queue delayed transition with elapsed time tracking
           this.transitionQueue.set(entity.id, { 
             to: transition.to, 
             delay: transition.delay,
@@ -87,7 +88,6 @@ export class AnimationStateMachineSystem {
           });
           console.log(`[DEBUG] Queued delayed transition for ${entity.id}: ${stateMachine.currentState} -> ${transition.to} (delay: ${transition.delay}s)`);
         } else {
-          // Immediate transition
           console.log(`[DEBUG] Immediate transition for ${entity.id}: ${stateMachine.currentState} -> ${transition.to}`);
           this.changeState(entity, stateMachine, transition.to);
         }
@@ -107,14 +107,14 @@ export class AnimationStateMachineSystem {
 
   private evaluateCondition(entity: Entity, stateMachine: AnimationStateMachineComponent, condition: any): boolean {
     switch (condition.type) {
-      case 'timer':
+      case 'timer': {
         const stateKey = `${entity.id}:${stateMachine.currentState}`;
         const elapsed = this.stateTimer.get(stateKey) || 0;
         console.log(`[DEBUG] Timer condition check: elapsed=${elapsed}, operator=${condition.operator}, value=${condition.value}`);
         const result = this.compare(elapsed, condition.operator || '>=', condition.value);
         console.log(`[DEBUG] Timer condition result: ${result}`);
         return result;
-        
+      }
       case 'input':
         if (condition.params?.key) {
           const inputComp = entity.components.get('playerInput');
@@ -160,7 +160,7 @@ export class AnimationStateMachineSystem {
       // Reset the animation component for the new state
       const animationComp = entity.components.get('animation');
       if (animationComp) {
-        const anim = animationComp as any;
+        const anim = animationComp as AnimationComponent;
         const newStateData = stateMachine.states[newState].animation;
         anim.frames = newStateData.frames;
         anim.currentFrame = 0;
@@ -170,18 +170,19 @@ export class AnimationStateMachineSystem {
       
       // Emit state change event
       if (this.eventBus) {
+        const anim = stateMachine.states[newState].animation;
         this.eventBus.emit('animation:statechange', {
           entityId: entity.id,
+          entityName: entity.name ?? entity.id,
           fromState: previousState,
           toState: newState,
-          timestamp: performance.now()
+          animation: { frames: anim.frames, frameRate: anim.frameRate, loop: anim.loop },
         });
       }
     }
   }
 
   private handleFrameLooping(entity: Entity, currentState: any, stateKey: string): void {
-    // This is a simplified version of the actual method
     console.log(`[DEBUG] Handling frame looping for ${stateKey}`);
   }
 

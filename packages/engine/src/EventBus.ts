@@ -72,6 +72,8 @@ export interface EngineEvents {
 export interface EventHandle {
   unsubscribe: () => void;
 }
+/** @deprecated Use EventHandle instead */
+export type Subscription = EventHandle;
 
 /**
  * Event callback type
