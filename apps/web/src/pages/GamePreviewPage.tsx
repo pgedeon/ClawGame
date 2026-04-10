@@ -5,9 +5,10 @@
  *   - useGamePreview: game loop, RPG state, event handlers
  *   - RPGPanels: inventory/quests/spellcraft/saveload/dialogue UI
  *   - DevicePreviewFrame: multi-device layout preview (M14)
+ *   - ReplayControls: deterministic replay capture (M14)
  */
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { Play, ArrowLeft, Skull, Trophy, Monitor, Cloud } from 'lucide-react';
 import '../game-preview.css';
@@ -15,6 +16,7 @@ import { useSceneLoader } from '../hooks/useSceneLoader';
 import { useGamePreview, GENRE_CONTROLS } from '../hooks/useGamePreview';
 import { RPGPanels } from '../components/game/RPGPanels';
 import { DevicePreviewFrame } from '../components/game/DevicePreviewFrame';
+import { ReplayControls } from '../components/game/ReplayControls';
 
 /* ═══════════════════════════════════════════════════════════
    GAME PREVIEW CONTENT
@@ -35,6 +37,18 @@ const GamePreviewContent: React.FC = () => {
     handleAssignHotkey, handleSave, handleLoad, handleDeleteSave,
     handlePauseResume, handleDialogueChoice, setActivePanel,
   } = useGamePreview(projectId, projectScene, projectGenre);
+
+  // Replay state
+  const [isRecording, setIsRecording] = React.useState(false);
+
+  const handleToggleRecording = useCallback((recording: boolean) => {
+    setIsRecording(recording);
+  }, []);
+
+  const handleStartPlayback = useCallback((replayData: string) => {
+    console.log('Starting playback of replay:', replayData);
+    // TODO: Implement replay playback integration
+  }, []);
 
   if (loading) {
     return (
@@ -78,6 +92,16 @@ const GamePreviewContent: React.FC = () => {
             </span>
           </div>
         </div>
+
+        {/* Replay Controls (M14) */}
+        {projectId && (
+          <ReplayControls
+            projectId={projectId}
+            isRecording={isRecording}
+            onToggleRecording={handleToggleRecording}
+            onStartPlayback={handleStartPlayback}
+          />
+        )}
 
         {/* Canvas with device preview frame */}
         <DevicePreviewFrame>

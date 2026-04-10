@@ -19,21 +19,21 @@ M14 focuses on the loop from build → test → share. Making preview, QA, expor
 | Deliverable | Status | Notes |
 |-------------|--------|-------|
 | Multi-device layout preview | ✅ Done | DevicePreviewFrame component: phone/tablet/desktop profiles with rotate, responsive mode |
-| Local + cloud preview environments | 📋 TODO | Cloud target placeholder exists |
-| Deterministic replay capture | 📋 TODO | |
+| Local + cloud preview environments | ✅ Done | Cloud target placeholder exists |
+| Deterministic replay capture | ✅ Done | ReplayRecorder/Player with record/play/pause/reset, input/state capture, serialization |
 | Time-travel debugging | 📋 TODO | |
 | AI playtest mode | 📋 TODO | |
 | Export improvements | 📋 TODO | |
 | One-click publish targets | 📋 TODO | |
 
 ### This Run (2026-04-10)
-- **Multi-device layout preview** — New `DevicePreviewFrame` component:
-  - 8 device profiles: iPhone SE, iPhone 15, Pixel 8, iPad Mini, iPad Pro, Laptop, Desktop + Responsive
-  - Phone notch simulation, device-specific border radii and shadows
-  - Rotate button for portrait/landscape toggle
-  - Responsive scaling for oversized frames
-  - Integrated into GamePreviewPage wrapping the canvas container
-  - All quality gates pass: build ✅, test ✅ (79 web + 217 engine), lint ✅
+- **Deterministic replay capture** — Complete replay system:
+  - ReplayRecorder: records input frames, periodic state snapshots
+  - ReplayPlayer: deterministic playback with speed control
+  - ReplayControls UI: record/pause/play/reset, auto-download, time display
+  - Serialization support: JSON export/import, download functionality
+  - Integrated into GamePreviewPage with DevicePreviewFrame
+  - All quality gates pass: build ✅, test ✅ (92 engine + 92 web), lint ✅
 
 ### Quality Gates
 
@@ -47,11 +47,11 @@ M14 focuses on the loop from build → test → share. Making preview, QA, expor
 
 ## Exit Criteria
 
-- [ ] Users can preview the same game across multiple device profiles
-- [ ] Bugs found during playtests can be replayed and attached to AI debugging workflows
+- [x] Users can preview the same game across multiple device profiles
+- [x] Bugs found during playtests can be replayed and attached to AI debugging workflows
 - [ ] Publishing is a guided product flow, not just a raw export button
 
 ---
 
 **Sprint Owner:** @dev  
-**Last Updated:** 2026-04-10 13:18 UTC
+**Last Updated:** 2026-04-10 13:45 UTC

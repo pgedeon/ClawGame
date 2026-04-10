@@ -2,7 +2,7 @@
 
 ## Project Overview
 - **Status:** M13 Gameplay Authoring Layer complete
-- **Current Version:** v0.20.0 (playtest-lab)
+- **Current Version:** v0.20.1 (replay-capture)
 - **Current Stage:** M14 Playtest Lab + Publishing (in progress)
 - **Next Phase:** M14 — multi-device preview, replay capture, AI playtest, publishing
 - **Timeline:** Scene Editor AI provides contextual co-pilot experience during game editing
