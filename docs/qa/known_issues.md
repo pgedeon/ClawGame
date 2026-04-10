@@ -2,7 +2,7 @@
 
 > Track issues discovered during development.
 
-**Last Updated:** 2026-04-10 01:20 UTC
+**Last Updated:** 2026-04-10 07:49 UTC
 
 ---
 
@@ -31,6 +31,7 @@
 
 | Issue | Description | Discovered | Resolved | Fix Version |
 |-------|-------------|------------|----------|-------------|
+| NavigationPage TypeScript errors | NavigationPage.tsx used incorrect Toast API (`toast.success()` instead of `toast.showToast()`), causing TypeScript compilation failures. | 2026-04-10 (Game Dev) | 2026-04-10 | v0.19.1 |
 | Game Preview "require is not defined" error | ESM/CommonJS mismatch broke game runtime. Replaced all `require()` calls with proper ESM imports. | 2026-04-09 (Game Dev) | 2026-04-09 | v0.13.0 |
 | No error details on failure | Runtime errors showed generic message with no stack trace. Added error tracking with expandable details. | 2026-04-09 (PM) | 2026-04-09 | v0.13.0 |
 | API project creation lacks validation | Server accepted invalid/missing required fields. Added input validation for name, genre, artStyle. | 2026-04-09 (PM) | 2026-04-09 | v0.13.0 |

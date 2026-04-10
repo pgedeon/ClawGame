@@ -37,6 +37,7 @@ const ExportPage = lazy(() => import('./pages/ExportPage').then(m => ({ default:
 const GitCenterPage = lazy(() => import('./pages/GitCenterPage').then(m => ({ default: m.GitCenterPage })));
 const AISettingsPage = lazy(() => import('./pages/AISettingsPage').then(m => ({ default: m.AISettingsPage })));
 const BehaviorGraphPage = lazy(() => import('./pages/BehaviorGraphPage').then(m => ({ default: m.BehaviorGraphPage })));
+const NavigationPage = lazy(() => import('./pages/NavigationPage').then(m => ({ default: m.NavigationPage })));
 
 function PageLoader() {
   return (
@@ -59,6 +60,14 @@ function LazyBehaviorGraphPage() {
   return (
     <Suspense fallback={<PageLoader />}>
       <BehaviorGraphPage />
+    </Suspense>
+  );
+}
+
+function LazyNavigationPage() {
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <NavigationPage />
     </Suspense>
   );
 }
@@ -86,6 +95,7 @@ function App() {
               <Route path="export" element={<Suspense fallback={<PageLoader />}><ExportPage /></Suspense>} />
               <Route path="git" element={<Suspense fallback={<PageLoader />}><GitCenterPage /></Suspense>} />
               <Route path="behavior-graph" element={<Suspense fallback={<PageLoader />}><LazyBehaviorGraphPage /></Suspense>} />
+              <Route path="navigation" element={<Suspense fallback={<PageLoader />}><LazyNavigationPage /></Suspense>} />
               {/* Alias routes for better UX (redirect to canonical paths) */}
               <Route path="ai-settings" element={<Suspense fallback={<PageLoader />}><AISettingsPage /></Suspense>} />
               <Route path="play" element={<Navigate to="preview" replace />} />

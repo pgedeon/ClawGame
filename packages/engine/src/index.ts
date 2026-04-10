@@ -12,6 +12,7 @@
  * - Render system (sprites, hitboxes, grid)
  * - Data-driven scene loading with asset resolution
  * - Behavior graph executor for visual logic authoring
+ * - Animation state machines for complex character animations
  */
 
 // Re-export all types (canonical schema)
@@ -32,6 +33,7 @@ export { RenderSystem } from './systems/RenderSystem';
 export { PhysicsSystem } from './systems/PhysicsSystem';
 export { CollisionSystem } from './systems/CollisionSystem';
 export { AnimationSystem } from './systems/AnimationSystem';
+export { AnimationStateMachineSystem } from './systems/AnimationStateMachineSystem';
 export type { CollisionEvent } from './systems/CollisionSystem';
 
 // Re-export scene loader

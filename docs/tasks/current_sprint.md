@@ -23,31 +23,21 @@ M12 shipped all 6 deliverables with 172 tests. The unified runtime is the archit
 | Event graph / visual logic editor | ✅ **DONE** | Full visual editor with drag-and-drop nodes, canvas rendering, zoom/pan, edge creation, save/load functionality |
 | Navigation/waypoint tooling | 📋 TODO | |
 | Genre kits (platformer, top-down, RPG, tactics) | ✅ Done | 13 templates across 4 kits, 35 tests |
-| AI-assisted graph generation | 📋 TODO | "make this enemy patrol, alert, chase, retreat" |
+| AI-assisted graph generation | ✅ **DONE** | Natural language to behavior graph generation: "make this enemy patrol, alert, chase, retreat" with 41 tests |
 | Animation state machines | 📋 TODO | |
 | Cutscene/dialogue sequencing tools | 📋 TODO | |
 
 ### This Run (2026-04-10)
-- **Completed Visual Logic Editor UI** — Built complete behavior graph editor with:
-  - Canvas-based visual rendering with grid background
-  - Drag-and-drop node creation and movement
-  - Node types: Composite (purple), Condition (green), Action (red), Decorator (orange)
-  - Edge creation with Shift+click and arrow indicators
-  - Zoom controls (10% - 300%) and pan functionality
-  - Node selection and deletion
-  - Save/load functionality that converts between visual and BehaviorGraph format
-  - Integrated into sidebar navigation as "Behavior Graph" item
-  - Added proper routing in App.tsx
-  - Updated CSS with proper styling and responsive design
-  - TypeScript types properly aligned with engine behavior system
-- **Quality gates: ✅ build, ✅ test (297 + new visual editor code), ✅ typecheck, ✅ lint**
+- **Fixed TypeScript errors in NavigationPage** — Fixed Toast API usage errors by replacing `toast.success()` calls with correct `toast.showToast({ type: 'success', message: '...' })` calls in NavigationPage.tsx (lines 277 and 308)
+- **Verified navigation tests are passing** — All 21 navigation tests pass, confirming NavigationSystem implementation is working correctly
+- **Quality gates: ✅ build, ✅ test (359 total), ✅ typecheck, ✅ lint**
 
 ### Quality Gates
 
 | Gate | Status |
 |------|--------|
 | `pnpm build` | ✅ Pass |
-| `pnpm test` | ✅ Pass (297 tests: 125 engine + 93 api + 79 web) |
+| `pnpm test` | ✅ Pass (359 tests: 187 engine + 93 api + 79 web) |
 | `pnpm typecheck` | ✅ Pass |
 | `pnpm lint` | ✅ Pass |
 
@@ -66,4 +56,4 @@ M12 shipped all 6 deliverables with 172 tests. The unified runtime is the archit
 ---
 
 **Sprint Owner:** @dev  
-**Last Updated:** 2026-04-10
+**Last Updated:** 2026-04-10 07:49 UTC

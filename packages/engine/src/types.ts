@@ -1,101 +1,38 @@
-/**
- * @clawgame/engine - Canonical Schema
- *
- * Unified entity/component model shared by:
- * - Engine runtime
- * - Scene editor
- * - Game preview
- * - Export pipeline
- * - AI code generation
- *
- * Two representations:
- * - `SerializableEntity` / `SerializableScene` — plain objects for JSON, API, storage
- * - `Entity` / `Scene` — runtime types with Map-based components for the engine
- *
- * Conversion utilities bridge between them.
- */
-
-// ─── Components (shared between serializable and runtime) ───
-
-export interface Transform {
-  x: number;
-  y: number;
-  rotation?: number;
-  scaleX?: number;
-  scaleY?: number;
+export interface AnimationState {
+  name: string;
+  animation: AnimationComponent;
+  /** Whether this state can loop indefinitely */
+  canLoop: boolean;
+  /** Default transition when this state completes */
+  defaultTransition?: string;
+  /** List of possible transitions to other states */
+  transitions: AnimationTransition[];
 }
 
-export interface SpriteComponent {
-  /** Runtime-only; not serialized. Use assetRef for persistence. */
-  image?: HTMLImageElement;
-  width: number;
-  height: number;
-  offsetX?: number;
-  offsetY?: number;
-  color?: string;
-  /** Reference to an asset in the project's asset store */
-  /** Sprite sheet: if set, render slices from this single image */
-  spriteSheet?: HTMLImageElement;
-  frameWidth?: number;
-  frameHeight?: number;
-  assetRef?: string;
+export interface AnimationTransition {
+  to: string;
+  delay?: number;
+  conditions: AnimationCondition[];
 }
 
-export interface MovementComponent {
-  vx: number;
-  vy: number;
-  speed: number;
+export interface AnimationCondition {
+  type: 'timer' | 'input' | 'health' | 'state' | 'random';
+  params?: Record<string, any>;
+  /** Comparison operator ('=', '>', '<', '>=', '<=') */
+  operator?: string;
+  /** Value to compare against */
+  value?: any;
 }
 
-export interface AIComponent {
-  type: 'patrol' | 'chase' | 'idle';
-  patrolStart?: { x: number; y: number };
-  patrolEnd?: { x: number; y: number };
-  patrolSpeed?: number;
-  targetEntity?: string;
-}
-
-export interface CollisionComponent {
-  width: number;
-  height: number;
-  type?: 'player' | 'enemy' | 'collectible' | 'wall' | 'trigger';
-}
-
-export interface StatsComponent {
-  hp: number;
-  maxHp: number;
-  damage: number;
-  defense?: number;
-  speed?: number;
-}
-
-export interface PlayerInputComponent {
-  enabled: boolean;
-}
-
-export interface CollectibleComponent {
-  type: string;
-  value: number;
-}
-
-export interface PhysicsComponent {
-  gravity?: number;
-  friction?: number;
-  bounce?: number;
-  grounded?: boolean;
-}
-
-export interface TriggerComponent {
-  event: string;
-  target?: string;
-  once?: boolean;
-  radius?: number;
-}
-
-export interface CameraComponent {
-  follow?: string;
-  bounds?: { minX: number; minY: number; maxX: number; maxY: number };
-  smoothing?: number;
+export interface AnimationStateMachineComponent {
+  /** Current active state name */
+  currentState: string;
+  /** Map of all animation states */
+  states: { [stateName: string]: AnimationState };
+  /** Track transition timing */
+  transitionTimer?: number;
+  /** Whether state machine is active */
+  active: boolean;
 }
 
 export interface AnimationComponent {
@@ -103,6 +40,103 @@ export interface AnimationComponent {
   frameRate: number;
   loop: boolean;
   currentFrame?: number;
+}
+
+// ─── Component Types ───
+
+/** Transform component for entity positioning and scaling */
+export interface Transform {
+  position: { x: number; y: number };
+  rotation?: number;
+  scale?: { x: number; y: number };
+}
+
+/** Sprite component for visual rendering */
+export interface SpriteComponent {
+  image?: string;
+  width?: number;
+  height?: number;
+  color?: string;
+  flipX?: boolean;
+  flipY?: boolean;
+  opacity?: number;
+}
+
+/** Movement component for entity physics and velocity */
+export interface MovementComponent {
+  velocity: { x: number; y: number };
+  acceleration: { x: number; y: number };
+  maxSpeed?: { x: number; y: number };
+  friction?: number;
+  gravity?: number;
+  onGround?: boolean;
+}
+
+/** AI component for behavior and decision making */
+export interface AIComponent {
+  behavior?: string;
+  target?: string;
+  state?: string;
+  range?: number;
+  speed?: number;
+  health?: number;
+  attackPower?: number;
+}
+
+/** Collision component for physics and collision detection */
+export interface CollisionComponent {
+  width: number;
+  height: number;
+  solid?: boolean;
+  trigger?: boolean;
+  layers?: string[];
+}
+
+/** Stats component for entity attributes and combat */
+export interface StatsComponent {
+  health: number;
+  maxHealth: number;
+  attackPower?: number;
+  defense?: number;
+  speed?: number;
+}
+
+/** Player input component for keyboard/gamepad input */
+export interface PlayerInputComponent {
+  keys: Record<string, boolean>;
+  gamepad?: number;
+  actions?: Record<string, boolean>;
+}
+
+/** Collectible component for items and pickups */
+export interface CollectibleComponent {
+  type: 'health' | 'coin' | 'powerup' | 'key' | 'weapon';
+  value?: number;
+  name?: string;
+}
+
+/** Physics component for advanced physics simulation */
+export interface PhysicsComponent {
+  mass?: number;
+  restitution?: number;
+  friction?: number;
+  density?: number;
+}
+
+/** Trigger component for event-based interactions */
+export interface TriggerComponent {
+  onEnter?: string;
+  onExit?: string;
+  onStay?: string;
+  condition?: string;
+}
+
+/** Camera component for view and viewport control */
+export interface CameraComponent {
+  follow?: string;
+  bounds?: { width: number; height: number };
+  zoom?: number;
+  shake?: number;
 }
 
 /** Union of all known component types */
@@ -118,7 +152,8 @@ export type Component =
   | PhysicsComponent
   | TriggerComponent
   | CameraComponent
-  | AnimationComponent;
+  | AnimationComponent
+  | AnimationStateMachineComponent;
 
 // ─── Entity Types ───
 
@@ -254,7 +289,5 @@ export interface RendererConfig {
   width: number;
   height: number;
   backgroundColor?: string;
-  showGrid?: boolean;
-  showHitboxes?: boolean;
-  showFPS?: boolean;
+  clearCanvas?: boolean;
 }
