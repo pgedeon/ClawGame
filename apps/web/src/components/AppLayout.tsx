@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom';
-import { FileCode, Bot, Palette, Play, Layers, ArrowLeft, StickyNote, Settings } from 'lucide-react';
+import { FileCode, Bot, Palette, Play, Layers, ArrowLeft, StickyNote, Settings, GitBranch } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { api, type ProjectListItem } from '../api/client';
 import { sidebarItems } from '../constants/sidebar';
@@ -60,6 +60,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
   const projectNavItems: SidebarNavItem[] = isInProjectContext && projectId ? [
     { path: `/project/${projectId}/editor`, label: 'Code Editor', icon: FileCode },
     { path: `/project/${projectId}/scene-editor`, label: 'Scene Editor', icon: Layers },
+    { path: `/project/${projectId}/behavior-graph`, label: 'Behavior Graph', icon: GitBranch },
     { path: `/project/${projectId}/ai`, label: 'AI Command', icon: Bot },
     { path: `/project/${projectId}/assets`, label: 'Asset Studio', icon: Palette },
     { path: `/project/${projectId}/preview`, label: 'Game Preview', icon: Play },

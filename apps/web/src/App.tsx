@@ -1,3 +1,8 @@
+/**
+ * @clawgame/web - Main App Component
+ * Root application with routing, layout, and lazy-loaded pages for performance
+ */
+
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppLayout } from './components/AppLayout';
@@ -19,6 +24,7 @@ import './welcome-modal.css';
 import './asset-studio.css';
 import './export-page.css';
 import './git-center.css';
+import './scene-editor.css';
 
 // Lazy-loaded pages (code-split for smaller initial bundle)
 const ProjectPage = lazy(() => import('./pages/ProjectPage').then(m => ({ default: m.ProjectPage })));
@@ -30,6 +36,7 @@ const GamePreviewPage = lazy(() => import('./pages/GamePreviewPage').then(m => (
 const ExportPage = lazy(() => import('./pages/ExportPage').then(m => ({ default: m.ExportPage })));
 const GitCenterPage = lazy(() => import('./pages/GitCenterPage').then(m => ({ default: m.GitCenterPage })));
 const AISettingsPage = lazy(() => import('./pages/AISettingsPage').then(m => ({ default: m.AISettingsPage })));
+const BehaviorGraphPage = lazy(() => import('./pages/BehaviorGraphPage').then(m => ({ default: m.BehaviorGraphPage })));
 
 function PageLoader() {
   return (
@@ -44,6 +51,14 @@ function LazyProjectPage() {
   return (
     <Suspense fallback={<PageLoader />}>
       <ProjectPage />
+    </Suspense>
+  );
+}
+
+function LazyBehaviorGraphPage() {
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <BehaviorGraphPage />
     </Suspense>
   );
 }
@@ -70,6 +85,7 @@ function App() {
               <Route path="preview" element={<Suspense fallback={<PageLoader />}><GamePreviewPage /></Suspense>} />
               <Route path="export" element={<Suspense fallback={<PageLoader />}><ExportPage /></Suspense>} />
               <Route path="git" element={<Suspense fallback={<PageLoader />}><GitCenterPage /></Suspense>} />
+              <Route path="behavior-graph" element={<Suspense fallback={<PageLoader />}><LazyBehaviorGraphPage /></Suspense>} />
               {/* Alias routes for better UX (redirect to canonical paths) */}
               <Route path="ai-settings" element={<Suspense fallback={<PageLoader />}><AISettingsPage /></Suspense>} />
               <Route path="play" element={<Navigate to="preview" replace />} />

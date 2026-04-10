@@ -16,6 +16,7 @@
 - **Onboarding overlay reappears on navigation** — OnboardingTour and ProjectOnboarding now initialize dismiss state from localStorage synchronously (was using useEffect, causing a flash/remount on every navigation). Added "Don't show again" to OnboardingTour. Both components now persist dismissal reliably across route changes.
 - **VERSION.json stale** — Updated from M11/in-progress to M13/in-progress (v0.19.0).
 - **CHANGELOG duplicate headers** — Consolidated three "### Added" headers in Unreleased section into one. (M11): Prompt-to-sprite-sheet pipeline with animation presets, frame grid generation, placeholder SVG output, and CRUD API routes (`/api/projects/:id/sprites/*`). 14 tests.
+- **Assets tab infinite browser hang** — `loadGenerations()` ↔ `pollGenerations()` infinite recursion caused complete browser freeze on Assets tab. Fixed with polling guard ref, stable `useCallback` references, and removed re-entrant call path.
 
 All notable changes to ClawGame will be documented in this file.
 

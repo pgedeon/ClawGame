@@ -4,7 +4,7 @@
  * Orchestrates sub-components: GeneratePanel, GenerationTracker, FilterPanel, AssetGrid, AssetDetailPanel.
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { api, type AssetMetadata, type AssetType, type GenerationStatus } from '../api/client';
 import { useToast } from '../components/Toast';
@@ -25,6 +25,7 @@ const AssetStudioPage = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const { showToast } = useToast();
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isPollingRef = useRef(false);
 
   // Asset state
   const [assets, setAssets] = useState<AssetMetadata[]>([]);
@@ -40,21 +41,8 @@ const AssetStudioPage = () => {
   // Upload state
   const [showUploadModal, setShowUploadModal] = useState(false);
 
-  // Load assets on mount and when filters change
-  useEffect(() => {
-    loadAssets();
-    loadGenerations();
-
-    pollTimerRef.current = setInterval(() => {
-      if (generations.length > 0) checkGenerationProgress();
-    }, 2000);
-
-    return () => {
-      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-    };
-  }, [projectId, filter, searchQuery]);
-
-  const loadAssets = async () => {
+  // Stable callbacks to avoid stale closures
+  const loadAssets = useCallback(async () => {
     if (!projectId) return;
     try {
       setLoading(true);
@@ -69,62 +57,64 @@ const AssetStudioPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId, filter, searchQuery, showToast]);
 
-  const loadGenerations = async () => {
-    if (!projectId) return;
-    try {
-      const list = await api.getGenerations(projectId);
-      setGenerations(list);
-      const completed = list.filter(g => g.status === 'completed' && !g.result?.svg);
-      if (completed.length > 0) pollGenerations();
-    } catch (error: any) {
-      logger.error('Failed to load generations:', error);
-    }
-  };
-
-  const checkGenerationProgress = async () => {
-    if (!projectId || generations.length === 0) return;
-    try {
-      const updated = await api.getGenerations(projectId);
-      setGenerations(updated);
-      const active = updated.find(g => g.status === 'generating');
-      if (active) setActiveGeneration(active);
-
-      // Check for newly completed generations
-      const newlyCompleted = updated.filter(
-        g => g.status === 'completed' && !generations.find(og => og.id === g.id)
-      );
-
-      if (newlyCompleted.length > 0) {
-        // Immediately refresh assets for newly completed generations
-        await loadAssets();
-        showToast({ type: 'success', message: `✅ Generated ${newlyCompleted.length} new assets!` });
-
-        // Also poll to ensure consistency
-        pollGenerations();
-      }
-    } catch (error: any) {
-      logger.error('Failed to check generation progress:', error);
-    }
-  };
-
-  const pollGenerations = async () => {
-    if (!projectId) return;
+  const pollGenerations = useCallback(async () => {
+    if (!projectId || isPollingRef.current) return;
+    isPollingRef.current = true;
     try {
       const result = await api.pollGenerations(projectId);
-      if (result.created.length > 0 && !generations.some(g => result.created.includes(g.id))) {
-        // Don't double-toast if we already showed it in checkGenerationProgress
+      if (result.created.length > 0) {
         await loadAssets();
+        showToast({ type: 'success', message: `✅ ${result.created.length} asset(s) created` });
       }
       if (result.errors.length > 0) {
         showToast({ type: 'error', message: `❌ ${result.errors.length} generation(s) failed` });
       }
-      loadGenerations();
+      // Refresh generation list — but do NOT re-trigger pollGenerations from here
+      try {
+        const list = await api.getGenerations(projectId);
+        setGenerations(list);
+      } catch (err: any) {
+        logger.error('Failed to refresh generations after poll:', err);
+      }
     } catch (error: any) {
       logger.error('Failed to poll generations:', error);
+    } finally {
+      isPollingRef.current = false;
     }
-  };
+  }, [projectId, loadAssets, showToast]);
+
+  const loadGenerations = useCallback(async () => {
+    if (!projectId) return;
+    try {
+      const list = await api.getGenerations(projectId);
+      setGenerations(list);
+      // NOTE: Do NOT call pollGenerations here — that was causing infinite recursion.
+      // Polling is handled by the interval timer and explicit user actions only.
+    } catch (error: any) {
+      logger.error('Failed to load generations:', error);
+    }
+  }, [projectId]);
+
+  // Load assets on mount and when filters change
+  useEffect(() => {
+    loadAssets();
+    loadGenerations();
+
+    pollTimerRef.current = setInterval(() => {
+      // Only poll if there are active (non-completed) generations
+      setGenerations(current => {
+        const hasActive = current.some(g => g.status === 'generating' || g.status === 'pending');
+        if (hasActive) pollGenerations();
+        return current;
+      });
+    }, 5000);
+
+    return () => {
+      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+    };
+  }, [loadAssets, loadGenerations, pollGenerations]);
 
   const handleDeleteAsset = async (assetId: string, assetName: string) => {
     if (!projectId) return;
@@ -142,6 +132,7 @@ const AssetStudioPage = () => {
 
   const handleRefreshAssets = () => {
     loadAssets();
+    loadGenerations();
     showToast({ type: 'info', message: '🔄 Refreshing assets...' });
   };
 
