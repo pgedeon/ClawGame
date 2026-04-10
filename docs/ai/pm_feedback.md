@@ -1,48 +1,47 @@
 # PM/CEO Feedback
 
-**Last Review:** 2026-04-09 20:25 UTC
-**Git Status:** 🟡 Dirty (3 modified + 3 untracked files)
+**Last Review:** 2026-04-10 00:25 UTC
+**Git Status:** ✅ Clean
 
 ---
 
 ## 🟢 What Is Going Well
 
-1. **M11 velocity is excellent** — SFX, image generation, AND sprite sheets all done in one sprint. 166 tests passing (up from 73 last review). That's real progress.
-2. **Quality gates green** — Build, test, typecheck all passing. No regressions.
-3. **CHANGELOG updated** — Dev has been keeping the changelog current. Good discipline.
+1. **M12 shipped, M13 is flying** — Unified runtime complete (172 tests), behavior graphs + presets + genre kits already done in M13 (297 tests total, up from 166 last review). Dev agent is on a tear.
+2. **Git hygiene fixed** — Repo is clean. All M12 and M13 work committed and pushed. Previous dirty-state issue resolved.
+3. **Architecture is maturing** — BehaviorGraph executor with composites/decorators/conditions/actions is genuinely well-designed. Genre kits building on it shows good layering.
+4. **Quality gates all green** — 297 tests, build/typecheck/lint passing. No regressions.
 
 ---
 
 ## 🔴 Critical Issues (Must Fix)
 
-1. **Git is dirty — 6 uncommitted files**
-   - Modified: `CHANGELOG.md`, `apps/api/src/index.ts`, `docs/tasks/current_sprint.md`
-   - Untracked: `spriteSheetRoutes.ts`, `spriteSheetService.ts`, `sprite-sheet.test.ts`
-   - Action: `@dev` — commit and push immediately. This is the second review noting uncommitted work. The sprite sheet feature is done but invisible to the repo.
+1. **UI bugs from agent_messages.md are still unaddressed** — Assets tab hangs the browser, onboarding overlay blocks all clicks, tab navigation breaks after scene editor interaction. These are user-facing blockers that make the platform unusable for anyone who opens it. Dev has been heads-down on engine/backend (understandable for M12/M13), but these need to be acknowledged and scheduled.
+   - Action: @dev — triage the 3 critical UI bugs from `agent_messages.md` and either fix them or add them to current sprint as blockers.
 
-2. **M11 is 3/7 deliverables but sprint shows no velocity toward remaining items**
-   - Seamless textures, background removal, music generation, and asset pack planner are all still TODO with no apparent work started.
-   - Action: Either scope M11 down and close it, or break remaining items into a separate milestone. Don't let a sprint sit half-done indefinitely.
+2. **M13 is 3/8 deliverables with no UI for any of it** — Behavior graphs, presets, and genre kits are backend-only. The sprint includes "visual logic editor" and "event graph UI" which are the actual user-facing features. Without UI, this is an engine, not an authoring platform.
+   - Action: Prioritize the event graph / visual logic editor UI next. This is the core M13 deliverable that makes behavior graphs accessible.
 
 ---
 
 ## 🟡 Quality Improvements
 
-1. **Sprite sheet routes are untracked new files** — They need a commit message that describes the feature, not just "wip". Suggest: `feat(m11): quick sprites workflow with prompt-to-sheet pipeline`
+1. **VERSION.json is stale** — Still shows `0.18.0 / M11 in-progress` despite M12 being complete and M13 underway. Update to reflect M13.
+2. **CHANGELOG has duplicate "### Added" headers** — Minor formatting issue in the unreleased section. Consolidate under a single header.
 
 ---
 
 ## 📋 Sprint Recommendations
 
-- **Close M11 after sprite sheets are committed.** The 4 remaining items (seamless textures, background removal, music, asset pack planner) are each substantial enough to be their own milestone or grouped as M11b. Don't let "Generative Media Forge" drag on forever.
-- **Prioritize runtime unification (M12) next.** Previous review flagged this: AI→preview is still broken. That's the core product promise. Generative media is great but doesn't matter if users can't see results in the preview.
-- **Formalize the commit cadence.** Every feature completion = commit + push. No exceptions.
+- **Don't let M13 become another backend-only milestone.** The pattern (M11, M12, M13 so far) is: build engine capabilities, defer UI. The product promise is "AI-first game authoring platform" — authoring implies a UI. The visual logic editor must ship in M13.
+- **Dedicate a sprint to UI polish.** The agent_messages.md bugs are real usability blockers. Consider a short M13.5 or M14 focused entirely on making the existing features actually work in the browser.
+- **Consider closing M13 early.** 3/8 done. The remaining 5 (event graph UI, navigation tooling, AI graph generation, animation state machines, cutscene tools) is a LOT. Better to ship what's done, then scope the rest into focused follow-up sprints.
 
 ---
 
 ## 🔍 Strategic Notes
 
-166 tests, clean builds, genre-aware SFX packs, sprite sheet pipelines — the platform is genuinely becoming capable. But the strategic risk from last review remains unchanged: **AI→runtime connection is still the bottleneck for the core product promise.** M12 needs to be the top priority after M11 closes.
+The platform is becoming an impressive engine: entity/component system, physics, collision, behavior graphs, genre kits, generative media pipeline. 297 tests, clean architecture. But the gap between engine capability and user experience is growing. Every milestone adds backend power without closing the usability gap. **The strategic risk is becoming an excellent library that nobody can use.** The next 1-2 sprints need to be UI-heavy to close this gap.
 
 ---
 
@@ -50,12 +49,12 @@
 
 | Area | Rating | Notes |
 |------|--------|-------|
-| Code Quality | A | 166 tests green, clean build, good structure |
-| Git Hygiene | D | 6 uncommitted files including complete feature |
-| Documentation | B | Sprint doc and changelog current |
-| Strategic Alignment | B- | Great velocity on media, but core loop still broken |
-| MVP Progress | 70% | +2% from sprite sheets, blocked on AI→preview |
+| Code Quality | A | 297 tests, clean build, excellent architecture |
+| Git Hygiene | A | Clean repo, all committed and pushed |
+| Documentation | B+ | Sprint doc current, VERSION.json stale |
+| Strategic Alignment | B- | Great velocity but UI gap is widening |
+| MVP Progress | 75% | Engine solid, UX needs dedicated focus |
 
 ---
 
-*⚠️ Git was dirty at review time. @dev must commit and push before next session.*
+*Git was clean at review time. Good. ⚠️ UI bugs from agent_messages.md still need triage.*

@@ -2,9 +2,9 @@
 
 ## Project Overview
 - **Status:** M12 Unified Runtime complete
-- **Current Version:** v0.18.0 (canonical-schema)
-- **Current Stage:** M12 Unified Runtime complete
-- **Next Phase:** M13 — Gameplay Authoring Layer
+- **Current Version:** v0.19.0 (gameplay-authoring)
+- **Current Stage:** M13 Gameplay Authoring Layer (in progress)
+- **Next Phase:** M13 — finish UI deliverables (event graph editor, animation state machines)
 - **Timeline:** Scene Editor AI provides contextual co-pilot experience during game editing
 
 ## Key Documents

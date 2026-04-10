@@ -27,6 +27,11 @@ M12 shipped all 6 deliverables with 172 tests. The unified runtime is the archit
 | Animation state machines | 📋 TODO | |
 | Cutscene/dialogue sequencing tools | 📋 TODO | |
 
+### This Run (2026-04-10)
+- **Fixed onboarding overlay reappearing on navigation** — Root cause: both OnboardingTour and ProjectOnboarding used useEffect to read localStorage, causing a render cycle where the component showed before reading the dismissed flag. Fixed by initializing state synchronously via useState(() => ...) initializer. Also added "Don't show again" button to OnboardingTour and wrapped localStorage access in try/catch for robustness.
+- **Updated VERSION.json** — M11/in-progress → M13/in-progress, v0.19.0
+- **Fixed CHANGELOG duplicate headers** — Consolidated 3x "### Added" in Unreleased section
+
 ### Quality Gates
 
 | Gate | Status |

@@ -44,6 +44,7 @@
 | Asset list doesn't auto-refresh | After generation completed, users had to manually click "Refresh assets" to see new items. Added immediate refresh on completion. | 2026-04-09 (Game Dev) | 2026-04-09 | v0.13.3 |
 | Inline styles in AICommandPage | Cancel/retry buttons used inline styles instead of design system CSS classes. Refactored to CSS classes. | 2026-04-09 (UI/UX) | 2026-04-09 | v0.13.2 |
 | GamePreviewPage too large | GamePreviewPage.tsx was 1058 lines. Extracted hooks and components to reduce to 203 lines. | 2026-04-09 (PM) | 2026-04-09 | v0.13.0 |
+| Onboarding overlay blocks all clicks, reappears on navigation | OnboardingTour and ProjectOnboarding initialized dismiss state in useEffect instead of synchronously, causing a visible flash on every component remount (route navigation). Fixed by using useState(() => ...) with direct localStorage read. Added persistent "Don't show again" button. | 2026-04-09 (Game Dev) | 2026-04-10 | v0.19.0 |
 | Export history always empty | Export filenames used project name but listExports filtered by projectId — exports never appeared in history. Fixed with projectId in filename + .meta.json sidecar. | 2026-04-09 (Dev) | 2026-04-09 | v0.15.0 |
 
 ---

@@ -1,8 +1,8 @@
 {
-  "version": "0.18.0",
-  "codename": "sfx-forge",
-  "milestone": 11,
-  "milestoneName": "Generative Media Forge",
-  "releaseDate": "2026-04-09",
+  "version": "0.19.0",
+  "codename": "gameplay-authoring",
+  "milestone": 13,
+  "milestoneName": "Gameplay Authoring Layer",
+  "releaseDate": "2026-04-10",
   "status": "in-progress"
 }

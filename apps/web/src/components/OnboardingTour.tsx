@@ -40,14 +40,14 @@ const steps: TourStep[] = [
 
 export function OnboardingTour() {
   const [step, setStep] = useState(0);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const stored = localStorage.getItem(TOUR_SEEN_KEY);
-    if (stored !== TOUR_VERSION) {
-      setVisible(true);
+  // Initialize from localStorage synchronously to prevent flash-on-remount
+  const [visible, setVisible] = useState(() => {
+    try {
+      return localStorage.getItem(TOUR_SEEN_KEY) !== TOUR_VERSION;
+    } catch {
+      return true;
     }
-  }, []);
+  });
 
   const handleNext = () => {
     if (step < steps.length - 1) {
@@ -59,7 +59,11 @@ export function OnboardingTour() {
 
   const dismiss = () => {
     setVisible(false);
-    localStorage.setItem(TOUR_SEEN_KEY, TOUR_VERSION);
+    try {
+      localStorage.setItem(TOUR_SEEN_KEY, TOUR_VERSION);
+    } catch {
+      // localStorage unavailable, silently ignore
+    }
   };
 
   if (!visible) return null;
@@ -98,7 +102,7 @@ export function OnboardingTour() {
             )}
           </button>
           <button className="onboarding-skip" onClick={dismiss}>
-            Skip tour
+            Don't show again
           </button>
         </div>
       </div>

@@ -4,7 +4,7 @@
  * Addresses the "what do I do next?" confusion reported by Game Dev testing.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Sparkles, Eye, Image, Code, Gamepad2, X } from 'lucide-react';
 
@@ -20,16 +20,16 @@ interface Step {
 }
 
 export function ProjectOnboarding() {
-  const [dismissed, setDismissed] = useState(false);
+  // Initialize from localStorage synchronously to prevent flash-on-remount
+  const [dismissed, setDismissed] = useState(() => {
+    try {
+      return !!localStorage.getItem(ONBOARDING_DISMISSED_KEY);
+    } catch {
+      return false;
+    }
+  });
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const wasDismissed = localStorage.getItem(ONBOARDING_DISMISSED_KEY);
-    if (wasDismissed) {
-      setDismissed(true);
-    }
-  }, []);
 
   if (dismissed || !projectId) return null;
 
@@ -78,7 +78,11 @@ export function ProjectOnboarding() {
 
   const handleDismiss = () => {
     setDismissed(true);
-    localStorage.setItem(ONBOARDING_DISMISSED_KEY, 'true');
+    try {
+      localStorage.setItem(ONBOARDING_DISMISSED_KEY, 'true');
+    } catch {
+      // localStorage unavailable, silently ignore
+    }
   };
 
   const handleStepClick = (step: Step) => {

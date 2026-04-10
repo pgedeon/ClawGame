@@ -3,7 +3,6 @@
 ## [Unreleased]
 ### Added
 - **Genre Kits** (M13): 4 genre kits with 13 configurable behavior graph templates — PlatformerKit (patrol enemy, jumping enemy, collectible, hazard), TopDownKit (wander enemy, shooter enemy, item drop), RPGKit (quest NPC, turn-based enemy AI, villager NPC), TacticsKit (melee unit, ranged unit, support unit). All build on BehaviorGraph types. 35 new tests.
-### Added
 - **Behavior Graph Module** (M13): Data model and runtime executor for visual logic authoring. `BehaviorGraph` type with composable nodes (composite: sequence/selector/parallel, decorator: inverter/repeater/until-fail/timer/cooldown, condition, action). `BehaviorExecutor` runs graphs tick-bytick with per-entity state tracking. Built-in conditions (always, never, random-chance, entity-in-range, entity-has-tag, health-below/above, input-pressed, timer-elapsed, custom). Built-in actions (set-velocity, move-to, move-toward-entity, apply-damage, heal, destroy-self, fire-event, set-tag, remove-tag, set-variable, change-state, custom). Extensible via registered custom condition evaluators and action executors. 20 tests. Foundation for M13 Gameplay Authoring Layer.
 - **PhysicsSystem + CollisionSystem** (M12): Physics system with gravity, friction, AABB collision response, world bounds clamping, and grounded detection. Collision system with broad-phase AABB detection, typed collision events (enter/pickup/damage/trigger), and once-only trigger semantics. Both integrated into Engine update loop. 12 new tests (43 engine total, 209 project-wide).
 - **Behavior Presets Library** (M13): Pre-built behavior graphs for common enemy/NPC patterns via `BehaviorPresets`. Four configurable presets: `patrol` (back-and-forth between two points), `chase` (detect + pursue + idle), `alertChaseFlee` (full alert→chase→flee→idle state machine with health-based flee), `guard` (patrol radius + chase intruder + return to post). Each preset uses configurable parameters (ranges, speeds, thresholds). Includes `bindToType`/`bindToEntity` helpers for attaching graphs to entities. 16 tests. Engine total: 90 tests (262 project-wide).
@@ -11,8 +10,12 @@
 - **Engine Events Bus** (M12): Typed `EventBus` class in `@clawgame/engine` with on/once/onAny/clear/history/mute. 20 predefined event types covering lifecycle, entity, input, gameplay, and AI events. Integrated into `Engine` class (emits scene:load, scene:unload, engine:start, engine:stop, engine:error). 20 tests.
 - **Canonical Entity/Component Schema** (M12): Unified `SerializableEntity` and runtime `Entity` types in `@clawgame/engine`. Added conversion utilities (`toRuntimeEntity`, `toSerializableEntity`, `toRuntimeScene`, `toSerializableScene`). New component types: `StatsComponent`, `PlayerInputComponent`, `CollectibleComponent`, `PhysicsComponent`, `TriggerComponent`, `CameraComponent`, `AnimationComponent`. Scene editor imports from engine schema instead of duplicating types. 6 tests.
 - **Data-driven Scene Loader** (M12): `SceneLoader` class in `@clawgame/engine` with pluggable `AssetResolver`, image caching, and `loadIntoEngine()` for data-driven scene loading. Single canonical path for editor, preview, export, and AI-generated scenes. 11 tests.
-### Added
-- **Quick Sprites workflow** (M11): Prompt-to-sprite-sheet pipeline with animation presets, frame grid generation, placeholder SVG output, and CRUD API routes (`/api/projects/:id/sprites/*`). 14 tests.
+- **Quick Sprites workflow**
+
+### Fixed
+- **Onboarding overlay reappears on navigation** — OnboardingTour and ProjectOnboarding now initialize dismiss state from localStorage synchronously (was using useEffect, causing a flash/remount on every navigation). Added "Don't show again" to OnboardingTour. Both components now persist dismissal reliably across route changes.
+- **VERSION.json stale** — Updated from M11/in-progress to M13/in-progress (v0.19.0).
+- **CHANGELOG duplicate headers** — Consolidated three "### Added" headers in Unreleased section into one. (M11): Prompt-to-sprite-sheet pipeline with animation presets, frame grid generation, placeholder SVG output, and CRUD API routes (`/api/projects/:id/sprites/*`). 14 tests.
 
 All notable changes to ClawGame will be documented in this file.
 

@@ -1,119 +1,118 @@
 # UI/UX Review Feedback
 
-**Last Review:** 2026-04-09 20:26 UTC
-**Reviewed Version:** 3295238 (7 commits since last review: M9/M10 sprint work)
-**Reviewer:** UI/UX Design Agent
+**Last Review:** 2026-04-10 00:26 UTC
+**Reviewed Version:** 71d15e9
 **Status:** on-track
 
 ---
 
 ## 🎯 Alignment with Goal
 
-ClawGame continues to build momentum as an **AI-first, browser-based game dev platform**. The M9/M10 sprint added meaningful pieces — AI Settings, Project Notes, Animation Preview, Asset Factory, prompt recipe library, and scene binding. The design system (`theme.css`) remains a genuine strength: consistent tokens, dark studio palette, proper spacing/radius/z-index scales. The AI FAB with contextual injection is the right architectural call.
-
-The gap now is **polish and cohesion** — individual features work, but the experience doesn't yet feel unified. Several new components hardcode colors instead of using design tokens, and the AI workflow (prompt → generate → preview → iterate) has friction points.
+The platform has a solid structural foundation — routing, layout, lazy loading, error boundaries, accessibility basics, and a clear project → editor → AI workflow. The AI-first identity comes through in the hero section, command palette, AIFAB, and AI Command page. The pieces are here; the gap is polish and cohesion.
 
 ---
 
 ## ✨ What Looks Great
 
-1. **Design system (theme.css)** — Comprehensive, well-organized tokens. Dark studio palette is cohesive. AI-specific branding vars (`--ai-primary`, `--ai-gradient`, `--ai-glow`) create a distinct AI identity. This is genuinely strong.
-
-2. **Animation Preview** — The checkerboard transparency background, pixel-art-friendly rendering (`image-rendering: pixelated`), frame strip with active state, FPS slider — this is professional quality. The purple highlight on active frames feels right.
-
-3. **AI FAB + Panel** — Floating action button with glow animation, thinking state, recipe library toggle, contextual entity actions. The panel animation (`ai-panel-in`) is smooth. Mobile responsive (bottom sheet on small screens). This is the most "AI-native" element.
-
-4. **Prompt Recipe Library** — Category pills, search, icon + title + description cards. Good progressive disclosure (collapsed by default). This teaches users what AI can do without overwhelming them.
-
-5. **Accessibility foundations** — Skip link, focus-visible styles, reduced-motion media query, contrast fix for `--text-muted`. Not an afterthought.
-
-6. **Code-splitting** — Lazy loading for project-scoped pages. Good performance hygiene.
+1. **Architecture is solid** — Code-split lazy routes, proper error boundaries, skip links, skeleton loaders. This is rare in early-stage projects and will pay off.
+2. **AI FAB (floating assistant)** — Persistent AI chat bubble across all pages is the right pattern. Shows connection status, prompt recipes, context-aware. This is genuinely differentiated.
+3. **Dashboard hero section** — "Build Games with AI" with the orb visuals and ⌘K callout sets the tone immediately.
+4. **Scene editor decomposition** — Splitting into AssetBrowserPanel / SceneCanvas / PropertyInspector / AIBar is the right IDE-like layout.
+5. **Onboarding + Command Palette** — First-time users get a tour AND ⌘K access. Smart.
 
 ---
 
-## 🐛 What Needs Improvement (Top 5)
+## 🐛 What Needs Improvement
 
-### 1. **Hardcoded colors in new components** — Inconsistent with design system
+### 1. **Scene editor toolbar feels like separate islands**
 
-**Location:** `animation-preview.css`, `asset-studio.css`, `game-preview.css`
-**Problem:** New M9/M10 components use raw hex values (`#64748b`, `#1e293b`, `#cbd5e1`, `#8b5cf6`) instead of design tokens. Animation preview has ~15 hardcoded colors. This breaks theme consistency and makes light-mode support impossible for these components.
-**Solution:** Replace all hardcoded colors with CSS custom properties.
+- **Location:** `SceneEditorPage.tsx` — toolbar buttons (Save, Undo, ZoomIn, ZoomOut, Plus) are laid out but there's no visual grouping or contextual panel switching
+- **Problem:** Users need to discover which panel does what. The asset browser, canvas, and property inspector should feel like one integrated workspace, not three boxes.
+- **Solution:** Add a top toolbar with mode tabs (Select / Place / Pan) that clearly indicates which tool is active. Use a shared background for the entire editor frame (not individual card backgrounds per panel). Add a thin resize handle between panels.
 
-```css
-/* ❌ animation-preview.css */
-background: repeating-conic-gradient(#1e293b 0% 25%, #0f172a 0% 50%) 50% / 16px 16px;
-color: #94a3b8;
-background: rgba(15, 23, 42, 0.8);
+### 2. **AI Command page has no visual differentiation from a chatbot**
 
-/* ✅ Should be */
-background: repeating-conic-gradient(var(--surface) 0% 25%, var(--bg) 0% 50%) 50% / 16px 16px;
-color: var(--fg-secondary);
-background: rgba(var(--bg-rgb), 0.8);
-```
+- **Location:** `AICommandPage.tsx`
+- **Problem:** It reads like a generic chat interface. For an AI-first game platform, the AI page should feel like a *command center* — showing context (what project, what files), available actions, and inline previews of generated assets/code.
+- **Solution:**
+  - Add a left sidebar showing current file tree (or at minimum, the active file context)
+  - Show code diffs inline (the `CodeDiffView` component exists but verify it renders prominently, not buried)
+  - Add action chips above the input: "Generate", "Explain", "Fix", "Refactor" — quick-intent selectors
+  - Consider a split view: chat on left, live preview/code on right
 
-**Priority:** HIGH — Every new component that hardcodes colors increases technical debt.
+### 3. **Dashboard project cards lack visual richness**
 
----
+- **Location:** `DashboardPage.tsx` — `.project-card` components
+- **Problem:** Cards show name, status, genre, art style, and date — but no thumbnail or visual preview. For a game dev platform, this is a missed opportunity.
+- **Solution:**
+  - Generate/store a thumbnail screenshot of the game preview (canvas snapshot) on save
+  - Show the thumbnail as a card header image (like Notion or Figma project cards)
+  - Add a subtle hover animation (slight scale + shadow lift)
+  ```css
+  .project-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .project-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  }
+  ```
 
-### 2. **AI Settings page is disconnected from the AI experience**
+### 4. **Mobile/responsive is likely broken**
 
-**Location:** `apps/web/src/pages/AISettingsPage.tsx`, `apps/web/src/ai-settings.css`
-**Problem:** AI Settings lives as a separate page (`/project/:id/ai-settings`) when it should feel like a configuration extension of the AI FAB/panel. Users who open the AI panel to create content shouldn't need to navigate away to check model status. The page also hardcodes `localhost:3000` for API calls.
-**Solution:**
-- Add a "Model status" indicator inside the AI FAB panel header (small dot + model name, clickable to expand settings)
-- Keep the full settings page for advanced config, but make it reachable from the FAB panel
-- Use the `api` client instead of raw `fetch('http://localhost:3000/...')`
+- **Location:** `AppLayout.tsx` sidebar is always visible
+- **Problem:** The sidebar has no collapse/hamburger toggle. On mobile, the sidebar will eat screen space or overflow.
+- **Solution:** Add a mobile breakpoint (<768px) that hides the sidebar behind a hamburger menu. The AIFAB should also reposition to not overlap content.
 
-**Priority:** MEDIUM — UX friction for a key AI workflow.
+### 5. **No dark/light theme toggle visible**
 
----
-
-### 3. **Project Notes Panel needs visual integration**
-
-**Location:** `apps/web/src/components/ProjectNotesPanel.tsx`, `apps/web/src/project-notes.css`
-**Problem:** The notes panel is a standalone component but its visual treatment doesn't match other sidebar panels (scene hierarchy, asset panels). It's unclear where it lives in the layout — is it a sidebar panel? A modal? A drawer? The default sections (goals, constraints, TODOs, notes) are smart, but the collapsed/expanded states need to match the design language of other collapsible sections.
-**Solution:**
-- Use consistent panel chrome (same header style as scene hierarchy)
-- Add a subtle AI integration: "Summarize my notes" or "Generate TODOs from goals" quick action
-- Match the sidebar panel padding, borders, and collapse animation of existing panels
-
-**Priority:** MEDIUM — Notes are where users capture intent; AI should be able to read them.
-
----
-
-### 4. **Dashboard hero section lacks a compelling first impression**
-
-**Location:** `apps/web/src/pages/DashboardPage.tsx`, hero section
-**Problem:** The dashboard hero with animated orbs is decorative but doesn't communicate value. For first-time visitors, the hero says "Welcome to ClawGame" but doesn't show *what you can build* or *how AI helps*. The orbs are generic — they could be any SaaS product.
-**Solution:**
-- Replace static orbs with a **mini interactive demo**: show a small canvas where a pre-built game runs, or cycle through screenshots of example games built with ClawGame
-- Add a one-line value prop under the heading: "Describe your game. AI builds it. You refine."
-- The "Try AI Command ⌘K" CTA is good — make it more prominent, maybe as the primary action
-
-**Priority:** MEDIUM — First impression drives adoption.
-
----
-
-### 5. **Light mode is broken in practice**
-
-**Location:** `apps/web/src/theme.css` (light mode overrides exist)
-**Problem:** The `prefers-color-scheme: light` overrides exist in theme.css, but almost every component CSS file hardcodes dark-mode assumptions. The accessibility.css file overrides `--text-muted` outside the media query. Light mode would look broken — dark text on light backgrounds with dark-specific opacity values everywhere.
-**Solution:**
-- Either commit to light mode properly (use tokens everywhere, test it) or remove the light mode overrides and position ClawGame as a **dark-mode-only professional tool** (like Figma, Unity, Blender). Dark-only is fine and reduces scope.
-- If keeping dark-only: add a comment in theme.css explaining this choice, remove the misleading light mode block.
-
-**Priority:** LOW — But the current state is worse than committing to one direction.
+- **Problem:** The CSS variables suggest dark theme only. Users may want light mode, especially on laptops in bright environments.
+- **Solution:** Add a theme toggle in the sidebar footer. Use CSS custom properties with `[data-theme="light"]` overrides. Start with dark-only is fine, but the toggle signals maturity.
 
 ---
 
 ## 📐 Layout Recommendations
 
 ### Navigation
-- The sidebar is well-structured with section titles and active states. Good.
-- **Missing:** Breadcrumbs inside project pages. When you're in `/project/abc/scene-editor`, there's no visible path back to dashboard or project root beyond the sidebar. A subtle breadcrumb bar would help orientation.
+- Sidebar is good. Add collapse to icon-only mode (48px wide) for power users who want more canvas space.
+- Add breadcrumbs in the main content area: `Projects > MyGame > Scene Editor` for orientation.
 
-### AI Workflow Path
-- The path from "idea → AI generates → preview → refine" has too many page transitions. Scene Editor → AI Command → Preview are separate routes. Consider an **inline preview** in the scene editor (small picture-in-picture canvas) so users can test without context-switching.
+### Scene Editor
+- Adopt the classic 3-panel game editor layout: left = hierarchy/assets, center = canvas, right = properties.
+- Add a bottom panel bar (collapsible) for console/AI output — similar to VS Code's terminal panel.
+
+### AI Interactions
+- The AIFAB and the full AI Command page overlap in purpose. Consider: FAB for quick questions, AI Command page for deep generation sessions. Make this distinction clear with different UI treatments.
+
+---
+
+## 🎭 Visual Elements
+
+### Recommended Color Refinements
+```css
+/* Current primary (#6366f1 indigo) is good — keep it */
+/* Add a game-dev accent color for "run/play" actions */
+--accent-play: #22c55e;      /* green for preview/play */
+--accent-danger: #ef4444;    /* red for destructive */
+--accent-ai: #8b5cf6;        /* purple for AI features — already used, nice */
+
+/* Surface hierarchy (ensure clear layering) */
+--surface-base: #0f172a;     /* deepest bg */
+--surface-raised: #1e293b;   /* cards, panels */
+--surface-overlay: #334155;  /* dropdowns, popovers */
+```
+
+### Typography
+```css
+/* Inter is the right choice — clean and professional */
+/* Add size scale for consistency */
+--text-xs: 0.75rem;    /* badges, meta */
+--text-sm: 0.875rem;   /* secondary text */
+--text-base: 1rem;     /* body */
+--text-lg: 1.125rem;   /* section titles */
+--text-xl: 1.5rem;     /* page titles */
+--text-2xl: 2rem;      /* hero headings */
+```
 
 ---
 
@@ -121,55 +120,54 @@ background: rgba(var(--bg-rgb), 0.8);
 
 | Platform | What They Do Well | What We Can Learn |
 |----------|------------------|-------------------|
-| **Construct 3** | Event sheet system is visual and intuitive. Layout editor with instant preview. Properties panel is contextually rich. | Contextual property panels — show relevant properties based on selection. Their layout/preview combo is the gold standard for browser editors. |
-| **GDevelop** | Open-source, free, growing AI integration ("Use AI to learn and build faster"). Asset store integration. Visual scripting events. | Their community-driven asset sharing is powerful. We should consider a shared asset/template library. |
-| **Rosebud AI** | Pure prompt-to-game. Minimal UI friction. | The "just describe it" approach validates our AI-first direction. But their output quality is limited — we can win on depth. |
-| **Cursor/Replit** | AI is ambient and always available, not a separate mode. Inline diffs, contextual suggestions. | AI should never feel like a separate tool. It should be embedded in every panel, every workflow. |
+| **Rosebud AI** | Chat-to-game: describe → playable prototype. Screenshot button for visual bug reports. | Visual context in AI chat (screenshots of canvas state). One-shot "make it work" UX. |
+| **Ludo.ai** | AI game ideation: generates concepts, art, mechanics before code. | Pre-code creative phase. "Game concept generator" before project creation. |
+| **Construct 3** | Event-sheet visual scripting, instant preview, zero setup. | Instant gratification — preview should load in <1s. Visual scripting overlay option. |
+| **GDevelop** | One-click publish, mobile-friendly editor, community templates. | Publishing flow simplicity. Template gallery as first-class citizen. |
+| **Unity/Godot** | Inspector panel, scene hierarchy, asset pipeline. | We're already mimicking this in Scene Editor — keep going. Property inspector with undo history is table stakes. |
 
 **Key Insights:**
-- Construct 3's UX is the benchmark for browser game editors — their layout/properties/events paradigm is mature
-- The "AI as feature add-on" approach (GDevelop, Unity) feels bolted on; ClawGame's "AI as foundation" is the right differentiator
-- Rosebud proves there's demand for prompt-to-game, but depth and iterability are the gaps to fill
-- Micro-interactions and visual polish (Figma-level attention to detail) are what separate "impressive demo" from "professional tool"
+- Rosebud's biggest win is *speed from idea to playable*. ClawGame's AI Command + Preview pipeline can match this if the latency is low enough.
+- Visual context matters — Rosebud lets users screenshot their game state and send to AI. Our AIFAB should capture canvas state automatically when opened from Scene Editor.
+- GDevelop's publish-in-one-click is a killer feature for indie devs.
 
 **Features to Consider:**
-- **Contextual property panel** — When selecting an entity in scene editor, show all editable properties in a sidebar panel (like Construct 3). This is table stakes for game editors.
-- **Inline mini-preview** — Small canvas overlay in scene editor for quick testing without page navigation.
-- **Asset drag-and-drop** — From asset studio directly onto scene canvas (GDevelop users specifically request this).
+- **Canvas screenshot → AI context** — When AIFAB opens in scene editor, auto-attach a canvas snapshot to the AI context. Rosebud does this manually; we can do it automatically.
+- **Template gallery with one-click clone** — Examples page exists but should feel like "pick a starter, customize, ship"
+- **Live collaborative preview URL** — Share a link to the running game preview
 
 ---
 
 ## 📋 Priority Fixes
 
-1. **🔴 HIGH: Token compliance audit** — Run a pass over all CSS files added in M9/M10 and replace hardcoded colors with design tokens. This is accumulating debt that gets harder to fix over time.
-2. **🟡 MEDIUM: AI Settings integration into FAB** — Don't make users leave their workflow to check model status. Add inline status to the AI panel.
-3. **🟡 MEDIUM: Dashboard first impression** — Replace decorative orbs with something that communicates value (mini game demo, example screenshots, or interactive prompt).
-4. **🟢 LOW: Commit to dark-only or fix light mode** — Don't leave it in the ambiguous middle.
-5. **🟢 LOW: Breadcrumbs** — Add orientation cues inside project pages.
+1. **[High]** Scene editor panel integration — unifies the core product experience. Without it, the editor feels like 3 disconnected boxes.
+2. **[High]** AI Command page needs visual context (file tree, active file) — this is the AI-first differentiator. Without context display, it's just a chatbot.
+3. **[Medium]** Dashboard project thumbnails — visual richness matters for a game platform. Blank cards feel unfinished.
+4. **[Medium]** Mobile responsive sidebar — basic usability on tablets/phones.
+5. **[Low]** Dark/light theme toggle — polish item, signals maturity.
 
 ---
 
 ## 💡 Creative Ideas
 
-**AI-Specific UX Innovations:**
-- **"AI Confidence" indicator** — When AI generates code/assets, show a confidence level or "I'm 80% sure this is what you want. Want me to try again?" This sets expectations and encourages iteration.
-- **Inline AI annotations** — In the scene editor, let AI leave notes/annotations on entities ("This sprite might look better with a shadow" or "Consider adding a collider here"). Like code review comments but on game objects.
-- **AI suggestion chips** — After any AI action, show 2-3 follow-up suggestion chips ("Add enemies", "Polish animation", "Test in preview") to guide the next step. Reduces blank-canvas syndrome.
+**Innovations to Consider:**
+- **"What would you like to build?" as the only landing page element** — Replace the dashboard for first-time users with a single prompt input (like ChatGPT's homepage). "A platformer with cats in space" → instant project creation with AI scaffolding.
+- **Canvas-aware AI** — The AIFAB should know what entity is selected, what's on screen, and what the user was just doing. Auto-inject this context so users can say "make this blue" instead of "change entity player-1 sprite color to blue".
+- **Timeline/history scrubber** — Since git integration exists, add a visual timeline (like Figma's version history) where users can scrub through AI-generated changes and revert to any point.
 
-**Standout Features:**
-- **Game Jam mode** — A timer-based constraint mode where AI helps you build a game in 48 hours. Shows progress, suggests shortcuts, auto-generates placeholders. Marketable and differentiated.
-- **"Show me what AI changed"** — Visual diff overlay for AI-generated changes. Highlight new entities in green, modified in yellow, deleted in red. Makes AI actions transparent and trustworthy.
+**AI-Specific UX:**
+- Show AI confidence level on generated code (the `ConfidenceBadge` in CodeDiffView — verify it's prominent)
+- Add "Accept / Reject / Modify" actions inline with AI-generated code changes
+- Streaming responses with typewriter effect for AI text, but *instant* rendering for code diffs
+- "Explain this" button on any entity in the scene editor → opens AIFAB with context pre-filled
 
 ---
 
 ## 📊 UI/UX Score
 
-| Area | Current | Target | Notes |
-|------|---------|--------|-------|
-| Visual Design | B | A | Design system is solid; new components need token compliance |
-| User Experience | B- | A | AI workflow has friction; dashboard needs better first impression |
-| Accessibility | B | A | Good foundations; needs more keyboard navigation testing |
-| AI-Native Feel | B+ | A+ | FAB + recipes + contextual injection are great; needs ambient integration everywhere |
-| Innovation | B+ | A | AI-first positioning is right; needs more "wow" moments (inline preview, annotations) |
-
-**Overall: B (on-track, needs polish pass)**
+| Area | Current | Target | Gap |
+|------|---------|--------|-----|
+| Visual Design | B | A | Needs project thumbnails, panel cohesion, micro-animations |
+| User Experience | B | A | Scene editor integration, AI context display, first-run flow |
+| Accessibility | B+ | A | Skip links ✓, contrast ✓, focus states ✓. Add ARIA live regions for AI responses |
+| Innovation | B+ | A | AIFAB + command palette are great. Canvas-aware AI and chat-to-project would push to A |
