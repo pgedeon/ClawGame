@@ -3,7 +3,7 @@
  * Central module for all API communication.
  */
 
-const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000';
+const API_BASE = (import.meta as any).env?.VITE_API_URL || '';
 
 interface RequestOptions extends RequestInit {
   query?: Record<string, string>;
@@ -11,7 +11,8 @@ interface RequestOptions extends RequestInit {
 }
 
 async function request<T>(path: string, options?: RequestOptions): Promise<T> {
-  const url = new URL(`${API_BASE}${path}`);
+  const baseUrl = API_BASE || window.location.origin;
+  const url = new URL(`${baseUrl}${path}`);
   
   // Add query parameters if provided
   if (options?.query) {

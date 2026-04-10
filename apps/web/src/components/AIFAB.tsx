@@ -39,7 +39,7 @@ export function AIFAB({ projectId, pageContext, sceneSummary, selectedEntities }
     const checkHealth = async () => {
       try {
         const health = await api.getAIHealth();
-        setAiStatus(health.status === 'ok' ? 'connected' : 'offline');
+        setAiStatus(health.status === 'ok' || health.status === 'connected' ? 'connected' : 'offline');
       } catch { setAiStatus('offline'); }
     };
     checkHealth();

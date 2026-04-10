@@ -18,11 +18,15 @@ import { ProjectService } from './projectService';
 
 // ── Configuration ──
 
-const AI_API_URL = process.env.AI_API_URL || 'https://api.z.ai/api/coding/paas/v4/chat/completions';
-const AI_API_KEY = process.env.AI_API_KEY || '';
-const AI_MODEL = process.env.AI_MODEL || 'glm-4.5-flash';
+function getAIConfig() {
+  return {
+    apiUrl: process.env.AI_API_URL || 'https://api.z.ai/api/coding/paas/v4/chat/completions',
+    apiKey: process.env.AI_API_KEY || '',
+    model: process.env.AI_MODEL || 'glm-4.5-flash',
+  };
+}
 
-const REQUEST_TIMEOUT_MS = 30_000;  // 30 seconds per attempt
+const REQUEST_TIMEOUT_MS = 60_000;  // 30 seconds per attempt
 const MAX_RETRIES = 2;
 const RETRY_BASE_DELAY_MS = 1_000;
 const CIRCUIT_BREAKER_THRESHOLD = 5;  // after 5 consecutive failures, use fallback
@@ -92,7 +96,7 @@ export class RealAIService {
     const userPrompt = await this.buildUserPrompt(command, projectContext, context);
 
     // Try real API (with retries + circuit breaker)
-    if (AI_API_KEY && !this.isCircuitOpen()) {
+    if (getAIConfig().apiKey && !this.isCircuitOpen()) {
       const result = await this.callWithRetry(systemPrompt, userPrompt);
       if (result) {
         this.onApiSuccess();
@@ -104,7 +108,7 @@ export class RealAIService {
     } else if (this.isCircuitOpen()) {
       this.logger.info('Circuit breaker open — using local fallback');
     } else {
-      this.logger.warn('No AI_API_KEY configured — using local fallback');
+      this.logger.warn('No API key configured — using local fallback');
     }
 
     // Fallback: generate a useful local response
@@ -124,7 +128,7 @@ export class RealAIService {
     const systemPrompt = this.buildSystemPrompt(projectContext);
     const userPrompt = await this.buildUserPrompt(command, projectContext, context);
 
-    if (!AI_API_KEY || this.isCircuitOpen()) {
+    if (!getAIConfig().apiKey || this.isCircuitOpen()) {
       // Simulate streaming for fallback
       const fallback = this.generateFallbackResponse(command, projectContext);
       const words = fallback.content.split(' ');
@@ -162,18 +166,18 @@ export class RealAIService {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-        this.logger.info({ attempt: attempt + 1, model: AI_MODEL }, 'AI API call starting');
+        this.logger.info({ attempt: attempt + 1, model: getAIConfig().model }, 'AI API call starting');
 
-        const response = await fetch(AI_API_URL, {
+        const response = await fetch(getAIConfig().apiUrl, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${AI_API_KEY}`,
+            'Authorization': `Bearer ${getAIConfig().apiKey}`,
             'Content-Type': 'application/json',
             'HTTP-Referer': 'https://github.com/pgedeon/ClawGame',
             'X-Title': 'ClawGame AI-Powered Game Engine',
           },
           body: JSON.stringify({
-            model: AI_MODEL,
+            model: getAIConfig().model,
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: userPrompt },
@@ -225,16 +229,16 @@ export class RealAIService {
     const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
     try {
-      const response = await fetch(AI_API_URL, {
+      const response = await fetch(getAIConfig().apiUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${AI_API_KEY}`,
+          'Authorization': `Bearer ${getAIConfig().apiKey}`,
           'Content-Type': 'application/json',
           'HTTP-Referer': 'https://github.com/pgedeon/ClawGame',
           'X-Title': 'ClawGame AI-Powered Game Engine',
         },
         body: JSON.stringify({
-          model: AI_MODEL,
+          model: getAIConfig().model,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
@@ -1049,10 +1053,10 @@ export class TowerDefenseSystem extends System {
 
   async healthCheck(): Promise<{ status: string; service: string; model: string; features: string[]; circuitOpen: boolean }> {
     return {
-      status: AI_API_KEY ? 'connected' : 'mock',
-      service: AI_API_KEY ? 'clawgame-ai' : 'mock-ai-preview',
-      model: AI_MODEL,
-      features: AI_API_KEY ? ['real-ai', 'code-generation', 'context-aware'] : ['mock-mode', 'local-fallback'],
+      status: getAIConfig().apiKey ? 'connected' : 'mock',
+      service: getAIConfig().apiKey ? 'clawgame-ai' : 'mock-ai-preview',
+      model: getAIConfig().model,
+      features: getAIConfig().apiKey ? ['real-ai', 'code-generation', 'context-aware'] : ['mock-mode', 'local-fallback'],
       circuitOpen: this.isCircuitOpen(),
     };
   }

@@ -19,7 +19,7 @@ interface AssetProcessingToolbarProps {
 
 type ToolTab = 'analyze' | 'slice' | 'pixel' | 'palette' | 'tileset' | 'batch';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = '';
 
 export function AssetProcessingToolbar({
   projectId,
@@ -226,7 +226,7 @@ export function AssetProcessingToolbar({
             <div style={{ marginTop: '0.75rem' }}>
               <div className="tool-results-header"><span>🎬 Animation Preview</span></div>
               <AnimationPreview
-                frames={result.frames.map((f: any) => `http://localhost:3000/api/projects/${projectId}/files?path=${encodeURIComponent(f.path)}`)}
+                frames={result.frames.map((f: any) => `/api/projects/${projectId}/files?path=${encodeURIComponent(f.path)}`)}
                 width={result.manifest?.frameWidth || 32}
                 height={result.manifest?.frameHeight || 32}
               />

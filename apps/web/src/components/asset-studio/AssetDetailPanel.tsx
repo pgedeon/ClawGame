@@ -25,7 +25,7 @@ export const AssetDetailPanel: React.FC<AssetDetailPanelProps> = ({ asset, proje
 
   const getPreviewUrl = (): string => {
     if (!projectId || !asset) return '';
-    const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000';
+    const API_BASE = (import.meta as any).env?.VITE_API_URL || '';
     return `${API_BASE}/api/projects/${projectId}/assets/${asset.id}/file`;
   };
 

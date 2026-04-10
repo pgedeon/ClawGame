@@ -37,7 +37,7 @@ export function AICommandPage() {
 
   const checkAIStatus = async () => {
     try {
-      const health = await fetch('http://localhost:3000/api/ai/health').then(r => r.json());
+      const health = await fetch('/api/ai/health').then(r => r.json());
       const isReal = health.service !== 'mock-ai-preview';
       setIsRealAI(isReal);
       
@@ -52,7 +52,7 @@ export function AICommandPage() {
       logger.error('Failed to check AI status:', err);
       setMessages([{
         type: 'assistant',
-        content: '🤖 Welcome to AI Command\n\nThis is a demonstration of AI-powered game development features.\n\nNote: Could not connect to the API server. Make sure the backend is running at http://localhost:3000',
+        content: '🤖 Welcome to AI Command\n\nThis is a demonstration of AI-powered game development features.\n\nNote: Could not connect to the API server. Make sure the backend is running at ',
         timestamp: new Date(),
       }]);
       setIsRealAI(false);
