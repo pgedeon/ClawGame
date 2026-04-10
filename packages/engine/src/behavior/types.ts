@@ -61,7 +61,48 @@ export type ActionKind =
   | 'wait'
   | 'set-variable'
   | 'change-state'
+  | 'start-navigation'
+  | 'stop-navigation'
+  | 'follow-waypoints'
   | 'custom';
+
+// ─── Navigation Types ───
+
+/** A single waypoint in a navigation path */
+export interface Waypoint {
+  id: string;
+  x: number;
+  y: number;
+  /** Arrival radius — entity is considered "at" waypoint within this distance */
+  radius?: number;
+  /** Seconds to wait at this waypoint before proceeding */
+  waitTime?: number;
+  /** Editor label */
+  label?: string;
+}
+
+/** A named sequence of waypoints forming a navigation path */
+export interface NavigationPath {
+  id: string;
+  name: string;
+  waypoints: Waypoint[];
+  /** Whether to loop back to the first waypoint after the last */
+  loop?: boolean;
+  /** Speed multiplier applied while following this path */
+  speedMultiplier?: number;
+}
+
+/** Per-entity navigation runtime state (stored as entity component) */
+export interface NavigationState {
+  /** Which path we're following */
+  currentPathId: string | null;
+  /** Index of the waypoint we're moving toward */
+  currentWaypointIndex: number;
+  /** Accumulated wait time at current waypoint */
+  waitTimeAccumulator: number;
+  /** Whether currently in the "waiting" phase at a waypoint */
+  isWaiting: boolean;
+}
 
 // ─── Node Data ───
 
@@ -138,6 +179,12 @@ export interface ActionData {
   executor?: string;
   /** Generic parameters */
   params?: Record<string, any>;
+  /** Navigation-specific parameters */
+  navigation?: {
+    pathId?: string;
+    loop?: boolean;
+    speedMultiplier?: number;
+  };
 }
 
 // ─── Core Types ───

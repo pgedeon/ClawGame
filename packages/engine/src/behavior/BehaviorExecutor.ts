@@ -21,6 +21,9 @@ import {
   ConditionData,
   CompositeData,
   DecoratorData,
+  Waypoint,
+  NavigationPath,
+  NavigationState,
 } from './types';
 import { Entity, Scene } from '../types';
 import { EventBus } from '../EventBus';
@@ -169,7 +172,7 @@ export class BehaviorExecutor {
   }
 
   private emitAny(events: EventBus, name: string, payload: unknown): void {
-    // Use emit through the custom:* index signature for dynamic events
+    // Use emit through the custom:* index signature for dynamic event
     const customName = `custom:${name}` as any;
     (events as any).emit(customName, payload);
   }
@@ -543,6 +546,83 @@ export class BehaviorExecutor {
           entityId: ctx.entity.id,
           state: data.state,
         });
+        return 'success';
+      }
+      case 'start-navigation': {
+        const pathId = data.params?.pathId;
+        if (!pathId) return 'failure';
+        
+        const loop = data.params?.loop ?? false;
+        const speedMultiplier = data.params?.speedMultiplier ?? 1.0;
+        
+        let navState = ctx.entity.components.get('navigation-state') as NavigationState | undefined;
+        if (!navState) {
+          navState = {
+            currentPathId: pathId,
+            currentWaypointIndex: 0,
+            waitTimeAccumulator: 0,
+            isWaiting: false,
+          };
+          ctx.entity.components.set('navigation-state', navState as any);
+        } else {
+          navState.currentPathId = pathId;
+          navState.currentWaypointIndex = 0;
+          navState.waitTimeAccumulator = 0;
+          navState.isWaiting = false;
+        }
+        
+        // Store path reference
+        const path: NavigationPath = {
+          id: pathId,
+          name: pathId,
+          waypoints: [],
+          loop,
+          speedMultiplier,
+        };
+        ctx.entity.components.set('navigation-path', path as any);
+        
+        return 'success';
+      }
+      case 'stop-navigation': {
+        const navState = ctx.entity.components.get('navigation-state') as NavigationState | undefined;
+        if (navState) {
+          navState.currentPathId = null;
+          navState.currentWaypointIndex = 0;
+          navState.waitTimeAccumulator = 0;
+          navState.isWaiting = false;
+        }
+        return 'success';
+      }
+      case 'follow-waypoints': {
+        const pathId = data.params?.pathId;
+        if (!pathId) return 'failure';
+        
+        const loop = data.params?.loop ?? false;
+        const speedMultiplier = data.params?.speedMultiplier ?? 1.0;
+        
+        let navState = ctx.entity.components.get('navigation-state') as NavigationState | undefined;
+        if (!navState) {
+          navState = {
+            currentPathId: pathId,
+            currentWaypointIndex: 0,
+            waitTimeAccumulator: 0,
+            isWaiting: false,
+          };
+          ctx.entity.components.set('navigation-state', navState as any);
+        } else {
+          navState.currentPathId = pathId;
+        }
+        
+        // Store path reference
+        const path: NavigationPath = {
+          id: pathId,
+          name: pathId,
+          waypoints: [],
+          loop,
+          speedMultiplier,
+        };
+        ctx.entity.components.set('navigation-path', path as any);
+        
         return 'success';
       }
       case 'custom':

@@ -1,47 +1,50 @@
 # PM/CEO Feedback
 
-**Last Review:** 2026-04-10 00:25 UTC
-**Git Status:** ✅ Clean
+**Last Review:** 2026-04-10 04:26 UTC
+**Git Status:** 🔴 DIRTY — 3 modified + 2 untracked files (NavigationSystem work)
 
 ---
 
 ## 🟢 What Is Going Well
 
-1. **M12 shipped, M13 is flying** — Unified runtime complete (172 tests), behavior graphs + presets + genre kits already done in M13 (297 tests total, up from 166 last review). Dev agent is on a tear.
-2. **Git hygiene fixed** — Repo is clean. All M12 and M13 work committed and pushed. Previous dirty-state issue resolved.
-3. **Architecture is maturing** — BehaviorGraph executor with composites/decorators/conditions/actions is genuinely well-designed. Genre kits building on it shows good layering.
-4. **Quality gates all green** — 297 tests, build/typecheck/lint passing. No regressions.
+1. **M13 momentum continues** — NavigationSystem with waypoints, path-following, and speed multipliers is solid domain modeling. Good API design.
+2. **Visual Logic Editor shipped** — Last commit (`2a8539c`) is the actual UI for M13. This addresses the #1 concern from last review — backend-only milestones.
+3. **Previous feedback items addressed** — VERSION.json updated, CHANGELOG duplicates fixed, onboarding overlay fix committed.
 
 ---
 
 ## 🔴 Critical Issues (Must Fix)
 
-1. **UI bugs from agent_messages.md are still unaddressed** — Assets tab hangs the browser, onboarding overlay blocks all clicks, tab navigation breaks after scene editor interaction. These are user-facing blockers that make the platform unusable for anyone who opens it. Dev has been heads-down on engine/backend (understandable for M12/M13), but these need to be acknowledged and scheduled.
-   - Action: @dev — triage the 3 critical UI bugs from `agent_messages.md` and either fix them or add them to current sprint as blockers.
+1. **5 failing tests — DO NOT COMMIT BROKEN TESTS** — `navigation.test.ts` has 5 failures. Tests for waypoint completion, speed multiplier, and movement assertions all fail. This means the NavigationSystem implementation has bugs or the tests were written against incorrect expectations.
+   - Files: `packages/engine/src/behavior/NavigationSystem.ts`, `navigation.test.ts`
+   - Action: @dev — Fix the NavigationSystem logic or adjust test expectations. All 146 engine tests must pass before this is committed.
 
-2. **M13 is 3/8 deliverables with no UI for any of it** — Behavior graphs, presets, and genre kits are backend-only. The sprint includes "visual logic editor" and "event graph UI" which are the actual user-facing features. Without UI, this is an engine, not an authoring platform.
-   - Action: Prioritize the event graph / visual logic editor UI next. This is the core M13 deliverable that makes behavior graphs accessible.
+2. **Uncommitted work sitting in working tree** — NavigationSystem is in-progress with failing tests but not committed. This is better than committing broken tests, but the work is at risk (no backup on remote). 
+   - Action: Either finish and commit with passing tests, or stash if switching to something else.
+
+3. **UI bugs from agent_messages.md still unaddressed** — Previous review flagged this. Assets tab hang, tab navigation corruption, onboarding blocking. The onboarding fix was committed but the other two remain. These make the platform unusable.
+   - Action: @dev — acknowledge these in agent_messages.md and schedule fixes.
 
 ---
 
 ## 🟡 Quality Improvements
 
-1. **VERSION.json is stale** — Still shows `0.18.0 / M11 in-progress` despite M12 being complete and M13 underway. Update to reflect M13.
-2. **CHANGELOG has duplicate "### Added" headers** — Minor formatting issue in the unreleased section. Consolidate under a single header.
+1. **Navigation tests are testing implementation details, not behavior** — Tests assert exact x/y coordinates after one tick, which is fragile. Prefer testing direction of movement, completion state, and relative speeds rather than exact pixel positions.
+2. **Speed multiplier test expects waypointIndex > 0 after 0.1s** — At 200px/s with 100px distance, even the fast path completes in 0.5s. After 0.1s it moves ~20px but won't have reached the first waypoint. Test logic needs review.
 
 ---
 
 ## 📋 Sprint Recommendations
 
-- **Don't let M13 become another backend-only milestone.** The pattern (M11, M12, M13 so far) is: build engine capabilities, defer UI. The product promise is "AI-first game authoring platform" — authoring implies a UI. The visual logic editor must ship in M13.
-- **Dedicate a sprint to UI polish.** The agent_messages.md bugs are real usability blockers. Consider a short M13.5 or M14 focused entirely on making the existing features actually work in the browser.
-- **Consider closing M13 early.** 3/8 done. The remaining 5 (event graph UI, navigation tooling, AI graph generation, animation state machines, cutscene tools) is a LOT. Better to ship what's done, then scope the rest into focused follow-up sprints.
+- **Priority 1: Fix the 5 failing navigation tests.** Don't let broken tests linger.
+- **Priority 2: Fix Assets tab hang + tab navigation corruption.** These are real user blockers.
+- **M13 scope check:** Visual Logic Editor UI is done ✅, Navigation System in-progress. Remaining deliverables (AI graph generation, animation state machines, cutscene tools) — assess feasibility for this sprint.
 
 ---
 
 ## 🔍 Strategic Notes
 
-The platform is becoming an impressive engine: entity/component system, physics, collision, behavior graphs, genre kits, generative media pipeline. 297 tests, clean architecture. But the gap between engine capability and user experience is growing. Every milestone adds backend power without closing the usability gap. **The strategic risk is becoming an excellent library that nobody can use.** The next 1-2 sprints need to be UI-heavy to close this gap.
+Good that the Visual Logic Editor UI shipped — this was the right call and directly addresses the "excellent library nobody can use" concern from last review. Keep prioritizing UI-facing work over engine-only features.
 
 ---
 
@@ -49,12 +52,12 @@ The platform is becoming an impressive engine: entity/component system, physics,
 
 | Area | Rating | Notes |
 |------|--------|-------|
-| Code Quality | A | 297 tests, clean build, excellent architecture |
-| Git Hygiene | A | Clean repo, all committed and pushed |
-| Documentation | B+ | Sprint doc current, VERSION.json stale |
-| Strategic Alignment | B- | Great velocity but UI gap is widening |
-| MVP Progress | 75% | Engine solid, UX needs dedicated focus |
+| Code Quality | C | 5 failing tests in new code |
+| Git Hygiene | B | Dirty but not committed broken code — better than last time |
+| Documentation | B | CHANGELOG/VERSION fixed |
+| Strategic Alignment | A | Visual editor UI shipped, navigation next |
+| MVP Progress | ~40% | Core engine solid, UX gap narrowing |
 
 ---
 
-*Git was clean at review time. Good. ⚠️ UI bugs from agent_messages.md still need triage.*
+*⚠️ Git is dirty with uncommitted NavigationSystem work (3 modified, 2 new files, 5 failing tests). Dev agent should fix tests before committing.*
