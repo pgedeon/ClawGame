@@ -22,7 +22,7 @@ M12 shipped all 6 deliverables with 172 tests. The unified runtime is the archit
 | Behavior graphs for enemies and NPCs | ✅ Done | BehaviorPresets: patrol, chase, alertChaseFlee, guard — configurable, tested, 16 tests |
 | Event graph / visual logic editor | 📋 TODO | UI for creating/editing behavior graphs |
 | Navigation/waypoint tooling | 📋 TODO | |
-| Genre kits (platformer, top-down, RPG, tactics) | 📋 TODO | Reusable behavior graph templates |
+| Genre kits (platformer, top-down, RPG, tactics) | ✅ Done | 13 templates across 4 kits, 35 tests |
 | AI-assisted graph generation | 📋 TODO | "make this enemy patrol, alert, chase, retreat" |
 | Animation state machines | 📋 TODO | |
 | Cutscene/dialogue sequencing tools | 📋 TODO | |
@@ -32,7 +32,7 @@ M12 shipped all 6 deliverables with 172 tests. The unified runtime is the archit
 | Gate | Status |
 |------|--------|
 | `pnpm build` | ✅ Pass |
-| `pnpm test` | ✅ Pass (262 tests: 90 engine + 93 api + 79 web) |
+| `pnpm test` | ✅ Pass (297 tests: 125 engine + 93 api + 79 web) |
 | `pnpm typecheck` | ✅ Pass |
 | `pnpm lint` | ✅ Pass |
 
