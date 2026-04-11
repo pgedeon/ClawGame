@@ -110,7 +110,7 @@ export interface CollisionComponent {
   solid?: boolean;
   trigger?: boolean;
   layers?: string[];
-  type?: 'solid' | 'trigger' | 'sensor' | 'player' | 'enemy' | 'collectible' | 'wall';
+  type?: 'solid' | 'trigger' | 'sensor' | 'player' | 'enemy' | 'collectible' | 'wall' | 'projectile';
 }
 
 /** Stats component for entity attributes and combat */
@@ -131,9 +131,22 @@ export interface PlayerInputComponent {
 
 /** Collectible component for items and pickups */
 export interface CollectibleComponent {
-  type: 'health' | 'coin' | 'powerup' | 'key' | 'weapon';
+  type: 'health' | 'coin' | 'powerup' | 'key' | 'weapon' | 'item';
   value?: number;
   name?: string;
+}
+
+/** Projectile component for moving hit-scan and spawned shots */
+export interface ProjectileComponent {
+  vx: number;
+  vy: number;
+  damage: number;
+  /** Collision targets this projectile can damage or block against */
+  targetTypes?: Array<'solid' | 'trigger' | 'sensor' | 'player' | 'enemy' | 'collectible' | 'wall'>;
+  /** Lifetime in seconds before the projectile expires */
+  lifetime?: number;
+  /** Whether the projectile should be removed after the first collision */
+  destroyOnHit?: boolean;
 }
 
 /** Physics component for advanced physics simulation */
@@ -188,6 +201,7 @@ export type Component =
   | StatsComponent
   | PlayerInputComponent
   | CollectibleComponent
+  | ProjectileComponent
   | PhysicsComponent
   | TriggerComponent
   | CameraComponent
@@ -197,7 +211,21 @@ export type Component =
 // ─── Entity Types ───
 
 /** Entity type classification used across editor, preview, and engine */
-export type EntityType = 'player' | 'enemy' | 'npc' | 'collectible' | 'obstacle' | 'platform' | 'trigger' | 'camera' | 'custom';
+export type EntityType =
+  | 'player'
+  | 'enemy'
+  | 'npc'
+  | 'projectile'
+  | 'collectible'
+  | 'item'
+  | 'health'
+  | 'rune'
+  | 'obstacle'
+  | 'platform'
+  | 'trigger'
+  | 'camera'
+  | 'custom'
+  | 'unknown';
 
 // ─── Serializable (JSON-friendly) types ───
 

@@ -10,7 +10,7 @@
 
 import React, { Suspense, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { Play, ArrowLeft, Skull, Trophy, Monitor, Cloud } from 'lucide-react';
+import { Play, ArrowLeft, Skull, Trophy, Monitor } from 'lucide-react';
 import '../game-preview.css';
 import { useSceneLoader } from '../hooks/useSceneLoader';
 import { useGamePreview, GENRE_CONTROLS } from '../hooks/useGamePreview';
@@ -31,24 +31,14 @@ const GamePreviewContent: React.FC = () => {
     activePanel, notifications, inventoryItems, questList,
     dialogueSpeaker, dialoguePortrait, dialogueText, dialogueChoices,
     craftingGrid, craftResult, learnedSpells, saveSlots,
+    isRecording, recordingTime, hasReplay, playbackTime, playbackProgress, isPlayingBack,
     controls,
     handleStartGame, handleRestart, handleBackToEditor,
     handleUseItem, handleEquipItem, handleCraftingCell, handleLearnSpell,
     handleAssignHotkey, handleSave, handleLoad, handleDeleteSave,
     handlePauseResume, handleDialogueChoice, setActivePanel,
+    handleToggleRecording, handlePlayReplay, handlePauseReplay, handleResetReplay, handleDownloadReplay,
   } = useGamePreview(projectId, projectScene, projectGenre);
-
-  // Replay state
-  const [isRecording, setIsRecording] = React.useState(false);
-
-  const handleToggleRecording = useCallback((recording: boolean) => {
-    setIsRecording(recording);
-  }, []);
-
-  const handleStartPlayback = useCallback((replayData: string) => {
-    console.log('Starting playback of replay:', replayData);
-    // TODO: Implement replay playback integration
-  }, []);
 
   if (loading) {
     return (
@@ -83,10 +73,9 @@ const GamePreviewContent: React.FC = () => {
           </button>
           <h1 className="game-preview-title">{projectName}</h1>
           <div className="game-preview-controls">
-            <select className="preview-target-selector" title="Preview target">
-              <option value="local"><Monitor size={12} /> Local Canvas</option>
-              <option value="cloud" disabled><Cloud size={12} /> Cloud Preview (coming soon)</option>
-            </select>
+            <span className="game-status ready">
+              <Monitor size={12} /> Local Preview
+            </span>
             <span className={`game-status ${gameStarted ? (gamePaused ? 'paused' : 'playing') : 'ready'}`}>
               {gameStarted ? (gamePaused ? '⏸ Paused' : '▶ Playing') : '⏹ Ready'}
             </span>
@@ -94,14 +83,19 @@ const GamePreviewContent: React.FC = () => {
         </div>
 
         {/* Replay Controls (M14) */}
-        {projectId && (
-          <ReplayControls
-            projectId={projectId}
-            isRecording={isRecording}
-            onToggleRecording={handleToggleRecording}
-            onStartPlayback={handleStartPlayback}
-          />
-        )}
+        <ReplayControls
+          isRecording={isRecording}
+          recordingTime={recordingTime}
+          hasReplay={hasReplay}
+          playbackTime={playbackTime}
+          playbackProgress={playbackProgress}
+          isPlayingBack={isPlayingBack}
+          onToggleRecording={handleToggleRecording}
+          onPlayReplay={handlePlayReplay}
+          onPauseReplay={handlePauseReplay}
+          onResetReplay={handleResetReplay}
+          onDownloadReplay={handleDownloadReplay}
+        />
 
         {/* Canvas with device preview frame */}
         <DevicePreviewFrame>

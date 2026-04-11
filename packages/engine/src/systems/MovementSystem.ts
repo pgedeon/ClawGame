@@ -2,10 +2,20 @@
  * @clawgame/engine - Movement system
  */
 
-import { Scene, InputState, Entity } from '../types';
-import { MovementComponent, Transform } from '../types';
+import { Scene, InputState } from '../types';
+import { CollisionComponent, MovementComponent } from '../types';
 
 export class MovementSystem {
+  private worldBounds: { width: number; height: number };
+
+  constructor(worldBounds = { width: 800, height: 600 }) {
+    this.worldBounds = worldBounds;
+  }
+
+  setWorldBounds(bounds: { width: number; height: number }): void {
+    this.worldBounds = bounds;
+  }
+
   /**
    * Update all entities with Movement component.
    * For entities that also have a 'playerInput' marker component,
@@ -40,10 +50,12 @@ export class MovementSystem {
       transform.x += movement.vx * deltaTime;
       transform.y += movement.vy * deltaTime;
 
-      // Simple boundary checking (assume canvas size from scene or fallback)
-      // TODO: Make canvas size configurable per scene
-      transform.x = Math.max(0, Math.min(transform.x, 800 - 32));
-      transform.y = Math.max(0, Math.min(transform.y, 600 - 32));
+      const collision = entity.components.get('collision') as CollisionComponent | undefined;
+      const width = collision?.width ?? 32;
+      const height = collision?.height ?? 32;
+
+      transform.x = Math.max(0, Math.min(transform.x, this.worldBounds.width - width));
+      transform.y = Math.max(0, Math.min(transform.y, this.worldBounds.height - height));
     });
   }
 

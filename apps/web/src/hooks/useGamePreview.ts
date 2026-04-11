@@ -19,6 +19,13 @@ import { QuestManager } from '../rpg/quests';
 import { DialogueManager } from '../rpg/dialogue';
 import { SpellCraftingManager } from '../rpg/spellcrafting';
 import { SaveLoadManager } from '../rpg/saveload';
+import { createDefaultPreviewScene } from '../utils/previewScene';
+import { ReplayRecorder, ReplayPlayer, downloadReplay, type ReplayData, type InputFrame } from '../rpg/replay';
+import { AISystem, CollisionSystem, EventBus, MovementSystem, PhysicsSystem, ProjectileSystem } from '@clawgame/engine';
+import { createPreviewCollisionScene } from '../utils/previewCollisionScene';
+import { applyPreviewRuntimeScene, createPreviewRuntimeScene, toEngineInputState } from '../utils/previewRuntimeScene';
+import { applyPreviewProjectileScene, createPreviewProjectileScene } from '../utils/previewProjectileScene';
+import { createTowerDefenseState, createTowerDefenseTower, getTowerDefenseWaves, registerTowerDefenseEnemyDefeat, updateTowerDefenseFrame, type TowerDefenseTower } from '../utils/previewTowerDefense';
 
 /* ─── Types ─── */
 export interface GameStats { fps: number; entities: number; memory: string; }
@@ -33,48 +40,46 @@ const TYPE_SIZES: Record<string, [number, number]> = {
   obstacle: [32, 32], npc: [32, 48], unknown: [32, 32],
 };
 
-/* ─── Default scene fallback for empty/null scenes ─── */
-const DEFAULT_SCENE: ProjectScene = {
-  entities: [
-    {
-      id: 'player',
-      type: 'player',
-      transform: { x: 400, y: 300, scaleX: 1, scaleY: 1, rotation: 0 },
-      components: {
-        playerInput: true,
-        movement: { speed: 200 },
-        stats: { hp: 100, maxHp: 100, damage: 10 },
-        sprite: { width: 32, height: 48, color: '#3b82f6' }
-      }
-    },
-    {
-      id: 'enemy-1',
-      type: 'enemy',
-      transform: { x: 600, y: 200, scaleX: 1, scaleY: 1, rotation: 0 },
-      components: {
-        ai: { speed: 50, type: 'patrol' },
-        stats: { hp: 30, maxHp: 30, damage: 10 },
-        sprite: { width: 32, height: 32, color: '#ef4444' },
-        enemyType: 'slime'
-      }
-    },
-    {
-      id: 'coin-1',
-      type: 'collectible',
-      transform: { x: 500, y: 350, scaleX: 1, scaleY: 1, rotation: 0 },
-      components: {
-        collectible: { type: 'coin', value: 10 },
-        sprite: { width: 16, height: 16, color: '#f59e0b' }
-      }
-    }
-  ],
-  dialogueTrees: [],
-  platforms: [],
-  collectibles: [],
-  waypoints: [],
-  spawnPoint: undefined,
-  bounds: undefined
-};
+const PANEL_KEYS = ['inventory', 'quests', 'spellcraft', 'saveload'];
+
+function normalizeInputKey(key: string): string {
+  return key === ' ' ? 'space' : key.toLowerCase();
+}
+
+function createKeyState(keys: string[]): Record<string, boolean> {
+  const state: Record<string, boolean> = {};
+  for (const key of keys) {
+    state[key] = true;
+  }
+  return state;
+}
+
+function isKeyJustPressed(
+  currentKeys: Record<string, boolean>,
+  previousKeys: Record<string, boolean>,
+  key: string,
+): boolean {
+  return Boolean(currentKeys[key]) && !Boolean(previousKeys[key]);
+}
+
+function getMovementDirection(keys: Record<string, boolean>): { dx: number; dy: number } {
+  let dx = 0;
+  let dy = 0;
+
+  if (keys.arrowleft || keys.a) dx = -1;
+  else if (keys.arrowright || keys.d) dx = 1;
+
+  if (keys.arrowup || keys.w) dy = -1;
+  else if (keys.arrowdown || keys.s) dy = 1;
+
+  if (dx !== 0 && dy !== 0) {
+    const length = Math.sqrt(dx * dx + dy * dy);
+    dx /= length;
+    dy /= length;
+  }
+
+  return { dx, dy };
+}
 
 /* ─── Genre-specific control text ─── */
 export const GENRE_CONTROLS: Record<string, {
@@ -150,7 +155,7 @@ export function useGamePreview(
   // Use projectScene if available and has entities, otherwise use default
   const activeScene = (projectScene && projectScene.entities && projectScene.entities.length > 0)
     ? projectScene
-    : DEFAULT_SCENE;
+    : createDefaultPreviewScene();
 
   /* ─── Game state ─── */
   const [gameStats, setGameStats] = useState<GameStats>({ fps: 60, entities: 0, memory: 'N/A' });
@@ -185,8 +190,42 @@ export function useGamePreview(
   const dialogueMgrRef = useRef<DialogueManager>(new DialogueManager() as any);
   const spellMgrRef = useRef<SpellCraftingManager>(new SpellCraftingManager() as any);
   const saveMgrRef = useRef<SaveLoadManager>(new SaveLoadManager() as any);
+  const replayRecorderRef = useRef<ReplayRecorder | null>(projectId ? new ReplayRecorder(projectId) : null);
+  const replayPlayerRef = useRef<ReplayPlayer | null>(null);
+  const replayDataRef = useRef<ReplayData | null>(null);
+
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [hasReplay, setHasReplay] = useState(false);
+  const [playbackTime, setPlaybackTime] = useState(0);
+  const [playbackProgress, setPlaybackProgress] = useState(0);
+  const [isPlayingBack, setIsPlayingBack] = useState(false);
+  const [replaySessionKey, setReplaySessionKey] = useState(0);
+  const [replayAutoplay, setReplayAutoplay] = useState(false);
 
   const controls = GENRE_CONTROLS[projectGenre] || GENRE_CONTROLS.default;
+
+  useEffect(() => {
+    replayRecorderRef.current = projectId ? new ReplayRecorder(projectId) : null;
+    replayPlayerRef.current = null;
+    replayDataRef.current = null;
+    setIsRecording(false);
+    setRecordingTime(0);
+    setHasReplay(false);
+    setPlaybackTime(0);
+    setPlaybackProgress(0);
+    setIsPlayingBack(false);
+    setReplaySessionKey(0);
+    setReplayAutoplay(false);
+  }, [projectId]);
+
+  useEffect(() => {
+    if (!isRecording) return undefined;
+    const interval = window.setInterval(() => {
+      setRecordingTime((prev) => prev + 1);
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [isRecording]);
 
   /* ─── Notification subscription ─── */
   useEffect(() => {
@@ -359,11 +398,97 @@ export function useGamePreview(
     setCollectedRunes([]);
     setTimeElapsed(0);
     setActivePanel('none');
+    replayPlayerRef.current = null;
+    setPlaybackTime(0);
+    setPlaybackProgress(0);
+    setIsPlayingBack(false);
+    setReplaySessionKey(0);
+    setReplayAutoplay(false);
   }, []);
 
   const handleBackToEditor = useCallback(() => {
     if (projectId) navigate(`/project/${projectId}/scene-editor`);
   }, [projectId, navigate]);
+
+  const beginReplaySession = useCallback((autoplay: boolean) => {
+    if (!replayDataRef.current) return;
+    setReplayAutoplay(autoplay);
+    setReplaySessionKey((prev) => prev + 1);
+    setPlaybackTime(0);
+    setPlaybackProgress(0);
+    setIsPlayingBack(autoplay);
+    setGameStarted(true);
+    setGamePaused(false);
+    setGameOver(false);
+    setVictory(false);
+    setPlayerScore(0);
+    setPlayerHealth(100);
+    setPlayerMana(100);
+    setCollectedRunes([]);
+    setTimeElapsed(0);
+    setActivePanel('none');
+  }, []);
+
+  const handleToggleRecording = useCallback(() => {
+    const recorder = replayRecorderRef.current;
+    if (!recorder) return;
+
+    if (isRecording) {
+      const data = recorder.stop();
+      replayDataRef.current = data;
+      replayPlayerRef.current = null;
+      setIsRecording(false);
+      setRecordingTime(0);
+      setHasReplay(true);
+      setPlaybackTime(0);
+      setPlaybackProgress(0);
+      setIsPlayingBack(false);
+      downloadReplay(data);
+      return;
+    }
+
+    replayPlayerRef.current = null;
+    replayDataRef.current = null;
+    setHasReplay(false);
+    setPlaybackTime(0);
+    setPlaybackProgress(0);
+    setIsPlayingBack(false);
+    setReplaySessionKey(0);
+    setReplayAutoplay(false);
+    recorder.start();
+    setRecordingTime(0);
+    setIsRecording(true);
+  }, [isRecording]);
+
+  const handlePlayReplay = useCallback(() => {
+    if (!replayDataRef.current) return;
+
+    const activePlayer = replayPlayerRef.current;
+    if (activePlayer && playbackProgress > 0 && playbackProgress < 1) {
+      activePlayer.play();
+      setIsPlayingBack(true);
+      setGamePaused(false);
+      return;
+    }
+
+    beginReplaySession(true);
+  }, [beginReplaySession, playbackProgress]);
+
+  const handlePauseReplay = useCallback(() => {
+    replayPlayerRef.current?.pause();
+    setIsPlayingBack(false);
+  }, []);
+
+  const handleResetReplay = useCallback(() => {
+    if (!replayDataRef.current) return;
+    beginReplaySession(false);
+  }, [beginReplaySession]);
+
+  const handleDownloadReplay = useCallback(() => {
+    if (replayDataRef.current) {
+      downloadReplay(replayDataRef.current);
+    }
+  }, []);
 
   /* ─── Game loop ─── */
   useEffect(() => {
@@ -378,6 +503,22 @@ export function useGamePreview(
     };
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
+
+    const replayPlayer = replaySessionKey > 0 && replayDataRef.current
+      ? new ReplayPlayer(replayDataRef.current)
+      : null;
+    replayPlayerRef.current = replayPlayer;
+    if (replayPlayer && replayAutoplay) {
+      replayPlayer.play();
+    }
+    const collisionBus = new EventBus();
+    const collisionSystem = new CollisionSystem();
+    collisionSystem.attach(collisionBus);
+    const aiSystem = new AISystem();
+    const movementSystem = new MovementSystem({ width: canvas.width, height: canvas.height });
+    const physicsSystem = new PhysicsSystem({ width: canvas.width, height: canvas.height });
+    const projectileSystem = new ProjectileSystem({ width: canvas.width, height: canvas.height });
+    projectileSystem.attach(collisionBus);
 
     /* Init entities */
     const entities = new Map<string, any>();
@@ -402,7 +543,8 @@ export function useGamePreview(
       });
     }
 
-    const keys: Record<string, boolean> = {};
+    const liveKeys: Record<string, boolean> = {};
+    let previousKeys: Record<string, boolean> = {};
     const projectiles: any[] = [];
     let frameCount = 0, lastTime = performance.now(), lastShotTime = 0;
     let score = 0, health = 100, mana = 100, invincibleTimer = 0, gameTime = 0;
@@ -411,34 +553,10 @@ export function useGamePreview(
 
     /* ═══ TOWER DEFENSE MODE (strategy genre) ═══ */
     const isTDMode = projectGenre === 'strategy';
-    const towers: any[] = [];
-    let tdWaveIndex = 0;
-    let tdWaveTimer = 0;
-    let tdSpawnQueue: any[] = [];
-    let tdSpawnTimer = 0;
-    let tdCoreHealth = 0;
-    let tdMaxCoreHealth = 0;
-    let tdWaveMessage = '';
-    let tdWaveMessageTimer = 0;
-    let tdEnemiesAlive = 0;
-    let tdAllWavesDone = false;
-    let tdEnemyIdCounter = 0;
-
-    const tdWaves: any[] = (activeScene as any).waves || [
-      { enemies: [{ type: 'intern', count: 5, hp: 25, speed: 80, color: '#86efac', size: 22, score: 10 }], delay: 3000, message: 'Wave 1: Interns smell fresh coffee...' },
-      { enemies: [{ type: 'manager', count: 4, hp: 60, speed: 60, color: '#fbbf24', size: 28, score: 25 }], delay: 5000, message: 'Wave 2: Middle management!' },
-      { enemies: [{ type: 'intern', count: 8, hp: 30, speed: 100, color: '#86efac', size: 22, score: 10 }, { type: 'manager', count: 3, hp: 70, speed: 55, color: '#fbbf24', size: 28, score: 25 }], delay: 6000, message: 'Wave 3: The interns told their friends...' },
-      { enemies: [{ type: 'it-guy', count: 5, hp: 45, speed: 120, color: '#60a5fa', size: 24, score: 30 }], delay: 6000, message: 'Wave 4: IT detected caffeine on the network!' },
-      { enemies: [{ type: 'ceo', count: 1, hp: 300, speed: 40, color: '#f43f5e', size: 40, score: 200 }, { type: 'manager', count: 6, hp: 90, speed: 60, color: '#fbbf24', size: 28, score: 25 }], delay: 8000, message: 'Wave 5: THE CEO WANTS A TRIPLE SOY LATTE!' },
-    ];
-
-    if (isTDMode) {
-      const coreEntity = Array.from(entities.values()).find((e: any) => e.id === 'core-bean');
-      if (coreEntity) {
-        tdCoreHealth = coreEntity.health || coreEntity.maxHealth || 500;
-        tdMaxCoreHealth = tdCoreHealth;
-      }
-    }
+    const towers: TowerDefenseTower[] = [];
+    const tdWaves = getTowerDefenseWaves(activeScene as any);
+    const coreEntity = isTDMode ? Array.from(entities.values()).find((e: any) => e.id === 'core-bean') : null;
+    const tdState = createTowerDefenseState(coreEntity?.health || coreEntity?.maxHealth || 0);
 
     const inventory = inventoryRef.current as any;
     const questMgr = questMgrRef.current as any;
@@ -448,6 +566,68 @@ export function useGamePreview(
     if (activeScene.dialogueTrees) {
       activeScene.dialogueTrees.forEach((dt: any) => dialogueMgr.registerTree(dt));
     }
+
+    const collisionSubscriptions = [
+      collisionBus.on('collision:pickup', ({ collectibleId, type, value }) => {
+        const collectible = entities.get(collectibleId);
+        if (!collectible) return;
+
+        if (type === 'item' || collectible.type === 'item' || collectible.components?.itemDrop) {
+          const drop = collectible.components?.itemDrop;
+          if (drop) {
+            inventory.addItem({ ...drop });
+            syncRPGState();
+          }
+          score += value || 10;
+        } else if (type === 'health') {
+          health = Math.min(100, health + (collectible.components?.collectible?.healAmount || 30));
+          score += value || 30;
+        } else if (type === 'rune') {
+          if (!collectedRuneIds.includes(collectibleId)) {
+            collectedRuneIds.push(collectibleId);
+            score += value || 25;
+            setCollectedRunes([...collectedRuneIds]);
+          }
+        } else {
+          score += value || 10;
+        }
+
+        entities.delete(collectibleId);
+      }),
+      collisionBus.on('collision:damage', ({ damage }) => {
+        if (invincibleTimer > 0) return;
+        health -= damage;
+        invincibleTimer = 1000;
+        if (health <= 0) {
+          health = 0;
+          setGameOver(true);
+        }
+      }),
+      collisionBus.on('projectile:hit', ({ targetId, targetType, damage }) => {
+        if (targetType !== 'enemy') return;
+
+        const enemy = entities.get(targetId);
+        if (!enemy) return;
+
+        enemy.health -= damage;
+        enemy.hitFlash = 200;
+        if (enemy.health <= 0) {
+          score += enemy.scoreValue || 50;
+          defeatedEnemies.push(enemy.id);
+          questMgr.onKill(enemy.enemyType || 'slime');
+          if (isTDMode) {
+            registerTowerDefenseEnemyDefeat(tdState);
+          }
+          syncRPGState();
+          entities.delete(enemy.id);
+        }
+      }),
+      collisionBus.on('collision:trigger', ({ event }) => {
+        if (event === 'level_complete' || event === 'victory') {
+          setVictory(true);
+        }
+      }),
+    ];
 
     inventory.addItem({
       id: 'health-potion', name: 'Health Potion', description: 'Restores 25 HP.',
@@ -467,82 +647,89 @@ export function useGamePreview(
 
     /* ─── Input ─── */
     const handleKeyDown = (e: KeyboardEvent) => {
-      const k = e.key.toLowerCase();
-      keys[k] = true;
+      const normalizedKey = normalizeInputKey(e.key);
+      liveKeys[normalizedKey] = true;
+      if (normalizedKey === 'space' || normalizedKey === 'tab' || normalizedKey === 'escape' || normalizedKey === 'f5' || normalizedKey.startsWith('arrow')) {
+        e.preventDefault();
+      }
+    };
 
-      const panelOpen = ['inventory', 'quests', 'spellcraft', 'saveload'].includes(
+    const handleKeyUp = (e: KeyboardEvent) => {
+      liveKeys[normalizeInputKey(e.key)] = false;
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    /* ─── UPDATE ─── */
+    const update = () => {
+      if (!gameStarted || gamePaused || gameOver || victory) return;
+      const currentTime = performance.now();
+      const deltaTime = Math.min(currentTime - lastTime, 50);
+      lastTime = currentTime;
+      const activeReplayPlayer = replayPlayerRef.current;
+      const replayFrame: InputFrame | null = activeReplayPlayer ? activeReplayPlayer.tick(deltaTime) : null;
+      const activeKeys = activeReplayPlayer ? createKeyState(replayFrame?.keys ?? []) : liveKeys;
+      const panelOpen = PANEL_KEYS.includes(
         document.querySelector('[data-rpg-panel]')?.getAttribute('data-rpg-panel') || 'none'
       );
+      const wasJustPressed = (key: string) => isKeyJustPressed(activeKeys, previousKeys, key);
+      gameTime += deltaTime;
+      setTimeElapsed(Math.floor(gameTime / 1000));
 
-      if (e.key === 'Escape') {
-        setActivePanel(prev => {
+      if (invincibleTimer > 0) invincibleTimer -= deltaTime;
+      mana = Math.min(100, mana + deltaTime * 0.01);
+      spellMgr.tickCooldowns(deltaTime);
+
+      if (wasJustPressed('escape')) {
+        setActivePanel((prev) => {
           if (prev !== 'none' && prev !== 'dialogue') return 'none';
           if (prev === 'none' && gameStarted && !gameOver && !victory) {
             setGamePaused(true);
             return 'saveload';
           }
-          if ((prev as string) === 'saveload' && gamePaused) return 'none';
           return prev;
         });
+        previousKeys = { ...activeKeys };
         return;
       }
 
-      if (e.key === ' ') {
-        if (!gameStarted || gamePaused || gameOver || victory || panelOpen) return;
-        e.preventDefault();
-        const currentTime = performance.now();
+      if (wasJustPressed('space') && !panelOpen) {
         if (currentTime - lastShotTime > 300) {
           const player = entities.get('player') || entities.get('player-1');
           if (player) {
-            let dx = 0, dy = 0;
-            if (keys['arrowleft'] || keys['a']) dx = -1;
-            else if (keys['arrowright'] || keys['d']) dx = 1;
-            else if (keys['arrowup'] || keys['w']) dy = -1;
-            else if (keys['arrowdown'] || keys['s']) dy = 1;
-            else dx = 1;
-            if (dx !== 0 && dy !== 0) { const l = Math.sqrt(dx*dx+dy*dy); dx/=l; dy/=l; }
+            const { dx, dy } = getMovementDirection(activeKeys);
             projectiles.push({
               id: `proj-${Date.now()}-${Math.random()}`,
               x: player.transform.x, y: player.transform.y,
-              vx: dx * 500, vy: dy * 500,
+              vx: (dx || 1) * 500, vy: dy * 500,
               damage: inventory.getWeaponDamage(),
               color: '#fbbf24', createdAt: currentTime,
             });
             lastShotTime = currentTime;
           }
         }
-        return;
       }
 
-
-      // TD: Tower placement
-      if (k === 't' && isTDMode && gameStarted && !gamePaused) {
+      if (wasJustPressed('t') && isTDMode) {
         const player = entities.get('player') || entities.get('player-1');
         if (player && mana >= 30) {
           mana -= 30;
-          towers.push({
-            id: `tower-${Date.now()}`,
-            x: player.transform.x, y: player.transform.y,
-            range: 150, damage: 15, fireRate: 800,
-            lastShot: 0, color: '#D2691E',
-          });
+          towers.push(createTowerDefenseTower(player));
         }
       }
-      if (!gameStarted || gameOver || victory) return;
 
-      if (k === 'i') { e.preventDefault(); setActivePanel(p => p === 'inventory' ? 'none' : 'inventory'); syncRPGState(); return; }
-      if (k === 'j') { e.preventDefault(); setActivePanel(p => p === 'quests' ? 'none' : 'quests'); syncRPGState(); return; }
-      if (k === 'c') { e.preventDefault(); setActivePanel(p => p === 'spellcraft' ? 'none' : 'spellcraft'); syncRPGState(); return; }
-      if (k === 'f5') { e.preventDefault(); handleSave(0); return; }
-      if (k === 'tab') {
-        e.preventDefault();
+      if (wasJustPressed('i')) { setActivePanel((p) => p === 'inventory' ? 'none' : 'inventory'); syncRPGState(); previousKeys = { ...activeKeys }; return; }
+      if (wasJustPressed('j')) { setActivePanel((p) => p === 'quests' ? 'none' : 'quests'); syncRPGState(); previousKeys = { ...activeKeys }; return; }
+      if (wasJustPressed('c')) { setActivePanel((p) => p === 'spellcraft' ? 'none' : 'spellcraft'); syncRPGState(); previousKeys = { ...activeKeys }; return; }
+      if (wasJustPressed('f5')) { handleSave(0); previousKeys = { ...activeKeys }; return; }
+      if (wasJustPressed('tab')) {
         const player = entities.get('player') || entities.get('player-1');
         if (player) {
           const npcs = Array.from(entities.values()).filter((e: any) => e.type === 'npc');
           for (const npc of npcs) {
             const dx = player.transform.x - npc.transform.x;
             const dy = player.transform.y - npc.transform.y;
-            if (Math.sqrt(dx*dx+dy*dy) < 80) {
+            if (Math.sqrt(dx * dx + dy * dy) < 80) {
               const treeId = npc.components?.npc?.dialogueTreeId;
               if (treeId && dialogueMgr.startDialogue(treeId)) {
                 setActivePanel('dialogue');
@@ -554,36 +741,32 @@ export function useGamePreview(
                   const choices = dialogueMgr.getChoices();
                   setDialogueChoices(choices.map((c: any, i: number) => ({ text: c.text, index: i })));
                 }
+                previousKeys = { ...activeKeys };
                 return;
               }
             }
           }
         }
-        return;
       }
 
-      if (['1','2','3','4','5','6','7','8'].includes(k) && !panelOpen) {
-        const hotkey = parseInt(k);
+      const justPressedHotkey = ['1', '2', '3', '4', '5', '6', '7', '8'].find((key) => wasJustPressed(key));
+      if (justPressedHotkey && !panelOpen) {
+        const hotkey = parseInt(justPressedHotkey, 10);
         const spell = spellMgr.castSpell(hotkey);
         if (spell) {
           mana -= spell.manaCost;
           if (mana < 0) mana = 0;
           const player = entities.get('player') || entities.get('player-1');
           if (player) {
-            let dx = 0, dy = 0;
-            if (keys['arrowleft'] || keys['a']) dx = -1;
-            else if (keys['arrowright'] || keys['d']) dx = 1;
-            else if (keys['arrowup'] || keys['w']) dy = -1;
-            else if (keys['arrowdown'] || keys['s']) dy = 1;
-            else dx = 1;
-            if (dx !== 0 && dy !== 0) { const l = Math.sqrt(dx*dx+dy*dy); dx/=l; dy/=l; }
+            const { dx, dy } = getMovementDirection(activeKeys);
             if (spell.effectType === 'heal') {
               health = Math.min(100, health + spell.damage);
             } else if (spell.effectType === 'projectile') {
               projectiles.push({
                 id: `spell-${Date.now()}-${Math.random()}`,
                 x: player.transform.x, y: player.transform.y,
-                vx: dx * spell.projectileSpeed, vy: dy * spell.projectileSpeed,
+                vx: (dx || 1) * spell.projectileSpeed,
+                vy: dy * spell.projectileSpeed,
                 damage: spell.damage, color: spell.projectileColor,
                 createdAt: performance.now(), isSpell: true,
               });
@@ -591,134 +774,26 @@ export function useGamePreview(
           }
           syncRPGState();
         }
-        return;
-      }
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => { keys[e.key.toLowerCase()] = false; };
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-
-    const checkCollision = (a: any, b: any) => {
-      const dx = a.transform.x - b.transform.x;
-      const dy = a.transform.y - b.transform.y;
-      return Math.sqrt(dx*dx+dy*dy) < (a.width + b.width) / 2;
-    };
-
-    /* ─── UPDATE ─── */
-    const update = () => {
-      if (!gameStarted || gamePaused || gameOver || victory) return;
-      const currentTime = performance.now();
-      const deltaTime = Math.min(currentTime - lastTime, 50);
-      lastTime = currentTime;
-      gameTime += deltaTime;
-      setTimeElapsed(Math.floor(gameTime / 1000));
-
-      if (invincibleTimer > 0) invincibleTimer -= deltaTime;
-      mana = Math.min(100, mana + deltaTime * 0.01);
-      spellMgr.tickCooldowns(deltaTime);
-
-      for (let i = projectiles.length - 1; i >= 0; i--) {
-        const proj = projectiles[i];
-        proj.x += proj.vx * (deltaTime / 1000);
-        proj.y += proj.vy * (deltaTime / 1000);
-        if (proj.x < 0 || proj.x > canvas.width || proj.y < 0 || proj.y > canvas.height) {
-          projectiles.splice(i, 1); continue;
-        }
-        const enemies = Array.from(entities.values()).filter((e: any) => e.type === 'enemy');
-        for (const enemy of enemies) {
-          const dx = proj.x - enemy.transform.x;
-          const dy = proj.y - enemy.transform.y;
-          if (Math.sqrt(dx*dx+dy*dy) < (enemy.width + 10) / 2) {
-            enemy.health -= proj.damage; enemy.hitFlash = 200; projectiles.splice(i, 1);
-            if (enemy.health <= 0) {
-              score += 50; defeatedEnemies.push(enemy.id);
-              questMgr.onKill(enemy.enemyType || 'slime'); syncRPGState(); entities.delete(enemy.id);
-            }
-            break;
-          }
-        }
-        if (!projectiles[i]) continue;
-        const obstacles = Array.from(entities.values()).filter((e: any) => e.type === 'obstacle');
-        for (const obs of obstacles) {
-          const dx = proj.x - obs.transform.x;
-          const dy = proj.y - obs.transform.y;
-          if (Math.sqrt(dx*dx+dy*dy) < (obs.width + 10) / 2) { projectiles.splice(i, 1); break; }
-        }
       }
 
-      entities.forEach((entity: any, id: string) => {
-        if (entity.components?.playerInput) {
-          const speed = entity.components?.movement?.speed || 200;
-          let newVx = 0, newVy = 0;
-          if (keys['arrowleft'] || keys['a']) newVx = -speed;
-          if (keys['arrowright'] || keys['d']) newVx = speed;
-          if (keys['arrowup'] || keys['w']) newVy = -speed;
-          if (keys['arrowdown'] || keys['s']) newVy = speed;
-          const obstacles = Array.from(entities.values()).filter((e: any) => e.type === 'obstacle');
-          const nextX = entity.transform.x + newVx * (deltaTime / 1000);
-          const testX = { ...entity, transform: { ...entity.transform, x: nextX } };
-          if (!obstacles.some((o: any) => id !== o.id && checkCollision(testX, o))) entity.transform.x = nextX;
-          const nextY = entity.transform.y + newVy * (deltaTime / 1000);
-          const testY = { ...entity, transform: { ...entity.transform, y: nextY } };
-          if (!obstacles.some((o: any) => id !== o.id && checkCollision(testY, o))) entity.transform.y = nextY;
-          const margin = entity.width / 2;
-          entity.transform.x = Math.max(margin, Math.min(canvas.width - margin, entity.transform.x));
-          entity.transform.y = Math.max(margin, Math.min(canvas.height - margin, entity.transform.y));
-          if (newVx > 0) entity.facing = 'right';
-          if (newVx < 0) entity.facing = 'left';
-        }
+      projectileSystem.setWorldBounds({ width: canvas.width, height: canvas.height });
+      const projectileScene = createPreviewProjectileScene(projectiles, entities.values());
+      projectileSystem.update(projectileScene, deltaTime / 1000);
+      applyPreviewProjectileScene(projectileScene, projectiles);
 
-        if (entity.type === 'enemy' && gameStarted) {
-          if (isTDMode) {
-            // TD: Enemies move toward the core
-            const core = entities.get('core-bean');
-            const target = core || (entities.get('player') || entities.get('player-1'));
-            const patrolSpeed = entity.tdSpeed || entity.components?.ai?.speed || 60;
-            if (target) {
-              const dx = target.transform.x - entity.transform.x;
-              const dy = target.transform.y - entity.transform.y;
-              const dist = Math.sqrt(dx*dx+dy*dy);
-              if (dist > 5) {
-                entity.transform.x += (dx/dist) * patrolSpeed * (deltaTime/1000);
-                entity.transform.y += (dy/dist) * patrolSpeed * (deltaTime/1000);
-              }
-              if (dist < 30) {
-                tdCoreHealth -= (entity.damage || 5);
-                tdEnemiesAlive--;
-                entities.delete(entity.id);
-                if (tdCoreHealth <= 0) { tdCoreHealth = 0; setGameOver(true); }
-              }
-            }
-            entity.transform.x = Math.max(entity.width/2, Math.min(canvas.width - entity.width/2, entity.transform.x));
-            entity.transform.y = Math.max(entity.height/2, Math.min(canvas.height - entity.height/2, entity.transform.y));
-            if (entity.hitFlash > 0) entity.hitFlash -= deltaTime;
-          } else {
-          const player = entities.get('player') || entities.get('player-1');
-          const patrolSpeed = entity.components?.ai?.speed || 50;
-          if (player) {
-            const dx = player.transform.x - entity.transform.x;
-            const dy = player.transform.y - entity.transform.y;
-            const dist = Math.sqrt(dx*dx+dy*dy);
-            if (dist < 200) {
-              entity.transform.x += (dx/dist) * patrolSpeed * 0.6 * (deltaTime/1000);
-              entity.transform.y += (dy/dist) * patrolSpeed * 0.6 * (deltaTime/1000);
-              if (dist < (entity.width + player.width) / 2 && invincibleTimer <= 0) {
-                const defense = inventory.getArmorDefense();
-                const dmg = Math.max(1, (entity.damage || 10) - defense);
-                health -= dmg; invincibleTimer = 1000;
-                if (health <= 0) { health = 0; setGameOver(true); }
-              }
-            } else {
-              const t = currentTime / 1000;
-              entity.transform.x = entity.patrolOrigin.x + Math.sin(t * (patrolSpeed/100) + entity.patrolOffset) * 100;
-              entity.transform.y = entity.patrolOrigin.y + Math.cos(t * (patrolSpeed/80) + entity.patrolOffset * 2) * 80;
-            }
-          }
-          entity.transform.x = Math.max(entity.width/2, Math.min(canvas.width - entity.width/2, entity.transform.x));
-          entity.transform.y = Math.max(entity.height/2, Math.min(canvas.height - entity.height/2, entity.transform.y));
-          if (entity.hitFlash > 0) entity.hitFlash -= deltaTime;
-          }
+      if (!isTDMode) {
+        movementSystem.setWorldBounds({ width: canvas.width, height: canvas.height });
+        physicsSystem.setWorldBounds({ width: canvas.width, height: canvas.height });
+        const runtimeScene = createPreviewRuntimeScene(entities.values(), { isTowerDefense: false });
+        aiSystem.update(runtimeScene, deltaTime / 1000);
+        movementSystem.update(runtimeScene, toEngineInputState(activeKeys), deltaTime / 1000);
+        physicsSystem.update(runtimeScene, deltaTime / 1000);
+        applyPreviewRuntimeScene(runtimeScene, entities);
+      }
+
+      entities.forEach((entity: any) => {
+        if (entity.type === 'enemy' && entity.hitFlash > 0) {
+          entity.hitFlash -= deltaTime;
         }
 
         if (entity.type === 'collectible' || entity.type === 'item') {
@@ -726,106 +801,58 @@ export function useGamePreview(
         }
       });
 
-      const player = entities.get('player') || entities.get('player-1');
-      if (player) {
-        Array.from(entities.values()).filter((e: any) => e.type === 'collectible').forEach((item: any) => {
-          const dx = player.transform.x - item.transform.x;
-          const dy = player.transform.y - item.transform.y;
-          if (Math.sqrt(dx*dx+dy*dy) < (player.width + item.width) / 2) {
-            const col = item.components?.collectible;
-            if (col?.type === 'health') { health = Math.min(100, health + (col.healAmount || 30)); score += col.value || 30; }
-            else if (col?.type === 'rune') { if (!collectedRuneIds.includes(item.id)) { collectedRuneIds.push(item.id); score += col.value || 25; setCollectedRunes([...collectedRuneIds]); } }
-            else { score += col?.value || 10; }
-            entities.delete(item.id);
-          }
-        });
-        Array.from(entities.values()).filter((e: any) => e.type === 'item').forEach((item: any) => {
-          const dx = player.transform.x - item.transform.x;
-          const dy = player.transform.y - item.transform.y;
-          if (Math.sqrt(dx*dx+dy*dy) < (player.width + item.width) / 2) {
-            const drop = item.components?.itemDrop;
-            if (drop) { inventory.addItem({ ...drop }); syncRPGState(); }
-            entities.delete(item.id);
-          }
-        });
-      }
+      collisionSystem.update(
+        createPreviewCollisionScene(entities.values(), inventory.getArmorDefense()),
+      );
 
       const allRunes = activeScene.entities.filter(e => e.type === 'collectible' && e.components?.collectible?.type === 'rune');
       if (allRunes.length > 0 && collectedRuneIds.length >= allRunes.length) setVictory(true);
 
 
       /* ═══ TD WAVE SPAWNING ═══ */
-      if (isTDMode && !tdAllWavesDone) {
-        tdWaveTimer += deltaTime;
-        if (tdSpawnQueue.length === 0 && tdEnemiesAlive <= 0 && tdWaveIndex < tdWaves.length) {
-          if (tdWaveTimer >= (tdWaves[tdWaveIndex].delay || 5000)) {
-            const wave = tdWaves[tdWaveIndex];
-            tdWaveMessage = wave.message || `Wave ${tdWaveIndex + 1}`;
-            tdWaveMessageTimer = 3000;
-            for (const eg of wave.enemies) {
-              for (let j = 0; j < eg.count; j++) { tdSpawnQueue.push(eg); }
-            }
-            tdSpawnTimer = 0; tdWaveIndex++;
-            if (tdWaveIndex >= tdWaves.length) tdAllWavesDone = true;
-          }
-        }
-        if (tdSpawnQueue.length > 0) {
-          tdSpawnTimer += deltaTime;
-          if (tdSpawnTimer >= 600) {
-            tdSpawnTimer = 0;
-            const eg = tdSpawnQueue.shift();
-            const spawnX = 100 + Math.random() * (canvas.width - 200);
-            tdEnemyIdCounter++;
-            entities.set(`td-enemy-${tdEnemyIdCounter}`, {
-              id: `td-enemy-${tdEnemyIdCounter}`, type: 'enemy',
-              transform: { x: spawnX, y: -20, scaleX: 1, scaleY: 1, rotation: 0 },
-              components: {}, vx: 0, vy: 0,
-              color: eg.color || '#86efac',
-              width: eg.size || 24, height: eg.size || 24,
-              health: eg.hp || 30, maxHealth: eg.hp || 30,
-              damage: 15, tdSpeed: eg.speed || 80,
-              enemyType: eg.type || 'intern',
-              patrolOrigin: { x: spawnX, y: -20 },
-              patrolOffset: Math.random() * Math.PI * 2,
-              hitFlash: 0, facing: 'down',
-              scoreValue: eg.score || 10,
-            });
-            tdEnemiesAlive++;
-          }
-        }
-        if (tdAllWavesDone && tdEnemiesAlive <= 0 && tdSpawnQueue.length === 0) { setVictory(true); }
-      }
-      if (tdWaveMessageTimer > 0) tdWaveMessageTimer -= deltaTime;
-
-      /* ═══ TD TOWER SHOOTING ═══ */
       if (isTDMode) {
-        const ct = performance.now();
-        for (const tower of towers) {
-          if (ct - tower.lastShot < tower.fireRate) continue;
-          let nearest: any = null, nearestDist = Infinity;
-          entities.forEach((e: any) => {
-            if (e.type !== 'enemy') return;
-            const dx = e.transform.x - tower.x; const dy = e.transform.y - tower.y;
-            const d = Math.sqrt(dx*dx+dy*dy);
-            if (d < tower.range && d < nearestDist) { nearest = e; nearestDist = d; }
-          });
-          if (nearest) {
-            tower.lastShot = ct;
-            const dx = nearest.transform.x - tower.x; const dy = nearest.transform.y - tower.y;
-            const d = Math.sqrt(dx*dx+dy*dy) || 1;
-            projectiles.push({
-              id: `tp-${Date.now()}-${Math.random()}`,
-              x: tower.x, y: tower.y,
-              vx: (dx/d) * 350, vy: (dy/d) * 350,
-              damage: tower.damage, color: '#8B4513',
-              createdAt: ct,
-            });
-          }
+        const tdResult = updateTowerDefenseFrame({
+          canvasWidth: canvas.width,
+          canvasHeight: canvas.height,
+          currentTime,
+          deltaTime,
+          entities,
+          towers,
+          projectiles,
+          state: tdState,
+          waves: tdWaves,
+        });
+        if (tdResult.gameOver) {
+          setGameOver(true);
         }
+        if (tdResult.victory) {
+          setVictory(true);
+        }
+      }
+
+      if (isRecording && replayRecorderRef.current?.isRecording) {
+        replayRecorderRef.current.recordInput(Object.keys(activeKeys).filter((key) => activeKeys[key]));
+        replayRecorderRef.current.recordSnapshot(
+          Array.from(entities.values()).map((entity: any) => ({
+            id: entity.id,
+            transform: { x: entity.transform.x, y: entity.transform.y },
+          })),
+          {
+            score,
+            health,
+            mana,
+            time: Math.floor(gameTime / 1000),
+          },
+        );
       }
 
       frameCount++;
       if (frameCount % 10 === 0) { setPlayerScore(score); setPlayerHealth(health); setPlayerMana(mana); }
+      if (frameCount % 10 === 0 && activeReplayPlayer) {
+        setPlaybackTime(Math.round(activeReplayPlayer.progress * activeReplayPlayer.durationMs / 1000));
+        setPlaybackProgress(activeReplayPlayer.progress);
+        setIsPlayingBack(activeReplayPlayer.isPlaying);
+      }
       if (frameCount % 30 === 0) {
         const fps = Math.round(1000 / deltaTime);
         const mem = typeof (performance as any).memory === 'object'
@@ -833,6 +860,12 @@ export function useGamePreview(
         gameStatsRef.current = { fps, entities: entities.size + projectiles.length, memory: mem };
         setGameStats({ fps, entities: entities.size + projectiles.length, memory: mem });
       }
+
+      if (activeReplayPlayer && !activeReplayPlayer.isPlaying && activeReplayPlayer.progress >= 1) {
+        setIsPlayingBack(false);
+      }
+
+      previousKeys = { ...activeKeys };
     };
 
     /* ─── RENDER ─── */
@@ -961,15 +994,15 @@ export function useGamePreview(
         }
         // Core health bar
         const core = entities.get('core-bean');
-        if (core && tdMaxCoreHealth > 0) {
+        if (core && tdState.maxCoreHealth > 0) {
           const cx = core.transform.x, cy = core.transform.y;
           const barW = 60, barH = 6;
           ctx.fillStyle = '#1f2937'; ctx.fillRect(cx - barW/2, cy + 30, barW, barH);
-          const pct = tdCoreHealth / tdMaxCoreHealth;
+          const pct = tdState.coreHealth / tdState.maxCoreHealth;
           ctx.fillStyle = pct > 0.5 ? '#22c55e' : pct > 0.25 ? '#eab308' : '#ef4444';
           ctx.fillRect(cx - barW/2, cy + 30, barW * pct, barH);
           ctx.fillStyle = '#fff'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center';
-          ctx.fillText(`☕ ${tdCoreHealth}/${tdMaxCoreHealth}`, cx, cy + 44);
+          ctx.fillText(`☕ ${tdState.coreHealth}/${tdState.maxCoreHealth}`, cx, cy + 44);
         }
       }
 
@@ -980,18 +1013,18 @@ export function useGamePreview(
       ctx.fillText(`Score: ${score}`, 20, 35);
       if (isTDMode) {
         ctx.fillStyle = '#fbbf24'; ctx.font = 'bold 12px monospace';
-        ctx.fillText(`Wave: ${tdWaveIndex}/${tdWaves.length}`, 20, 100);
+        ctx.fillText(`Wave: ${tdState.waveIndex}/${tdWaves.length}`, 20, 100);
         ctx.fillText(`Towers: ${towers.length}`, 20, 115);
-        ctx.fillText(`Enemies: ${tdEnemiesAlive}`, 20, 130);
+        ctx.fillText(`Enemies: ${tdState.enemiesAlive}`, 20, 130);
         ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(20, 135, 100, 10);
-        ctx.fillStyle = tdCoreHealth > tdMaxCoreHealth * 0.5 ? '#22c55e' : tdCoreHealth > tdMaxCoreHealth * 0.25 ? '#eab308' : '#ef4444';
-        ctx.fillRect(20, 135, 100 * (tdCoreHealth / tdMaxCoreHealth), 10);
+        ctx.fillStyle = tdState.coreHealth > tdState.maxCoreHealth * 0.5 ? '#22c55e' : tdState.coreHealth > tdState.maxCoreHealth * 0.25 ? '#eab308' : '#ef4444';
+        ctx.fillRect(20, 135, 100 * (tdState.coreHealth / tdState.maxCoreHealth), 10);
         ctx.fillStyle = '#fff'; ctx.font = '9px monospace'; ctx.fillText(`Bean HP`, 125, 144);
         ctx.fillStyle = '#94a3b8'; ctx.font = '10px monospace'; ctx.fillText(`[T] Place tower (30 mana)`, 20, 160);
-        if (tdWaveMessageTimer > 0) {
-          const alpha = Math.min(1, tdWaveMessageTimer / 1000);
+        if (tdState.waveMessageTimer > 0) {
+          const alpha = Math.min(1, tdState.waveMessageTimer / 1000);
           ctx.fillStyle = `rgba(251,191,36,${alpha})`; ctx.font = 'bold 18px sans-serif'; ctx.textAlign = 'center';
-          ctx.fillText(tdWaveMessage, canvas.width/2, 50); ctx.textAlign = 'left';
+          ctx.fillText(tdState.waveMessage, canvas.width/2, 50); ctx.textAlign = 'left';
         }
       }
       ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(20, 45, 100, 10);
@@ -1046,8 +1079,12 @@ export function useGamePreview(
       window.removeEventListener('resize', resizeCanvas);
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      collisionSubscriptions.forEach((subscription) => subscription.unsubscribe());
+      if (replayPlayerRef.current === replayPlayer) {
+        replayPlayerRef.current = null;
+      }
     };
-  }, [activeScene, gameStarted, gamePaused, gameOver, victory, syncRPGState, questHUDText, handleSave]);
+  }, [activeScene, gameStarted, gamePaused, gameOver, victory, syncRPGState, questHUDText, handleSave, isRecording, replaySessionKey, replayAutoplay]);
 
   return {
     canvasRef, gameStats, gameStarted, gamePaused, gameOver, victory,
@@ -1055,10 +1092,12 @@ export function useGamePreview(
     activePanel, notifications, inventoryItems, questList,
     dialogueSpeaker, dialoguePortrait, dialogueText, dialogueChoices,
     craftingGrid, craftResult, learnedSpells, saveSlots,
+    isRecording, recordingTime, hasReplay, playbackTime, playbackProgress, isPlayingBack,
     controls,
     handleStartGame, handleRestart, handleBackToEditor,
     handleUseItem, handleEquipItem, handleCraftingCell, handleLearnSpell,
     handleAssignHotkey, handleSave, handleLoad, handleDeleteSave,
     handlePauseResume, handleDialogueChoice, setActivePanel,
+    handleToggleRecording, handlePlayReplay, handlePauseReplay, handleResetReplay, handleDownloadReplay,
   };
 }

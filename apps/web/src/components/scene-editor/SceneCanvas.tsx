@@ -13,6 +13,7 @@ interface SceneCanvasProps {
   projectId: string;
   scene: Scene | null;
   entities: Entity[];
+  assetCache: Map<string, HTMLImageElement>;
   selectedEntityId: string | null;
   toolMode: ToolMode;
   selectedTemplate: any | null;
@@ -30,6 +31,7 @@ export function SceneCanvas({
   projectId,
   scene,
   entities,
+  assetCache,
   selectedEntityId,
   toolMode,
   selectedTemplate,
@@ -49,9 +51,6 @@ export function SceneCanvas({
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [entityDragOffset, setEntityDragOffset] = useState({ x: 0, y: 0 });
-
-  // Asset cache ref
-  const assetCache = useRef<Map<string, HTMLImageElement>>(new Map());
 
   // Initialize canvas
   useEffect(() => {
@@ -82,35 +81,54 @@ export function SceneCanvas({
     if (!scene) return;
 
     // Clear canvas
-    ctx.fillStyle = '#f9fafb';
+    const bg = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    bg.addColorStop(0, '#09111f');
+    bg.addColorStop(1, '#142338');
+    ctx.fillStyle = bg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = 'rgba(148, 163, 184, 0.08)';
+    for (let i = 0; i < 6; i++) {
+      ctx.beginPath();
+      ctx.arc(canvas.width - 120 + i * 24, 80 + i * 18, 120 - i * 12, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     ctx.save();
     ctx.translate(viewport.x, viewport.y);
     ctx.scale(viewport.zoom, viewport.zoom);
 
+    const bounds = getSceneBounds(entities);
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+    ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(bounds.x - 96, bounds.y - 96, Math.max(bounds.width + 192, 640), Math.max(bounds.height + 192, 480), 24);
+    ctx.fill();
+    ctx.stroke();
+
     // Draw grid
     if (showGrid) {
-      drawGrid(ctx, canvas.width, canvas.height);
+      drawGrid(ctx, canvas.width, canvas.height, bounds);
     }
 
     // Draw entities
     entities.forEach((entity) => {
-      drawEntity(ctx, entity, entity.id === selectedEntityId, assetCache.current);
+      drawEntity(ctx, entity, entity.id === selectedEntityId, assetCache);
     });
 
     ctx.restore();
-  }, [scene, viewport, showGrid, gridSize, selectedEntityId, entities]);
+  }, [scene, viewport, showGrid, gridSize, selectedEntityId, entities, assetCache]);
 
-  const drawGrid = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
-    ctx.strokeStyle = '#e5e7eb';
+  const drawGrid = (ctx: CanvasRenderingContext2D, width: number, height: number, bounds: { x: number; y: number; width: number; height: number }) => {
+    ctx.strokeStyle = 'rgba(71, 85, 105, 0.45)';
     ctx.lineWidth = 1;
 
     // Calculate grid bounds based on viewport
-    const startX = Math.floor(-viewport.x / (viewport.zoom * gridSize)) * gridSize;
-    const startY = Math.floor(-viewport.y / (viewport.zoom * gridSize)) * gridSize;
-    const endX = startX + Math.ceil(width / (viewport.zoom * gridSize)) * gridSize + gridSize;
-    const endY = startY + Math.ceil(height / (viewport.zoom * gridSize)) * gridSize + gridSize;
+    const startX = Math.floor((bounds.x - 96) / gridSize) * gridSize;
+    const startY = Math.floor((bounds.y - 96) / gridSize) * gridSize;
+    const endX = Math.ceil((bounds.x + bounds.width + 96) / gridSize) * gridSize;
+    const endY = Math.ceil((bounds.y + bounds.height + 96) / gridSize) * gridSize;
 
     ctx.beginPath();
     for (let x = startX; x <= endX; x += gridSize) {
@@ -124,7 +142,7 @@ export function SceneCanvas({
     ctx.stroke();
 
     // Draw origin
-    ctx.strokeStyle = '#9ca3af';
+    ctx.strokeStyle = 'rgba(96, 165, 250, 0.55)';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(-100, 0);
@@ -140,20 +158,27 @@ export function SceneCanvas({
     isSelected: boolean,
     cache: Map<string, HTMLImageElement>
   ) => {
-    const transform = entity.transform;
+      const transform = entity.transform;
     const sprite = entity.components.get('sprite') as Sprite | undefined;
     const collision = entity.components.get('collision') as Collision | undefined;
+    const entityType = entity.type || (collision?.type === 'collectible' ? 'collectible' : collision?.type === 'wall' ? 'obstacle' : 'custom');
 
     // Get entity dimensions
     let width = 32;
     let height = 32;
 
-    if (sprite && typeof sprite.image === 'string') {
+    const spriteAssetRef = typeof sprite?.assetRef === 'string'
+      ? sprite.assetRef
+      : typeof sprite?.image === 'string'
+        ? sprite.image
+        : null;
+
+    if (spriteAssetRef) {
       // It's an asset ID - get image from cache
-      const img = cache.get(sprite.image);
+      const img = cache.get(spriteAssetRef);
       if (img && img.complete) {
-        width = sprite.width || 32;
-        height = sprite.height || 32;
+        width = sprite?.width || img.naturalWidth || img.width || 32;
+        height = sprite?.height || img.naturalHeight || img.height || 32;
       }
     } else if (sprite && sprite.image instanceof HTMLImageElement && sprite.image.complete) {
       width = sprite.width || 32;
@@ -168,9 +193,13 @@ export function SceneCanvas({
 
     // Draw selection highlight
     if (isSelected) {
-      ctx.strokeStyle = '#3b82f6';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(x - 4, y - 4, width + 8, height + 8);
+      ctx.save();
+      ctx.strokeStyle = '#60a5fa';
+      ctx.shadowColor = 'rgba(96, 165, 250, 0.7)';
+      ctx.shadowBlur = 18;
+      ctx.lineWidth = 2.5;
+      ctx.strokeRect(x - 6, y - 6, width + 12, height + 12);
+      ctx.restore();
 
       // Draw resize handles
       const handleSize = 6;
@@ -183,10 +212,14 @@ export function SceneCanvas({
 
     // Draw sprite if available
     let spriteDrawn = false;
-    if (sprite && typeof sprite.image === 'string') {
-      const img = cache.get(sprite.image);
+    if (spriteAssetRef) {
+      const img = cache.get(spriteAssetRef);
       if (img && img.complete) {
+        ctx.save();
+        ctx.shadowColor = isSelected ? 'rgba(255,255,255,0.2)' : 'transparent';
+        ctx.shadowBlur = isSelected ? 12 : 0;
         ctx.drawImage(img, x, y, width, height);
+        ctx.restore();
         spriteDrawn = true;
       }
     } else if (sprite && sprite.image instanceof HTMLImageElement && sprite.image.complete) {
@@ -197,37 +230,49 @@ export function SceneCanvas({
     if (!spriteDrawn) {
       // Draw placeholder box
       const colors: Record<string, string> = {
-        'player': '#3b82f6',
-        'enemy': '#ef4444',
-        'coin': '#fbbf24',
-        'wall': '#6b7280',
-        'default': '#8b5cf6',
+        player: '#3b82f6',
+        enemy: '#ef4444',
+        collectible: '#f59e0b',
+        item: '#f97316',
+        obstacle: '#64748b',
+        platform: '#475569',
+        npc: '#22c55e',
+        custom: '#8b5cf6',
+        default: '#8b5cf6',
       };
 
-      const entityColor = entity.id.includes('player') ? colors.player :
-                          entity.id.includes('enemy') ? colors.enemy :
-                          entity.id.includes('coin') ? colors.coin :
-                          entity.id.includes('wall') ? colors.wall :
-                          colors.default;
+      const entityColor = colors[entityType] || colors.default;
 
+      ctx.save();
       ctx.fillStyle = entityColor;
-      ctx.fillRect(x, y, width, height);
+      if (entityType === 'collectible' || entityType === 'item') {
+        ctx.translate(x + width / 2, y + height / 2);
+        ctx.rotate(Math.PI / 4);
+        ctx.fillRect(-width / 2, -height / 2, width, height);
+      } else {
+        ctx.beginPath();
+        ctx.roundRect(x, y, width, height, entityType === 'obstacle' || entityType === 'platform' ? 6 : 12);
+        ctx.fill();
+      }
+      ctx.restore();
 
       // Add border
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
       ctx.lineWidth = 2;
       ctx.strokeRect(x, y, width, height);
 
       // Add label
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+      ctx.fillRect(x, y - 18, Math.max(width, 56), 16);
       ctx.fillStyle = 'white';
-      ctx.font = '12px sans-serif';
+      ctx.font = '11px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(entity.id.split('-')[0], x + width / 2, y + height / 2 + 4);
+      ctx.fillText(entityType, x + Math.max(width, 56) / 2, y - 6);
     }
 
     // Draw collision box if has collision component
     if (collision && !isSelected) {
-      ctx.strokeStyle = 'rgba(239, 68, 68, 0.5)';
+      ctx.strokeStyle = 'rgba(248, 250, 252, 0.18)';
       ctx.lineWidth = 1;
       ctx.setLineDash([4, 4]);
       ctx.strokeRect(x, y, collision.width || 32, collision.height || 32);
@@ -299,6 +344,7 @@ export function SceneCanvas({
 
       const newEntity: Entity = {
         id: newId,
+        type: selectedTemplate.type,
         transform: {
           ...selectedTemplate.transform,
           ...newPosition,
@@ -407,13 +453,19 @@ export function SceneCanvas({
       const components = new Map<string, any>();
       // Store asset ID in sprite component
       components.set('sprite', {
-        image: assetId,
+        assetRef: assetId,
         width: 32,
         height: 32,
+      });
+      components.set('collision', {
+        width: 32,
+        height: 32,
+        type: 'wall',
       });
 
       const newEntity: Entity = {
         id: newId,
+        type: 'custom',
         transform: {
           x: newPosition.x,
           y: newPosition.y,
@@ -464,4 +516,34 @@ export function SceneCanvas({
       />
     </div>
   );
+}
+
+function getSceneBounds(entities: Entity[]) {
+  if (entities.length === 0) {
+    return { x: 0, y: 0, width: 640, height: 480 };
+  }
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  entities.forEach((entity) => {
+    const sprite = entity.components.get('sprite') as Sprite | undefined;
+    const collision = entity.components.get('collision') as Collision | undefined;
+    const width = sprite?.width || collision?.width || 32;
+    const height = sprite?.height || collision?.height || 32;
+
+    minX = Math.min(minX, entity.transform.x);
+    minY = Math.min(minY, entity.transform.y);
+    maxX = Math.max(maxX, entity.transform.x + width);
+    maxY = Math.max(maxY, entity.transform.y + height);
+  });
+
+  return {
+    x: minX,
+    y: minY,
+    width: Math.max(320, maxX - minX),
+    height: Math.max(240, maxY - minY),
+  };
 }

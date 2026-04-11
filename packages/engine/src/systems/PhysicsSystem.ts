@@ -31,8 +31,8 @@ export class PhysicsSystem {
       if (!entity.components.has('collision')) return;
       if (entity.components.has('physics')) {
         dynamicBodies.push(entity);
-      } else if (entity.components.has('movement') && !entity.components.has('playerInput')) {
-        // Non-player moving entities with collision are also dynamic
+      } else if (entity.components.has('movement')) {
+        // Any moving collision body can be pushed out of static geometry.
         dynamicBodies.push(entity);
       } else if (!entity.components.has('movement')) {
         staticBodies.push(entity);

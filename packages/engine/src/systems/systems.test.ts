@@ -11,6 +11,9 @@ import {
 } from '../types';
 import { PhysicsSystem } from './PhysicsSystem';
 import { CollisionSystem } from './CollisionSystem';
+import { MovementSystem } from './MovementSystem';
+import { AISystem } from './AISystem';
+import { ProjectileSystem } from './ProjectileSystem';
 import { EventBus } from '../EventBus';
 
 // ─── Helpers ───
@@ -32,6 +35,72 @@ function makeScene(entities: Entity[]): Scene {
 }
 
 // ─── PhysicsSystem ───
+
+describe('MovementSystem', () => {
+  it('moves player-controlled entities from input state', () => {
+    const sys = new MovementSystem({ width: 800, height: 600 });
+    const entity = makeEntity({
+      id: 'player',
+      type: 'player',
+      transform: { x: 100, y: 100 },
+      components: {
+        playerInput: {},
+        movement: { vx: 0, vy: 0, speed: 120 },
+        collision: { width: 32, height: 32, type: 'player' },
+      },
+    });
+
+    sys.update(makeScene([entity]), { left: false, right: true, up: false, down: false }, 0.5);
+
+    expect(entity.transform.x).toBeGreaterThan(100);
+  });
+
+  it('honors configured world bounds when clamping movement', () => {
+    const sys = new MovementSystem({ width: 120, height: 100 });
+    const entity = makeEntity({
+      id: 'player',
+      type: 'player',
+      transform: { x: 110, y: 95 },
+      components: {
+        playerInput: {},
+        movement: { vx: 0, vy: 0, speed: 120 },
+        collision: { width: 32, height: 32, type: 'player' },
+      },
+    });
+
+    sys.update(makeScene([entity]), { left: false, right: true, up: false, down: true }, 0.5);
+
+    expect(entity.transform.x).toBe(88);
+    expect(entity.transform.y).toBe(68);
+  });
+});
+
+describe('AISystem', () => {
+  it('uses configured chase speed when targeting another entity', () => {
+    const sys = new AISystem();
+    const player = makeEntity({
+      id: 'player',
+      type: 'player',
+      transform: { x: 200, y: 100 },
+      components: {},
+    });
+    const enemy = makeEntity({
+      id: 'enemy',
+      type: 'enemy',
+      transform: { x: 0, y: 100 },
+      components: {
+        movement: { vx: 0, vy: 0, speed: 10 },
+        ai: { type: 'chase', targetEntity: 'player', speed: 80 },
+      },
+    });
+
+    sys.update(makeScene([player, enemy]), 1);
+
+    const movement = enemy.components.get('movement') as any;
+    expect(movement.vx).toBeGreaterThan(70);
+    expect(Math.abs(movement.vy)).toBeLessThan(1);
+  });
+});
 
 describe('PhysicsSystem', () => {
   it('applies gravity to dynamic entities', () => {
@@ -101,6 +170,35 @@ describe('PhysicsSystem', () => {
     expect(player.transform.y).toBeLessThanOrEqual(100);
     const physics = player.components.get('physics') as any;
     expect(physics.grounded).toBe(true);
+  });
+
+  it('resolves static collisions for player-controlled entities', () => {
+    const move = new MovementSystem({ width: 800, height: 600 });
+    const physics = new PhysicsSystem({ width: 800, height: 600 });
+    const player = makeEntity({
+      id: 'player',
+      type: 'player',
+      transform: { x: 90, y: 100 },
+      components: {
+        playerInput: {},
+        movement: { vx: 0, vy: 0, speed: 120 },
+        collision: { width: 32, height: 32, type: 'player' },
+      },
+    });
+    const wall = makeEntity({
+      id: 'wall',
+      type: 'obstacle',
+      transform: { x: 110, y: 100 },
+      components: {
+        collision: { width: 32, height: 32, type: 'wall' },
+      },
+    });
+    const scene = makeScene([player, wall]);
+
+    move.update(scene, { left: false, right: true, up: false, down: false }, 0.1);
+    physics.update(scene, 0.1);
+
+    expect(player.transform.x).toBeLessThanOrEqual(78);
   });
 
   it('clamps entities to world bounds', () => {
@@ -236,6 +334,41 @@ describe('CollisionSystem', () => {
     expect(pickups[0].collectibleId).toBe('coin1');
   });
 
+  it('emits collision:damage using enemy attack power and player defense', () => {
+    const bus = new EventBus();
+    const sys = new CollisionSystem();
+    sys.attach(bus);
+
+    const damages: any[] = [];
+    bus.on('collision:damage', (e) => damages.push(e));
+
+    const player = makeEntity({
+      id: 'p',
+      transform: { x: 0, y: 0 },
+      components: {
+        collision: { width: 32, height: 32, type: 'player' },
+        stats: { health: 100, maxHealth: 100, defense: 4 },
+      },
+    });
+    const enemy = makeEntity({
+      id: 'enemy1',
+      transform: { x: 16, y: 16 },
+      components: {
+        collision: { width: 32, height: 32, type: 'enemy' },
+        stats: { health: 10, maxHealth: 10, attackPower: 12 },
+      },
+    });
+
+    sys.update(makeScene([player, enemy]));
+
+    expect(damages).toHaveLength(1);
+    expect(damages[0]).toEqual({
+      playerId: 'p',
+      enemyId: 'enemy1',
+      damage: 8,
+    });
+  });
+
   it('emits collision:trigger with once semantics', () => {
     const bus = new EventBus();
     const sys = new CollisionSystem();
@@ -311,5 +444,107 @@ describe('CollisionSystem', () => {
 
     const events = sys.update(makeScene([a, b]));
     expect(events).toHaveLength(0);
+  });
+});
+
+describe('ProjectileSystem', () => {
+  it('emits projectile:hit and removes the projectile on enemy impact', () => {
+    const sys = new ProjectileSystem({ width: 800, height: 600 });
+    const bus = new EventBus();
+    const hits: any[] = [];
+    const destroys: any[] = [];
+    bus.on('projectile:hit', (event) => hits.push(event));
+    bus.on('projectile:destroy', (event) => destroys.push(event));
+    sys.attach(bus);
+
+    const projectile = makeEntity({
+      id: 'proj-1',
+      type: 'projectile',
+      transform: { x: 0, y: 0 },
+      components: {
+        collision: { width: 10, height: 10, type: 'projectile' },
+        projectile: { vx: 100, vy: 0, damage: 25, targetTypes: ['enemy'] },
+      },
+    });
+    const enemy = makeEntity({
+      id: 'enemy-1',
+      type: 'enemy',
+      transform: { x: 15, y: 0 },
+      components: {
+        collision: { width: 32, height: 32, type: 'enemy' },
+      },
+    });
+
+    const scene = makeScene([projectile, enemy]);
+    sys.update(scene, 0.16);
+
+    expect(hits).toEqual([
+      {
+        projectileId: 'proj-1',
+        targetId: 'enemy-1',
+        targetType: 'enemy',
+        damage: 25,
+      },
+    ]);
+    expect(destroys).toEqual([
+      {
+        projectileId: 'proj-1',
+        reason: 'hit',
+        targetId: 'enemy-1',
+        targetType: 'enemy',
+      },
+    ]);
+    expect(scene.entities.has('proj-1')).toBe(false);
+  });
+
+  it('treats wall impacts as blocked and expires projectiles at world bounds', () => {
+    const sys = new ProjectileSystem({ width: 80, height: 80 });
+    const bus = new EventBus();
+    const destroys: any[] = [];
+    bus.on('projectile:destroy', (event) => destroys.push(event));
+    sys.attach(bus);
+
+    const wallShot = makeEntity({
+      id: 'proj-wall',
+      type: 'projectile',
+      transform: { x: 0, y: 0 },
+      components: {
+        collision: { width: 10, height: 10, type: 'projectile' },
+        projectile: { vx: 100, vy: 0, damage: 10, targetTypes: ['wall'] },
+      },
+    });
+    const wall = makeEntity({
+      id: 'wall',
+      type: 'obstacle',
+      transform: { x: 12, y: 0 },
+      components: {
+        collision: { width: 32, height: 32, type: 'wall' },
+      },
+    });
+    const outOfBoundsShot = makeEntity({
+      id: 'proj-oob',
+      type: 'projectile',
+      transform: { x: 75, y: 75 },
+      components: {
+        collision: { width: 10, height: 10, type: 'projectile' },
+        projectile: { vx: 50, vy: 50, damage: 10 },
+      },
+    });
+
+    const scene = makeScene([wallShot, wall, outOfBoundsShot]);
+    sys.update(scene, 0.16);
+
+    expect(destroys).toContainEqual({
+      projectileId: 'proj-wall',
+      reason: 'blocked',
+      targetId: 'wall',
+      targetType: 'wall',
+    });
+    expect(destroys).toContainEqual({
+      projectileId: 'proj-oob',
+      reason: 'bounds',
+      targetId: undefined,
+      targetType: undefined,
+    });
   });
 });

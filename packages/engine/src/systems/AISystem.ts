@@ -54,7 +54,7 @@ export class AISystem {
     const movement = entity.components.get('movement') as MovementComponent | undefined;
     if (!movement) return;
 
-    const speed = 50 * deltaTime;
+    const speed = (ai.speed ?? 50) * deltaTime;
 
     const angle = Math.atan2(target.transform.y - transform.y, target.transform.x - transform.x);
     movement.vx = Math.cos(angle) * speed * 60;

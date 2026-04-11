@@ -11,6 +11,7 @@ import { RenderSystem } from './systems/RenderSystem';
 import { PhysicsSystem } from './systems/PhysicsSystem';
 import { CollisionSystem } from './systems/CollisionSystem';
 import { AnimationSystem } from './systems/AnimationSystem';
+import { ProjectileSystem } from './systems/ProjectileSystem';
 
 export class Engine {
   private canvas: HTMLCanvasElement;
@@ -32,6 +33,7 @@ export class Engine {
   private physicsSystem: PhysicsSystem;
   private collisionSystem: CollisionSystem;
   private animationSystem: AnimationSystem;
+  private projectileSystem: ProjectileSystem;
 
   private updateCallback?: (deltaTime: number) => void;
   private errorCallback?: (error: Error) => void;
@@ -56,10 +58,12 @@ export class Engine {
     this.physicsSystem = new PhysicsSystem({ width: config.width, height: config.height });
     this.collisionSystem = new CollisionSystem();
     this.animationSystem = new AnimationSystem();
+    this.projectileSystem = new ProjectileSystem({ width: config.width, height: config.height });
 
     // Wire systems to event bus
     this.collisionSystem.attach(this.events);
     this.animationSystem.attach(this.events);
+    this.projectileSystem.attach(this.events);
   }
 
   /**
@@ -103,6 +107,7 @@ export class Engine {
   setConfig(partial: Partial<RendererConfig>): void {
     this.config = { ...this.config, ...partial };
     this.physicsSystem.setWorldBounds({ width: this.config.width, height: this.config.height });
+    this.projectileSystem.setWorldBounds({ width: this.config.width, height: this.config.height });
   }
 
   /**
@@ -195,6 +200,7 @@ export class Engine {
       this.physicsSystem.update(this.scene, deltaTime);
       this.movementSystem.update(this.scene, this.inputSystem.getState(), deltaTime);
       this.aiSystem.update(this.scene, deltaTime);
+      this.projectileSystem.update(this.scene, deltaTime);
       this.collisionSystem.update(this.scene);
       this.animationSystem.update(this.scene, deltaTime);
 

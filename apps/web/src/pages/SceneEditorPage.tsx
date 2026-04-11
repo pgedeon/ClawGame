@@ -20,6 +20,7 @@ import { SceneEditorAIBar } from '../components/scene-editor/SceneEditorAIBar';
 import { ToolMode, ENTITY_TEMPLATES } from '../components/scene-editor/types';
 import { useToast } from '../components/Toast';
 import { logger } from '../utils/logger';
+import { createDefaultEditorScene, deserializeEditorScene, getSceneInitialViewport, serializeEditorScene } from '../utils/sceneEditorScene';
 import '../scene-editor.css';
 import '../scene-editor-ai.css';
 import { 
@@ -31,50 +32,6 @@ import {
   X,
   Check,
 } from 'lucide-react';
-
-/**
- * Serialize scene for JSON storage.
- * Converts Map<string, Entity> → Entity[] with plain-object components.
- * Also strips non-serializable fields like Image objects.
- */
-function serializeScene(scene: Scene): string {
-  const entities: any[] = [];
-  
-  scene.entities.forEach((entity, _key) => {
-    // Convert components Map to plain object, stripping non-serializable fields
-    const componentsObj: Record<string, any> = {};
-    entity.components.forEach((value, key) => {
-      if (key === 'sprite') {
-        // Strip Image objects — save dimensions and color only
-        const sprite = value as any;
-        componentsObj[key] = {
-          width: sprite.width || 32,
-          height: sprite.height || 32,
-          offsetX: sprite.offsetX || 0,
-          offsetY: sprite.offsetY || 0,
-          color: sprite.color || undefined,
-        };
-      } else if (key === 'transform') {
-        // Skip — transform is stored at entity level
-      } else if (value && typeof value === 'object' && value instanceof Image) {
-        // Skip raw Image objects
-      } else {
-        componentsObj[key] = value;
-      }
-    });
-
-    entities.push({
-      id: entity.id,
-      transform: entity.transform,
-      components: componentsObj,
-    });
-  });
-
-  return JSON.stringify({
-    name: scene.name,
-    entities,
-  }, null, 2);
-}
 
 /**
  * Generate a readable entity name on duplicate.
@@ -188,6 +145,7 @@ function SceneEditorContent() {
     try {
       setIsLoading(true);
       setError(null);
+      setSelectedEntityId(null);
       const project = await api.getProject(id);
       setProjectName(project?.name || 'Unknown Project');
       
@@ -195,82 +153,14 @@ function SceneEditorContent() {
       try {
         const sceneData = await api.readFile(id, 'scenes/main-scene.json');
         const sceneContent = JSON.parse(sceneData.content) as any;
-        
-        // Convert JSON to Map for entities
-        if (sceneContent && sceneContent.entities) {
-          const entities = new Map<string, Entity>();
-          const entitiesObj = sceneContent.entities;
-          
-          if (Array.isArray(entitiesObj)) {
-            // Preferred format: entities as array
-            entitiesObj.forEach((entity: any) => {
-              if (entity && entity.id) {
-                const components = new Map<string, Component>();
-                if (entity.components && typeof entity.components === 'object') {
-                  for (const [key, value] of Object.entries(entity.components)) {
-                    components.set(key, value as Component);
-                  }
-                }
-                const transform: Transform = entity.transform || { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 };
-                entities.set(entity.id, { 
-                  id: entity.id, 
-                  transform,
-                  components 
-                });
-              }
-            });
-          } else if (typeof entitiesObj === 'object' && !(entitiesObj instanceof Map)) {
-            // Legacy format: entities as keyed object
-            for (const [key, entity] of Object.entries(entitiesObj as Record<string, any>)) {
-              if (entity && entity.id) {
-                const components = new Map<string, Component>();
-                if (entity.components && typeof entity.components === 'object') {
-                  for (const [compKey, compValue] of Object.entries(entity.components)) {
-                    components.set(compKey, compValue as Component);
-                  }
-                }
-                const transform: Transform = entity.transform || { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 };
-                entities.set(key, { ...entity, transform, components });
-              }
-            }
-          }
-          
-          if (entities.size > 0) {
-            setScene({ name: sceneContent.name || 'Main Scene', entities });
-          }
-        }
+        const loadedScene = deserializeEditorScene(sceneContent);
+        setScene(loadedScene);
+        setViewport(getSceneInitialViewport(loadedScene));
       } catch (sceneErr) {
         logger.warn('No existing scene found, creating default:', sceneErr);
-      }
-      
-      // If no scene was loaded, create a default one
-      if (!scene) {
-        const transform: Transform = { x: 400, y: 300, scaleX: 1, scaleY: 1, rotation: 0 };
-        
-        const playerComponents = new Map<string, Component>();
-        playerComponents.set('transform', transform);
-        playerComponents.set('movement', { vx: 0, vy: 0, speed: 200 });
-        playerComponents.set('sprite', { 
-          width: 32, 
-          height: 48,
-          color: '#3b82f6',
-        });
-        playerComponents.set('collision', { 
-          width: 32, 
-          height: 48, 
-          type: 'player' 
-        });
-
-        const playerEntity: Entity = {
-          id: 'player-1',
-          transform,
-          components: playerComponents
-        };
-        
-        setScene({ 
-          name: 'Main Scene',
-          entities: new Map([['player-1', playerEntity]]) 
-        });
+        const defaultScene = createDefaultEditorScene();
+        setScene(defaultScene);
+        setViewport(getSceneInitialViewport(defaultScene));
       }
     } catch (err) {
       logger.error('Error loading project:', err);
@@ -286,7 +176,7 @@ function SceneEditorContent() {
     setSaving(true);
     try {
       await api.createDirectory(projectId, 'scenes');
-      const sceneContent = serializeScene(scene);
+      const sceneContent = serializeEditorScene(scene);
       await api.writeFile(projectId, 'scenes/main-scene.json', sceneContent);
       
       logger.info('Scene saved successfully');
@@ -408,24 +298,62 @@ function SceneEditorContent() {
     // Get asset details
     try {
       const asset = await api.getAsset(projectId || '', assetId);
+      const cachedImage = assetCache.get(assetId);
+      const selectedEntity = selectedEntityId ? scene?.entities.get(selectedEntityId) : null;
+      const spriteWidth = cachedImage?.naturalWidth || cachedImage?.width || 64;
+      const spriteHeight = cachedImage?.naturalHeight || cachedImage?.height || 64;
+
+      if (selectedEntity && scene) {
+        const updatedComponents = new Map(selectedEntity.components);
+        const existingSprite = (updatedComponents.get('sprite') as Sprite | undefined) || {};
+        updatedComponents.set('sprite', {
+          ...existingSprite,
+          assetRef: asset.id,
+          width: existingSprite.width || spriteWidth,
+          height: existingSprite.height || spriteHeight,
+        });
+
+        if (!updatedComponents.has('collision')) {
+          updatedComponents.set('collision', {
+            width: spriteWidth,
+            height: spriteHeight,
+            type: selectedEntity.type === 'player' ? 'player' : selectedEntity.type === 'enemy' ? 'enemy' : 'wall',
+          });
+        }
+
+        const updatedEntity: Entity = {
+          ...selectedEntity,
+          components: updatedComponents,
+        };
+        const newEntities = new Map(scene.entities);
+        newEntities.set(updatedEntity.id, updatedEntity);
+        setScene({ ...scene, entities: newEntities });
+        showToast({ type: 'success', message: `Attached ${asset.name} to ${updatedEntity.id}` });
+        return;
+      }
       
       const transform: Transform = { 
-        x: viewport.x + 400, 
-        y: viewport.y + 300, 
+        x: 400, 
+        y: 300, 
         scaleX: 1, 
         scaleY: 1, 
         rotation: 0 
       };
       
       const components = new Map<string, Component>();
-      components.set('transform', transform);
-      components.set('sprite', { width: 32, height: 32, color: '#8b5cf6' });
-      components.set('collision', { width: 32, height: 32, type: 'wall' });
+      components.set('sprite', {
+        width: spriteWidth,
+        height: spriteHeight,
+        assetRef: asset.id,
+      });
+      components.set('collision', { width: spriteWidth, height: spriteHeight, type: 'wall' });
 
       const newEntity: Entity = {
         id: `entity-${Date.now()}`,
+        name: asset.name,
+        type: 'custom',
         transform,
-        components
+        components,
       };
       
       const newEntities = new Map(scene?.entities);
@@ -434,10 +362,12 @@ function SceneEditorContent() {
       setSelectedEntityId(newEntity.id);
       
       logger.info('Added asset as entity:', asset.name);
+      showToast({ type: 'success', message: `Added ${asset.name} to scene` });
     } catch (err) {
       logger.error('Error loading asset:', err);
+      showToast({ type: 'error', message: 'Failed to attach asset to scene' });
     }
-  }, [projectId, viewport, scene]);
+  }, [assetCache, projectId, scene, selectedEntityId, showToast]);
 
   // Add entity from template — actually creates the entity immediately
   const handleAddEntityFromTemplate = useCallback((templateId: string) => {
@@ -463,6 +393,7 @@ function SceneEditorContent() {
 
       const newEntity: Entity = {
         id: `${templateId}-1`,
+        type: template.type,
         transform,
         components
       };
@@ -507,6 +438,7 @@ function SceneEditorContent() {
 
     const newEntity: Entity = {
       id: entityId,
+      type: template.type,
       transform,
       components
     };
@@ -551,14 +483,14 @@ function SceneEditorContent() {
     const entity = scene?.entities.get(selectedEntityId);
     if (!entity) return '';
     
-    // Determine type based on components
+    if (entity.type) {
+      return entity.type.charAt(0).toUpperCase() + entity.type.slice(1);
+    }
+
     const comps = entity.components || new Map();
     if (comps.has('playerInput')) return 'Player';
-    if (comps.has('movement')) return 'Player';
     if (comps.has('ai')) return 'Enemy';
     if (comps.has('collision') && (comps.get('collision') as any)?.type === 'wall') return 'Platform';
-    if (comps.has('collision') && (comps.get('collision') as any)?.type === 'collectible') return 'Collectible';
-    if (comps.has('sprite')) return 'Sprite';
     return 'Entity';
   };
 
@@ -729,6 +661,7 @@ function SceneEditorContent() {
           projectId={projectId || ''}
           scene={scene}
           entities={entitiesArray}
+          assetCache={assetCache}
           selectedEntityId={selectedEntityId}
           toolMode={toolMode}
           selectedTemplate={selectedTemplate}

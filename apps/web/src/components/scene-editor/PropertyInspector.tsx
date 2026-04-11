@@ -39,6 +39,10 @@ export function PropertyInspector({
               <label>ID</label>
               <input type="text" value={selectedEntityId!} readOnly className="readonly" />
             </div>
+            <div className="entity-info">
+              <label>Type</label>
+              <input type="text" value={selectedEntity.type || 'custom'} readOnly className="readonly" />
+            </div>
           </div>
 
           {/* Transform Component */}
@@ -157,7 +161,8 @@ export function PropertyInspector({
               className={`entity-item ${entity.id === selectedEntityId ? 'selected' : ''}`}
               onClick={() => onSelectEntity(entity.id)}
             >
-              {entity.id}
+              <span className="entity-item-id">{entity.id}</span>
+              <span className="entity-item-type">{entity.type || 'custom'}</span>
             </button>
           ))}
         </div>

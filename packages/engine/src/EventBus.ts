@@ -44,6 +44,10 @@ export interface EngineEvents {
   // Collision system events
   'collision:enter': { entityA: string; entityB: string; typeA?: string; typeB?: string; overlap: { x: number; y: number } };
   'collision:pickup': { playerId: string; collectibleId: string; type: string; value: number };
+  'collision:damage': { playerId: string; enemyId: string; damage: number };
+  'collision:trigger': { triggerId: string; entityId: string; event?: string; target?: string };
+  'projectile:hit': { projectileId: string; targetId: string; targetType?: string; damage: number };
+  'projectile:destroy': { projectileId: string; reason: 'hit' | 'blocked' | 'bounds' | 'expired'; targetId?: string; targetType?: string };
 
   // AI behavior events
   'ai:target-acquired': { entityId: string; targetId: string; behavior: string };

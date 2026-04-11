@@ -3,84 +3,36 @@
  * UI for recording and playing back game replays.
  * Part of M14: Playtest Lab + Publishing.
  */
-import React, { useState, useCallback } from 'react';
-import { Play, Square, Save, RotateCcw, Download, Eye } from 'lucide-react';
-import { 
-  ReplayRecorder, 
-  ReplayPlayer, 
-  serializeReplay, 
-  downloadReplay,
-} from '../../rpg/replay';
+import React from 'react';
+import { Play, Square, Save, RotateCcw, Download } from 'lucide-react';
 
 interface ReplayControlsProps {
-  projectId: string;
   isRecording: boolean;
-  onToggleRecording: (recording: boolean) => void;
-  onStartPlayback: (replay: string) => void;
+  recordingTime: number;
+  hasReplay: boolean;
+  playbackTime: number;
+  playbackProgress: number;
+  isPlayingBack: boolean;
+  onToggleRecording: () => void;
+  onPlayReplay: () => void;
+  onPauseReplay: () => void;
+  onResetReplay: () => void;
+  onDownloadReplay: () => void;
 }
 
 export const ReplayControls: React.FC<ReplayControlsProps> = ({
-  projectId,
   isRecording,
+  recordingTime,
+  hasReplay,
+  playbackTime,
+  playbackProgress,
+  isPlayingBack,
   onToggleRecording,
-  onStartPlayback,
+  onPlayReplay,
+  onPauseReplay,
+  onResetReplay,
+  onDownloadReplay,
 }) => {
-  const [recorder] = useState(() => new ReplayRecorder(projectId));
-  const [replayData, setReplayData] = useState<ReplayPlayer | null>(null);
-  const [recordingTime, setRecordingTime] = useState(0);
-
-  const handleRecord = useCallback(() => {
-    if (isRecording) {
-      // Stop recording
-      const data = recorder.stop();
-      setRecordingTime(0);
-      setReplayData(null);
-      onToggleRecording(false);
-      
-      // Download the replay
-      downloadReplay(data);
-      
-      // Auto-play the replay
-      const player = new ReplayPlayer(data);
-      setReplayData(player);
-    } else {
-      // Start recording
-      recorder.start();
-      setRecordingTime(0);
-      setReplayData(null);
-      onToggleRecording(true);
-    }
-  }, [isRecording, recorder, onToggleRecording]);
-
-  const handlePlay = useCallback(() => {
-    if (replayData) {
-      replayData.play();
-    }
-  }, [replayData]);
-
-  const handlePause = useCallback(() => {
-    if (replayData) {
-      replayData.pause();
-    }
-  }, [replayData]);
-
-  const handleReset = useCallback(() => {
-    if (replayData) {
-      replayData.reset();
-      setRecordingTime(0);
-    }
-  }, [replayData]);
-
-  // Timer for recording
-  React.useEffect(() => {
-    if (isRecording) {
-      const interval = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [isRecording]);
-
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -95,10 +47,10 @@ export const ReplayControls: React.FC<ReplayControlsProps> = ({
             <div className="recording-dot" />
             <span>Recording: {formatTime(recordingTime)}</span>
           </div>
-        ) : replayData ? (
+        ) : hasReplay ? (
           <div className="playback-indicator">
-            <span>Replay: {formatTime(Math.round(replayData.progress * replayData.durationMs / 1000))}</span>
-            <span>{Math.round(replayData.progress * 100)}%</span>
+            <span>Replay: {formatTime(playbackTime)}</span>
+            <span>{Math.round(playbackProgress * 100)}%</span>
           </div>
         ) : (
           <span>Ready to replay</span>
@@ -109,41 +61,48 @@ export const ReplayControls: React.FC<ReplayControlsProps> = ({
         {isRecording ? (
           <button
             className="record-stop-btn"
-            onClick={handleRecord}
+            onClick={onToggleRecording}
             title="Stop recording"
           >
             <Square size={16} /> Stop
           </button>
-        ) : replayData ? (
+        ) : hasReplay ? (
           <React.Fragment>
             <button
               className="playback-play-btn"
-              onClick={handlePlay}
+              onClick={onPlayReplay}
               title="Play"
-              disabled={replayData.isPlaying}
+              disabled={isPlayingBack}
             >
               <Play size={16} /> Play
             </button>
             <button
               className="playback-pause-btn"
-              onClick={handlePause}
+              onClick={onPauseReplay}
               title="Pause"
-              disabled={!replayData.isPlaying}
+              disabled={!isPlayingBack}
             >
               <Square size={16} /> Pause
             </button>
             <button
               className="playback-reset-btn"
-              onClick={handleReset}
+              onClick={onResetReplay}
               title="Reset"
             >
               <RotateCcw size={16} /> Reset
+            </button>
+            <button
+              className="playback-download-btn"
+              onClick={onDownloadReplay}
+              title="Download replay"
+            >
+              <Download size={16} /> Download
             </button>
           </React.Fragment>
         ) : (
           <button
             className="record-start-btn"
-            onClick={handleRecord}
+            onClick={onToggleRecording}
             title="Start recording"
           >
             <Save size={16} /> Record

@@ -6,7 +6,7 @@
  * trigger zone detection, collectible pickup, and combat interactions.
  */
 
-import { Scene, Entity, CollisionComponent, StatsComponent, CollectibleComponent, TriggerComponent } from '../types';
+import { Scene, Entity, CollisionComponent, StatsComponent, CollectibleComponent, TriggerComponent, AIComponent } from '../types';
 import type { EventBus } from '../EventBus';
 
 export interface CollisionEvent {
@@ -108,11 +108,15 @@ export class CollisionSystem {
   }
 
   private handleDamage(player: Entity, enemy: Entity): void {
-    const stats = player.components.get('stats') as StatsComponent | undefined;
-    this.eventBus?.emit('collision:damage' as any, {
+    const playerStats = player.components.get('stats') as StatsComponent | undefined;
+    const enemyStats = enemy.components.get('stats') as StatsComponent | undefined;
+    const enemyAI = enemy.components.get('ai') as AIComponent | undefined;
+    const damageBase = enemyStats?.attackPower ?? enemyAI?.attackPower ?? 10;
+
+    this.eventBus?.emit('collision:damage', {
       playerId: player.id,
       enemyId: enemy.id,
-      damage: stats?.defense ? Math.max(1, 10 - stats.defense) : 10,
+      damage: playerStats?.defense ? Math.max(1, damageBase - playerStats.defense) : damageBase,
     });
   }
 
@@ -125,7 +129,7 @@ export class CollisionSystem {
     if (triggerComp.once && this.triggeredSet.has(key)) return;
     this.triggeredSet.add(key);
 
-    this.eventBus?.emit('collision:trigger' as any, {
+    this.eventBus?.emit('collision:trigger', {
       triggerId: trigger.id,
       entityId: other.id,
       event: triggerComp.event,
