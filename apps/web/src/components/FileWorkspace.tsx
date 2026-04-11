@@ -339,7 +339,6 @@ export default EnemyAI;`;
               projectId={projectId}
               filePath={selectedFile}
               onSave={handleSave}
-              onLoad={async () => fileContent}
               readOnly={false}
               loading={loading}
               className=""
