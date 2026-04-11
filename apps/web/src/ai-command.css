@@ -688,3 +688,42 @@
 .skeleton-w90 { width: 90%; }
 .skeleton-block { height: 60px; border-radius: 6px; background: linear-gradient(90deg, var(--border) 25%, rgba(139,92,246,0.1) 50%, var(--border) 75%); background-size: 200% 100%; animation: skeleton-shimmer 1.5s ease-in-out infinite; animation-delay: 0.2s; }
 @keyframes skeleton-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+/* Provider status banner */
+.provider-banner {
+  padding: 8px 12px;
+  margin: 0 16px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  animation: fadeIn 0.3s ease;
+}
+.provider-banner.warning {
+  background: rgba(234, 179, 8, 0.1);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  color: #ca8a04;
+}
+
+.model-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(99, 102, 241, 0.1);
+  color: #818cf8;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-left: 8px;
+}
+
+/* Cancel button row */
+.cancel-row {
+  display: flex;
+  justify-content: center;
+  padding: 4px 16px 8px;
+}
+
+/* Streaming state */
+.message.streaming .message-content {
+  opacity: 0.9;
+}

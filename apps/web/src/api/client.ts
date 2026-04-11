@@ -10,44 +10,129 @@ interface RequestOptions extends RequestInit {
   timeoutMs?: number;
 }
 
-async function request<T>(path: string, options?: RequestOptions): Promise<T> {
+export type APIClientErrorCode = 'timeout' | 'aborted' | 'http_error' | 'network_error' | 'invalid_response';
+
+export class APIClientError extends Error {
+  code: APIClientErrorCode;
+  status?: number;
+  details?: unknown;
+
+  constructor(message: string, code: APIClientErrorCode, options?: { status?: number; details?: unknown }) {
+    super(message);
+    this.name = 'APIClientError';
+    this.code = code;
+    this.status = options?.status;
+    this.details = options?.details;
+  }
+}
+
+function buildApiUrl(path: string, query?: Record<string, string>): URL {
   const baseUrl = API_BASE || window.location.origin;
   const url = new URL(`${baseUrl}${path}`);
-  
-  // Add query parameters if provided
-  if (options?.query) {
-    Object.entries(options.query).forEach(([key, value]) => {
+
+  if (query) {
+    Object.entries(query).forEach(([key, value]) => {
       if (value !== undefined && value !== '') {
         url.searchParams.append(key, value);
       }
     });
   }
 
-  // Client-side timeout via AbortController
+  return url;
+}
+
+function buildHeaders(headers?: HeadersInit): Headers {
+  const requestHeaders = new Headers(headers);
+  if (!requestHeaders.has('Content-Type')) {
+    requestHeaders.set('Content-Type', 'application/json');
+  }
+  return requestHeaders;
+}
+
+function createAbortSignal(timeoutMs: number, externalSignal?: AbortSignal) {
   const controller = new AbortController();
-  const timeoutMs = options?.timeoutMs || 60_000; // default 60s
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let didTimeout = false;
+
+  const abortFromExternalSignal = () => controller.abort();
+
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      controller.abort();
+    } else {
+      externalSignal.addEventListener('abort', abortFromExternalSignal);
+    }
+  }
+
+  const timer = setTimeout(() => {
+    didTimeout = true;
+    controller.abort();
+  }, timeoutMs);
+
+  return {
+    signal: controller.signal,
+    didTimeout: () => didTimeout,
+    cleanup: () => {
+      clearTimeout(timer);
+      if (externalSignal) {
+        externalSignal.removeEventListener('abort', abortFromExternalSignal);
+      }
+    },
+  };
+}
+
+async function readErrorResponse(res: Response): Promise<Record<string, unknown>> {
+  const contentType = res.headers.get('content-type') || '';
+
+  if (contentType.includes('application/json')) {
+    return res.json().catch(() => ({}));
+  }
+
+  const text = await res.text().catch(() => '');
+  return text ? { error: text } : {};
+}
+
+async function request<T>(path: string, options?: RequestOptions): Promise<T> {
+  const url = buildApiUrl(path, options?.query);
+  const timeoutMs = options?.timeoutMs || 60_000;
+  const { signal: externalSignal, query: _query, timeoutMs: _timeoutMs, headers, ...fetchOptions } = options || {};
+  const controller = createAbortSignal(timeoutMs, externalSignal ?? undefined);
 
   try {
     const res = await fetch(url.toString(), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: buildHeaders(headers),
+      ...fetchOptions,
       signal: controller.signal,
-      ...options,
     });
 
     if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body.error || body.details || `API error ${res.status}`);
+      const body = await readErrorResponse(res);
+      throw new APIClientError(
+        String(body.error || body.details || `API error ${res.status}`),
+        'http_error',
+        { status: res.status, details: body },
+      );
     }
 
     return res.json();
   } catch (err: any) {
-    if (err.name === 'AbortError') {
-      throw new Error('Request timed out. The AI service is taking too long to respond. Please try again.');
+    if (err instanceof APIClientError) {
+      throw err;
     }
-    throw err;
+
+    if (controller.didTimeout()) {
+      throw new APIClientError(
+        'Request timed out. The AI service is taking too long to respond. Please try again.',
+        'timeout',
+      );
+    }
+
+    if (externalSignal?.aborted || err?.name === 'AbortError') {
+      throw new APIClientError('Request cancelled.', 'aborted');
+    }
+
+    throw new APIClientError(err?.message || 'Network request failed.', 'network_error');
   } finally {
-    clearTimeout(timer);
+    controller.cleanup();
   }
 }
 
@@ -231,6 +316,16 @@ export interface AICommandRequest {
   };
 }
 
+export interface AIProviderStatus {
+  state: 'ready' | 'rate_limited' | 'timed_out' | 'degraded' | 'circuit_open' | 'mock';
+  message: string;
+  provider?: 'z.ai';
+  providerCode?: string;
+  retryAfterSeconds?: number;
+  updatedAt: string;
+  circuitOpenUntil?: string;
+}
+
 export interface AICommandResponse {
   id: string;
   type: 'explanation' | 'change' | 'fix' | 'analysis' | 'error';
@@ -248,6 +343,7 @@ export interface AICommandResponse {
   riskLevel: 'low' | 'medium' | 'high';
   errors?: string[];
   fromFallback?: boolean;
+  providerStatus?: AIProviderStatus;
 }
 
 export interface AICommandHistory {
@@ -257,6 +353,84 @@ export interface AICommandHistory {
   response: AICommandResponse;
   timestamp: Date;
   status: 'pending' | 'completed' | 'failed';
+}
+
+export interface AIHealthResponse {
+  status: string;
+  service: string;
+  version?: string;
+  model?: string;
+  features: string[];
+  note?: string;
+  circuitOpen?: boolean;
+  providerStatus?: AIProviderStatus;
+}
+
+export interface AICommandRequestOptions {
+  signal?: AbortSignal;
+  timeoutMs?: number;
+}
+
+export interface AICommandStreamOptions extends AICommandRequestOptions {
+  onChunk?: (chunk: string) => void;
+}
+
+export function getAIProviderFallbackMessage(providerStatus?: AIProviderStatus | null): string | null {
+  switch (providerStatus?.state) {
+    case 'rate_limited':
+      return 'AI provider is rate-limited. Using fallback response.';
+    case 'timed_out':
+      return "AI is taking too long. Here's a local suggestion instead.";
+    case 'circuit_open':
+    case 'degraded':
+      return 'AI service temporarily unavailable. Using offline mode.';
+    default:
+      return null;
+  }
+}
+
+export function formatAICommandResponseContent(
+  response: Pick<AICommandResponse, 'content' | 'fromFallback' | 'providerStatus'>,
+): string {
+  const providerMessage = getAIProviderFallbackMessage(response.providerStatus);
+  if (providerMessage) {
+    return `${providerMessage}\n\n${response.content}`;
+  }
+
+  if (response.fromFallback && response.providerStatus?.state !== 'mock') {
+    return `AI service temporarily unavailable. Using offline mode.\n\n${response.content}`;
+  }
+
+  return response.content;
+}
+
+export function getAIRequestErrorMessage(error: unknown): string {
+  if (error instanceof APIClientError) {
+    if (error.status === 429) {
+      return 'AI provider is rate-limited. Using fallback response.';
+    }
+
+    if (error.code === 'timeout') {
+      return "AI is taking too long. Here's a local suggestion instead.";
+    }
+
+    if (error.code === 'aborted') {
+      return 'Request cancelled.';
+    }
+  }
+
+  const message = error instanceof Error ? error.message : 'Unknown error';
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes('rate') && normalized.includes('limit')) {
+    return 'AI provider is rate-limited. Using fallback response.';
+  }
+
+  if (normalized.includes('timeout')) {
+    return "AI is taking too long. Here's a local suggestion instead.";
+  }
+
+  return `Error: ${message}`;
 }
 
 // ─── Export types ───
@@ -404,12 +578,140 @@ export const api = {
     request<SceneAnalysis>(`/api/projects/${projectId}/scene-analysis`),
 
   // AI Command operations — 90s timeout (backend has 30s × 2 retries)
-  processAICommand: (projectId: string, command: AICommandRequest) =>
+  processAICommand: (projectId: string, command: AICommandRequest, options?: AICommandRequestOptions) =>
     request<{ response: AICommandResponse }>(`/api/projects/${projectId}/ai/command`, {
       method: 'POST',
       body: JSON.stringify(command),
-      timeoutMs: 90_000,
+      timeoutMs: options?.timeoutMs ?? 90_000,
+      signal: options?.signal,
     }),
+
+  processAICommandStream: async (projectId: string, command: AICommandRequest, options?: AICommandStreamOptions) => {
+    const url = buildApiUrl(`/api/projects/${projectId}/ai/command`);
+    const timeoutMs = options?.timeoutMs ?? 120_000;
+    const controller = createAbortSignal(timeoutMs, options?.signal ?? undefined);
+
+    try {
+      const res = await fetch(url.toString(), {
+        method: 'POST',
+        headers: buildHeaders({ Accept: 'text/event-stream' }),
+        body: JSON.stringify({ ...command, stream: true }),
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        const body = await readErrorResponse(res);
+        throw new APIClientError(
+          String(body.error || body.details || `API error ${res.status}`),
+          'http_error',
+          { status: res.status, details: body },
+        );
+      }
+
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const body = await res.json() as { response: AICommandResponse };
+        if (body.response?.content) {
+          options?.onChunk?.(body.response.content);
+        }
+        return body;
+      }
+
+      if (!res.body) {
+        throw new APIClientError('AI stream did not include a response body.', 'invalid_response');
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let finalResponse: AICommandResponse | null = null;
+
+      const processEventBlock = (rawEvent: string) => {
+        const dataLines = rawEvent
+          .split('\n')
+          .filter((line) => line.startsWith('data:'))
+          .map((line) => line.slice(5).trimStart());
+
+        if (dataLines.length === 0) {
+          return;
+        }
+
+        const payload = JSON.parse(dataLines.join('\n')) as {
+          type?: 'chunk' | 'done' | 'error';
+          content?: string;
+          response?: AICommandResponse;
+          error?: string;
+          details?: string;
+        };
+
+        if (payload.type === 'chunk' && typeof payload.content === 'string') {
+          options?.onChunk?.(payload.content);
+          return;
+        }
+
+        if (payload.type === 'done' && payload.response) {
+          finalResponse = payload.response;
+          return;
+        }
+
+        if (payload.type === 'error') {
+          throw new APIClientError(payload.error || payload.details || 'AI stream failed.', 'http_error');
+        }
+      };
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) {
+          break;
+        }
+
+        buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n');
+
+        let separatorIndex = buffer.indexOf('\n\n');
+        while (separatorIndex !== -1) {
+          const eventBlock = buffer.slice(0, separatorIndex).trim();
+          buffer = buffer.slice(separatorIndex + 2);
+
+          if (eventBlock) {
+            processEventBlock(eventBlock);
+          }
+
+          separatorIndex = buffer.indexOf('\n\n');
+        }
+      }
+
+      buffer += decoder.decode();
+      const trailingEvent = buffer.trim();
+      if (trailingEvent) {
+        processEventBlock(trailingEvent);
+      }
+
+      if (!finalResponse) {
+        throw new APIClientError('AI stream ended before the final response arrived.', 'invalid_response');
+      }
+
+      return { response: finalResponse };
+    } catch (err: any) {
+      if (err instanceof APIClientError) {
+        throw err;
+      }
+
+      if (controller.didTimeout()) {
+        throw new APIClientError(
+          'Request timed out. The AI service is taking too long to respond. Please try again.',
+          'timeout',
+        );
+      }
+
+      if (options?.signal?.aborted || err?.name === 'AbortError') {
+        throw new APIClientError('Request cancelled.', 'aborted');
+      }
+
+      throw new APIClientError(err?.message || 'Failed to process streaming AI command.', 'network_error');
+    } finally {
+      controller.cleanup();
+    }
+  },
 
   getAIHistory: (projectId: string, limit?: number) => {
     const query = limit !== undefined ? { limit: limit.toString() } : undefined;
@@ -422,8 +724,7 @@ export const api = {
   getAICommand: (projectId: string, commandId: string) =>
     request<{ command: AICommandHistory }>(`/api/projects/${projectId}/ai/commands/${commandId}`),
 
-  getAIHealth: () => 
-    request<{ status: string; service: string; version: string; features: string[] }>('/api/ai/health'),
+  getAIHealth: () => request<AIHealthResponse>('/api/ai/health'),
 
   // Export operations
   exportGame: (projectId: string, options?: ExportOptions) =>
