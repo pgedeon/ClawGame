@@ -26,7 +26,9 @@ function getAIConfig() {
   };
 }
 
-const REQUEST_TIMEOUT_MS = 60_000;  // 30 seconds per attempt
+const REQUEST_TIMEOUT_MS = 30_000;
+const STREAM_IDLE_TIMEOUT_MS = 20_000;
+const STREAM_MAX_DURATION_MS = 90_000;
 const MAX_RETRIES = 2;
 const RETRY_BASE_DELAY_MS = 1_000;
 const CIRCUIT_BREAKER_THRESHOLD = 5;  // after 5 consecutive failures, use fallback
@@ -62,6 +64,7 @@ export interface AICommandResponse {
   riskLevel: 'low' | 'medium' | 'high';
   errors?: string[];
   fromFallback?: boolean;
+  providerStatus?: AIProviderStatus;
 }
 
 export interface AICommandHistory {
@@ -73,6 +76,40 @@ export interface AICommandHistory {
   status: 'pending' | 'completed' | 'failed';
 }
 
+export interface AIProviderStatus {
+  state: 'ready' | 'rate_limited' | 'timed_out' | 'degraded' | 'circuit_open' | 'mock';
+  message: string;
+  provider?: 'z.ai';
+  providerCode?: string;
+  retryAfterSeconds?: number;
+  updatedAt: string;
+  circuitOpenUntil?: string;
+}
+
+interface AIProviderErrorDetails {
+  kind: 'rate_limited' | 'timeout' | 'http_error' | 'network_error' | 'bad_response';
+  message: string;
+  statusCode?: number;
+  providerCode?: string;
+  retryAfterSeconds?: number;
+  retriable: boolean;
+}
+
+interface AICallResult {
+  content?: string;
+  error?: AIProviderErrorDetails;
+}
+
+class AIProviderError extends Error {
+  readonly details: AIProviderErrorDetails;
+
+  constructor(details: AIProviderErrorDetails) {
+    super(details.message);
+    this.name = 'AIProviderError';
+    this.details = details;
+  }
+}
+
 // ── Service ──
 
 export class RealAIService {
@@ -80,9 +117,17 @@ export class RealAIService {
   private logger: FastifyLoggerInstance;
   private consecutiveFailures = 0;
   private circuitOpenUntil = 0; // timestamp; 0 = closed
+  private lastProviderStatus: AIProviderStatus = {
+    state: 'mock',
+    message: 'Local fallback mode active.',
+    updatedAt: new Date().toISOString(),
+  };
 
   constructor(logger: FastifyLoggerInstance) {
     this.logger = logger;
+    this.lastProviderStatus = getAIConfig().apiKey
+      ? this.buildProviderStatus('ready', 'Live AI is ready to respond.')
+      : this.buildProviderStatus('mock', 'Live AI is not configured. Local fallback mode is active.');
   }
 
   // ── Main entry point ──
@@ -90,29 +135,37 @@ export class RealAIService {
   async processCommand(request: AICommandRequest): Promise<AICommandResponse> {
     const { projectId, command, context } = request;
 
-    // Get project context with metadata
     const projectContext = await this.getProjectContext(projectId, context);
     const systemPrompt = this.buildSystemPrompt(projectContext);
     const userPrompt = await this.buildUserPrompt(command, projectContext, context);
+    let fallbackStatus = this.buildProviderStatus('mock', 'Live AI is not configured. Local fallback mode is active.');
 
-    // Try real API (with retries + circuit breaker)
     if (getAIConfig().apiKey && !this.isCircuitOpen()) {
       const result = await this.callWithRetry(systemPrompt, userPrompt);
-      if (result) {
+      if (result.content) {
         this.onApiSuccess();
-        const structured = this.parseAIResponse(command, result);
+        const structured = this.attachProviderStatus(
+          this.parseAIResponse(command, result.content),
+          this.buildProviderStatus('ready', 'Live AI response received.'),
+        );
         this.storeHistory(projectId, command, structured, 'completed');
         return structured;
       }
-      this.onApiFailure();
+
+      fallbackStatus = this.onApiFailure(result.error);
     } else if (this.isCircuitOpen()) {
       this.logger.info('Circuit breaker open — using local fallback');
+      fallbackStatus = this.buildCircuitOpenStatus();
+      this.lastProviderStatus = fallbackStatus;
     } else {
       this.logger.warn('No API key configured — using local fallback');
+      this.lastProviderStatus = fallbackStatus;
     }
 
-    // Fallback: generate a useful local response
-    const fallback = this.generateFallbackResponse(command, projectContext);
+    const fallback = this.attachProviderStatus(
+      this.generateFallbackResponse(command, projectContext),
+      fallbackStatus,
+    );
     this.storeHistory(projectId, command, fallback, 'completed');
     return fallback;
   }
@@ -129,8 +182,14 @@ export class RealAIService {
     const userPrompt = await this.buildUserPrompt(command, projectContext, context);
 
     if (!getAIConfig().apiKey || this.isCircuitOpen()) {
-      // Simulate streaming for fallback
-      const fallback = this.generateFallbackResponse(command, projectContext);
+      const fallbackStatus = !getAIConfig().apiKey
+        ? this.buildProviderStatus('mock', 'Live AI is not configured. Local fallback mode is active.')
+        : this.buildCircuitOpenStatus();
+      this.lastProviderStatus = fallbackStatus;
+      const fallback = this.attachProviderStatus(
+        this.generateFallbackResponse(command, projectContext),
+        fallbackStatus,
+      );
       const words = fallback.content.split(' ');
       for (let i = 0; i < words.length; i += 3) {
         onChunk(words.slice(i, i + 3).join(' ') + ' ');
@@ -143,13 +202,19 @@ export class RealAIService {
     try {
       const fullText = await this.streamApiCall(systemPrompt, userPrompt, onChunk);
       this.onApiSuccess();
-      const structured = this.parseAIResponse(command, fullText);
+      const structured = this.attachProviderStatus(
+        this.parseAIResponse(command, fullText),
+        this.buildProviderStatus('ready', 'Live AI streamed a response successfully.'),
+      );
       this.storeHistory(projectId, command, structured, 'completed');
       return structured;
     } catch (err: any) {
       this.logger.error({ err: err.message }, 'Streaming API call failed');
-      this.onApiFailure();
-      const fallback = this.generateFallbackResponse(command, projectContext);
+      const fallbackStatus = this.onApiFailure(this.normalizeProviderError(err));
+      const fallback = this.attachProviderStatus(
+        this.generateFallbackResponse(command, projectContext),
+        fallbackStatus,
+      );
       onChunk('\n\n' + fallback.content);
       this.storeHistory(projectId, command, fallback, 'completed');
       return fallback;
@@ -158,14 +223,14 @@ export class RealAIService {
 
   // ── API calling with retry + abort ──
 
-  private async callWithRetry(systemPrompt: string, userPrompt: string): Promise<string | null> {
-    let lastError: any;
+  private async callWithRetry(systemPrompt: string, userPrompt: string): Promise<AICallResult> {
+    let lastError: AIProviderErrorDetails | undefined;
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      try {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
+      try {
         this.logger.info({ attempt: attempt + 1, model: getAIConfig().model }, 'AI API call starting');
 
         const response = await fetch(getAIConfig().apiUrl, {
@@ -183,41 +248,67 @@ export class RealAIService {
               { role: 'user', content: userPrompt },
             ],
             temperature: 0.7,
-            max_tokens: 8192,
+            max_tokens: 4096,
           }),
           signal: controller.signal,
         });
 
-        clearTimeout(timer);
-
         if (!response.ok) {
-          const body = await response.text().catch(() => '');
-          throw new Error(`API returned ${response.status}: ${body.slice(0, 200)}`);
+          throw await this.createResponseError(response);
         }
 
         const data = await response.json() as any;
+        const providerMessage = this.extractProviderMessage(data);
+        const providerCode = this.extractProviderCode(data);
+        if (response.status === 429 || providerCode === '1302' || this.isRateLimitText(providerMessage)) {
+          throw new AIProviderError({
+            kind: 'rate_limited',
+            message: providerMessage || 'z.ai is currently rate limiting requests.',
+            statusCode: response.status || 429,
+            providerCode,
+            retryAfterSeconds: this.parseRetryAfter(response.headers.get('retry-after')),
+            retriable: false,
+          });
+        }
+
         if (!data.choices?.[0]?.message?.content) {
-          throw new Error('Malformed API response: missing choices[0].message.content');
+          throw new AIProviderError({
+            kind: 'bad_response',
+            message: 'Malformed AI response: missing choices[0].message.content.',
+            retriable: false,
+          });
         }
 
         this.logger.info({ attempt: attempt + 1, chars: data.choices[0].message.content.length }, 'AI API call succeeded');
-        return data.choices[0].message.content;
+        return { content: data.choices[0].message.content };
 
       } catch (err: any) {
-        lastError = err;
-        const isAbort = err.name === 'AbortError';
-        this.logger.warn({ attempt: attempt + 1, aborted: isAbort, err: err.message }, 'AI API call failed');
+        lastError = this.normalizeProviderError(err);
+        this.logger.warn({
+          attempt: attempt + 1,
+          kind: lastError!.kind,
+          statusCode: lastError!.statusCode,
+          providerCode: lastError!.providerCode,
+          retriable: lastError!.retriable,
+          err: lastError!.message,
+        }, 'AI API call failed');
+
+        if (!lastError!.retriable) {
+          break;
+        }
 
         if (attempt < MAX_RETRIES - 1) {
           const delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt);
           this.logger.info({ delay }, 'Retrying after delay');
           await new Promise(r => setTimeout(r, delay));
         }
+      } finally {
+        clearTimeout(timer);
       }
     }
 
-    this.logger.error({ err: lastError?.message }, 'All AI API retries exhausted');
-    return null;
+    this.logger.error({ err: lastError?.message, kind: lastError?.kind }, 'AI API call exhausted fallback path');
+    return { error: lastError };
   }
 
   private async streamApiCall(
@@ -226,9 +317,25 @@ export class RealAIService {
     onChunk: (text: string) => void,
   ): Promise<string> {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    let timeoutReason: string = 'idle';
+    let idleTimer: NodeJS.Timeout | null = null;
+    const resetIdleTimer = () => {
+      if (idleTimer) {
+        clearTimeout(idleTimer);
+      }
+      idleTimer = setTimeout(() => {
+        timeoutReason = 'idle';
+        controller.abort();
+      }, STREAM_IDLE_TIMEOUT_MS);
+    };
+    const maxTimer = setTimeout(() => {
+      timeoutReason = 'max';
+      controller.abort();
+    }, STREAM_MAX_DURATION_MS);
 
     try {
+      resetIdleTimer();
+
       const response = await fetch(getAIConfig().apiUrl, {
         method: 'POST',
         headers: {
@@ -244,21 +351,24 @@ export class RealAIService {
             { role: 'user', content: userPrompt },
           ],
           temperature: 0.7,
-          max_tokens: 8192,
+          max_tokens: 4096,
           stream: true,
         }),
         signal: controller.signal,
       });
 
-      clearTimeout(timer);
-
       if (!response.ok) {
-        const body = await response.text().catch(() => '');
-        throw new Error(`API returned ${response.status}: ${body.slice(0, 200)}`);
+        throw await this.createResponseError(response);
       }
 
       const reader = response.body?.getReader();
-      if (!reader) throw new Error('No readable stream');
+      if (!reader) {
+        throw new AIProviderError({
+          kind: 'bad_response',
+          message: 'AI provider did not return a readable stream.',
+          retriable: false,
+        });
+      }
 
       const decoder = new TextDecoder();
       let fullText = '';
@@ -267,6 +377,8 @@ export class RealAIService {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+
+        resetIdleTimer();
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
@@ -291,8 +403,22 @@ export class RealAIService {
       }
 
       return fullText;
+    } catch (err: any) {
+      if (err?.name === 'AbortError') {
+        throw new AIProviderError({
+          kind: 'timeout',
+          message: timeoutReason === 'max'
+            ? 'Live AI response took too long to complete.'
+            : 'Live AI response stalled before completing.',
+          retriable: false,
+        });
+      }
+      throw err;
     } finally {
-      clearTimeout(timer);
+      if (idleTimer) {
+        clearTimeout(idleTimer);
+      }
+      clearTimeout(maxTimer);
     }
   }
 
@@ -311,14 +437,191 @@ export class RealAIService {
   private onApiSuccess() {
     this.consecutiveFailures = 0;
     this.circuitOpenUntil = 0;
+    this.lastProviderStatus = this.buildProviderStatus('ready', 'Live AI is ready to respond.');
   }
 
-  private onApiFailure() {
+  private onApiFailure(error?: AIProviderErrorDetails): AIProviderStatus {
     this.consecutiveFailures++;
+    this.lastProviderStatus = this.buildStatusFromError(error);
+
     if (this.consecutiveFailures >= CIRCUIT_BREAKER_THRESHOLD) {
       this.circuitOpenUntil = Date.now() + CIRCUIT_BREAKER_RESET_MS;
       this.logger.warn({ until: new Date(this.circuitOpenUntil).toISOString() }, 'Circuit breaker opened');
+      this.lastProviderStatus = this.buildCircuitOpenStatus();
     }
+
+    return this.lastProviderStatus;
+  }
+
+  private buildProviderStatus(
+    state: AIProviderStatus['state'],
+    message: string,
+    details?: Partial<Pick<AIProviderStatus, 'providerCode' | 'retryAfterSeconds' | 'circuitOpenUntil'>>,
+  ): AIProviderStatus {
+    return {
+      state,
+      message,
+      provider: getAIConfig().apiKey ? 'z.ai' : undefined,
+      providerCode: details?.providerCode,
+      retryAfterSeconds: details?.retryAfterSeconds,
+      circuitOpenUntil: details?.circuitOpenUntil,
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  private buildCircuitOpenStatus(): AIProviderStatus {
+    return this.buildProviderStatus(
+      'circuit_open',
+      'Live AI is temporarily paused after repeated failures. Using local fallback responses.',
+      { circuitOpenUntil: this.circuitOpenUntil ? new Date(this.circuitOpenUntil).toISOString() : undefined },
+    );
+  }
+
+  private buildStatusFromError(error?: AIProviderErrorDetails): AIProviderStatus {
+    if (!error) {
+      return this.buildProviderStatus('degraded', 'Live AI is temporarily unavailable. Using local fallback responses.');
+    }
+
+    if (error.kind === 'rate_limited') {
+      return this.buildProviderStatus(
+        'rate_limited',
+        'z.ai rate limit reached. Using local fallback so the request still completes quickly.',
+        { providerCode: error.providerCode, retryAfterSeconds: error.retryAfterSeconds },
+      );
+    }
+
+    if (error.kind === 'timeout') {
+      return this.buildProviderStatus(
+        'timed_out',
+        'Live AI took too long to respond. Switched to local fallback instead of waiting for more retries.',
+      );
+    }
+
+    return this.buildProviderStatus(
+      'degraded',
+      'Live AI is temporarily unavailable. Using local fallback responses.',
+      { providerCode: error.providerCode },
+    );
+  }
+
+  private attachProviderStatus(response: AICommandResponse, providerStatus: AIProviderStatus): AICommandResponse {
+    const errors = providerStatus.message
+      ? Array.from(new Set([...(response.errors || []), providerStatus.message]))
+      : response.errors;
+
+    return {
+      ...response,
+      providerStatus,
+      errors: errors && errors.length > 0 ? errors : undefined,
+    };
+  }
+
+  private normalizeProviderError(error: unknown): AIProviderErrorDetails | undefined {
+    if (!error) {
+      return undefined;
+    }
+
+    if (error instanceof AIProviderError) {
+      return error.details;
+    }
+
+    if (typeof error === 'object' && error !== null && 'name' in error && (error as any).name === 'AbortError') {
+      return {
+        kind: 'timeout',
+        message: 'Live AI timed out before returning a response.',
+        retriable: false,
+      };
+    }
+
+    const message = error instanceof Error ? error.message : String(error);
+    return {
+      kind: 'network_error',
+      message: message || 'Live AI request failed unexpectedly.',
+      retriable: true,
+    };
+  }
+
+  private async createResponseError(response: Response): Promise<AIProviderError> {
+    const rawBody = await response.text().catch(() => '');
+    const parsedBody = this.safeJsonParse(rawBody);
+    const providerCode = this.extractProviderCode(parsedBody) || this.extractProviderCode(rawBody);
+    const providerMessage = this.extractProviderMessage(parsedBody) || rawBody.slice(0, 300) || `API returned ${response.status}`;
+    const retryAfterSeconds = this.parseRetryAfter(response.headers.get('retry-after'));
+    const isRateLimited = response.status === 429 || providerCode === '1302' || this.isRateLimitText(providerMessage);
+
+    return new AIProviderError({
+      kind: isRateLimited ? 'rate_limited' : (response.status >= 500 ? 'http_error' : 'bad_response'),
+      message: providerMessage,
+      statusCode: response.status,
+      providerCode,
+      retryAfterSeconds,
+      retriable: response.status >= 500 && response.status < 600,
+    });
+  }
+
+  private safeJsonParse(value: string): any {
+    if (!value) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+
+  private extractProviderCode(value: any): string | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    if (typeof value === 'string') {
+      const match = value.match(/\b1302\b/);
+      return match ? match[0] : undefined;
+    }
+
+    const candidates = [
+      value.code,
+      value.error?.code,
+      value.error_code,
+      value.error?.error_code,
+    ];
+    const found = candidates.find(candidate => candidate !== undefined && candidate !== null);
+    return found !== undefined && found !== null ? String(found) : undefined;
+  }
+
+  private extractProviderMessage(value: any): string | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    return value.error?.message || value.message || value.error?.details;
+  }
+
+  private parseRetryAfter(value: string | null): number | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    const retryAfterSeconds = Number(value);
+    return Number.isFinite(retryAfterSeconds) ? retryAfterSeconds : undefined;
+  }
+
+  private isRateLimitText(message?: string): boolean {
+    if (!message) {
+      return false;
+    }
+
+    const normalized = message.toLowerCase();
+    return normalized.includes('rate limit')
+      || normalized.includes('too many requests')
+      || normalized.includes('frequency')
+      || normalized.includes('访问频率');
   }
 
   // ── Project context with metadata ──
@@ -1051,13 +1354,26 @@ export class TowerDefenseSystem extends System {
     return Math.random().toString(36).substring(2, 11);
   }
 
-  async healthCheck(): Promise<{ status: string; service: string; model: string; features: string[]; circuitOpen: boolean }> {
+  async healthCheck(): Promise<{
+    status: string;
+    service: string;
+    model: string;
+    features: string[];
+    circuitOpen: boolean;
+    providerStatus: AIProviderStatus;
+  }> {
+    const configured = Boolean(getAIConfig().apiKey);
+    const providerStatus = !configured
+      ? this.buildProviderStatus('mock', 'Live AI is not configured. Local fallback mode is active.')
+      : (this.isCircuitOpen() ? this.buildCircuitOpenStatus() : this.lastProviderStatus);
+
     return {
-      status: getAIConfig().apiKey ? 'connected' : 'mock',
-      service: getAIConfig().apiKey ? 'clawgame-ai' : 'mock-ai-preview',
+      status: configured ? 'connected' : 'mock',
+      service: configured ? 'clawgame-ai' : 'mock-ai-preview',
       model: getAIConfig().model,
-      features: getAIConfig().apiKey ? ['real-ai', 'code-generation', 'context-aware'] : ['mock-mode', 'local-fallback'],
+      features: configured ? ['real-ai', 'code-generation', 'context-aware', 'streaming', 'local-fallback'] : ['mock-mode', 'local-fallback'],
       circuitOpen: this.isCircuitOpen(),
+      providerStatus,
     };
   }
 }
