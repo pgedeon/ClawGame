@@ -7,6 +7,11 @@
  * Replays them deterministically using fixed time steps.
  */
 
+import type {
+  PreviewReplayEntitySnapshot,
+  PreviewReplayRuntimeSnapshot,
+} from '../utils/previewReplayState';
+
 /* ─── Types ─── */
 
 export interface InputFrame {
@@ -21,10 +26,12 @@ export interface InputFrame {
 export interface StateSnapshot {
   /** Monotonic time offset in ms */
   t: number;
-  /** Serialized entity positions */
-  entities: Array<{ id: string; x: number; y: number }>;
+  /** Serialized runtime entity state */
+  entities: PreviewReplayEntitySnapshot[];
   /** Player score, health, mana, etc. */
   stats: Record<string, number>;
+  /** Preview-runtime state needed for seek/restore */
+  runtime?: PreviewReplayRuntimeSnapshot;
 }
 
 export interface ReplayData {
@@ -86,10 +93,7 @@ export class ReplayRecorder {
   }
 
   /** Record a periodic state snapshot */
-  recordSnapshot(
-    entities: Array<{ id: string; transform: { x: number; y: number } }>,
-    stats: Record<string, number>,
-  ): void {
+  recordSnapshot(snapshot: Omit<StateSnapshot, 't'>): void {
     if (!this.recording) return;
     const t = performance.now() - this.startTime;
     // Snapshot every ~1000ms
@@ -97,8 +101,14 @@ export class ReplayRecorder {
     this.lastSnapshotT = t;
     this.snapshots.push({
       t,
-      entities: entities.map(e => ({ id: e.id, x: e.transform.x, y: e.transform.y })),
-      stats: { ...stats },
+      entities: snapshot.entities.map((entity) => ({
+        ...entity,
+        transform: { ...entity.transform },
+        ...(entity.patrolOrigin ? { patrolOrigin: { ...entity.patrolOrigin } } : {}),
+        ...(entity.components ? { components: JSON.parse(JSON.stringify(entity.components)) } : {}),
+      })),
+      stats: { ...snapshot.stats },
+      ...(snapshot.runtime ? { runtime: JSON.parse(JSON.stringify(snapshot.runtime)) } : {}),
     });
   }
 
@@ -137,6 +147,10 @@ export class ReplayPlayer {
     return this.data.meta.durationMs;
   }
 
+  get currentTimeMs(): number {
+    return this.currentTime;
+  }
+
   get progress(): number {
     return this.data.meta.durationMs > 0
       ? Math.min(1, this.currentTime / this.data.meta.durationMs)
@@ -149,6 +163,10 @@ export class ReplayPlayer {
 
   get currentSpeed(): number {
     return this.speed;
+  }
+
+  get tickMs(): number {
+    return this.data.tickMs;
   }
 
   /** Get the input state at a given time offset */
@@ -179,6 +197,16 @@ export class ReplayPlayer {
     return nearest;
   }
 
+  /** Get the latest state snapshot at or before a given time */
+  getSnapshotBeforeOrAt(t: number): StateSnapshot | null {
+    let snapshot: StateSnapshot | null = null;
+    for (const candidate of this.data.snapshots) {
+      if (candidate.t > t) break;
+      snapshot = candidate;
+    }
+    return snapshot;
+  }
+
   play(): void {
     this.playing = true;
   }
@@ -191,9 +219,20 @@ export class ReplayPlayer {
     this.speed = Math.max(0.25, Math.min(4, speed));
   }
 
-  seekTo(progress: number): void {
+  seekTo(progress: number): InputFrame | null {
     this.currentTime = Math.max(0, Math.min(1, progress)) * this.data.meta.durationMs;
     this.inputIndex = 0;
+    return this.getInputsAt(this.currentTime);
+  }
+
+  seekToTime(timeMs: number): InputFrame | null {
+    const clamped = Math.max(0, Math.min(this.data.meta.durationMs, timeMs));
+    this.currentTime = clamped;
+    this.inputIndex = 0;
+    if (this.currentTime >= this.data.meta.durationMs) {
+      this.playing = false;
+    }
+    return this.getInputsAt(this.currentTime);
   }
 
   /** Advance replay by deltaMs. Returns current input state or null if ended. */
@@ -206,6 +245,12 @@ export class ReplayPlayer {
       return null;
     }
     return this.getInputsAt(this.currentTime);
+  }
+
+  /** Advance replay even while paused. Negative values step backwards. */
+  step(deltaMs: number): InputFrame | null {
+    const nextTime = this.currentTime + deltaMs;
+    return this.seekToTime(nextTime);
   }
 
   reset(): void {

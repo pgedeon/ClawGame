@@ -335,10 +335,10 @@ export function runLegacyCanvasPreviewSession(
   // Delegate invincibility to coordinator; track locally only for replay restore
   let localInvincibleTimer = 0;
 
-  const isTDMode = projectGenre === 'strategy';
+  const isTDMode = projectGenre === 'strategy' || projectGenre === 'tower-defense';
   const towers: TowerDefenseTower[] = [];
   const tdWaves = getTowerDefenseWaves(activeScene as any);
-  const coreEntity = isTDMode ? Array.from(entities.values()).find((e: any) => e.id === 'core-bean') : null;
+  const coreEntity = isTDMode ? Array.from(entities.values()).find((e: any) => e.id === 'core-bean' || e.id === 'magic-bean') : null;
   const tdState = createTowerDefenseState(coreEntity?.health || coreEntity?.maxHealth || 0);
 
   inventoryRef.current = new InventoryManager() as any;
@@ -1123,7 +1123,7 @@ export function runLegacyCanvasPreviewSession(
         ctx.restore();
       }
 
-      const core = entities.get('core-bean');
+      const core = entities.get('core-bean') || entities.get('magic-bean');
       if (core && tdState.maxCoreHealth > 0) {
         const cx = core.transform.x;
         const cy = core.transform.y;

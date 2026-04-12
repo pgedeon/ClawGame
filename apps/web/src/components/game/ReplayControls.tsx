@@ -4,18 +4,22 @@
  * Part of M14: Playtest Lab + Publishing.
  */
 import React from 'react';
-import { Play, Square, Save, RotateCcw, Download } from 'lucide-react';
+import { Play, Square, Save, RotateCcw, Download, StepForward, StepBack } from 'lucide-react';
 
 interface ReplayControlsProps {
   isRecording: boolean;
   recordingTime: number;
   hasReplay: boolean;
   playbackTime: number;
+  playbackDuration: number;
   playbackProgress: number;
   isPlayingBack: boolean;
   onToggleRecording: () => void;
   onPlayReplay: () => void;
   onPauseReplay: () => void;
+  onSeekReplay: (progress: number) => void;
+  onStepBackReplay: () => void;
+  onStepReplay: () => void;
   onResetReplay: () => void;
   onDownloadReplay: () => void;
 }
@@ -25,11 +29,15 @@ export const ReplayControls: React.FC<ReplayControlsProps> = ({
   recordingTime,
   hasReplay,
   playbackTime,
+  playbackDuration,
   playbackProgress,
   isPlayingBack,
   onToggleRecording,
   onPlayReplay,
   onPauseReplay,
+  onSeekReplay,
+  onStepBackReplay,
+  onStepReplay,
   onResetReplay,
   onDownloadReplay,
 }) => {
@@ -49,13 +57,27 @@ export const ReplayControls: React.FC<ReplayControlsProps> = ({
           </div>
         ) : hasReplay ? (
           <div className="playback-indicator">
-            <span>Replay: {formatTime(playbackTime)}</span>
+            <span>Replay: {formatTime(playbackTime)} / {formatTime(playbackDuration)}</span>
             <span>{Math.round(playbackProgress * 100)}%</span>
           </div>
         ) : (
           <span>Ready to replay</span>
         )}
       </div>
+
+      {hasReplay && (
+        <div className="replay-timeline">
+          <input
+            className="replay-seek"
+            type="range"
+            min={0}
+            max={1000}
+            value={Math.round(playbackProgress * 1000)}
+            onChange={(event) => onSeekReplay(Number(event.target.value) / 1000)}
+            aria-label="Replay timeline"
+          />
+        </div>
+      )}
 
       <div className="replay-buttons">
         {isRecording ? (
@@ -77,12 +99,26 @@ export const ReplayControls: React.FC<ReplayControlsProps> = ({
               <Play size={16} /> Play
             </button>
             <button
+              className="playback-step-back-btn"
+              onClick={onStepBackReplay}
+              title="Step one frame backward"
+            >
+              <StepBack size={16} /> Back
+            </button>
+            <button
               className="playback-pause-btn"
               onClick={onPauseReplay}
               title="Pause"
               disabled={!isPlayingBack}
             >
               <Square size={16} /> Pause
+            </button>
+            <button
+              className="playback-step-btn"
+              onClick={onStepReplay}
+              title="Step one frame"
+            >
+              <StepForward size={16} /> Step
             </button>
             <button
               className="playback-reset-btn"

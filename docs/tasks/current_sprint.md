@@ -86,10 +86,38 @@ The correct move is to finish the runtime foundation before adding more M14 surf
 - Repaired the scene editor so it preserves canonical entity types on load/save, uses the selected project scene instead of overwriting it with the default scene, and renders attached assets through the shared cache
 - Refreshed the scene editor shell and canvas presentation so the level editor reads like a real tool instead of a fallback debug surface
 
+### 2026-04-12
+
+- Stabilized replay playback timing so preview simulation now advances on replay time instead of wall-clock time, fixing the paused-replay drift bug in `useGamePreview.ts`
+- Added an explicit replay frame-step control in the preview UI so paused sessions can advance one recorded tick at a time instead of only play/pause/reset
+- Extended `ReplayPlayer` with current-time/tick accessors and paused stepping support so the preview runtime can treat replay as a real simulation clock
+- Expanded replay unit tests to cover paused playback, manual stepping, and snapshot lookup behavior
+- Added replay scrub and backward-step controls so the preview can jump to an arbitrary recorded point instead of only moving forward from the current session
+- Expanded replay snapshots to capture preview runtime state including entities, projectiles, tower-defense state, inventory, quests, spells, and dialogue flags for seek/bootstrap restore
+- Bootstrapped replay seeks from the nearest recorded snapshot and fast-forwarded the remaining replay ticks so scrubbing no longer requires replaying the full session from zero every time
+- Reset session-scoped RPG managers on preview startup so replay and restart flows no longer inherit stale inventory/spell state from a prior run
+- Added dedicated preview replay state tests for snapshot cloning and restore behavior
+- Added preview runtime selection scaffolding in `apps/web/src/runtime` so the web preview can describe active vs requested runtimes instead of hard-coding a single label
+- Added a scaffolded `@clawgame/phaser-runtime` workspace package to reserve the Phaser 4 backend boundary without cutting preview over early
+- Changed the preview header to read from the runtime descriptor and explicitly fall back to the legacy canvas runtime while Phaser remains unavailable
+- Extracted the imperative legacy canvas preview loop out of `useGamePreview.ts` into `apps/web/src/runtime/legacyCanvasSession.ts`, reducing hook ownership and creating the first real runtime module boundary
+- Kept the extracted legacy runtime green under `pnpm --filter @clawgame/web build`, `pnpm --filter @clawgame/web test`, and `pnpm --filter @clawgame/phaser-runtime build`
+- Added `apps/web/src/runtime/runPreviewRuntimeSession.ts` so preview runtime mounting now routes through a backend selector instead of calling the legacy canvas session directly
+- Added `buildPhaserPreviewBootstrap` and typed bootstrap models in `packages/phaser-runtime` so canonical scene data can already be normalized into a future Phaser preload/entity/body manifest
+- Added Phaser-runtime bootstrap tests and validated them with repo-root Vitest while the new workspace package waits for a full install refresh to own its own local test binary
+- Added runtime-config helpers for listing and persisting preview backends so runtime choice is now a supported app setting instead of an internal storage detail
+- Added a Preview Runtime section to `apps/web/src/pages/SettingsPage.tsx` so the user can request `legacy-canvas` or `phaser4` and see the active/fallback resolution directly in the UI
+- Re-verified the web app after the settings integration with `pnpm --filter @clawgame/web build` and `pnpm --filter @clawgame/web test`
+- Added a dedicated runtime host element in the preview page so backend-owned mount lifecycles no longer have to assume direct ownership of the top-level preview canvas node
+- Added `apps/web/src/runtime/phaserPreviewSession.ts` so a requested Phaser backend now prepares a canonical Phaser bootstrap payload and runtime-host metadata even while the actual renderer still falls back to legacy canvas
+- Updated `runPreviewRuntimeSession` to combine Phaser preparation with legacy fallback instead of treating runtime selection as a single direct call path
+- Re-verified the host/preparation slice with `pnpm --filter @clawgame/web build`, `pnpm --filter @clawgame/web test`, and repo-root Vitest for `packages/phaser-runtime/src/buildPreviewBootstrap.test.ts`
+
 ### Next Slice
 
-- Finish stabilizing replay playback against the current preview runtime
 - Reduce `useGamePreview.ts` further by extracting simulation concerns into runtime-oriented modules
+- Start a Phaser-backed preview vertical slice that consumes the bootstrap manifest and replaces the current preparation-only session with a real renderer mount
+- Move replay snapshot capture/restore away from preview-owned mutable state and toward canonical engine/runtime snapshots
 - Move projectile-hit consequences and enemy defeat state changes closer to engine-owned runtime data instead of page-level bookkeeping
 - Start shrinking tower-defense enemy movement/core-contact rules toward engine-owned runtime events instead of a preview utility layer
 - Replace more of the ad hoc preview entity map with engine-owned runtime state instead of rebuilding partial runtime scenes per frame
@@ -255,12 +283,72 @@ Only starts after preview/export parity is credible.
 - Make sprite-sheet outputs usable by the runtime
 - Add at least one real publish target to the export flow
 - Separate AI status states into configured, healthy, degraded, and fallback
+- Prototype a Phaser 4 runtime backend behind a preview runtime interface without breaking the current canvas runtime
 
 ### P2
 
 - AI playtest mode that can consume replay artifacts and scene/runtime context
 - richer publish targets
 - hosted playtest sessions and sharable QA links
+
+---
+
+## Phaser 4 Runtime Backend Plan
+
+**Decision:** treat Phaser 4 as a runtime backend for preview/export, not as a replacement for ClawGame's canonical scene schema or editor architecture during M14.
+
+### Constraints
+
+- `SerializableScene` and the engine component schema remain the source of truth
+- the scene editor stays on its current rendering path during the first migration slice
+- preview must gain a runtime boundary before Phaser is introduced
+- export must not switch to Phaser until preview parity is proven
+
+### Migration Sequence
+
+1. Extract a `PreviewRuntime` boundary from `apps/web/src/hooks/useGamePreview.ts`
+2. Move the current canvas implementation behind `apps/web/src/runtime/legacyCanvasRuntime.ts`
+3. Add a new `packages/phaser-runtime` workspace package
+4. Land a Phaser vertical slice for preview only:
+   - canonical scene load
+   - asset preload
+   - player/enemy/obstacle rendering
+   - keyboard movement
+   - camera
+   - wall collision
+5. Bridge replay and snapshot capture to runtime-owned state instead of preview-owned mutable state
+6. Switch export to a Phaser-backed packaged runtime only after preview behavior is credible
+
+### First Files To Change
+
+- `apps/web/src/hooks/useGamePreview.ts`
+- `apps/web/src/runtime/PreviewRuntime.ts`
+- `apps/web/src/runtime/legacyCanvasRuntime.ts`
+- `packages/phaser-runtime/package.json`
+- `packages/phaser-runtime/src/index.ts`
+- `packages/phaser-runtime/src/ClawgamePhaserRuntime.ts`
+- `packages/phaser-runtime/src/ClawgamePhaserScene.ts`
+- `apps/web/package.json`
+
+### Follow-On Integration Files
+
+- `apps/web/src/utils/previewRuntimeScene.ts`
+- `apps/web/src/utils/previewProjectileScene.ts`
+- `apps/web/src/utils/previewReplayState.ts`
+- `apps/api/src/services/exportService.ts`
+
+### Done When
+
+- preview can choose a runtime backend through a stable adapter boundary
+- the Phaser backend can load canonical scene data without introducing a second scene schema
+- the first Phaser preview slice covers the current core movement/collision loop for standard gameplay
+- export remains on the legacy runtime until parity is verified instead of drifting implicitly
+
+### Explicit Non-Goals For The Phaser Work
+
+- rewriting the scene editor around Phaser during M14
+- replacing the canonical ClawGame schema with Phaser-native authoring data
+- cutting replay or export over before the preview backend proves parity
 
 ---
 
@@ -306,4 +394,4 @@ The important constraint is sequencing: do not restart broad platform expansion 
 ---
 
 **Sprint Owner:** @dev  
-**Last Updated:** 2026-04-11 17:58 UTC
+**Last Updated:** 2026-04-12 14:53 UTC

@@ -26,18 +26,20 @@ const GamePreviewContent: React.FC = () => {
   const { loading, error, projectName, scene: projectScene, projectGenre } = useSceneLoader(projectId);
 
   const {
+    previewRuntime,
+    runtimeHostRef,
     canvasRef, gameStats, gameStarted, gamePaused, gameOver, victory,
     playerScore, playerHealth, playerMana, collectedRunes, timeElapsed,
     activePanel, notifications, inventoryItems, questList,
     dialogueSpeaker, dialoguePortrait, dialogueText, dialogueChoices,
     craftingGrid, craftResult, learnedSpells, saveSlots,
-    isRecording, recordingTime, hasReplay, playbackTime, playbackProgress, isPlayingBack,
+    isRecording, recordingTime, hasReplay, playbackTime, playbackDuration, playbackProgress, isPlayingBack,
     controls,
     handleStartGame, handleRestart, handleBackToEditor,
     handleUseItem, handleEquipItem, handleCraftingCell, handleLearnSpell,
     handleAssignHotkey, handleSave, handleLoad, handleDeleteSave,
     handlePauseResume, handleDialogueChoice, setActivePanel,
-    handleToggleRecording, handlePlayReplay, handlePauseReplay, handleResetReplay, handleDownloadReplay,
+    handleToggleRecording, handlePlayReplay, handlePauseReplay, handleSeekReplay, handleStepBackReplay, handleStepReplay, handleResetReplay, handleDownloadReplay,
   } = useGamePreview(projectId, projectScene, projectGenre);
 
   if (loading) {
@@ -73,8 +75,13 @@ const GamePreviewContent: React.FC = () => {
           </button>
           <h1 className="game-preview-title">{projectName}</h1>
           <div className="game-preview-controls">
-            <span className="game-status ready">
-              <Monitor size={12} /> Local Preview
+            <span
+              className="game-status ready"
+              title={previewRuntime.fellBack && previewRuntime.reason
+                ? `${previewRuntime.requested.label} requested. ${previewRuntime.reason}`
+                : previewRuntime.active.description}
+            >
+              <Monitor size={12} /> {previewRuntime.active.shortLabel}
             </span>
             <span className={`game-status ${gameStarted ? (gamePaused ? 'paused' : 'playing') : 'ready'}`}>
               {gameStarted ? (gamePaused ? '⏸ Paused' : '▶ Playing') : '⏹ Ready'}
@@ -88,11 +95,15 @@ const GamePreviewContent: React.FC = () => {
           recordingTime={recordingTime}
           hasReplay={hasReplay}
           playbackTime={playbackTime}
+          playbackDuration={playbackDuration}
           playbackProgress={playbackProgress}
           isPlayingBack={isPlayingBack}
           onToggleRecording={handleToggleRecording}
           onPlayReplay={handlePlayReplay}
           onPauseReplay={handlePauseReplay}
+          onSeekReplay={handleSeekReplay}
+          onStepBackReplay={handleStepBackReplay}
+          onStepReplay={handleStepReplay}
           onResetReplay={handleResetReplay}
           onDownloadReplay={handleDownloadReplay}
         />
@@ -100,7 +111,9 @@ const GamePreviewContent: React.FC = () => {
         {/* Canvas with device preview frame */}
         <DevicePreviewFrame>
           <div className="game-preview-canvas-container" style={{ height: '100%', maxHeight: '100%' }}>
-            <canvas ref={canvasRef} className="game-preview-canvas" />
+            <div ref={runtimeHostRef} className="game-preview-runtime-host">
+              <canvas ref={canvasRef} className="game-preview-canvas" />
+            </div>
 
             {/* Notifications */}
             {notifications.length > 0 && (

@@ -21,14 +21,29 @@ describe('ReplayRecorder', () => {
     now = 100;
     recorder.recordInput(['a']);
     now = 1200;
-    recorder.recordSnapshot([{ id: 'player', transform: { x: 10, y: 20 } }], { score: 50, health: 80 });
+    recorder.recordSnapshot({
+      entities: [{
+        id: 'player',
+        type: 'player',
+        width: 32,
+        height: 48,
+        transform: { x: 10, y: 20 },
+      }],
+      stats: { score: 50, health: 80 },
+    });
     now = 1600;
     const replay = recorder.stop();
 
     expect(replay.inputs).toHaveLength(1);
     expect(replay.inputs[0].keys).toEqual(['a']);
     expect(replay.snapshots).toHaveLength(1);
-    expect(replay.snapshots[0].entities).toEqual([{ id: 'player', x: 10, y: 20 }]);
+    expect(replay.snapshots[0].entities).toEqual([{
+      id: 'player',
+      type: 'player',
+      width: 32,
+      height: 48,
+      transform: { x: 10, y: 20 },
+    }]);
     expect(replay.meta.durationMs).toBe(1600);
   });
 });
@@ -49,8 +64,16 @@ describe('ReplayPlayer', () => {
       { t: 2000, keys: [] },
     ],
     snapshots: [
-      { t: 1000, entities: [{ id: 'player', x: 50, y: 50 }], stats: { score: 10 } },
-      { t: 2500, entities: [{ id: 'player', x: 90, y: 75 }], stats: { score: 25 } },
+      {
+        t: 1000,
+        entities: [{ id: 'player', type: 'player', width: 32, height: 48, transform: { x: 50, y: 50 } }],
+        stats: { score: 10 },
+      },
+      {
+        t: 2500,
+        entities: [{ id: 'player', type: 'player', width: 32, height: 48, transform: { x: 90, y: 75 } }],
+        stats: { score: 25 },
+      },
     ],
   };
 
@@ -60,13 +83,20 @@ describe('ReplayPlayer', () => {
     player.play();
     expect(player.tick(600)?.keys).toEqual(['d']);
     expect(player.progress).toBeGreaterThan(0);
+    expect(player.currentTimeMs).toBe(600);
 
     player.pause();
     expect(player.tick(600)?.keys).toEqual(['d']);
+    expect(player.currentTimeMs).toBe(600);
 
     player.seekTo(0.5);
     expect(player.getInputsAt(1500)?.keys).toEqual(['space']);
     expect(player.getSnapshotAt(2400)?.stats.score).toBe(25);
+    expect(player.getSnapshotBeforeOrAt(2400)?.stats.score).toBe(10);
+
+    player.step(16);
+    expect(player.currentTimeMs).toBe(1516);
+    expect(player.getInputsAt(player.currentTimeMs)?.keys).toEqual(['space']);
 
     player.reset();
     expect(player.progress).toBe(0);

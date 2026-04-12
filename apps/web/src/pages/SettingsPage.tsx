@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Moon, Sun, Monitor, Keyboard, Cpu, Info, ChevronRight, Server, Palette } from 'lucide-react';
+import {
+  getRequestedPreviewRuntimeKind,
+  listPreviewRuntimeDescriptors,
+  resolvePreviewRuntimeSelection,
+  setRequestedPreviewRuntimeKind,
+  type PreviewRuntimeKind,
+} from '../runtime';
 
 type Theme = 'dark' | 'light' | 'system';
 
@@ -28,6 +35,8 @@ const AI_MODELS = [
   { value: 'claude-sonnet-4', label: 'Claude Sonnet 4' },
 ];
 
+const PREVIEW_RUNTIMES = listPreviewRuntimeDescriptors();
+
 export function SettingsPage() {
   const [theme, setTheme] = useState<Theme>(() => {
     return (localStorage.getItem('clawgame-theme') as Theme) || 'system';
@@ -44,8 +53,14 @@ export function SettingsPage() {
   const [comfyuiUrl, setComfyuiUrl] = useState<string>(() => {
     return localStorage.getItem('clawgame-comfyui-url') || 'http://localhost:8188';
   });
+  const [previewRuntime, setPreviewRuntime] = useState<PreviewRuntimeKind>(() => {
+    return getRequestedPreviewRuntimeKind();
+  });
   const [healthVersion, setHealthVersion] = useState<string | null>(null);
   const [apiStatus, setApiStatus] = useState<'unknown' | 'connected' | 'error'>('unknown');
+  const runtimeSelection = resolvePreviewRuntimeSelection({
+    getItem: (key) => key === 'clawgame-preview-runtime' ? previewRuntime : null,
+  });
 
   // Apply theme changes
   useEffect(() => {
@@ -72,6 +87,11 @@ export function SettingsPage() {
   useEffect(() => {
     localStorage.setItem('clawgame-comfyui-url', comfyuiUrl);
   }, [comfyuiUrl]);
+
+  // Persist preview runtime
+  useEffect(() => {
+    setRequestedPreviewRuntimeKind(previewRuntime);
+  }, [previewRuntime]);
 
   // Fetch health endpoint for version info
   useEffect(() => {
@@ -185,6 +205,52 @@ export function SettingsPage() {
                     <span>{opt.label}</span>
                   </button>
                 ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Preview Runtime */}
+        <section className="settings-section">
+          <div className="section-header">
+            <Monitor size={20} />
+            <h2>Preview Runtime</h2>
+          </div>
+          <div className="settings-card">
+            <div className="setting-row">
+              <div className="setting-info">
+                <span className="setting-label">Runtime Backend</span>
+                <span className="setting-desc">
+                  Choose which runtime ClawGame should try to use for preview sessions.
+                  {runtimeSelection.fellBack && runtimeSelection.reason && (
+                    <span style={{ color: 'var(--warning, #f59e0b)', marginLeft: 8 }}>
+                      Requested backend will fall back for now.
+                    </span>
+                  )}
+                </span>
+              </div>
+              <select
+                className="setting-select"
+                value={previewRuntime}
+                onChange={(event) => setPreviewRuntime(event.target.value as PreviewRuntimeKind)}
+              >
+                {PREVIEW_RUNTIMES.map((runtime) => (
+                  <option key={runtime.kind} value={runtime.kind}>
+                    {runtime.label}{runtime.experimental ? ' (Experimental)' : ''}{runtime.available ? '' : ' [Unavailable]'}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="setting-row">
+              <div className="setting-info">
+                <span className="setting-label">Current Resolution</span>
+                <span className="setting-desc">
+                  Active backend: {runtimeSelection.active.label}
+                  {runtimeSelection.fellBack && runtimeSelection.reason ? ` — ${runtimeSelection.reason}` : ''}
+                </span>
+              </div>
+              <div style={{ minWidth: 220, color: 'var(--text-muted)' }}>
+                {runtimeSelection.active.description}
               </div>
             </div>
           </div>

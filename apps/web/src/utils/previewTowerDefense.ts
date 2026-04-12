@@ -152,7 +152,7 @@ export function updateTowerDefenseFrame({
   waves,
   random = Math.random,
 }: UpdateTowerDefenseFrameOptions): TowerDefenseUpdateResult {
-  const target = entities.get('core-bean') || entities.get('player') || entities.get('player-1');
+  const target = entities.get('core-bean') || entities.get('magic-bean') || entities.get('player') || entities.get('player-1');
 
   entities.forEach((entity) => {
     if (entity.type !== 'enemy') return;
