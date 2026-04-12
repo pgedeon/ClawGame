@@ -22,6 +22,10 @@ import {
   MovementSystem,
   PhysicsSystem,
   ProjectileSystem,
+  PreviewHUD,
+  type HUDState,
+  type MinimapEntity,
+  type HUDTowerDefenseStats,
 } from '@clawgame/engine';
 import { createPreviewCollisionScene } from '../utils/previewCollisionScene';
 import {
@@ -249,6 +253,9 @@ export function runLegacyCanvasPreviewSession(
   const physicsSystem = new PhysicsSystem({ width: canvas.width, height: canvas.height });
   const projectileSystem = new ProjectileSystem({ width: canvas.width, height: canvas.height });
   projectileSystem.attach(collisionBus);
+
+  // ─── Preview HUD Renderer (M14) ───
+  const previewHUD = new PreviewHUD(ctx, { width: canvas.width, height: canvas.height });
 
   // ─── GameLoopCoordinator (M14) ───
   // Owns score, health, mana, collected items, time, victory/defeat state.
@@ -1134,116 +1141,53 @@ export function runLegacyCanvasPreviewSession(
       }
     }
 
-    const stats = gameStatsRef.current;
-    ctx.fillStyle = 'rgba(0,0,0,0.8)';
-    ctx.beginPath();
-    ctx.roundRect(10, 10, 200, 150, 8);
-    ctx.fill();
-    ctx.fillStyle = 'white';
-    ctx.font = 'bold 14px monospace';
-    ctx.textAlign = 'left';
-    ctx.fillText(`Score: ${score}`, 20, 35);
-    if (isTDMode) {
-      ctx.fillStyle = '#fbbf24';
-      ctx.font = 'bold 12px monospace';
-      ctx.fillText(`Wave: ${tdState.waveIndex}/${tdWaves.length}`, 20, 100);
-      ctx.fillText(`Towers: ${towers.length}`, 20, 115);
-      ctx.fillText(`Enemies: ${tdState.enemiesAlive}`, 20, 130);
-      ctx.fillStyle = 'rgba(0,0,0,0.6)';
-      ctx.fillRect(20, 135, 100, 10);
-      ctx.fillStyle = tdState.coreHealth > tdState.maxCoreHealth * 0.5 ? '#22c55e' : tdState.coreHealth > tdState.maxCoreHealth * 0.25 ? '#eab308' : '#ef4444';
-      ctx.fillRect(20, 135, 100 * (tdState.coreHealth / tdState.maxCoreHealth), 10);
-      ctx.fillStyle = '#fff';
-      ctx.font = '9px monospace';
-      ctx.fillText('Bean HP', 125, 144);
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '10px monospace';
-      ctx.fillText('[T] Place tower (30 mana)', 20, 160);
-      if (tdState.waveMessageTimer > 0) {
-        const alpha = Math.min(1, tdState.waveMessageTimer / 1000);
-        ctx.fillStyle = `rgba(251,191,36,${alpha})`;
-        ctx.font = 'bold 18px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(tdState.waveMessage, canvas.width / 2, 50);
-        ctx.textAlign = 'left';
-      }
-    }
-    ctx.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx.fillRect(20, 45, 100, 10);
-    ctx.fillStyle = health > 50 ? '#22c55e' : health > 25 ? '#eab308' : '#ef4444';
-    ctx.fillRect(20, 45, 100 * (health / 100), 10);
-    ctx.fillStyle = 'white';
-    ctx.font = '9px monospace';
-    ctx.fillText(`HP ${Math.round(health)}`, 125, 54);
-    ctx.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx.fillRect(20, 58, 100, 10);
-    ctx.fillStyle = '#3b82f6';
-    ctx.fillRect(20, 58, 100 * (mana / 100), 10);
-    ctx.fillStyle = 'white';
-    ctx.fillText(`MP ${Math.round(mana)}`, 125, 67);
-    ctx.font = '12px monospace';
-    ctx.fillText(`FPS: ${stats.fps}`, 20, 85);
-    ctx.fillText(`Runes: ${collectedRuneIds.length}`, 20, 100);
-    ctx.fillText(`Time: ${Math.floor(gameTime / 1000)}s`, 20, 115);
-    ctx.fillText(`Entities: ${stats.entities}`, 20, 130);
+    // ─── HUD (via @clawgame/engine PreviewHUD) ───
+    const cs = coordinator.getState();
     const weapon = inventory.equipment.weapon;
-    if (weapon) {
-      ctx.fillStyle = '#fbbf24';
-      ctx.fillText(`⚔ ${weapon.name}`, 20, 145);
-    }
+    const tdStats: HUDTowerDefenseStats | undefined = isTDMode ? {
+      waveIndex: tdState.waveIndex,
+      totalWaves: tdWaves.length,
+      towerCount: towers.length,
+      enemiesAlive: tdState.enemiesAlive,
+      coreHealth: tdState.coreHealth,
+      coreMaxHealth: tdState.maxCoreHealth,
+      waveMessage: tdState.waveMessage || undefined,
+      waveMessageAlpha: tdState.waveMessageTimer > 0 ? Math.min(1, tdState.waveMessageTimer / 1000) : undefined,
+    } : undefined;
 
-    if (questHUDText) {
-      ctx.fillStyle = 'rgba(0,0,0,0.7)';
-      ctx.beginPath();
-      ctx.roundRect(10, 168, 280, 24, 6);
-      ctx.fill();
-      ctx.fillStyle = '#fbbf24';
-      ctx.font = '11px monospace';
-      ctx.fillText(`📜 ${questHUDText}`, 18, 184);
-    }
+    const hudState: HUDState = {
+      score: cs.score,
+      health: cs.health,
+      maxHealth: cs.maxHealth,
+      mana: cs.mana,
+      maxMana: cs.maxMana,
+      fps: gameStatsRef.current.fps,
+      entityCount: gameStatsRef.current.entities,
+      timeSeconds: Math.floor(cs.timeElapsed),
+      collectedRunes: cs.collectedItems.length,
+      weaponName: weapon?.name,
+      spells: spellMgr.learnedSpells
+        .filter((spell: any) => spell.hotkey !== null)
+        .map((spell: any) => ({
+          icon: spell.icon,
+          hotkey: spell.hotkey,
+          cooldown: spell.currentCooldown,
+          maxCooldown: spell.cooldown,
+        })),
+      questText: questHUDText || undefined,
+      towerDefense: tdStats,
+    };
 
-    const activeSpells = spellMgr.learnedSpells.filter((spell: any) => spell.hotkey !== null);
-    if (activeSpells.length > 0) {
-      const barX = canvas.width / 2 - (activeSpells.length * 44) / 2;
-      const barY = canvas.height - 56;
-      activeSpells.forEach((spell: any, index: number) => {
-        const sx = barX + index * 44;
-        ctx.fillStyle = spell.currentCooldown > 0 ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.8)';
-        ctx.beginPath();
-        ctx.roundRect(sx, barY, 40, 40, 6);
-        ctx.fill();
-        ctx.strokeStyle = spell.currentCooldown > 0 ? '#475569' : '#60a5fa';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(sx, barY, 40, 40);
-        ctx.font = '18px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(spell.icon, sx + 20, barY + 28);
-        ctx.fillStyle = '#fff';
-        ctx.font = '9px monospace';
-        ctx.fillText(`${spell.hotkey}`, sx + 20, barY + 38);
-        if (spell.currentCooldown > 0) {
-          ctx.fillStyle = 'rgba(0,0,0,0.5)';
-          ctx.fillRect(sx, barY, 40, 40 * Math.min(1, spell.currentCooldown / spell.cooldown));
-        }
-      });
-    }
-
-    const mmSize = 120;
-    const mmX = canvas.width - mmSize - 10;
-    const mmY = 10;
-    ctx.fillStyle = 'rgba(0,0,0,0.6)';
-    ctx.beginPath();
-    ctx.roundRect(mmX, mmY, mmSize, mmSize, 6);
-    ctx.fill();
-    ctx.strokeStyle = '#334155';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(mmX, mmY, mmSize, mmSize);
-    const scX = mmSize / canvas.width;
-    const scY = mmSize / canvas.height;
+    const minimapEntities: MinimapEntity[] = [];
     entities.forEach((entity: any) => {
-      ctx.fillStyle = TYPE_COLORS[entity.type] || '#8b5cf6';
-      ctx.fillRect(mmX + entity.transform.x * scX - 2, mmY + entity.transform.y * scY - 2, 4, 4);
+      minimapEntities.push({
+        x: entity.transform.x,
+        y: entity.transform.y,
+        type: entity.type,
+      });
     });
+
+    previewHUD.render(hudState, minimapEntities);
   };
 
   const gameLoop = () => {

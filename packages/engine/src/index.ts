@@ -38,6 +38,16 @@ export { AnimationSystem } from './systems/AnimationSystem';
 export { AnimationStateMachineSystem } from './systems/AnimationStateMachineSystem';
 export type { CollisionEvent } from './systems/CollisionSystem';
 
+// Re-export preview HUD (M14 runtime unification)
+export { PreviewHUD } from './systems/PreviewHUD';
+export type {
+  HUDState,
+  HUDSpell,
+  HUDQuest,
+  HUDTowerDefenseStats,
+  MinimapEntity,
+} from './systems/PreviewHUD';
+
 // Re-export game loop coordinator (M14 runtime unification)
 export { GameLoopCoordinator, createDefaultGameState } from './systems/GameLoopCoordinator';
 export type {
