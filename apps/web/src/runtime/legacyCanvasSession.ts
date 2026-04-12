@@ -1,0 +1,1275 @@
+import type {
+  Dispatch,
+  MutableRefObject,
+  RefObject,
+  SetStateAction,
+} from 'react';
+import { InventoryManager } from '../rpg/inventory';
+import { QuestManager } from '../rpg/quests';
+import { DialogueManager } from '../rpg/dialogue';
+import { SpellCraftingManager } from '../rpg/spellcrafting';
+import {
+  ReplayRecorder,
+  ReplayPlayer,
+  type ReplayData,
+  type InputFrame,
+} from '../rpg/replay';
+import {
+  AISystem,
+  CollisionSystem,
+  EventBus,
+  GameLoopCoordinator,
+  MovementSystem,
+  PhysicsSystem,
+  ProjectileSystem,
+} from '@clawgame/engine';
+import { createPreviewCollisionScene } from '../utils/previewCollisionScene';
+import {
+  applyPreviewRuntimeScene,
+  createPreviewRuntimeScene,
+  toEngineInputState,
+} from '../utils/previewRuntimeScene';
+import {
+  applyPreviewProjectileScene,
+  createPreviewProjectileScene,
+} from '../utils/previewProjectileScene';
+import {
+  createTowerDefenseState,
+  createTowerDefenseTower,
+  getTowerDefenseWaves,
+  registerTowerDefenseEnemyDefeat,
+  updateTowerDefenseFrame,
+  type TowerDefenseTower,
+} from '../utils/previewTowerDefense';
+import {
+  clonePreviewReplayEntity,
+  clonePreviewReplayRuntimeSnapshot,
+  restorePreviewReplayState,
+} from '../utils/previewReplayState';
+import type { PreviewSceneData } from '../utils/previewScene';
+
+interface GameStats {
+  fps: number;
+  entities: number;
+  memory: string;
+}
+
+type StateSetter<T> = Dispatch<SetStateAction<T>>;
+
+const TYPE_COLORS: Record<string, string> = {
+  player: '#3b82f6',
+  enemy: '#ef4444',
+  collectible: '#f59e0b',
+  obstacle: '#64748b',
+  npc: '#22c55e',
+  unknown: '#8b5cf6',
+};
+
+const TYPE_SIZES: Record<string, [number, number]> = {
+  player: [32, 48],
+  enemy: [32, 32],
+  collectible: [16, 16],
+  obstacle: [32, 32],
+  npc: [32, 48],
+  unknown: [32, 32],
+};
+
+const PANEL_KEYS = ['inventory', 'quests', 'spellcraft', 'saveload'];
+
+function normalizeInputKey(key: string): string {
+  return key === ' ' ? 'space' : key.toLowerCase();
+}
+
+function createKeyState(keys: string[]): Record<string, boolean> {
+  const state: Record<string, boolean> = {};
+  for (const key of keys) {
+    state[key] = true;
+  }
+  return state;
+}
+
+function isKeyJustPressed(
+  currentKeys: Record<string, boolean>,
+  previousKeys: Record<string, boolean>,
+  key: string,
+): boolean {
+  return Boolean(currentKeys[key]) && !Boolean(previousKeys[key]);
+}
+
+function getMovementDirection(keys: Record<string, boolean>): { dx: number; dy: number } {
+  let dx = 0;
+  let dy = 0;
+
+  if (keys.arrowleft || keys.a) dx = -1;
+  else if (keys.arrowright || keys.d) dx = 1;
+
+  if (keys.arrowup || keys.w) dy = -1;
+  else if (keys.arrowdown || keys.s) dy = 1;
+
+  if (dx !== 0 && dy !== 0) {
+    const length = Math.sqrt(dx * dx + dy * dy);
+    dx /= length;
+    dy /= length;
+  }
+
+  return { dx, dy };
+}
+
+export interface LegacyCanvasPreviewSessionOptions {
+  runtimeHostRef: RefObject<HTMLDivElement | null>;
+  canvasRef: RefObject<HTMLCanvasElement | null>;
+  animationRef: MutableRefObject<number | null>;
+  gameStatsRef: MutableRefObject<GameStats>;
+  gameLoopState: MutableRefObject<any>;
+  activeScene: PreviewSceneData;
+  projectGenre: string;
+  gameStarted: boolean;
+  gamePaused: boolean;
+  gameOver: boolean;
+  victory: boolean;
+  isRecording: boolean;
+  replaySessionKey: number;
+  replayAutoplay: boolean;
+  replayStartProgress: number;
+  questHUDText: string;
+  inventoryRef: MutableRefObject<InventoryManager>;
+  questMgrRef: MutableRefObject<QuestManager>;
+  dialogueMgrRef: MutableRefObject<DialogueManager>;
+  spellMgrRef: MutableRefObject<SpellCraftingManager>;
+  replayRecorderRef: MutableRefObject<ReplayRecorder | null>;
+  replayPlayerRef: MutableRefObject<ReplayPlayer | null>;
+  replayDataRef: MutableRefObject<ReplayData | null>;
+  pendingReplayStepMsRef: MutableRefObject<number>;
+  syncRPGState: () => void;
+  handleSave: (slotId: number) => void;
+  setCollectedRunes: StateSetter<string[]>;
+  setGameOver: StateSetter<boolean>;
+  setVictory: StateSetter<boolean>;
+  setPlaybackTime: StateSetter<number>;
+  setPlaybackProgress: StateSetter<number>;
+  setIsPlayingBack: StateSetter<boolean>;
+  setPlayerScore: StateSetter<number>;
+  setPlayerHealth: StateSetter<number>;
+  setPlayerMana: StateSetter<number>;
+  setTimeElapsed: StateSetter<number>;
+  setGamePaused: StateSetter<boolean>;
+  setActivePanel: StateSetter<any>;
+  setDialogueSpeaker: StateSetter<string>;
+  setDialoguePortrait: StateSetter<string>;
+  setDialogueText: StateSetter<string>;
+  setDialogueChoices: StateSetter<Array<{ text: string; index: number }>>;
+  setGameStats: StateSetter<GameStats>;
+}
+
+export function runLegacyCanvasPreviewSession(
+  options: LegacyCanvasPreviewSessionOptions,
+): (() => void) | void {
+  const {
+    runtimeHostRef,
+    canvasRef,
+    animationRef,
+    gameStatsRef,
+    gameLoopState,
+    activeScene,
+    projectGenre,
+    gameStarted,
+    gamePaused,
+    gameOver,
+    victory,
+    isRecording,
+    replaySessionKey,
+    replayAutoplay,
+    replayStartProgress,
+    questHUDText,
+    inventoryRef,
+    questMgrRef,
+    dialogueMgrRef,
+    spellMgrRef,
+    replayRecorderRef,
+    replayPlayerRef,
+    replayDataRef,
+    pendingReplayStepMsRef,
+    syncRPGState,
+    handleSave,
+    setCollectedRunes,
+    setGameOver,
+    setVictory,
+    setPlaybackTime,
+    setPlaybackProgress,
+    setIsPlayingBack,
+    setPlayerScore,
+    setPlayerHealth,
+    setPlayerMana,
+    setTimeElapsed,
+    setGamePaused,
+    setActivePanel,
+    setDialogueSpeaker,
+    setDialoguePortrait,
+    setDialogueText,
+    setDialogueChoices,
+    setGameStats,
+  } = options;
+
+  if (!canvasRef.current) return;
+  const canvas = canvasRef.current;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const runtimeHost = runtimeHostRef.current;
+
+  if (runtimeHost) {
+    runtimeHost.dataset.previewRuntimeActive = 'legacy-canvas';
+    runtimeHost.dataset.previewRuntimeMounted = 'true';
+  }
+
+  const resizeCanvas = () => {
+    const container = canvas.parentElement;
+    if (container) {
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+    }
+  };
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  const replayPlayer = replaySessionKey > 0 && replayDataRef.current
+    ? new ReplayPlayer(replayDataRef.current)
+    : null;
+  replayPlayerRef.current = replayPlayer;
+  if (replayPlayer && replayStartProgress > 0) {
+    replayPlayer.seekTo(replayStartProgress);
+  }
+
+  // ─── Engine systems ───
+
+  const collisionBus = new EventBus();
+  const collisionSystem = new CollisionSystem();
+  collisionSystem.attach(collisionBus);
+  const aiSystem = new AISystem();
+  const movementSystem = new MovementSystem({ width: canvas.width, height: canvas.height });
+  const physicsSystem = new PhysicsSystem({ width: canvas.width, height: canvas.height });
+  const projectileSystem = new ProjectileSystem({ width: canvas.width, height: canvas.height });
+  projectileSystem.attach(collisionBus);
+
+  // ─── GameLoopCoordinator (M14) ───
+  // Owns score, health, mana, collected items, time, victory/defeat state.
+  // Auto-listens to collision:pickup and collision:damage on the bus.
+
+  const allRunesInScene = activeScene.entities.filter(
+    (entity) => entity.type === 'collectible' && entity.components?.collectible?.type === 'rune',
+  );
+
+  const coordinator = new GameLoopCoordinator({
+    victoryConditions: allRunesInScene.length > 0
+      ? [{ type: 'collect-all', tag: 'rune' }]
+      : [],
+  });
+  coordinator.attach(collisionBus);
+
+  // Subscribe coordinator state changes to React setters
+  const coordinatorSubscriptions = [
+    collisionBus.on('game:score-changed', ({ newScore }) => {
+      setPlayerScore(newScore);
+    }),
+    collisionBus.on('game:health-changed', ({ newHealth }) => {
+      setPlayerHealth(newHealth);
+    }),
+    collisionBus.on('game:mana-changed', ({ newMana }) => {
+      setPlayerMana(newMana);
+    }),
+    collisionBus.on('game:collectible-pickup', ({ itemId }) => {
+      const state = coordinator.getState();
+      setCollectedRunes([...state.collectedItems]);
+    }),
+    collisionBus.on('game:over', () => {
+      setGameOver(true);
+    }),
+    collisionBus.on('game:victory', () => {
+      setVictory(true);
+    }),
+  ];
+
+  // ─── Entities ───
+
+  const entities = new Map<string, any>();
+  for (const entity of activeScene.entities) {
+    const t = entity.transform || { x: 400, y: 300, scaleX: 1, scaleY: 1, rotation: 0 };
+    const eType = entity.type || 'unknown';
+    const defaultSize = TYPE_SIZES[eType] || [32, 32];
+    const comps = entity.components || {};
+    entities.set(entity.id, {
+      id: entity.id,
+      type: eType,
+      transform: { ...t },
+      components: comps,
+      vx: 0,
+      vy: 0,
+      color: comps.sprite?.color || TYPE_COLORS[eType] || '#8b5cf6',
+      width: comps.sprite?.width || defaultSize[0],
+      height: comps.sprite?.height || defaultSize[1],
+      health: comps.stats?.hp || 30,
+      maxHealth: comps.stats?.maxHp || 30,
+      damage: comps.stats?.damage || 10,
+      enemyType: comps?.enemyType || comps?.ai?.type || 'slime',
+      patrolOrigin: { x: t.x, y: t.y },
+      patrolOffset: Math.random() * Math.PI * 2,
+      hitFlash: 0,
+      facing: 'right',
+    });
+  }
+
+  const liveKeys: Record<string, boolean> = {};
+  let previousKeys: Record<string, boolean> = {};
+  const projectiles: any[] = [];
+  let frameCount = 0;
+  let lastTime = performance.now();
+  let lastShotTime = 0;
+  const defeatedEnemies: string[] = [];
+
+  // Delegate invincibility to coordinator; track locally only for replay restore
+  let localInvincibleTimer = 0;
+
+  const isTDMode = projectGenre === 'strategy';
+  const towers: TowerDefenseTower[] = [];
+  const tdWaves = getTowerDefenseWaves(activeScene as any);
+  const coreEntity = isTDMode ? Array.from(entities.values()).find((e: any) => e.id === 'core-bean') : null;
+  const tdState = createTowerDefenseState(coreEntity?.health || coreEntity?.maxHealth || 0);
+
+  inventoryRef.current = new InventoryManager() as any;
+  questMgrRef.current = new QuestManager() as any;
+  dialogueMgrRef.current = new DialogueManager() as any;
+  spellMgrRef.current = new SpellCraftingManager() as any;
+
+  const inventory = inventoryRef.current as any;
+  const questMgr = questMgrRef.current as any;
+  const dialogueMgr = dialogueMgrRef.current as any;
+  const spellMgr = spellMgrRef.current as any;
+
+  if (activeScene.dialogueTrees) {
+    activeScene.dialogueTrees.forEach((dt: any) => dialogueMgr.registerTree(dt));
+  }
+
+  // ─── Collision subscriptions ───
+  // Note: collision:pickup and collision:damage are now auto-handled by the
+  // GameLoopCoordinator. We still subscribe for side-effects (entity removal,
+  // RPG system sync, tower defense, etc.) that are beyond the coordinator's scope.
+
+  const collisionSubscriptions = [
+    collisionBus.on('collision:pickup', ({ collectibleId, type, value }) => {
+      const collectible = entities.get(collectibleId);
+      if (!collectible) return;
+
+      if (type === 'item' || collectible.type === 'item' || collectible.components?.itemDrop) {
+        const drop = collectible.components?.itemDrop;
+        if (drop) {
+          inventory.addItem({ ...drop });
+          syncRPGState();
+        }
+        // Score is now handled by coordinator
+      } else if (type === 'health') {
+        coordinator.heal(collectible.components?.collectible?.healAmount || 30);
+        // Score handled by coordinator
+      }
+      // rune pickup: coordinator.collectItem is auto-called via bus
+
+      entities.delete(collectibleId);
+    }),
+    collisionBus.on('collision:damage', ({ damage }) => {
+      // Health tracking is now handled by coordinator via bus
+      // We only track invincibility flash timer for the renderer
+      localInvincibleTimer = 1000;
+    }),
+    collisionBus.on('projectile:hit', ({ targetId, targetType, damage }) => {
+      if (targetType !== 'enemy') return;
+
+      const enemy = entities.get(targetId);
+      if (!enemy) return;
+
+      enemy.health -= damage;
+      enemy.hitFlash = 200;
+      if (enemy.health <= 0) {
+        coordinator.addScore(enemy.scoreValue || 50);
+        defeatedEnemies.push(enemy.id);
+        questMgr.onKill(enemy.enemyType || 'slime');
+        if (isTDMode) {
+          registerTowerDefenseEnemyDefeat(tdState);
+        }
+        syncRPGState();
+        entities.delete(enemy.id);
+      }
+    }),
+    collisionBus.on('collision:trigger', ({ event }) => {
+      if (event === 'level_complete' || event === 'victory') {
+        setVictory(true);
+      }
+    }),
+  ];
+
+  inventory.addItem({
+    id: 'health-potion',
+    name: 'Health Potion',
+    description: 'Restores 25 HP.',
+    type: 'potion',
+    rarity: 'common',
+    icon: '🧪',
+    stackable: true,
+    quantity: 2,
+    maxStack: 10,
+    stats: { heal: 25 },
+    usable: true,
+    equippable: false,
+    sellValue: 3,
+  });
+
+  gameLoopState.current = {
+    entities,
+    getHealth: () => coordinator.getState().health,
+    setHealth: (nextHealth: number) => coordinator.setHealth(nextHealth),
+    getMana: () => coordinator.getState().mana,
+    setMana: (nextMana: number) => coordinator.setMana(nextMana),
+    getScore: () => coordinator.getState().score,
+    setScore: (nextScore: number) => coordinator.setScore(nextScore),
+    getGameTime: () => coordinator.getState().timeElapsed * 1000,
+    getCollectedRunes: () => coordinator.getState().collectedItems,
+    getDefeatedEnemies: () => defeatedEnemies,
+    getPlayer: () => entities.get('player') || entities.get('player-1'),
+    inventory,
+    questMgr,
+    dialogueMgr,
+    spellMgr,
+    canvas,
+  };
+
+  const handleKeyDown = (event: KeyboardEvent) => {
+    const normalizedKey = normalizeInputKey(event.key);
+    liveKeys[normalizedKey] = true;
+    if (
+      normalizedKey === 'space'
+      || normalizedKey === 'tab'
+      || normalizedKey === 'escape'
+      || normalizedKey === 'f5'
+      || normalizedKey.startsWith('arrow')
+    ) {
+      event.preventDefault();
+    }
+  };
+
+  const handleKeyUp = (event: KeyboardEvent) => {
+    liveKeys[normalizeInputKey(event.key)] = false;
+  };
+
+  window.addEventListener('keydown', handleKeyDown);
+  window.addEventListener('keyup', handleKeyUp);
+
+  const syncReplayPlaybackState = (activeReplayPlayer: ReplayPlayer | null) => {
+    if (!activeReplayPlayer) return;
+    setPlaybackTime(Math.round(activeReplayPlayer.currentTimeMs / 1000));
+    setPlaybackProgress(activeReplayPlayer.progress);
+    setIsPlayingBack(activeReplayPlayer.isPlaying);
+  };
+
+  const syncSimulationState = () => {
+    const state = coordinator.getState();
+    setPlayerScore(state.score);
+    setPlayerHealth(state.health);
+    setPlayerMana(state.mana);
+    setCollectedRunes([...state.collectedItems]);
+    setTimeElapsed(Math.floor(state.timeElapsed));
+    syncRPGState();
+  };
+
+  const restoreReplaySnapshot = (snapshot: ReturnType<ReplayPlayer['getSnapshotBeforeOrAt']>) => {
+    if (!snapshot) return;
+
+    const restored = restorePreviewReplayState(snapshot, {
+      entities,
+      projectiles,
+      towers,
+      tdState,
+      collectedRuneIds: [...coordinator.getState().collectedItems],
+      defeatedEnemies,
+    });
+
+    coordinator.setScore(restored.score);
+    coordinator.setHealth(restored.health);
+    coordinator.setMana(restored.mana);
+    localInvincibleTimer = restored.invincibleTimer;
+    lastShotTime = restored.lastShotTime;
+
+    if (restored.inventory) {
+      inventory.load(restored.inventory);
+    }
+    if (restored.quests) {
+      questMgr.load(restored.quests);
+    }
+    if (restored.learnedSpells) {
+      spellMgr.load(restored.learnedSpells);
+    }
+    if (restored.dialogueFlags) {
+      dialogueMgr.load(restored.dialogueFlags);
+    }
+
+    syncSimulationState();
+  };
+
+  const runSimulationFrame = ({
+    frameDeltaTime,
+    activeKeys,
+    activeReplayPlayer = null,
+    allowPanelShortcuts = true,
+    recordReplayFrame = false,
+    syncUi = true,
+  }: {
+    frameDeltaTime: number;
+    activeKeys: Record<string, boolean>;
+    activeReplayPlayer?: ReplayPlayer | null;
+    allowPanelShortcuts?: boolean;
+    recordReplayFrame?: boolean;
+    syncUi?: boolean;
+  }) => {
+    const panelOpen = allowPanelShortcuts
+      && PANEL_KEYS.includes(document.querySelector('[data-rpg-panel]')?.getAttribute('data-rpg-panel') || 'none');
+    const wasJustPressed = (key: string) => isKeyJustPressed(activeKeys, previousKeys, key);
+
+    // Advance coordinator time (converts ms → seconds for engine)
+    coordinator.update(frameDeltaTime / 1000);
+    const simulationTime = coordinator.getState().timeElapsed * 1000;
+    if (syncUi) {
+      setTimeElapsed(Math.floor(simulationTime / 1000));
+    }
+
+    if (localInvincibleTimer > 0) localInvincibleTimer -= frameDeltaTime;
+
+    // Mana regen (engine coordinator tracks mana, but regen rate is game-specific)
+    coordinator.regenerateMana(frameDeltaTime * 0.01);
+    spellMgr.tickCooldowns(frameDeltaTime);
+
+    if (allowPanelShortcuts && wasJustPressed('escape')) {
+      setActivePanel((prev: any) => {
+        if (prev !== 'none' && prev !== 'dialogue') return 'none';
+        if (prev === 'none' && gameStarted && !gameOver && !victory) {
+          setGamePaused(true);
+          return 'saveload';
+        }
+        return prev;
+      });
+      previousKeys = { ...activeKeys };
+      return;
+    }
+
+    if (wasJustPressed('space') && !panelOpen) {
+      if (simulationTime - lastShotTime > 300) {
+        const player = entities.get('player') || entities.get('player-1');
+        if (player) {
+          const { dx, dy } = getMovementDirection(activeKeys);
+          projectiles.push({
+            id: `proj-${Date.now()}-${Math.random()}`,
+            x: player.transform.x,
+            y: player.transform.y,
+            vx: (dx || 1) * 500,
+            vy: dy * 500,
+            damage: inventory.getWeaponDamage(),
+            color: '#fbbf24',
+            createdAt: simulationTime,
+          });
+          lastShotTime = simulationTime;
+        }
+      }
+    }
+
+    if (wasJustPressed('t') && isTDMode) {
+      const player = entities.get('player') || entities.get('player-1');
+      if (player && coordinator.useMana(30)) {
+        towers.push(createTowerDefenseTower(player));
+      }
+    }
+
+    if (allowPanelShortcuts && wasJustPressed('i')) {
+      setActivePanel((panel: any) => panel === 'inventory' ? 'none' : 'inventory');
+      syncRPGState();
+      previousKeys = { ...activeKeys };
+      return;
+    }
+    if (allowPanelShortcuts && wasJustPressed('j')) {
+      setActivePanel((panel: any) => panel === 'quests' ? 'none' : 'quests');
+      syncRPGState();
+      previousKeys = { ...activeKeys };
+      return;
+    }
+    if (allowPanelShortcuts && wasJustPressed('c')) {
+      setActivePanel((panel: any) => panel === 'spellcraft' ? 'none' : 'spellcraft');
+      syncRPGState();
+      previousKeys = { ...activeKeys };
+      return;
+    }
+    if (allowPanelShortcuts && wasJustPressed('f5')) {
+      handleSave(0);
+      previousKeys = { ...activeKeys };
+      return;
+    }
+    if (allowPanelShortcuts && wasJustPressed('tab')) {
+      const player = entities.get('player') || entities.get('player-1');
+      if (player) {
+        const npcs = Array.from(entities.values()).filter((entity: any) => entity.type === 'npc');
+        for (const npc of npcs) {
+          const dx = player.transform.x - npc.transform.x;
+          const dy = player.transform.y - npc.transform.y;
+          if (Math.sqrt(dx * dx + dy * dy) < 80) {
+            const treeId = npc.components?.npc?.dialogueTreeId;
+            if (treeId && dialogueMgr.startDialogue(treeId)) {
+              setActivePanel('dialogue');
+              const line = dialogueMgr.getCurrentLine();
+              if (line) {
+                setDialogueSpeaker(line.speaker);
+                setDialoguePortrait(line.portrait || '💬');
+                setDialogueText(line.text);
+                const choices = dialogueMgr.getChoices();
+                setDialogueChoices(
+                  choices.map((choice: any, index: number) => ({ text: choice.text, index })),
+                );
+              }
+              previousKeys = { ...activeKeys };
+              return;
+            }
+          }
+        }
+      }
+    }
+
+    const justPressedHotkey = ['1', '2', '3', '4', '5', '6', '7', '8'].find((key) => wasJustPressed(key));
+    if (justPressedHotkey && !panelOpen) {
+      const hotkey = parseInt(justPressedHotkey, 10);
+      const spell = spellMgr.castSpell(hotkey);
+      if (spell) {
+        coordinator.useMana(spell.manaCost);
+        const player = entities.get('player') || entities.get('player-1');
+        if (player) {
+          const { dx, dy } = getMovementDirection(activeKeys);
+          if (spell.effectType === 'heal') {
+            coordinator.heal(spell.damage);
+          } else if (spell.effectType === 'projectile') {
+            projectiles.push({
+              id: `spell-${Date.now()}-${Math.random()}`,
+              x: player.transform.x,
+              y: player.transform.y,
+              vx: (dx || 1) * spell.projectileSpeed,
+              vy: dy * spell.projectileSpeed,
+              damage: spell.damage,
+              color: spell.projectileColor,
+              createdAt: simulationTime,
+              isSpell: true,
+            });
+          }
+        }
+        syncRPGState();
+      }
+    }
+
+    projectileSystem.setWorldBounds({ width: canvas.width, height: canvas.height });
+    const projectileScene = createPreviewProjectileScene(projectiles, entities.values());
+    projectileSystem.update(projectileScene, frameDeltaTime / 1000);
+    applyPreviewProjectileScene(projectileScene, projectiles);
+
+    if (!isTDMode) {
+      movementSystem.setWorldBounds({ width: canvas.width, height: canvas.height });
+      physicsSystem.setWorldBounds({ width: canvas.width, height: canvas.height });
+      const runtimeScene = createPreviewRuntimeScene(entities.values(), { isTowerDefense: false });
+      aiSystem.update(runtimeScene, frameDeltaTime / 1000);
+      movementSystem.update(runtimeScene, toEngineInputState(activeKeys), frameDeltaTime / 1000);
+      physicsSystem.update(runtimeScene, frameDeltaTime / 1000);
+      applyPreviewRuntimeScene(runtimeScene, entities);
+    }
+
+    entities.forEach((entity: any) => {
+      if (entity.type === 'enemy' && entity.hitFlash > 0) {
+        entity.hitFlash -= frameDeltaTime;
+      }
+
+      if (entity.type === 'collectible' || entity.type === 'item') {
+        entity.transform.rotation = (entity.transform.rotation || 0) + frameDeltaTime * 0.003;
+      }
+    });
+
+    collisionSystem.update(createPreviewCollisionScene(entities.values(), inventory.getArmorDefense()));
+
+    // Victory: check if all runes collected (coordinator handles this via victory conditions)
+    const coordState = coordinator.getState();
+    if (coordState.isVictory) {
+      setVictory(true);
+    }
+
+    if (isTDMode) {
+      const tdResult = updateTowerDefenseFrame({
+        canvasWidth: canvas.width,
+        canvasHeight: canvas.height,
+        currentTime: simulationTime,
+        deltaTime: frameDeltaTime,
+        entities,
+        towers,
+        projectiles,
+        state: tdState,
+        waves: tdWaves,
+      });
+      if (tdResult.gameOver) {
+        setGameOver(true);
+      }
+      if (tdResult.victory) {
+        setVictory(true);
+      }
+    }
+
+    if (recordReplayFrame && replayRecorderRef.current?.isRecording) {
+      const cs = coordinator.getState();
+      replayRecorderRef.current.recordInput(Object.keys(activeKeys).filter((key) => activeKeys[key]));
+      replayRecorderRef.current.recordSnapshot({
+        entities: Array.from(entities.values()).map((entity: any) => clonePreviewReplayEntity(entity)),
+        stats: {
+          score: cs.score,
+          health: cs.health,
+          mana: cs.mana,
+        },
+        runtime: clonePreviewReplayRuntimeSnapshot({
+          projectiles,
+          towers,
+          ...(isTDMode ? { tdState } : {}),
+          collectedRuneIds: cs.collectedItems,
+          defeatedEnemies,
+          invincibleTimer: localInvincibleTimer,
+          lastShotTime,
+          inventory: inventory.serialize(),
+          quests: questMgr.serialize(),
+          learnedSpells: spellMgr.serialize(),
+          dialogueFlags: dialogueMgr.serialize(),
+        }),
+      });
+    }
+
+    if (syncUi) {
+      frameCount++;
+      if (frameCount % 10 === 0 || Boolean(activeReplayPlayer)) {
+        const cs = coordinator.getState();
+        setPlayerScore(cs.score);
+        setPlayerHealth(cs.health);
+        setPlayerMana(cs.mana);
+      }
+      if (activeReplayPlayer) {
+        syncReplayPlaybackState(activeReplayPlayer);
+      }
+      if (frameCount % 30 === 0) {
+        const fps = frameDeltaTime > 0 ? Math.round(1000 / frameDeltaTime) : 0;
+        const mem = typeof (performance as any).memory === 'object'
+          ? `${(((performance as any).memory.usedJSHeapSize || 0) / 1048576) | 0}MB`
+          : 'N/A';
+        gameStatsRef.current = { fps, entities: entities.size + projectiles.length, memory: mem };
+        setGameStats({ fps, entities: entities.size + projectiles.length, memory: mem });
+      }
+    }
+
+    if (activeReplayPlayer && !activeReplayPlayer.isPlaying && activeReplayPlayer.progress >= 1) {
+      setIsPlayingBack(false);
+    }
+
+    previousKeys = { ...activeKeys };
+  };
+
+  const bootstrapReplayState = () => {
+    if (!replayPlayer) return;
+
+    const targetTimeMs = replayPlayer.currentTimeMs;
+    if (targetTimeMs > 0) {
+      const snapshot = replayPlayer.getSnapshotBeforeOrAt(targetTimeMs);
+      if (snapshot) {
+        restoreReplaySnapshot(snapshot);
+        replayPlayer.seekToTime(snapshot.t);
+      } else {
+        replayPlayer.seekToTime(0);
+      }
+
+      previousKeys = createKeyState(replayPlayer.getInputsAt(replayPlayer.currentTimeMs)?.keys ?? []);
+
+      while (replayPlayer.currentTimeMs < targetTimeMs) {
+        const stepMs = Math.min(replayPlayer.tickMs, targetTimeMs - replayPlayer.currentTimeMs);
+        const replayFrame = replayPlayer.step(stepMs);
+        runSimulationFrame({
+          frameDeltaTime: stepMs,
+          activeKeys: createKeyState(replayFrame?.keys ?? []),
+          allowPanelShortcuts: false,
+          recordReplayFrame: false,
+          syncUi: false,
+        });
+      }
+    }
+
+    replayPlayer.pause();
+    if (replayAutoplay) {
+      replayPlayer.play();
+    }
+    syncSimulationState();
+    syncReplayPlaybackState(replayPlayer);
+  };
+
+  bootstrapReplayState();
+
+  const update = () => {
+    if (!gameStarted || gamePaused || gameOver || victory) return;
+    const currentTime = performance.now();
+    const deltaTime = Math.min(currentTime - lastTime, 50);
+    lastTime = currentTime;
+
+    const activeReplayPlayer = replayPlayerRef.current;
+    let replayFrame: InputFrame | null = null;
+    let frameDeltaTime = deltaTime;
+
+    if (activeReplayPlayer) {
+      const pendingReplayStepMs = pendingReplayStepMsRef.current;
+
+      if (pendingReplayStepMs > 0) {
+        pendingReplayStepMsRef.current = 0;
+        replayFrame = activeReplayPlayer.step(pendingReplayStepMs);
+        frameDeltaTime = pendingReplayStepMs;
+      } else {
+        const replayTimeBefore = activeReplayPlayer.currentTimeMs;
+        replayFrame = activeReplayPlayer.tick(deltaTime);
+        frameDeltaTime = activeReplayPlayer.currentTimeMs - replayTimeBefore;
+      }
+    }
+
+    const activeKeys = activeReplayPlayer ? createKeyState(replayFrame?.keys ?? []) : liveKeys;
+
+    if (activeReplayPlayer && frameDeltaTime <= 0) {
+      syncReplayPlaybackState(activeReplayPlayer);
+      previousKeys = { ...activeKeys };
+      return;
+    }
+
+    runSimulationFrame({
+      frameDeltaTime,
+      activeKeys,
+      activeReplayPlayer,
+      recordReplayFrame: isRecording,
+    });
+  };
+
+  // Read state from coordinator for rendering
+  const getScore = () => coordinator.getState().score;
+  const getHealth = () => coordinator.getState().health;
+  const getMana = () => coordinator.getState().mana;
+  const getCollectedRuneIds = () => coordinator.getState().collectedItems;
+  const getGameTime = () => coordinator.getState().timeElapsed * 1000;
+
+  const render = () => {
+    const score = getScore();
+    const health = getHealth();
+    const mana = getMana();
+    const collectedRuneIds = getCollectedRuneIds();
+    const gameTime = getGameTime();
+
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = 'rgba(71, 85, 105, 0.15)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x < canvas.width; x += 32) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, canvas.height);
+      ctx.stroke();
+    }
+    for (let y = 0; y < canvas.height; y += 32) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(canvas.width, y);
+      ctx.stroke();
+    }
+
+    const renderLayer = (filterFn: (entity: any) => boolean, renderFn: (entity: any) => void) => {
+      entities.forEach((entity: any) => {
+        if (filterFn(entity)) renderFn(entity);
+      });
+    };
+
+    renderLayer((entity: any) => entity.type === 'obstacle', (entity: any) => {
+      const { x, y, scaleX, scaleY } = entity.transform;
+      const w = entity.width;
+      const h = entity.height;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scaleX, scaleY);
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(-w / 2, -h / 2, w, h);
+      ctx.fillStyle = '#64748b';
+      ctx.fillRect(-w / 2, -h / 2, w, h * 0.2);
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(w / 2 - w * 0.1, -h / 2, w * 0.1, h);
+      ctx.restore();
+    });
+
+    renderLayer((entity: any) => entity.type === 'npc', (entity: any) => {
+      const { x, y, scaleX, scaleY } = entity.transform;
+      const w = entity.width;
+      const h = entity.height;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scaleX, scaleY);
+      ctx.fillStyle = entity.color;
+      ctx.beginPath();
+      ctx.roundRect(-w / 2, -h / 2, w, h, 10);
+      ctx.fill();
+      ctx.fillStyle = '#7c3aed';
+      ctx.beginPath();
+      ctx.moveTo(0, -h / 2 - 16);
+      ctx.lineTo(-w / 2 + 2, -h / 2 + 2);
+      ctx.lineTo(w / 2 - 2, -h / 2 + 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(-w / 5, -h / 8, w / 6, 0, Math.PI * 2);
+      ctx.arc(w / 5, -h / 8, w / 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#1e3a5f';
+      ctx.beginPath();
+      ctx.arc(-w / 5, -h / 8, w / 12, 0, Math.PI * 2);
+      ctx.arc(w / 5, -h / 8, w / 12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#e9d5ff';
+      ctx.font = 'bold 10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(entity.components?.npc?.name || 'NPC', 0, h / 2 + 12);
+      const player = entities.get('player') || entities.get('player-1');
+      if (player) {
+        const pdx = player.transform.x - entity.transform.x;
+        const pdy = player.transform.y - entity.transform.y;
+        if (Math.sqrt(pdx * pdx + pdy * pdy) < 80) {
+          ctx.fillStyle = '#fbbf24';
+          ctx.font = 'bold 11px sans-serif';
+          ctx.fillText('[TAB] Talk', 0, -h / 2 - 22);
+        }
+      }
+      ctx.restore();
+    });
+
+    renderLayer((entity: any) => entity.type === 'item', (entity: any) => {
+      const { x, y, rotation } = entity.transform;
+      const w = entity.width;
+      const h = entity.height;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rotation || 0);
+      ctx.fillStyle = entity.color;
+      ctx.beginPath();
+      ctx.roundRect(-w / 2, -h / 2, w, h, 4);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillRect(-w / 4, -h / 2 + 1, w / 2, h * 0.3);
+      ctx.restore();
+    });
+
+    renderLayer((entity: any) => entity.type === 'collectible', (entity: any) => {
+      const { x, y, scaleX, scaleY, rotation } = entity.transform;
+      const w = entity.width;
+      const h = entity.height;
+      const collectible = entity.components?.collectible;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rotation || 0);
+      ctx.scale(scaleX, scaleY);
+      const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, w);
+      gradient.addColorStop(0, `${entity.color}80`);
+      gradient.addColorStop(1, `${entity.color}00`);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(-w, -h, w * 2, h * 2);
+      ctx.fillStyle = entity.color;
+      ctx.beginPath();
+      if (collectible?.type === 'rune') {
+        ctx.moveTo(0, -h / 2);
+        ctx.lineTo(w / 2, 0);
+        ctx.lineTo(0, h / 2);
+        ctx.lineTo(-w / 2, 0);
+        ctx.closePath();
+      } else if (collectible?.type === 'health') {
+        ctx.arc(0, 0, w / 2, 0, Math.PI * 2);
+      } else {
+        ctx.fillRect(-w / 2, -h / 2, w, h);
+      }
+      ctx.fill();
+      if (collectible?.type === 'rune') {
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.beginPath();
+        ctx.arc(0, 0, w / 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    });
+
+    projectiles.forEach((projectile) => {
+      ctx.save();
+      ctx.fillStyle = projectile.color || '#fbbf24';
+      ctx.shadowColor = projectile.color || '#fbbf24';
+      ctx.shadowBlur = projectile.isSpell ? 15 : 10;
+      ctx.beginPath();
+      ctx.arc(projectile.x, projectile.y, projectile.isSpell ? 7 : 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+
+    renderLayer((entity: any) => entity.type === 'enemy', (entity: any) => {
+      const { x, y, scaleX, scaleY } = entity.transform;
+      const w = entity.width;
+      const h = entity.height;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scaleX, scaleY);
+      ctx.fillStyle = entity.hitFlash > 0 ? '#fff' : entity.color;
+      ctx.beginPath();
+      ctx.roundRect(-w / 2, -h / 2, w, h, 6);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.ellipse(-w / 5, -h / 5, w / 6, h / 6, 0, 0, Math.PI * 2);
+      ctx.ellipse(w / 5, -h / 5, w / 6, h / 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#000';
+      ctx.beginPath();
+      ctx.arc(-w / 5, -h / 5, w / 12, 0, Math.PI * 2);
+      ctx.arc(w / 5, -h / 5, w / 12, 0, Math.PI * 2);
+      ctx.fill();
+      const hpPct = entity.health / entity.maxHealth;
+      ctx.fillStyle = '#1f2937';
+      ctx.fillRect(-w / 2 - 4, -h / 2 - 10, w + 8, 4);
+      ctx.fillStyle = hpPct > 0.5 ? '#22c55e' : hpPct > 0.25 ? '#eab308' : '#ef4444';
+      ctx.fillRect(-w / 2 - 4, -h / 2 - 10, (w + 8) * hpPct, 4);
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.font = '9px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${entity.health}/${entity.maxHealth}`, 0, -h / 2 - 14);
+      ctx.restore();
+    });
+
+    const player = entities.get('player') || entities.get('player-1');
+    if (player) {
+      const { x, y, scaleX, scaleY } = player.transform;
+      const w = player.width;
+      const h = player.height;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scaleX, scaleY);
+      if (localInvincibleTimer > 0 && Math.floor(localInvincibleTimer / 100) % 2 === 0) {
+        ctx.globalAlpha = 0.5;
+      }
+      ctx.fillStyle = player.color;
+      ctx.beginPath();
+      ctx.roundRect(-w / 2, -h / 2, w, h, 8);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.ellipse(-w / 5, -h / 6, w / 5, h / 5, 0, 0, Math.PI * 2);
+      ctx.ellipse(w / 5, -h / 6, w / 5, h / 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#1e3a5f';
+      ctx.beginPath();
+      ctx.arc(-w / 5, -h / 6, w / 10, 0, Math.PI * 2);
+      ctx.arc(w / 5, -h / 6, w / 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#60a5fa';
+      ctx.lineWidth = 2;
+      ctx.shadowColor = '#60a5fa';
+      ctx.shadowBlur = 10;
+      ctx.strokeRect(-w / 2, -h / 2, w, h);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = '#000';
+      ctx.shadowBlur = 2;
+      ctx.fillText('YOU', 0, h / 2 + 12);
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    }
+
+    if (isTDMode) {
+      for (const tower of towers) {
+        ctx.save();
+        ctx.translate(tower.x, tower.y);
+        ctx.strokeStyle = 'rgba(210,105,30,0.15)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(0, 0, tower.range, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = '#D2691E';
+        ctx.beginPath();
+        ctx.roundRect(-10, -6, 20, 16, 3);
+        ctx.fill();
+        ctx.fillStyle = '#8B4513';
+        ctx.beginPath();
+        ctx.arc(0, -6, 8, Math.PI, 0);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 1.5;
+        const smokeTime = performance.now() / 1000;
+        ctx.beginPath();
+        ctx.moveTo(-3, -12);
+        ctx.quadraticCurveTo(-3 + Math.sin(smokeTime * 3) * 3, -20, -3, -26);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(3, -12);
+        ctx.quadraticCurveTo(3 + Math.sin(smokeTime * 3 + 1) * 3, -20, 3, -26);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      const core = entities.get('core-bean');
+      if (core && tdState.maxCoreHealth > 0) {
+        const cx = core.transform.x;
+        const cy = core.transform.y;
+        const barW = 60;
+        const barH = 6;
+        ctx.fillStyle = '#1f2937';
+        ctx.fillRect(cx - barW / 2, cy + 30, barW, barH);
+        const pct = tdState.coreHealth / tdState.maxCoreHealth;
+        ctx.fillStyle = pct > 0.5 ? '#22c55e' : pct > 0.25 ? '#eab308' : '#ef4444';
+        ctx.fillRect(cx - barW / 2, cy + 30, barW * pct, barH);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 9px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`☕ ${tdState.coreHealth}/${tdState.maxCoreHealth}`, cx, cy + 44);
+      }
+    }
+
+    const stats = gameStatsRef.current;
+    ctx.fillStyle = 'rgba(0,0,0,0.8)';
+    ctx.beginPath();
+    ctx.roundRect(10, 10, 200, 150, 8);
+    ctx.fill();
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 14px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(`Score: ${score}`, 20, 35);
+    if (isTDMode) {
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = 'bold 12px monospace';
+      ctx.fillText(`Wave: ${tdState.waveIndex}/${tdWaves.length}`, 20, 100);
+      ctx.fillText(`Towers: ${towers.length}`, 20, 115);
+      ctx.fillText(`Enemies: ${tdState.enemiesAlive}`, 20, 130);
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(20, 135, 100, 10);
+      ctx.fillStyle = tdState.coreHealth > tdState.maxCoreHealth * 0.5 ? '#22c55e' : tdState.coreHealth > tdState.maxCoreHealth * 0.25 ? '#eab308' : '#ef4444';
+      ctx.fillRect(20, 135, 100 * (tdState.coreHealth / tdState.maxCoreHealth), 10);
+      ctx.fillStyle = '#fff';
+      ctx.font = '9px monospace';
+      ctx.fillText('Bean HP', 125, 144);
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '10px monospace';
+      ctx.fillText('[T] Place tower (30 mana)', 20, 160);
+      if (tdState.waveMessageTimer > 0) {
+        const alpha = Math.min(1, tdState.waveMessageTimer / 1000);
+        ctx.fillStyle = `rgba(251,191,36,${alpha})`;
+        ctx.font = 'bold 18px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(tdState.waveMessage, canvas.width / 2, 50);
+        ctx.textAlign = 'left';
+      }
+    }
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(20, 45, 100, 10);
+    ctx.fillStyle = health > 50 ? '#22c55e' : health > 25 ? '#eab308' : '#ef4444';
+    ctx.fillRect(20, 45, 100 * (health / 100), 10);
+    ctx.fillStyle = 'white';
+    ctx.font = '9px monospace';
+    ctx.fillText(`HP ${Math.round(health)}`, 125, 54);
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(20, 58, 100, 10);
+    ctx.fillStyle = '#3b82f6';
+    ctx.fillRect(20, 58, 100 * (mana / 100), 10);
+    ctx.fillStyle = 'white';
+    ctx.fillText(`MP ${Math.round(mana)}`, 125, 67);
+    ctx.font = '12px monospace';
+    ctx.fillText(`FPS: ${stats.fps}`, 20, 85);
+    ctx.fillText(`Runes: ${collectedRuneIds.length}`, 20, 100);
+    ctx.fillText(`Time: ${Math.floor(gameTime / 1000)}s`, 20, 115);
+    ctx.fillText(`Entities: ${stats.entities}`, 20, 130);
+    const weapon = inventory.equipment.weapon;
+    if (weapon) {
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillText(`⚔ ${weapon.name}`, 20, 145);
+    }
+
+    if (questHUDText) {
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.beginPath();
+      ctx.roundRect(10, 168, 280, 24, 6);
+      ctx.fill();
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = '11px monospace';
+      ctx.fillText(`📜 ${questHUDText}`, 18, 184);
+    }
+
+    const activeSpells = spellMgr.learnedSpells.filter((spell: any) => spell.hotkey !== null);
+    if (activeSpells.length > 0) {
+      const barX = canvas.width / 2 - (activeSpells.length * 44) / 2;
+      const barY = canvas.height - 56;
+      activeSpells.forEach((spell: any, index: number) => {
+        const sx = barX + index * 44;
+        ctx.fillStyle = spell.currentCooldown > 0 ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.8)';
+        ctx.beginPath();
+        ctx.roundRect(sx, barY, 40, 40, 6);
+        ctx.fill();
+        ctx.strokeStyle = spell.currentCooldown > 0 ? '#475569' : '#60a5fa';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(sx, barY, 40, 40);
+        ctx.font = '18px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(spell.icon, sx + 20, barY + 28);
+        ctx.fillStyle = '#fff';
+        ctx.font = '9px monospace';
+        ctx.fillText(`${spell.hotkey}`, sx + 20, barY + 38);
+        if (spell.currentCooldown > 0) {
+          ctx.fillStyle = 'rgba(0,0,0,0.5)';
+          ctx.fillRect(sx, barY, 40, 40 * Math.min(1, spell.currentCooldown / spell.cooldown));
+        }
+      });
+    }
+
+    const mmSize = 120;
+    const mmX = canvas.width - mmSize - 10;
+    const mmY = 10;
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.beginPath();
+    ctx.roundRect(mmX, mmY, mmSize, mmSize, 6);
+    ctx.fill();
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(mmX, mmY, mmSize, mmSize);
+    const scX = mmSize / canvas.width;
+    const scY = mmSize / canvas.height;
+    entities.forEach((entity: any) => {
+      ctx.fillStyle = TYPE_COLORS[entity.type] || '#8b5cf6';
+      ctx.fillRect(mmX + entity.transform.x * scX - 2, mmY + entity.transform.y * scY - 2, 4, 4);
+    });
+  };
+
+  const gameLoop = () => {
+    update();
+    render();
+    animationRef.current = requestAnimationFrame(gameLoop);
+  };
+
+  animationRef.current = requestAnimationFrame(gameLoop);
+
+  return () => {
+    if (animationRef.current !== null) {
+      cancelAnimationFrame(animationRef.current);
+    }
+    window.removeEventListener('resize', resizeCanvas);
+    window.removeEventListener('keydown', handleKeyDown);
+    window.removeEventListener('keyup', handleKeyUp);
+    collisionSubscriptions.forEach((subscription) => subscription.unsubscribe());
+    coordinatorSubscriptions.forEach((subscription) => subscription.unsubscribe());
+    coordinator.reset();
+    if (replayPlayerRef.current === replayPlayer) {
+      replayPlayerRef.current = null;
+    }
+    if (runtimeHost) {
+      delete runtimeHost.dataset.previewRuntimeActive;
+      delete runtimeHost.dataset.previewRuntimeMounted;
+    }
+  };
+}
