@@ -15,5 +15,13 @@
       "canvasHeight": 600,
       "backgroundColor": "#0f172a"
     }
+  },
+  "engine": {
+    "version": "1.0.0",
+    "runtimeTarget": "web",
+    "renderBackend": "canvas"
+  },
+  "ai": {
+    "enabled": false
   }
 }
