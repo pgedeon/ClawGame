@@ -41,6 +41,16 @@ export interface EngineEvents {
   'game:death': { entityId: string };
   'game:collect': { entityId: string; collectibleType: string; value: number };
 
+  // GameLoopCoordinator events (M14)
+  'game:start': { state: any };
+  'game:tick': { dt: number; state: any };
+  'game:score-changed': { oldScore: number; newScore: number; delta: number };
+  'game:health-changed': { oldHealth: number; newHealth: number; delta: number };
+  'game:mana-changed': { oldMana: number; newMana: number; delta: number };
+  'game:collectible-pickup': { itemId: string; itemType: string; value: number; totalCollected: number };
+  'game:over': { finalScore: number; timeElapsed: number };
+  'game:victory': { finalScore: number; timeElapsed: number; collectedItems: string[] };
+
   // Collision system events
   'collision:enter': { entityA: string; entityB: string; typeA?: string; typeB?: string; overlap: { x: number; y: number } };
   'collision:pickup': { playerId: string; collectibleId: string; type: string; value: number };

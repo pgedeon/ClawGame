@@ -13,6 +13,7 @@
  * - Data-driven scene loading with asset resolution
  * - Behavior graph executor for visual logic authoring
  * - Animation state machines for complex character animations
+ * - Game loop coordinator for high-level state tracking (M14)
  */
 
 // Re-export all types (canonical schema)
@@ -36,6 +37,22 @@ export { ProjectileSystem } from './systems/ProjectileSystem';
 export { AnimationSystem } from './systems/AnimationSystem';
 export { AnimationStateMachineSystem } from './systems/AnimationStateMachineSystem';
 export type { CollisionEvent } from './systems/CollisionSystem';
+
+// Re-export game loop coordinator (M14 runtime unification)
+export { GameLoopCoordinator, createDefaultGameState } from './systems/GameLoopCoordinator';
+export type {
+  GameState,
+  GameStateChangedEvent,
+  CollectiblePickupEvent,
+  ScoreChangedEvent,
+  HealthChangedEvent,
+  ManaChangedEvent,
+  GameOverEvent,
+  VictoryEvent,
+  GenrePlugin,
+  VictoryCondition,
+  GameLoopCoordinatorConfig,
+} from './systems/GameLoopCoordinator';
 
 // Re-export scene loader
 export { SceneLoader } from './SceneLoader';
