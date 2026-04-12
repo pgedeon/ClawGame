@@ -35,6 +35,8 @@ export const DevicePreviewFrame: React.FC<DevicePreviewFrameProps> = ({ children
   const [selectedDevice, setSelectedDevice] = useState<DeviceProfile>(DEVICE_PROFILES[0]);
   const [showDeviceMenu, setShowDeviceMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
 
   // Close menu on outside click
   useEffect(() => {
@@ -46,6 +48,30 @@ export const DevicePreviewFrame: React.FC<DevicePreviewFrameProps> = ({ children
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  // Calculate scale to fit device frame within viewport
+  useEffect(() => {
+    const updateScale = () => {
+      if (!viewportRef.current || selectedDevice.id === 'responsive') {
+        setScale(1);
+        return;
+      }
+      const vp = viewportRef.current.getBoundingClientRect();
+      const padding = 40; // px margin around device frame
+      const availW = vp.width - padding;
+      const availH = vp.height - padding;
+      const scaleX = availW / selectedDevice.width;
+      const scaleY = availH / selectedDevice.height;
+      setScale(Math.min(1, Math.min(scaleX, scaleY)));
+    };
+
+    updateScale();
+    const observer = new ResizeObserver(updateScale);
+    if (viewportRef.current) {
+      observer.observe(viewportRef.current);
+    }
+    return () => observer.disconnect();
+  }, [selectedDevice]);
 
   const isResponsive = selectedDevice.id === 'responsive';
 
@@ -102,10 +128,14 @@ export const DevicePreviewFrame: React.FC<DevicePreviewFrameProps> = ({ children
             <RotateCcw size={14} />
           </button>
         )}
+
+        {!isResponsive && scale < 1 && (
+          <span className="device-scale-label">{Math.round(scale * 100)}%</span>
+        )}
       </div>
 
       {/* Canvas area with optional device frame */}
-      <div className="device-preview-viewport">
+      <div className="device-preview-viewport" ref={viewportRef}>
         {isResponsive ? (
           <div className="device-frame-responsive">
             {children}
@@ -116,6 +146,8 @@ export const DevicePreviewFrame: React.FC<DevicePreviewFrameProps> = ({ children
             style={{
               width: selectedDevice.width,
               height: selectedDevice.height,
+              transform: `scale(${scale})`,
+              transformOrigin: 'center center',
             }}
           >
             {selectedDevice.category === 'phone' && (
