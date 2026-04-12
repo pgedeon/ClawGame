@@ -1,0 +1,142 @@
+{
+  "name": "Tower Defense - Main Arena",
+  "description": "Place towers along the path to stop waves of enemies from reaching the Magic Bean",
+  "entities": [
+    {
+      "id": "player",
+      "type": "player",
+      "transform": { "x": 400, "y": 540, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "playerInput": true,
+        "movement": { "vx": 0, "vy": 0, "speed": 300 },
+        "collision": { "width": 28, "height": 28, "type": "player" },
+        "stats": { "hp": 100, "maxHp": 100, "score": 0 },
+        "sprite": { "width": 28, "height": 28, "color": "#3b82f6" }
+      }
+    },
+    {
+      "id": "magic-bean",
+      "type": "npc",
+      "transform": { "x": 400, "y": 60, "rotation": 0, "scaleX": 1.5, "scaleY": 1.5 },
+      "components": {
+        "collision": { "width": 32, "height": 32, "type": "npc" },
+        "stats": { "hp": 100, "maxHp": 100 },
+        "sprite": { "width": 32, "height": 32, "color": "#22c55e" },
+        "npcRole": "core"
+      }
+    },
+    {
+      "id": "enemy-spawn-top",
+      "type": "npc",
+      "transform": { "x": 100, "y": 30, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "sprite": { "width": 16, "height": 16, "color": "#ef4444" },
+        "npcRole": "spawner"
+      }
+    },
+    {
+      "id": "enemy-spawn-right",
+      "type": "npc",
+      "transform": { "x": 750, "y": 200, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "sprite": { "width": 16, "height": 16, "color": "#ef4444" },
+        "npcRole": "spawner"
+      }
+    },
+    {
+      "id": "enemy-spawn-left",
+      "type": "npc",
+      "transform": { "x": 50, "y": 350, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "sprite": { "width": 16, "height": 16, "color": "#ef4444" },
+        "npcRole": "spawner"
+      }
+    },
+    {
+      "id": "obstacle-wall-1",
+      "type": "obstacle",
+      "transform": { "x": 200, "y": 150, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "collision": { "width": 80, "height": 20, "type": "obstacle" },
+        "sprite": { "width": 80, "height": 20, "color": "#475569" }
+      }
+    },
+    {
+      "id": "obstacle-wall-2",
+      "type": "obstacle",
+      "transform": { "x": 520, "y": 150, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "collision": { "width": 80, "height": 20, "type": "obstacle" },
+        "sprite": { "width": 80, "height": 20, "color": "#475569" }
+      }
+    },
+    {
+      "id": "obstacle-wall-3",
+      "type": "obstacle",
+      "transform": { "x": 300, "y": 300, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "collision": { "width": 20, "height": 80, "type": "obstacle" },
+        "sprite": { "width": 20, "height": 80, "color": "#475569" }
+      }
+    },
+    {
+      "id": "obstacle-wall-4",
+      "type": "obstacle",
+      "transform": { "x": 500, "y": 400, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "collision": { "width": 100, "height": 20, "type": "obstacle" },
+        "sprite": { "width": 100, "height": 20, "color": "#475569" }
+      }
+    },
+    {
+      "id": "collectible-rune-1",
+      "type": "collectible",
+      "transform": { "x": 150, "y": 250, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "collision": { "width": 20, "height": 20, "type": "collectible" },
+        "sprite": { "width": 20, "height": 20, "color": "#f59e0b" },
+        "collectibleType": "rune"
+      }
+    },
+    {
+      "id": "collectible-rune-2",
+      "type": "collectible",
+      "transform": { "x": 650, "y": 300, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "collision": { "width": 20, "height": 20, "type": "collectible" },
+        "sprite": { "width": 20, "height": 20, "color": "#f59e0b" },
+        "collectibleType": "rune"
+      }
+    },
+    {
+      "id": "collectible-rune-3",
+      "type": "collectible",
+      "transform": { "x": 400, "y": 450, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "collision": { "width": 20, "height": 20, "type": "collectible" },
+        "sprite": { "width": 20, "height": 20, "color": "#f59e0b" },
+        "collectibleType": "rune"
+      }
+    },
+    {
+      "id": "collectible-mana-1",
+      "type": "collectible",
+      "transform": { "x": 300, "y": 200, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "collision": { "width": 16, "height": 16, "type": "collectible" },
+        "sprite": { "width": 16, "height": 16, "color": "#818cf8" },
+        "collectibleType": "mana"
+      }
+    },
+    {
+      "id": "collectible-mana-2",
+      "type": "collectible",
+      "transform": { "x": 550, "y": 500, "rotation": 0, "scaleX": 1, "scaleY": 1 },
+      "components": {
+        "collision": { "width": 16, "height": 16, "type": "collectible" },
+        "sprite": { "width": 16, "height": 16, "color": "#818cf8" },
+        "collectibleType": "mana"
+      }
+    }
+  ]
+}

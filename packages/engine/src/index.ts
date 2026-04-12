@@ -40,6 +40,15 @@ export type { CollisionEvent } from './systems/CollisionSystem';
 
 // Re-export preview HUD (M14 runtime unification)
 export { PreviewHUD } from './systems/PreviewHUD';
+
+// Tower Defense genre plugin (M14)
+export { TowerDefensePlugin } from './systems/TowerDefensePlugin';
+export type {
+  TDConfig,
+  TDState,
+  WaveConfig,
+} from './systems/TowerDefensePlugin';
+export { createDefaultTDConfig, createDefaultTDState } from './systems/TowerDefensePlugin';
 export type {
   HUDState,
   HUDSpell,
