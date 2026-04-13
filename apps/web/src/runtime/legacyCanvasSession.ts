@@ -1217,16 +1217,45 @@ for (let i = deathParticles.length - 1; i >= 0; i--) {
       ctx.fillStyle = '#000';
       ctx.beginPath();
       ctx.arc(-w / 5, -h / 5, w / 12, 0, Math.PI * 2);
-      ctx.arc(w / 5, -h / 5, w / 12, 0, Math.PI * 2);
-      ctx.fill();
-      const hpPct = entity.health / entity.maxHealth;
-      ctx.fillStyle = '#1f2937';
-      ctx.fillRect(-w / 2 - 4, -h / 2 - 10, w + 8, 4);
-      ctx.fillStyle = hpPct > 0.5 ? '#22c55e' : hpPct > 0.25 ? '#eab308' : '#ef4444';
-      ctx.fillRect(-w / 2 - 4, -h / 2 - 10, (w + 8) * hpPct, 4);
-      ctx.fillStyle = 'rgba(255,255,255,0.7)';
-      ctx.font = '9px sans-serif';
-      ctx.textAlign = 'center';
+  const hpPct = entity.health / entity.maxHealth;
+  const barW = w + 8;
+  const barH = 5;
+  const barX = -w / 2 - 4;
+  const barY = -h / 2 - 14;
+
+  // Outer border
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.beginPath();
+  ctx.roundRect(barX - 1, barY - 1, barW + 2, barH + 2, 3);
+  ctx.fill();
+
+  // Background (dark)
+  ctx.fillStyle = '#1f2937';
+  ctx.beginPath();
+  ctx.roundRect(barX, barY, barW, barH, 2);
+  ctx.fill();
+
+  // Health fill with color transition
+  const hpColor = hpPct > 0.5 ? '#22c55e' : hpPct > 0.25 ? '#eab308' : '#ef4444';
+  ctx.fillStyle = hpColor;
+  ctx.beginPath();
+  ctx.roundRect(barX, barY, barW * hpPct, barH, 2);
+  ctx.fill();
+
+  // Shine effect on health bar
+  ctx.fillStyle = 'rgba(255,255,255,0.2)';
+  ctx.beginPath();
+  ctx.roundRect(barX, barY, barW * hpPct, Math.ceil(barH / 2), 2);
+  ctx.fill();
+
+  // HP text below bar
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.font = 'bold 9px monospace';
+  ctx.textAlign = 'center';
+  ctx.shadowColor = 'rgba(0,0,0,0.8)';
+  ctx.shadowBlur = 3;
+  ctx.fillText(`${entity.health}/${entity.maxHealth}`, 0, barY + barH + 10);
+  ctx.shadowBlur = 0;
       ctx.fillText(`${entity.health}/${entity.maxHealth}`, 0, -h / 2 - 14);
       ctx.restore();
     });
