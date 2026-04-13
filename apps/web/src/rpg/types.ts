@@ -122,7 +122,7 @@ export interface SpellRecipe {
   icon: string;
   projectileSpeed: number;
   projectileColor: string;
-  effectType: 'projectile' | 'aoe' | 'buff' | 'heal';
+  effectType: 'projectile' | 'aoe' | 'buff' | 'heal' | 'chain' | 'freeze' | 'dot' | 'shield';
 }
 
 export interface LearnedSpell {
@@ -136,7 +136,7 @@ export interface LearnedSpell {
   cooldown: number;
   projectileSpeed: number;
   projectileColor: string;
-  effectType: 'projectile' | 'aoe' | 'buff' | 'heal';
+  effectType: 'projectile' | 'aoe' | 'buff' | 'heal' | 'chain' | 'freeze' | 'dot' | 'shield';
   hotkey: number | null; // 1-8
   currentCooldown: number;
 }

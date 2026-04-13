@@ -43,6 +43,7 @@ import {
   getTowerDefenseWaves,
   registerTowerDefenseEnemyDefeat,
   updateTowerDefenseFrame,
+  getUpgradeCost, getSellValue, upgradeTower, MAX_UPGRADE_LEVEL,
   type TowerDefenseTower,
 } from '../utils/previewTowerDefense';
 import {
@@ -234,6 +235,10 @@ export function runLegacyCanvasPreviewSession(
   };
   resizeCanvas();
   window.addEventListener('resize', resizeCanvas);
+  const resizeObserver = new ResizeObserver(() => resizeCanvas());
+  if (canvas.parentElement) {
+    resizeObserver.observe(canvas.parentElement);
+  }
 
   const replayPlayer = replaySessionKey > 0 && replayDataRef.current
     ? new ReplayPlayer(replayDataRef.current)
@@ -330,6 +335,7 @@ export function runLegacyCanvasPreviewSession(
   let frameCount = 0;
   let lastTime = performance.now();
   let lastShotTime = 0;
+  let healPulse: { x: number; y: number; startTime: number; duration: number } | null = null;
   const defeatedEnemies: string[] = [];
 
   // Delegate invincibility to coordinator; track locally only for replay restore
@@ -337,6 +343,7 @@ export function runLegacyCanvasPreviewSession(
 
   const isTDMode = projectGenre === 'strategy' || projectGenre === 'tower-defense';
   const towers: TowerDefenseTower[] = [];
+  let selectedTowerId: string | null = null;
   const tdWaves = getTowerDefenseWaves(activeScene as any);
   const coreEntity = isTDMode ? Array.from(entities.values()).find((e: any) => e.id === 'core-bean' || e.id === 'magic-bean') : null;
   const tdState = createTowerDefenseState(coreEntity?.health || coreEntity?.maxHealth || 0);
@@ -465,6 +472,23 @@ export function runLegacyCanvasPreviewSession(
   };
 
   window.addEventListener('keydown', handleKeyDown);
+  const handleCanvasClick = (event: MouseEvent) => {
+    if (!isTDMode) return;
+    const rect = canvas.getBoundingClientRect();
+    const clickX = event.clientX - rect.left;
+    const clickY = event.clientY - rect.top;
+    let clicked: TowerDefenseTower | null = null;
+    for (const tower of towers) {
+      const dx = tower.x - clickX;
+      const dy = tower.y - clickY;
+      if (Math.sqrt(dx * dx + dy * dy) < 20) {
+        clicked = tower;
+        break;
+      }
+    }
+    selectedTowerId = clicked ? clicked.id : null;
+  };
+  canvas.addEventListener("click", handleCanvasClick);
   window.addEventListener('keyup', handleKeyUp);
 
   const syncReplayPlaybackState = (activeReplayPlayer: ReplayPlayer | null) => {
@@ -589,6 +613,25 @@ export function runLegacyCanvasPreviewSession(
         towers.push(createTowerDefenseTower(player));
       }
     }
+    if (wasJustPressed("u") && isTDMode && selectedTowerId) {
+      const tower = towers.find((t) => t.id === selectedTowerId);
+      if (tower && tower.upgradeLevel < MAX_UPGRADE_LEVEL) {
+        const cost = getUpgradeCost(tower);
+        if (coordinator.useMana(cost)) {
+          upgradeTower(tower);
+        }
+      }
+    }
+    if (wasJustPressed("s") && isTDMode && selectedTowerId) {
+      const idx = towers.findIndex((t) => t.id === selectedTowerId);
+      if (idx >= 0) {
+        const tower = towers[idx];
+        const sellValue = getSellValue(tower);
+        coordinator.setMana(coordinator.getState().mana + sellValue);
+        towers.splice(idx, 1);
+        selectedTowerId = null;
+      }
+    }
 
     if (allowPanelShortcuts && wasJustPressed('i')) {
       setActivePanel((panel: any) => panel === 'inventory' ? 'none' : 'inventory');
@@ -652,6 +695,8 @@ export function runLegacyCanvasPreviewSession(
         if (player) {
           const { dx, dy } = getMovementDirection(activeKeys);
           if (spell.effectType === 'heal') {
+            // Trigger heal pulse effect
+            healPulse = { x: player.transform.x, y: player.transform.y, startTime: simulationTime, duration: 0.5 };
             coordinator.heal(spell.damage);
           } else if (spell.effectType === 'projectile') {
             projectiles.push({
@@ -664,6 +709,7 @@ export function runLegacyCanvasPreviewSession(
               color: spell.projectileColor,
               createdAt: simulationTime,
               isSpell: true,
+              trail: [],
             });
           }
         }
@@ -676,15 +722,16 @@ export function runLegacyCanvasPreviewSession(
     projectileSystem.update(projectileScene, frameDeltaTime / 1000);
     applyPreviewProjectileScene(projectileScene, projectiles);
 
+    movementSystem.setWorldBounds({ width: canvas.width, height: canvas.height });
+    physicsSystem.setWorldBounds({ width: canvas.width, height: canvas.height });
+    const runtimeScene = createPreviewRuntimeScene(entities.values(), { isTowerDefense: isTDMode });
+    // AI movement is handled by tower-defense wave system in TD mode
     if (!isTDMode) {
-      movementSystem.setWorldBounds({ width: canvas.width, height: canvas.height });
-      physicsSystem.setWorldBounds({ width: canvas.width, height: canvas.height });
-      const runtimeScene = createPreviewRuntimeScene(entities.values(), { isTowerDefense: false });
       aiSystem.update(runtimeScene, frameDeltaTime / 1000);
-      movementSystem.update(runtimeScene, toEngineInputState(activeKeys), frameDeltaTime / 1000);
-      physicsSystem.update(runtimeScene, frameDeltaTime / 1000);
-      applyPreviewRuntimeScene(runtimeScene, entities);
     }
+    movementSystem.update(runtimeScene, toEngineInputState(activeKeys), frameDeltaTime / 1000);
+    physicsSystem.update(runtimeScene, frameDeltaTime / 1000);
+    applyPreviewRuntimeScene(runtimeScene, entities);
 
     entities.forEach((entity: any) => {
       if (entity.type === 'enemy' && entity.hitFlash > 0) {
@@ -887,6 +934,62 @@ export function runLegacyCanvasPreviewSession(
       ctx.stroke();
     }
 
+
+    // ─── TD Mode: Draw enemy path on background ───
+    if (isTDMode) {
+      // Draw a snaking path from entry to core
+      const pathPoints = [
+        { x: 100, y: canvas.height },     // entry (bottom)
+        { x: 100, y: 460 },               // turn right
+        { x: 660, y: 460 },               // turn up
+        { x: 660, y: 280 },               // turn left
+        { x: 250, y: 280 },               // turn up
+        { x: 250, y: 200 },               // turn right
+        { x: 660, y: 200 },               // turn up
+        { x: 660, y: 123 },               // turn left
+        { x: 400, y: 123 },               // to core
+        { x: 400, y: 55 },                // core
+      ];
+      // Draw path background (dirt road)
+      ctx.save();
+      ctx.strokeStyle = '#3d2b1f';
+      ctx.lineWidth = 36;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(pathPoints[0].x, pathPoints[0].y);
+      for (let i = 1; i < pathPoints.length; i++) {
+        ctx.lineTo(pathPoints[i].x, pathPoints[i].y);
+      }
+      ctx.stroke();
+      // Draw path center (lighter)
+      ctx.strokeStyle = '#5c3d2e';
+      ctx.lineWidth = 24;
+      ctx.beginPath();
+      ctx.moveTo(pathPoints[0].x, pathPoints[0].y);
+      for (let i = 1; i < pathPoints.length; i++) {
+        ctx.lineTo(pathPoints[i].x, pathPoints[i].y);
+      }
+      ctx.stroke();
+      // Draw dashed center line
+      ctx.strokeStyle = 'rgba(139,115,85,0.4)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([8, 12]);
+      ctx.beginPath();
+      ctx.moveTo(pathPoints[0].x, pathPoints[0].y);
+      for (let i = 1; i < pathPoints.length; i++) {
+        ctx.lineTo(pathPoints[i].x, pathPoints[i].y);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // Entry arrow
+      ctx.fillStyle = '#ef4444';
+      ctx.font = 'bold 18px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('⬆ SPAWN', 100, canvas.height - 8);
+      ctx.restore();
+    }
+
     const renderLayer = (filterFn: (entity: any) => boolean, renderFn: (entity: any) => void) => {
       entities.forEach((entity: any) => {
         if (filterFn(entity)) renderFn(entity);
@@ -972,8 +1075,8 @@ export function runLegacyCanvasPreviewSession(
 
     renderLayer((entity: any) => entity.type === 'collectible', (entity: any) => {
       const { x, y, scaleX, scaleY, rotation } = entity.transform;
-      const w = entity.width;
       const h = entity.height;
+      const w = entity.width;
       const collectible = entity.components?.collectible;
       ctx.save();
       ctx.translate(x, y);
@@ -1007,8 +1110,46 @@ export function runLegacyCanvasPreviewSession(
       ctx.restore();
     });
 
+    // Heal pulse effect
+    if (healPulse) {
+      const elapsed = getGameTime() - healPulse.startTime;
+      if (elapsed < healPulse.duration * 1000) {
+        const progress = elapsed / (healPulse.duration * 1000);
+        const radius = 40 * progress;
+        ctx.save();
+        ctx.globalAlpha = 1 - progress;
+        ctx.strokeStyle = '#22c55e';
+        ctx.lineWidth = 3;
+        ctx.shadowColor = '#22c55e';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(healPulse.x, healPulse.y, radius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      } else {
+        healPulse = null;
+      }
+    }
     projectiles.forEach((projectile) => {
+      // Update trail for spell projectiles
+      if (projectile.isSpell && projectile.trail) {
+        projectile.trail.push({ x: projectile.x, y: projectile.y });
+        if (projectile.trail.length > 5) projectile.trail.shift();
+      }
+
       ctx.save();
+      // Draw trail for spell projectiles
+      if (projectile.isSpell && projectile.trail) {
+        projectile.trail.forEach((point: any, i: number) => {
+          const alpha = (i + 1) / projectile.trail.length * 0.4;
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = projectile.color || '#fbbf24';
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, projectile.isSpell ? 5 : 3, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+      }
       ctx.fillStyle = projectile.color || '#fbbf24';
       ctx.shadowColor = projectile.color || '#fbbf24';
       ctx.shadowBlur = projectile.isSpell ? 15 : 10;
@@ -1096,11 +1237,14 @@ export function runLegacyCanvasPreviewSession(
       for (const tower of towers) {
         ctx.save();
         ctx.translate(tower.x, tower.y);
-        ctx.strokeStyle = 'rgba(210,105,30,0.15)';
-        ctx.lineWidth = 1;
+        const isSelected = tower.id === selectedTowerId;
+        // Range circle (brighter when selected)
+        ctx.strokeStyle = isSelected ? 'rgba(251,191,36,0.35)' : 'rgba(210,105,30,0.15)';
+        ctx.lineWidth = isSelected ? 1.5 : 1;
         ctx.beginPath();
         ctx.arc(0, 0, tower.range, 0, Math.PI * 2);
         ctx.stroke();
+        // Tower body
         ctx.fillStyle = '#D2691E';
         ctx.beginPath();
         ctx.roundRect(-10, -6, 20, 16, 3);
@@ -1109,6 +1253,31 @@ export function runLegacyCanvasPreviewSession(
         ctx.beginPath();
         ctx.arc(0, -6, 8, Math.PI, 0);
         ctx.fill();
+        // Upgrade level rings
+        const levelColors = ['#94a3b8', '#22c55e', '#3b82f6', '#fbbf24'];
+        for (let i = 0; i < tower.upgradeLevel; i++) {
+          const ringRadius = 16 + i * 4;
+          const pulse = Math.sin(performance.now() / 600 + i) * 0.2 + 0.8;
+          ctx.strokeStyle = levelColors[i + 1] || '#fbbf24';
+          ctx.lineWidth = 1.5;
+          ctx.globalAlpha = pulse;
+          ctx.beginPath();
+          ctx.arc(0, 0, ringRadius, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+        // Selection highlight
+        if (isSelected) {
+          ctx.strokeStyle = '#fbbf24';
+          ctx.lineWidth = 2;
+          ctx.shadowColor = '#fbbf24';
+          ctx.shadowBlur = 8;
+          ctx.beginPath();
+          ctx.arc(0, 0, 18, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+        }
+        // Smoke
         ctx.strokeStyle = 'rgba(255,255,255,0.3)';
         ctx.lineWidth = 1.5;
         const smokeTime = performance.now() / 1000;
@@ -1127,23 +1296,48 @@ export function runLegacyCanvasPreviewSession(
       if (core && tdState.maxCoreHealth > 0) {
         const cx = core.transform.x;
         const cy = core.transform.y;
-        const barW = 60;
-        const barH = 6;
-        ctx.fillStyle = '#1f2937';
-        ctx.fillRect(cx - barW / 2, cy + 30, barW, barH);
+        const barW = 70;
+        const barH = 8;
+        // Pulsing protective aura
+        const pulse = Math.sin(performance.now() / 500) * 0.3 + 0.7;
+        ctx.save();
+        ctx.strokeStyle = `rgba(34, 197, 94, ${pulse * 0.3})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 28, 0, Math.PI * 2);
+        ctx.stroke();
+        // Shield ring when health is high
         const pct = tdState.coreHealth / tdState.maxCoreHealth;
+        if (pct > 0.25) {
+          ctx.strokeStyle = `rgba(34, 197, 94, ${pulse * 0.15})`;
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.arc(cx, cy, 32, 0, Math.PI * 2 * pct);
+          ctx.stroke();
+        }
+        ctx.restore();
+        // Health bar
+        ctx.fillStyle = '#1f2937';
+        ctx.fillRect(cx - barW / 2, cy + 36, barW, barH);
         ctx.fillStyle = pct > 0.5 ? '#22c55e' : pct > 0.25 ? '#eab308' : '#ef4444';
-        ctx.fillRect(cx - barW / 2, cy + 30, barW * pct, barH);
+        ctx.fillRect(cx - barW / 2, cy + 36, barW * pct, barH);
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(cx - barW / 2, cy + 36, barW, barH);
+        // Label
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 9px sans-serif';
+        ctx.font = 'bold 10px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(`☕ ${tdState.coreHealth}/${tdState.maxCoreHealth}`, cx, cy + 44);
+        ctx.fillText(`☕ CORE: ${tdState.coreHealth}/${tdState.maxCoreHealth}`, cx, cy + 56);
       }
     }
 
     // ─── HUD (via @clawgame/engine PreviewHUD) ───
     const cs = coordinator.getState();
     const weapon = inventory.equipment.weapon;
+    const selectedTower = isTDMode && selectedTowerId
+      ? towers.find((t) => t.id === selectedTowerId) ?? null
+      : null;
     const tdStats: HUDTowerDefenseStats | undefined = isTDMode ? {
       waveIndex: tdState.waveIndex,
       totalWaves: tdWaves.length,
@@ -1153,6 +1347,18 @@ export function runLegacyCanvasPreviewSession(
       coreMaxHealth: tdState.maxCoreHealth,
       waveMessage: tdState.waveMessage || undefined,
       waveMessageAlpha: tdState.waveMessageTimer > 0 ? Math.min(1, tdState.waveMessageTimer / 1000) : undefined,
+      selectedTower: selectedTower ? {
+        id: selectedTower.id,
+        damage: selectedTower.damage,
+        range: selectedTower.range,
+        fireRate: selectedTower.fireRate,
+        upgradeLevel: selectedTower.upgradeLevel,
+        maxUpgradeLevel: MAX_UPGRADE_LEVEL,
+        upgradeCost: getUpgradeCost(selectedTower),
+        sellValue: getSellValue(selectedTower),
+        canUpgrade: selectedTower.upgradeLevel < MAX_UPGRADE_LEVEL,
+        mana: cs.mana,
+      } : null,
     } : undefined;
 
     const hudState: HUDState = {
@@ -1203,7 +1409,9 @@ export function runLegacyCanvasPreviewSession(
       cancelAnimationFrame(animationRef.current);
     }
     window.removeEventListener('resize', resizeCanvas);
+    resizeObserver.disconnect();
     window.removeEventListener('keydown', handleKeyDown);
+    canvas.removeEventListener("click", handleCanvasClick);
     window.removeEventListener('keyup', handleKeyUp);
     collisionSubscriptions.forEach((subscription) => subscription.unsubscribe());
     coordinatorSubscriptions.forEach((subscription) => subscription.unsubscribe());
