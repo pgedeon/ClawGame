@@ -332,6 +332,7 @@ export function runLegacyCanvasPreviewSession(
   const liveKeys: Record<string, boolean> = {};
   let previousKeys: Record<string, boolean> = {};
   const projectiles: any[] = [];
+const deathParticles: any[] = [];
   let frameCount = 0;
   let lastTime = performance.now();
   let lastShotTime = 0;
@@ -408,6 +409,21 @@ export function runLegacyCanvasPreviewSession(
           registerTowerDefenseEnemyDefeat(tdState);
         }
         syncRPGState();
+              const color = enemy.color || "#ef4444";
+              for (let i = 0; i < 12; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 40 + Math.random() * 80;
+                deathParticles.push({
+                  x: enemy.transform.x,
+                  y: enemy.transform.y,
+                  vx: Math.cos(angle) * speed,
+                  vy: Math.sin(angle) * speed,
+                  life: 600,
+                  maxLife: 600,
+                  color,
+                  size: 3 + Math.random() * 4,
+                });
+              }
         entities.delete(enemy.id);
       }
     }),
@@ -721,6 +737,15 @@ export function runLegacyCanvasPreviewSession(
     const projectileScene = createPreviewProjectileScene(projectiles, entities.values());
     projectileSystem.update(projectileScene, frameDeltaTime / 1000);
     applyPreviewProjectileScene(projectileScene, projectiles);
+for (let i = deathParticles.length - 1; i >= 0; i--) {
+  const p = deathParticles[i];
+  p.x += p.vx * (frameDeltaTime / 1000);
+  p.y += p.vy * (frameDeltaTime / 1000);
+  p.vy += 120 * (frameDeltaTime / 1000); // gravity
+  p.life -= frameDeltaTime;
+  if (p.life <= 0) deathParticles.splice(i, 1);
+}
+
 
     movementSystem.setWorldBounds({ width: canvas.width, height: canvas.height });
     physicsSystem.setWorldBounds({ width: canvas.width, height: canvas.height });
@@ -1155,6 +1180,20 @@ export function runLegacyCanvasPreviewSession(
       ctx.shadowBlur = projectile.isSpell ? 15 : 10;
       ctx.beginPath();
       ctx.arc(projectile.x, projectile.y, projectile.isSpell ? 7 : 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+
+    // Death particles
+    deathParticles.forEach((p) => {
+      const alpha = Math.max(0, p.life / p.maxLife);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = p.color;
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * alpha, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     });
