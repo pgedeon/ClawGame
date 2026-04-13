@@ -34,6 +34,20 @@ export interface HUDTowerDefenseStats {
   coreMaxHealth: number;
   waveMessage?: string;
   waveMessageAlpha?: number;
+  selectedTower?: HUDSelectedTower | null;
+}
+
+export interface HUDSelectedTower {
+  id: string;
+  damage: number;
+  range: number;
+  fireRate: number;
+  upgradeLevel: number;
+  maxUpgradeLevel: number;
+  upgradeCost: number;
+  sellValue: number;
+  canUpgrade: boolean;
+  mana: number;
 }
 
 export interface HUDState {
@@ -233,6 +247,11 @@ export class PreviewHUD {
     ctx.font = '10px monospace';
     ctx.fillText('[T] Place tower (30 mana)', 20, 160);
 
+    // Selected tower info panel
+    if (td.selectedTower) {
+      this.renderSelectedTowerPanel(td.selectedTower);
+    }
+
     // Wave announcement
     if (td.waveMessage && td.waveMessageAlpha && td.waveMessageAlpha > 0) {
       ctx.fillStyle = `rgba(251,191,36,${td.waveMessageAlpha})`;
@@ -241,6 +260,79 @@ export class PreviewHUD {
       ctx.fillText(td.waveMessage, this.config.width / 2, 50);
       ctx.textAlign = 'left';
     }
+  }
+
+  private renderSelectedTowerPanel(tower: HUDSelectedTower): void {
+    const ctx = this.ctx;
+    const panelX = this.config.width - 220;
+    const panelY = this.config.height - 160;
+    const panelW = 210;
+    const panelH = 150;
+
+    // Background
+    ctx.fillStyle = 'rgba(0,0,0,0.85)';
+    ctx.beginPath();
+    ctx.roundRect(panelX, panelY, panelW, panelH, 8);
+    ctx.fill();
+
+    // Border
+    ctx.strokeStyle = '#D2691E';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(panelX, panelY, panelW, panelH);
+
+    // Title
+    ctx.fillStyle = '#fbbf24';
+    ctx.font = 'bold 13px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('🏰 Tower Info', panelX + 10, panelY + 20);
+
+    // Upgrade level stars
+    const stars = '★'.repeat(tower.upgradeLevel) + '☆'.repeat(tower.maxUpgradeLevel - tower.upgradeLevel);
+    ctx.fillStyle = '#fbbf24';
+    ctx.font = '14px sans-serif';
+    ctx.fillText(stars, panelX + 120, panelY + 20);
+
+    // Stats
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '11px monospace';
+    ctx.fillText(`Damage: ${tower.damage.toFixed(1)}`, panelX + 10, panelY + 42);
+    ctx.fillText(`Range: ${tower.range.toFixed(0)}`, panelX + 10, panelY + 58);
+    ctx.fillText(`Fire Rate: ${(1000 / tower.fireRate).toFixed(1)}/s`, panelX + 10, panelY + 74);
+
+    // Upgrade button
+    if (tower.canUpgrade) {
+      const affordable = tower.mana >= tower.upgradeCost;
+      ctx.fillStyle = affordable ? 'rgba(34,197,94,0.3)' : 'rgba(100,100,100,0.3)';
+      ctx.beginPath();
+      ctx.roundRect(panelX + 10, panelY + 85, panelW - 20, 22, 4);
+      ctx.fill();
+      ctx.strokeStyle = affordable ? '#22c55e' : '#475569';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(panelX + 10, panelY + 85, panelW - 20, 22);
+      ctx.fillStyle = affordable ? '#22c55e' : '#64748b';
+      ctx.font = 'bold 11px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(`[U] Upgrade (${tower.upgradeCost} mana)`, panelX + panelW / 2, panelY + 100);
+      ctx.textAlign = 'left';
+    } else {
+      ctx.fillStyle = '#64748b';
+      ctx.font = '11px monospace';
+      ctx.fillText('MAX LEVEL', panelX + 10, panelY + 100);
+    }
+
+    // Sell button
+    ctx.fillStyle = 'rgba(239,68,68,0.2)';
+    ctx.beginPath();
+    ctx.roundRect(panelX + 10, panelY + 115, panelW - 20, 22, 4);
+    ctx.fill();
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(panelX + 10, panelY + 115, panelW - 20, 22);
+    ctx.fillStyle = '#ef4444';
+    ctx.font = 'bold 11px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(`[S] Sell (+${tower.sellValue} mana)`, panelX + panelW / 2, panelY + 130);
+    ctx.textAlign = 'left';
   }
 
   private renderMinimap(entities: MinimapEntity[]): void {

@@ -24,7 +24,12 @@ export interface TowerDefenseTower {
   fireRate: number;
   lastShot: number;
   color: string;
+  upgradeLevel: number;
+  baseCost: number;
 }
+
+export const TOWER_BASE_COST = 30;
+export const MAX_UPGRADE_LEVEL = 3;
 
 export interface TowerDefenseProjectile {
   id: string;
@@ -133,7 +138,30 @@ export function createTowerDefenseTower(player: { transform: { x: number; y: num
     fireRate: 800,
     lastShot: 0,
     color: '#D2691E',
+    upgradeLevel: 0,
+    baseCost: TOWER_BASE_COST,
   };
+}
+
+/** Get the cost to upgrade a tower to the next level (50% of base cost per level) */
+export function getUpgradeCost(tower: TowerDefenseTower): number {
+  return Math.floor(tower.baseCost * 0.5);
+}
+
+/** Get sell value (50% of total invested mana) */
+export function getSellValue(tower: TowerDefenseTower): number {
+  const totalInvested = tower.baseCost + tower.upgradeLevel * getUpgradeCost(tower);
+  return Math.floor(totalInvested * 0.5);
+}
+
+/** Apply an upgrade to a tower. Returns true if upgraded. */
+export function upgradeTower(tower: TowerDefenseTower): boolean {
+  if (tower.upgradeLevel >= MAX_UPGRADE_LEVEL) return false;
+  tower.upgradeLevel++;
+  tower.damage = Math.round(tower.damage * 1.25 * 10) / 10;
+  tower.range = Math.round(tower.range * 1.15);
+  tower.fireRate = Math.max(200, Math.round(tower.fireRate / 1.2));
+  return true;
 }
 
 export function registerTowerDefenseEnemyDefeat(state: TowerDefenseState): void {
