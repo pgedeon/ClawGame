@@ -8,6 +8,7 @@ import { InventoryManager } from '../rpg/inventory';
 import { QuestManager } from '../rpg/quests';
 import { DialogueManager } from '../rpg/dialogue';
 import { SpellCraftingManager } from '../rpg/spellcrafting';
+import type { CombatLogManager } from '../rpg/combatlog';
 import {
   ReplayRecorder,
   ReplayPlayer,
@@ -174,6 +175,7 @@ export interface LegacyCanvasPreviewSessionOptions {
   questMgrRef: MutableRefObject<QuestManager>;
   dialogueMgrRef: MutableRefObject<DialogueManager>;
   spellMgrRef: MutableRefObject<SpellCraftingManager>;
+  combatLogRef?: MutableRefObject<CombatLogManager>;
   replayRecorderRef: MutableRefObject<ReplayRecorder | null>;
   replayPlayerRef: MutableRefObject<ReplayPlayer | null>;
   replayDataRef: MutableRefObject<ReplayData | null>;
@@ -1005,6 +1007,7 @@ export function runLegacyCanvasPreviewSession(
       const hotkey = parseInt(justPressedHotkey, 10);
       const spell = spellMgr.castSpell(hotkey);
       if (spell) {
+        options.combatLogRef?.current?.spell(`${spell.icon} ${spell.name} cast! (DMG: ${spell.damage}, MP: ${spell.manaCost})`);
         coordinator.useMana(spell.manaCost);
         const player = entities.get('player') || entities.get('player-1');
         if (player) {

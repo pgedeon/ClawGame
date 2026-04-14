@@ -19,6 +19,7 @@ import { QuestManager } from '../rpg/quests';
 import { DialogueManager } from '../rpg/dialogue';
 import { SpellCraftingManager } from '../rpg/spellcrafting';
 import { SaveLoadManager } from '../rpg/saveload';
+import { CombatLogManager } from '../rpg/combatlog';
 import { createDefaultPreviewScene } from '../utils/previewScene';
 import { ReplayRecorder, ReplayPlayer, downloadReplay, type ReplayData } from '../rpg/replay';
 import { resolvePreviewRuntimeSelection, runPreviewRuntimeSession } from '../runtime';
@@ -138,6 +139,7 @@ const [playerScore, setPlayerScore] = useState(0);
   const [craftingGrid, setCraftingGrid] = useState<(ElementType | null)[][]>([[null,null,null],[null,null,null],[null,null,null]]);
   const [craftResult, setCraftResult] = useState<string | null>(null);
   const [learnedSpells, setLearnedSpells] = useState<any[]>([]);
+  const [combatLogEntries, setCombatLogEntries] = useState<any[]>([]);
   const [saveSlots, setSaveSlots] = useState<SaveSlotInfo[]>([]);
   const [questHUDText, setQuestHUDText] = useState('');
 
@@ -147,6 +149,7 @@ const [playerScore, setPlayerScore] = useState(0);
   const dialogueMgrRef = useRef<DialogueManager>(new DialogueManager() as any);
   const spellMgrRef = useRef<SpellCraftingManager>(new SpellCraftingManager() as any);
   const saveMgrRef = useRef<SaveLoadManager>(new SaveLoadManager() as any);
+  const combatLogRef = useRef<CombatLogManager>(new CombatLogManager() as any);
   const replayRecorderRef = useRef<ReplayRecorder | null>(projectId ? new ReplayRecorder(projectId) : null);
   const replayPlayerRef = useRef<ReplayPlayer | null>(null);
   const replayDataRef = useRef<ReplayData | null>(null);
@@ -208,6 +211,7 @@ const [playerScore, setPlayerScore] = useState(0);
     setInventoryItems(inv.items.map((i: any) => ({ ...i })));
     setQuestList(qm.quests.map((q: any) => ({ ...q, objectives: q.objectives.map((o: any) => ({ ...o })) })));
     setLearnedSpells(sm.learnedSpells.map((s: any) => ({ ...s })));
+    setCombatLogEntries([...combatLogRef.current.getEntries()]);
   }, []);
 
   const refreshSaveSlots = useCallback(() => {
@@ -317,6 +321,11 @@ const [playerScore, setPlayerScore] = useState(0);
     setGamePaused(false);
     setActivePanel('none');
   }, [syncRPGState]);
+
+  const handleClearCombatLog = useCallback(() => {
+    (combatLogRef.current as any).clear();
+    setCombatLogEntries([]);
+  }, []);
 
   const handleDeleteSave = useCallback((slotId: number) => {
     (saveMgrRef.current as any).deleteSave(slotId);
@@ -540,6 +549,7 @@ const [playerScore, setPlayerScore] = useState(0);
       questMgrRef,
       dialogueMgrRef,
       spellMgrRef,
+      combatLogRef,
       replayRecorderRef,
       replayPlayerRef,
       replayDataRef,
@@ -665,7 +675,7 @@ useEffect(() => {
     // Tab: Toggle RPG panels (in-game)
     if (e.key === 'Tab' && gameStarted && !gameOver && !isRecording && !isPlayingBack) {
       e.preventDefault();
-      const panels: UIPanel[] = ['inventory', 'quests', 'spellcraft', 'saveload'];
+      const panels: UIPanel[] = ['inventory', 'quests', 'spellcraft', 'saveload', 'combat-log'];
       const currentIndex = panels.indexOf(activePanel);
       const nextIndex = (currentIndex + 1) % panels.length;
       setActivePanel(panels[nextIndex]);
@@ -711,6 +721,7 @@ useEffect(() => {
     handleUseItem, handleEquipItem, handleCraftingCell, handleLearnSpell,
     handleAssignHotkey, handleSave, handleLoad, handleDeleteSave,
     handlePauseResume, handleDialogueChoice, setActivePanel,
+    combatLogEntries, handleClearCombatLog,
     handleSelectTowerType,
     handleToggleRecording, handlePlayReplay, handlePauseReplay, handleSeekReplay, handleStepBackReplay, handleStepReplay, handleResetReplay, handleDownloadReplay,
   };

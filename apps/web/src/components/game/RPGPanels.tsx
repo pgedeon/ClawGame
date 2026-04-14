@@ -10,7 +10,7 @@ import type { Item, Quest, LearnedSpell, ElementType } from '../../rpg/types';
 
 /* ─── Types ─── */
 
-export type UIPanel = 'none' | 'inventory' | 'quests' | 'spellcraft' | 'saveload' | 'dialogue';
+export type UIPanel = 'none' | 'inventory' | 'quests' | 'spellcraft' | 'saveload' | 'dialogue' | 'combat-log';
 
 export interface SaveSlotInfo {
   id: number;
@@ -46,6 +46,10 @@ export interface RPGPanelsProps {
   onLoad: (slotId: number) => void;
   onDeleteSave: (slotId: number) => void;
   onResume: () => void;
+
+  /* Combat Log */
+  combatLogEntries: Array<{ id: string; type: string; text: string; timestamp: number; count?: number }>;
+  onClearCombatLog: () => void;
 
   /* Dialogue */
   dialogueSpeaker: string;
@@ -94,6 +98,8 @@ export function RPGPanels({
   onLoad,
   onDeleteSave,
   onResume,
+  combatLogEntries,
+  onClearCombatLog,
   dialogueSpeaker,
   dialoguePortrait,
   dialogueText,
@@ -280,7 +286,41 @@ export function RPGPanels({
         </div>
       )}
 
-      {activePanel === 'dialogue' && (
+      {activePanel === 'combat-log' && (
+      <div data-rpg-panel="combat-log" style={{ ...panelBase, top: 50, right: 10, left: 'auto', width: 320, maxHeight: 'calc(100% - 80px)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <h3 style={{ margin: 0 }}>Combat Log</h3>
+          <button onClick={onClosePanel} style={closeBtnStyle}>X</button>
+        </div>
+        {combatLogEntries.length === 0 && (
+          <div style={{ color: '#64748b', fontSize: 13 }}>No events yet. Cast spells to begin!</div>
+        )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {combatLogEntries.map(entry => {
+            const colors: Record<string, string> = { spell: '#fb923c', 'damage-dealt': '#86efac', 'damage-taken': '#fca5a5', kill: '#fef08a', heal: '#6ee7b7', mana: '#93c5fd', info: '#c4b5fd' };
+            const icons: Record<string, string> = { spell: '[S]', 'damage-dealt': '[D]', 'damage-taken': '[T]', kill: '[K]', heal: '[H]', mana: '[M]', info: '[I]' };
+            const color = colors[entry.type] || '#94a3b8';
+            const icon = icons[entry.type] || '>';
+            const seconds = Math.floor((Date.now() - entry.timestamp) / 1000);
+            const age = seconds < 60 ? seconds + 's ago' : Math.floor(seconds / 60) + 'm ago';
+            return (
+              <div key={entry.id} style={{ fontSize: 12, color, display: 'flex', gap: 6, alignItems: 'flex-start', lineHeight: 1.4 }}>
+                <span style={{ opacity: 0.7, flexShrink: 0, fontSize: 10, marginTop: 2 }}>{age}</span>
+                <span style={{ flexShrink: 0 }}>{icon}</span>
+                <span style={{ flex: 1 }}>{entry.text}</span>
+              </div>
+            );
+          })}
+        </div>
+        {combatLogEntries.length > 0 && (
+          <button onClick={onClearCombatLog} style={{ marginTop: 10, width: '100%', padding: '6px 0', background: 'rgba(239,68,68,0.2)', color: '#fca5a5', border: '1px solid #ef4444', borderRadius: 6, cursor: 'pointer', fontSize: 12 }}>
+            Clear Log
+          </button>
+        )}
+      </div>
+    )}
+
+    {activePanel === 'dialogue' && (
         <div data-rpg-panel="dialogue" style={{
           ...panelBase,
           bottom: 20, top: 'auto', left: '50%', transform: 'translateX(-50%)',

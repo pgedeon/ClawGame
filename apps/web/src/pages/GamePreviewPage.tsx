@@ -57,6 +57,7 @@ const GamePreviewContent: React.FC = () => {
     handleUseItem, handleEquipItem, handleCraftingCell, handleLearnSpell,
     handleAssignHotkey, handleSave, handleLoad, handleDeleteSave,
     handlePauseResume, handleDialogueChoice, setActivePanel,
+    combatLogEntries, handleClearCombatLog,
     handleSelectTowerType,
     handleToggleRecording, handlePlayReplay, handlePauseReplay, handleSeekReplay, handleStepBackReplay, handleStepReplay, handleResetReplay, handleDownloadReplay,
   } = useGamePreview(projectId, projectScene, projectGenre);
@@ -211,6 +212,8 @@ const GamePreviewContent: React.FC = () => {
           dialogueText={dialogueText}
           dialogueChoices={dialogueChoices}
           onDialogueChoice={handleDialogueChoice}
+          combatLogEntries={combatLogEntries}
+          onClearCombatLog={handleClearCombatLog}
         />
 
         {/* ── Overlay screens ── */}
