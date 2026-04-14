@@ -144,12 +144,17 @@ export function getMapWaypoints(layout: MapLayout, w: number, h: number): Waypoi
       { x: w - 60,   y: 60 },        // go up to top
     ];
   }
+  // These waypoints MUST match the rendered dirt-road path in legacyCanvasSession.ts
   return [
-    { x: 60,       y: -20 },
-    { x: 60,       y: h * 0.28 },
-    { x: w * 0.68, y: h * 0.28 },
-    { x: w * 0.68, y: h * 0.65 },
-    { x: w * 0.5,  y: h * 0.65 },
+    { x: 100, y: h + 20 },        // spawn below (off-screen)
+    { x: 100, y: 460 },            // turn right
+    { x: 660, y: 460 },            // turn up
+    { x: 660, y: 280 },            // turn left
+    { x: 250, y: 280 },            // turn up
+    { x: 250, y: 200 },            // turn right
+    { x: 660, y: 200 },            // turn up
+    { x: 660, y: 123 },            // turn left
+    { x: 400, y: 123 },            // approach core
   ];
 }
 

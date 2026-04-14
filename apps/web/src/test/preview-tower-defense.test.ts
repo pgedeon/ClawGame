@@ -102,6 +102,8 @@ describe('previewTowerDefense', () => {
         transform: { x: 100, y: 100 },
         damage: 12,
         tdSpeed: 80,
+        // Skip all waypoints so enemy goes directly to core
+        currentWaypointIndex: 99,
       }],
     ]);
     const state = createTowerDefenseState(100);
