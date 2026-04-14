@@ -479,12 +479,17 @@ function applyTowerDefenseProjectileDamage(
   damage: number,
   entities: Map<string, TowerDefenseEntity>,
   state: TowerDefenseState,
+  onEnemyDefeated?: (enemy: TowerDefenseEntity, manaReward: number) => void,
 ): void {
   enemy.health = (enemy.health || 0) - damage;
-  enemy.hitFlash = 200;
+  enemy.hitFlash = 300;
 
   if ((enemy.health || 0) <= 0) {
+    const manaReward = getTowerDefenseEnemyManaBounty(enemy);
     registerTowerDefenseEnemyDefeat(state);
+    if (onEnemyDefeated) {
+      onEnemyDefeated(enemy, manaReward);
+    }
     entities.delete(enemy.id);
   }
 }
@@ -650,7 +655,8 @@ export function updateTowerDefenseFrame({
 
       const dx = entity.transform.x - projectile.x;
       const dy = entity.transform.y - projectile.y;
-      if (Math.sqrt(dx * dx + dy * dy) <= 15) {
+      const hitRadius = Math.max(15, (entity.width || 24) * 0.6);
+      if (Math.sqrt(dx * dx + dy * dy) <= hitRadius) {
         hitEnemy = entity;
         break;
       }
@@ -663,7 +669,7 @@ export function updateTowerDefenseFrame({
     const impactY = hitEnemy.transform.y;
     const impactId = hitEnemy.id;
 
-    applyTowerDefenseProjectileDamage(hitEnemy, projectile.damage, entities, state);
+    applyTowerDefenseProjectileDamage(hitEnemy, projectile.damage, entities, state, onEnemyDefeated);
 
     if (effect?.towerType === 'cannon' && effect.splashRadius) {
       for (const entity of entities.values()) {
@@ -672,7 +678,7 @@ export function updateTowerDefenseFrame({
         const dx = entity.transform.x - impactX;
         const dy = entity.transform.y - impactY;
         if (Math.sqrt(dx * dx + dy * dy) <= effect.splashRadius) {
-          applyTowerDefenseProjectileDamage(entity, projectile.damage * 0.6, entities, state);
+          applyTowerDefenseProjectileDamage(entity, projectile.damage * 0.6, entities, state, onEnemyDefeated);
         }
       }
     }

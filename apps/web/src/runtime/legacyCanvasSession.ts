@@ -77,6 +77,17 @@ interface FloatingManaText {
   amount: number;
 }
 
+interface FloatingDamageText {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  maxLife: number;
+  damage: number;
+  color: string;
+}
+
 type StateSetter<T> = Dispatch<SetStateAction<T>>;
 
 const TD_STARTING_MANA = 100;
@@ -362,6 +373,7 @@ export function runLegacyCanvasPreviewSession(
   const projectiles: any[] = [];
   const deathParticles: any[] = [];
   const manaTexts: FloatingManaText[] = [];
+  const damageTexts: FloatingDamageText[] = [];
   let frameCount = 0;
   let lastTime = performance.now();
   let lastShotTime = 0;
@@ -433,6 +445,19 @@ export function runLegacyCanvasPreviewSession(
       life: 900,
       maxLife: 900,
       amount,
+    });
+  };
+
+  const spawnDamageText = (x: number, y: number, damage: number, color: string = '#fff') => {
+    damageTexts.push({
+      x: x + (Math.random() - 0.5) * 10,
+      y: y - 10,
+      vx: (Math.random() - 0.5) * 30,
+      vy: -55,
+      life: 600,
+      maxLife: 600,
+      damage,
+      color,
     });
   };
 
@@ -1026,6 +1051,13 @@ export function runLegacyCanvasPreviewSession(
       manaText.life -= frameDeltaTime;
       if (manaText.life <= 0) manaTexts.splice(i, 1);
     }
+    for (let i = damageTexts.length - 1; i >= 0; i--) {
+      const dt = damageTexts[i];
+      dt.x += dt.vx * (frameDeltaTime / 1000);
+      dt.y += dt.vy * (frameDeltaTime / 1000);
+      dt.life -= frameDeltaTime;
+      if (dt.life <= 0) damageTexts.splice(i, 1);
+    }
 
 
     movementSystem.setWorldBounds({ width: canvas.width, height: canvas.height });
@@ -1091,7 +1123,12 @@ export function runLegacyCanvasPreviewSession(
         state: tdState,
         waves: tdWaves,
         onEnemyDefeated: (enemy, manaReward) => {
+          const lastX = enemy.transform.x;
+          const lastY = enemy.transform.y;
+          const dmg = enemy.maxHealth || 0;
           handleEnemyDefeat(enemy, { manaReward, deleteEntity: false });
+          // Show total damage dealt as a big number
+          spawnDamageText(lastX, lastY, dmg, '#fbbf24');
         },
       });
 
@@ -1483,31 +1520,50 @@ export function runLegacyCanvasPreviewSession(
       }
     }
     projectiles.forEach((projectile) => {
-      // Update trail for spell projectiles
-      if (projectile.isSpell && projectile.trail) {
+      const isTD = isTDMode && projectile.id?.startsWith('tp-');
+      // Update trail for spell projectiles and TD projectiles
+      if ((projectile.isSpell && projectile.trail) || isTD) {
+        if (!projectile.trail) projectile.trail = [];
         projectile.trail.push({ x: projectile.x, y: projectile.y });
-        if (projectile.trail.length > 5) projectile.trail.shift();
+        if (projectile.trail.length > 6) projectile.trail.shift();
       }
 
       ctx.save();
-      // Draw trail for spell projectiles
-      if (projectile.isSpell && projectile.trail) {
+      // Draw trail
+      if (projectile.trail && projectile.trail.length > 1) {
         projectile.trail.forEach((point: any, i: number) => {
-          const alpha = (i + 1) / projectile.trail.length * 0.4;
+          const alpha = (i + 1) / projectile.trail.length * 0.35;
           ctx.globalAlpha = alpha;
           ctx.fillStyle = projectile.color || '#fbbf24';
           ctx.beginPath();
-          ctx.arc(point.x, point.y, projectile.isSpell ? 5 : 3, 0, Math.PI * 2);
+          ctx.arc(point.x, point.y, isTD ? 4 : projectile.isSpell ? 5 : 3, 0, Math.PI * 2);
           ctx.fill();
         });
         ctx.globalAlpha = 1;
       }
+      // Main projectile body
+      const radius = isTD ? 6 : projectile.isSpell ? 7 : 5;
+      // Outer glow
+      if (isTD) {
+        ctx.fillStyle = (projectile.color || '#fbbf24') + '40';
+        ctx.beginPath();
+        ctx.arc(projectile.x, projectile.y, radius + 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
       ctx.fillStyle = projectile.color || '#fbbf24';
       ctx.shadowColor = projectile.color || '#fbbf24';
-      ctx.shadowBlur = projectile.isSpell ? 15 : 10;
+      ctx.shadowBlur = isTD ? 16 : projectile.isSpell ? 15 : 10;
       ctx.beginPath();
-      ctx.arc(projectile.x, projectile.y, projectile.isSpell ? 7 : 5, 0, Math.PI * 2);
+      ctx.arc(projectile.x, projectile.y, radius, 0, Math.PI * 2);
       ctx.fill();
+      // Bright core
+      if (isTD) {
+        ctx.fillStyle = '#fff';
+        ctx.shadowBlur = 0;
+        ctx.beginPath();
+        ctx.arc(projectile.x, projectile.y, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
       ctx.restore();
     });
 
@@ -1785,6 +1841,24 @@ export function runLegacyCanvasPreviewSession(
       ctx.shadowBlur = 10;
       ctx.strokeText(`+${manaText.amount} mana`, manaText.x, manaText.y);
       ctx.fillText(`+${manaText.amount} mana`, manaText.x, manaText.y);
+      ctx.restore();
+    });
+
+    // Floating damage numbers
+    damageTexts.forEach((dt) => {
+      const alpha = Math.max(0, dt.life / dt.maxLife);
+      const scale = 0.8 + 0.4 * (1 - alpha);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.textAlign = 'center';
+      ctx.font = `bold ${Math.round(14 * scale)}px monospace`;
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.9)';
+      ctx.fillStyle = dt.color;
+      ctx.shadowColor = dt.color;
+      ctx.shadowBlur = 8;
+      ctx.strokeText(`-${dt.damage}`, dt.x, dt.y);
+      ctx.fillText(`-${dt.damage}`, dt.x, dt.y);
       ctx.restore();
     });
 

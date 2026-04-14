@@ -137,7 +137,7 @@ describe('previewTowerDefense', () => {
 
     expect(projectiles).toHaveLength(0);
     expect(entities.get('enemy-1')?.health).toBe(5);
-    expect(entities.get('enemy-1')?.hitFlash).toBe(200);
+    expect(entities.get('enemy-1')?.hitFlash).toBe(300);
   });
 
   it('moves enemies along waypoint segments instead of directly at the core', () => {
