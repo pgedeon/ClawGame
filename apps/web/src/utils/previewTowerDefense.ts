@@ -1,4 +1,4 @@
-export interface TowerDefenseEnemyGroup { type?: string; count: number; hp?: number; speed?: number; color?: string; size?: number; score?: number; damage?: number; }
+export interface TowerDefenseEnemyGroup { type?: string; enemyType?: string; count: number; hp?: number; speed?: number; color?: string; size?: number; score?: number; damage?: number; }
 export interface TowerDefenseWave { enemies: TowerDefenseEnemyGroup[]; delay?: number; message?: string; }
 
 export type TowerType = 'basic' | 'cannon' | 'frost' | 'lightning';
@@ -109,6 +109,7 @@ export interface UpdateTowerDefenseFrameOptions {
   projectiles: TowerDefenseProjectile[];
   state: TowerDefenseState;
   waves: TowerDefenseWave[];
+  onEnemyDefeated?: (enemy: TowerDefenseEntity, manaReward: number) => void;
   random?: () => number;
 }
 
@@ -216,6 +217,52 @@ export function getSellValue(tower: TowerDefenseTower): number {
   return Math.floor(totalInvested * 0.5);
 }
 
+function getTowerDefenseEnemyType(enemy?: Pick<TowerDefenseEntity, 'enemyType'> | TowerDefenseEnemyGroup | string): string {
+  if (typeof enemy === 'string') return enemy;
+  if (!enemy) return 'basic';
+  if ('enemyType' in enemy && enemy.enemyType) return enemy.enemyType;
+  if ('type' in enemy && enemy.type) return enemy.type;
+  return 'basic';
+}
+
+export function getTowerDefenseEnemyManaBounty(
+  enemy?: Pick<TowerDefenseEntity, 'enemyType' | 'maxHealth' | 'tdSpeed'> | TowerDefenseEnemyGroup | string,
+): number {
+  const enemyType = getTowerDefenseEnemyType(enemy).toLowerCase();
+
+  switch (enemyType) {
+    case 'basic':
+    case 'intern':
+    case 'virus':
+      return 10;
+    case 'fast':
+    case 'it-guy':
+      return 8;
+    case 'tank':
+    case 'manager':
+    case 'malware':
+    case 'trojan':
+    case 'rootkit':
+      return 20;
+    case 'boss':
+    case 'ceo':
+    case 'ransomware':
+      return 50;
+    default: {
+      const maxHealth = typeof enemy === 'string'
+        ? 0
+        : (enemy && 'maxHealth' in enemy && enemy.maxHealth) || (enemy && 'hp' in enemy && enemy.hp) || 0;
+      const speed = typeof enemy === 'string'
+        ? 0
+        : (enemy && 'tdSpeed' in enemy && enemy.tdSpeed) || (enemy && 'speed' in enemy && enemy.speed) || 0;
+      if (maxHealth >= 250) return 50;
+      if (speed >= 115) return 8;
+      if (maxHealth >= 80) return 20;
+      return 10;
+    }
+  }
+}
+
 export function upgradeTower(tower: TowerDefenseTower): boolean {
   if (tower.upgradeLevel >= MAX_UPGRADE_LEVEL) return false;
   tower.upgradeLevel++;
@@ -226,13 +273,22 @@ export function upgradeTower(tower: TowerDefenseTower): boolean {
   return true;
 }
 
-export function registerTowerDefenseEnemyDefeat(state: TowerDefenseState): void {
+export function registerTowerDefenseEnemyDefeat(
+  state: TowerDefenseState,
+  enemy?: Pick<TowerDefenseEntity, 'enemyType' | 'maxHealth' | 'tdSpeed'> | TowerDefenseEnemyGroup | string,
+  onBounty?: (manaReward: number) => void,
+): void {
   state.enemiesAlive = Math.max(0, state.enemiesAlive - 1);
+
+  if (enemy && onBounty) {
+    const manaReward = getTowerDefenseEnemyManaBounty(enemy);
+    if (manaReward > 0) onBounty(manaReward);
+  }
 }
 
 export function updateTowerDefenseFrame({
   canvasWidth, canvasHeight, currentTime, deltaTime,
-  entities, towers, projectiles, state, waves,
+  entities, towers, projectiles, state, waves, onEnemyDefeated,
   random = Math.random,
 }: UpdateTowerDefenseFrameOptions): TowerDefenseUpdateResult {
   const target = entities.get('core-bean') || entities.get('magic-bean') || entities.get('player') || entities.get('player-1');
@@ -318,6 +374,7 @@ export function updateTowerDefenseFrame({
           state.enemyIdCounter++;
           const spawn = state.waypoints[0] || { x: 60, y: -20 };
           const id = `td-enemy-${state.enemyIdCounter}`;
+          const enemyType = group.enemyType || group.type || 'intern';
           entities.set(id, {
             id, type: 'enemy',
             transform: { x: spawn.x, y: spawn.y, scaleX: 1, scaleY: 1, rotation: 0 },
@@ -327,7 +384,7 @@ export function updateTowerDefenseFrame({
             health: group.hp || 30, maxHealth: group.hp || 30,
             damage: group.damage || 15,
             tdSpeed: group.speed || 80,
-            enemyType: group.type || 'intern',
+            enemyType,
             hitFlash: 0, facing: 'down',
             scoreValue: group.score || 10,
             currentWaypointIndex: 1,
@@ -403,7 +460,11 @@ export function updateTowerDefenseFrame({
           entity.health = (entity.health || 0) - tower.damage * 0.6;
           entity.hitFlash = 200;
           if (entity.health <= 0) {
-            registerTowerDefenseEnemyDefeat(state);
+            let manaReward = 0;
+            registerTowerDefenseEnemyDefeat(state, entity, (bounty) => {
+              manaReward = bounty;
+            });
+            onEnemyDefeated?.(entity, manaReward);
             entities.delete(entity.id);
           }
         }
