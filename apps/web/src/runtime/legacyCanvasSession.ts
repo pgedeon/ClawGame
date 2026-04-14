@@ -45,7 +45,7 @@ import {
   TOWER_PLACEMENT_RADIUS,
   getMapLayout,
   getTowerDefensePathPoints,
-  getTowerDefenseWaves,
+ getTowerDefenseWaves,
   registerTowerDefenseEnemyDefeat,
   updateTowerDefenseFrame,
   validateTowerPlacement,
