@@ -805,12 +805,7 @@ export function updateTowerDefenseFrame({
         targetsInRange.push(entity);
       }
     }
-    if (targetsInRange.length === 0) {
-      if (enemyCount > 0) {
-        console.warn('[TD] Tower at', tower.x, tower.y, 'has', enemyCount, 'enemies but none in range', tower.range);
-      }
-      continue;
-    }
+    if (targetsInRange.length === 0) continue;
 
     targetsInRange.sort((a, b) => {
       const da = Math.hypot(a.transform.x - tower.x, a.transform.y - tower.y);
@@ -838,7 +833,6 @@ export function updateTowerDefenseFrame({
       projSpeed = 600;
     }
 
-    console.log('[TD] Tower fires!', tower.towerType, 'at', primary.id, 'dmg:', tower.damage, 'enemies:', enemyCount);
     spawnTowerDefenseProjectile(projectiles, {
       id: `tp-${currentTime}-${random()}`,
       x: tower.x, y: tower.y,
