@@ -2,6 +2,7 @@ export interface TowerDefenseEnemyGroup { type?: string; count: number; hp?: num
 export interface TowerDefenseWave { enemies: TowerDefenseEnemyGroup[]; delay?: number; message?: string; }
 
 export type TowerType = 'basic' | 'cannon' | 'frost' | 'lightning';
+export type MapLayout = 'coffee-run' | 'circuit-board';
 
 export interface TowerConfig {
   damage: number;
@@ -9,10 +10,10 @@ export interface TowerConfig {
   fireRate: number; // ms
   cost: number;
   color: string;
-  splashRadius?: number;   // 0 = no splash
-  slowAmount?: number;     // 0-1, fraction of normal speed to slow to
-  slowDuration?: number;   // ms
-  chainCount?: number;     // 0 = no chain
+  splashRadius?: number;
+  slowAmount?: number;
+  slowDuration?: number;
+  chainCount?: number;
   chainRange?: number;
 }
 
@@ -29,7 +30,7 @@ export interface TowerDefenseTower {
   y: number;
   range: number;
   damage: number;
-  fireRate: number; // ms
+  fireRate: number;
   lastShot: number;
   color: string;
   upgradeLevel: number;
@@ -56,6 +57,11 @@ export interface TowerDefenseProjectile {
   createdAt?: number;
 }
 
+export interface Waypoint {
+  x: number;
+  y: number;
+}
+
 export interface TowerDefenseEntity {
   id: string;
   type: string;
@@ -69,15 +75,17 @@ export interface TowerDefenseEntity {
   damage?: number;
   tdSpeed?: number;
   enemyType?: string;
-  patrolOrigin?: { x: number; y: number };
-  patrolOffset?: number;
   hitFlash?: number;
   facing?: string;
   scoreValue?: number;
   slowedUntil?: number;
+  currentWaypointIndex?: number;
 }
 
 export interface TowerDefenseState {
+  waveCountdown: number; // seconds until next wave (-1 = not counting)
+  mapLayout: MapLayout;
+  waypoints: Waypoint[];
   waveIndex: number;
   waveTimer: number;
   spawnQueue: TowerDefenseEnemyGroup[];
@@ -85,7 +93,6 @@ export interface TowerDefenseState {
   coreHealth: number;
   maxCoreHealth: number;
   waveMessage: string;
-  waveCountdown: number;  // seconds until next wave (-1 = not counting)
   waveMessageTimer: number;
   enemiesAlive: number;
   allWavesDone: boolean;
@@ -118,16 +125,53 @@ export const DEFAULT_TOWER_DEFENSE_WAVES: TowerDefenseWave[] = [
   { enemies: [{ type: 'ceo',       count: 1,  hp: 300, speed: 40, color: '#f43f5e', size: 40, score: 200 }, { type: 'manager', count: 6, hp: 90, speed: 60, color: '#fbbf24', size: 28, score: 25 }], delay: 8000, message: 'Wave 5: THE CEO WANTS A TRIPLE SOY LATTE!' },
 ];
 
+export const CIRCUIT_BOARD_WAVES: TowerDefenseWave[] = [
+  { enemies: [{ type: 'virus',   count: 6,  hp: 40, speed: 90,  color: '#f87171', size: 20, score: 15 }], delay: 3000, message: '⚡ Wave 1: Rogue processes detected!' },
+  { enemies: [{ type: 'malware', count: 5,  hp: 80, speed: 70,  color: '#a78bfa', size: 26, score: 30 }], delay: 5000, message: '🦠 Wave 2: Malware spreading through registers!' },
+  { enemies: [{ type: 'virus',   count: 8,  hp: 50, speed: 110, color: '#f87171', size: 20, score: 15 }, { type: 'trojan', count: 4, hp: 120, speed: 55, color: '#fb923c', size: 30, score: 50 }], delay: 7000, message: '💀 Wave 3: Trojans bypassing the firewall!' },
+  { enemies: [{ type: 'rootkit', count: 3,  hp: 200, speed: 45, color: '#f43f5e', size: 34, score: 100 }, { type: 'malware', count: 6, hp: 90, speed: 75, color: '#a78bfa', size: 26, score: 30 }], delay: 9000, message: '🔓 Wave 4: Rootkit has kernel access!' },
+  { enemies: [{ type: 'ransomware', count: 1, hp: 500, speed: 30, color: '#dc2626', size: 44, score: 300 }, { type: 'rootkit', count: 4, hp: 250, speed: 40, color: '#f43f5e', size: 34, score: 100 }], delay: 12000, message: '💸 Wave 5: RANSOMWARE DEMANDS 1M BITCOIN!' },
+];
+
+export function getMapWaypoints(layout: MapLayout, w: number, h: number): Waypoint[] {
+  if (layout === 'circuit-board') {
+    return [
+      { x: 60,       y: h + 20 },   // spawn below left
+      { x: 60,       y: h * 0.62 }, // go up to 62%
+      { x: w * 0.5,  y: h * 0.62 }, // go right to center
+      { x: w * 0.5,  y: h * 0.38 }, // go up to 38%
+      { x: w - 60,   y: h * 0.38 }, // go right to right edge
+      { x: w - 60,   y: 60 },        // go up to top
+    ];
+  }
+  return [
+    { x: 60,       y: -20 },
+    { x: 60,       y: h * 0.28 },
+    { x: w * 0.68, y: h * 0.28 },
+    { x: w * 0.68, y: h * 0.65 },
+    { x: w * 0.5,  y: h * 0.65 },
+  ];
+}
+
 export function getTowerDefenseWaves(scene: { waves?: TowerDefenseWave[] }): TowerDefenseWave[] {
   return scene.waves || DEFAULT_TOWER_DEFENSE_WAVES;
 }
 
-export function createTowerDefenseState(coreHealth = 0): TowerDefenseState {
+export function getMapLayout(scene: { name?: string }): MapLayout {
+  const name = scene.name || '';
+  if (name.toLowerCase().includes('circuit') || name.toLowerCase().includes('level 2') || name.toLowerCase().includes('2')) {
+    return 'circuit-board';
+  }
+  return 'coffee-run';
+}
+
+export function createTowerDefenseState(coreHealth = 0, mapLayout: MapLayout = 'coffee-run', w = 800, h = 600): TowerDefenseState {
   return {
-    waveIndex: 0, waveTimer: 0, spawnQueue: [], spawnTimer: 0,
+    mapLayout,
+    waypoints: getMapWaypoints(mapLayout, w, h),
+    waveIndex: 0, waveTimer: 0, spawnQueue: [], spawnTimer: 0, waveCountdown: -1,
     coreHealth, maxCoreHealth: coreHealth,
-    waveMessage: '',
-    waveCountdown: -1, waveMessageTimer: 0,
+    waveMessage: '', waveMessageTimer: 0,
     enemiesAlive: 0, allWavesDone: false, enemyIdCounter: 0,
   };
 }
@@ -188,7 +232,7 @@ export function updateTowerDefenseFrame({
 }: UpdateTowerDefenseFrameOptions): TowerDefenseUpdateResult {
   const target = entities.get('core-bean') || entities.get('magic-bean') || entities.get('player') || entities.get('player-1');
 
-  // ── Enemy movement + core collision ──
+  // ── Enemy movement via waypoint routing ──
   for (const entity of entities.values()) {
     if (entity.type !== 'enemy') continue;
 
@@ -196,16 +240,28 @@ export function updateTowerDefenseFrame({
     const isSlowed = Boolean(entity.slowedUntil && entity.slowedUntil > currentTime);
     const effectiveSpeed = isSlowed ? baseSpeed * 0.5 : baseSpeed;
 
-    if (target) {
+    const waypointIdx = entity.currentWaypointIndex ?? 1;
+    const waypoint = state.waypoints[waypointIdx];
+
+    if (waypoint) {
+      const dx = waypoint.x - entity.transform.x;
+      const dy = waypoint.y - entity.transform.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > 5) {
+        entity.transform.x += (dx / dist) * effectiveSpeed * (deltaTime / 1000);
+        entity.transform.y += (dy / dist) * effectiveSpeed * (deltaTime / 1000);
+      } else {
+        entity.currentWaypointIndex = waypointIdx + 1;
+      }
+    } else if (target) {
+      // No more waypoints — go direct to core
       const dx = target.transform.x - entity.transform.x;
       const dy = target.transform.y - entity.transform.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
-
       if (dist > 5) {
         entity.transform.x += (dx / dist) * effectiveSpeed * (deltaTime / 1000);
         entity.transform.y += (dy / dist) * effectiveSpeed * (deltaTime / 1000);
       }
-
       if (dist < 30) {
         state.coreHealth -= entity.damage || 5;
         registerTowerDefenseEnemyDefeat(state);
@@ -219,32 +275,34 @@ export function updateTowerDefenseFrame({
   }
 
   // ── Wave countdown tracking ──
-    const waveDelay = waves[state.waveIndex]?.delay ?? 5000;
-    const timeWaitingForWave = state.spawnQueue.length === 0 && state.enemiesAlive <= 0 && state.waveIndex < waves.length;
-    if (timeWaitingForWave) {
+  if (!state.allWavesDone && state.spawnQueue.length === 0 && state.enemiesAlive <= 0 && state.waveIndex < waves.length) {
+    const waveDelay = waves[state.waveIndex].delay || 5000;
+    if (state.waveTimer < waveDelay) {
       state.waveCountdown = Math.max(0, (waveDelay - state.waveTimer) / 1000);
-    } else if (state.spawnQueue.length === 0 && state.enemiesAlive > 0) {
-      state.waveCountdown = -1;
+    } else {
+      state.waveCountdown = 0;
     }
-    // ── Wave management ──
-    if (!state.allWavesDone) {
-      state.waveTimer += deltaTime;
+  } else {
+    state.waveCountdown = -1;
+  }
 
-      if (state.spawnQueue.length === 0 && state.enemiesAlive <= 0 && state.waveIndex < waves.length) {
-        if (state.waveTimer >= (waves[state.waveIndex].delay || 5000)) {
-          const wave = waves[state.waveIndex];
-          state.waveMessage = wave.message || `Wave ${state.waveIndex + 1}`;
-          state.waveMessageTimer = 3000;
-          for (const group of wave.enemies) {
-            for (let i = 0; i < group.count; i++) state.spawnQueue.push(group);
-          }
-          state.spawnTimer = 0;
-          state.waveIndex++;
-          state.waveTimer = 0;
-          state.waveCountdown = -1;
-          if (state.waveIndex >= waves.length) state.allWavesDone = true;
+  // ── Wave management ──
+  if (!state.allWavesDone) {
+    state.waveTimer += deltaTime;
+
+    if (state.spawnQueue.length === 0 && state.enemiesAlive <= 0 && state.waveIndex < waves.length) {
+      if (state.waveTimer >= (waves[state.waveIndex].delay || 5000)) {
+        const wave = waves[state.waveIndex];
+        state.waveMessage = wave.message || `Wave ${state.waveIndex + 1}`;
+        state.waveMessageTimer = 3000;
+        for (const group of wave.enemies) {
+          for (let i = 0; i < group.count; i++) state.spawnQueue.push(group);
         }
+        state.spawnTimer = 0;
+        state.waveIndex++;
+        if (state.waveIndex >= waves.length) state.allWavesDone = true;
       }
+    }
 
     if (state.spawnQueue.length > 0) {
       state.spawnTimer += deltaTime;
@@ -253,11 +311,11 @@ export function updateTowerDefenseFrame({
         const group = state.spawnQueue.shift();
         if (group) {
           state.enemyIdCounter++;
-          const spawnX = 100 + random() * (canvasWidth - 200);
+          const spawn = state.waypoints[0] || { x: 60, y: -20 };
           const id = `td-enemy-${state.enemyIdCounter}`;
           entities.set(id, {
             id, type: 'enemy',
-            transform: { x: spawnX, y: -20, scaleX: 1, scaleY: 1, rotation: 0 },
+            transform: { x: spawn.x, y: spawn.y, scaleX: 1, scaleY: 1, rotation: 0 },
             components: {},
             color: group.color || '#86efac',
             width: group.size || 24, height: group.size || 24,
@@ -265,10 +323,9 @@ export function updateTowerDefenseFrame({
             damage: group.damage || 15,
             tdSpeed: group.speed || 80,
             enemyType: group.type || 'intern',
-            patrolOrigin: { x: spawnX, y: -20 },
-            patrolOffset: random() * Math.PI * 2,
             hitFlash: 0, facing: 'down',
             scoreValue: group.score || 10,
+            currentWaypointIndex: 1,
           });
           state.enemiesAlive++;
         }
@@ -284,7 +341,6 @@ export function updateTowerDefenseFrame({
   for (const tower of towers) {
     if (currentTime - tower.lastShot < tower.fireRate) continue;
 
-    // Collect targets in range, sorted by distance
     const targetsInRange: TowerDefenseEntity[] = [];
     for (const entity of entities.values()) {
       if (entity.type !== 'enemy') continue;
@@ -309,7 +365,6 @@ export function updateTowerDefenseFrame({
 
     tower.lastShot = currentTime;
 
-    // Determine projectile color and speed by tower type
     let projColor = tower.color;
     let projSpeed = 350;
     if (tower.towerType === 'cannon') {
@@ -323,7 +378,6 @@ export function updateTowerDefenseFrame({
       projSpeed = 600;
     }
 
-    // Fire at primary target
     projectiles.push({
       id: `tp-${currentTime}-${random()}`,
       x: tower.x, y: tower.y,
@@ -334,7 +388,7 @@ export function updateTowerDefenseFrame({
       createdAt: currentTime,
     });
 
-    // ── Cannon: splash damage near primary ──
+    // Cannon splash
     if (tower.towerType === 'cannon' && tower.splashRadius) {
       for (const entity of entities.values()) {
         if (entity.type !== 'enemy' || entity.id === primary.id) continue;
@@ -351,12 +405,12 @@ export function updateTowerDefenseFrame({
       }
     }
 
-    // ── Frost: slow primary ──
+    // Frost slow
     if (tower.towerType === 'frost' && tower.slowAmount && tower.slowDuration) {
       primary.slowedUntil = currentTime + tower.slowDuration;
     }
 
-    // ── Lightning: chain to nearby enemies ──
+    // Lightning chain
     if (tower.towerType === 'lightning' && tower.chainCount && tower.chainRange) {
       let lastTarget: TowerDefenseEntity = primary;
       const hitIds = new Set<string>([primary.id]);

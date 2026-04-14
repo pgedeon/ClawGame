@@ -34,6 +34,7 @@ describe('previewReplayState', () => {
     const projectiles = [{ id: 'old-proj', x: 0, y: 0, vx: 0, vy: 0, damage: 1 }];
     const towers = [{ id: 'old-tower', x: 0, y: 0, range: 50, damage: 1, fireRate: 1000, lastShot: 0, color: '#000', upgradeLevel: 0, baseCost: 30, towerType: "basic" as const }];
     const tdState = {
+      mapLayout: "coffee-run" as const, waypoints: [],
       waveIndex: 0,
       waveTimer: 0,
       spawnQueue: [],
@@ -66,6 +67,7 @@ describe('previewReplayState', () => {
           projectiles: [{ id: 'proj-1', x: 4, y: 5, vx: 10, vy: 0, damage: 25 }],
           towers: [{ id: 'tower-1', x: 8, y: 9, range: 150, damage: 20, fireRate: 800, lastShot: 200, color: '#abc', upgradeLevel: 0, baseCost: 30, towerType: "basic" as const }],
           tdState: {
+            mapLayout: "coffee-run" as const, waypoints: [],
             waveIndex: 2,
             waveTimer: 300,
             spawnQueue: [],
@@ -77,7 +79,7 @@ describe('previewReplayState', () => {
             enemiesAlive: 4,
             allWavesDone: false,
             enemyIdCounter: 12,
-      waveCountdown: -1,
+            waveCountdown: -1,
           },
           collectedRuneIds: ['rune-a'],
           defeatedEnemies: ['enemy-a'],
