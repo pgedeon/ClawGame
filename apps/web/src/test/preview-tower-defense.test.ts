@@ -21,6 +21,8 @@ describe('previewTowerDefense', () => {
       }],
     ]);
     const state = createTowerDefenseState(500);
+    // Simulate player clicking "Start Wave"
+    state.waitingForPlayer = false;
     const result = updateTowerDefenseFrame({
       canvasWidth: 400,
       canvasHeight: 400,

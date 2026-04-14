@@ -110,6 +110,8 @@ export interface TowerDefenseEntity {
   currentWaypointIndex?: number;
 }
 
+export type TowerDefenseGamePhase = 'idle' | 'waiting' | 'active' | 'gameover' | 'victory';
+
 export interface TowerDefenseState {
   waveCountdown: number; // seconds until next wave (-1 = not counting)
   mapLayout: MapLayout;
@@ -125,6 +127,8 @@ export interface TowerDefenseState {
   enemiesAlive: number;
   allWavesDone: boolean;
   enemyIdCounter: number;
+  waitingForPlayer: boolean;
+  gamePhase: TowerDefenseGamePhase;
 }
 
 export interface UpdateTowerDefenseFrameOptions {
@@ -147,11 +151,26 @@ export interface TowerDefenseUpdateResult {
 }
 
 export const DEFAULT_TOWER_DEFENSE_WAVES: TowerDefenseWave[] = [
-  { enemies: [{ type: 'intern',    count: 5,  hp: 25, speed: 80,  color: '#86efac', size: 22, score: 10 }], delay: 3000, message: 'Wave 1: Interns smell fresh coffee...' },
-  { enemies: [{ type: 'manager',   count: 4,  hp: 60, speed: 60,  color: '#fbbf24', size: 28, score: 25 }], delay: 5000, message: 'Wave 2: Middle management!' },
-  { enemies: [{ type: 'intern',    count: 8,  hp: 30, speed: 100, color: '#86efac', size: 22, score: 10 }, { type: 'manager', count: 3, hp: 70, speed: 55, color: '#fbbf24', size: 28, score: 25 }], delay: 6000, message: 'Wave 3: The interns told their friends...' },
-  { enemies: [{ type: 'it-guy',    count: 5,  hp: 45, speed: 120, color: '#60a5fa', size: 24, score: 30 }], delay: 6000, message: 'Wave 4: IT detected caffeine on the network!' },
-  { enemies: [{ type: 'ceo',       count: 1,  hp: 300, speed: 40, color: '#f43f5e', size: 40, score: 200 }, { type: 'manager', count: 6, hp: 90, speed: 60, color: '#fbbf24', size: 28, score: 25 }], delay: 8000, message: 'Wave 5: THE CEO WANTS A TRIPLE SOY LATTE!' },
+  { enemies: [
+    { type: 'intern', count: 6, hp: 30, speed: 75, color: '#86efac', size: 22, score: 10, damage: 10 },
+  ], delay: 1000, message: '☕ Wave 1: Interns smell fresh coffee...' },
+  { enemies: [
+    { type: 'intern', count: 4, hp: 35, speed: 85, color: '#86efac', size: 22, score: 10, damage: 10 },
+    { type: 'manager', count: 4, hp: 70, speed: 55, color: '#fbbf24', size: 28, score: 25, damage: 10 },
+  ], delay: 1000, message: '📋 Wave 2: Middle management incoming!' },
+  { enemies: [
+    { type: 'manager', count: 6, hp: 85, speed: 60, color: '#fbbf24', size: 28, score: 25, damage: 10 },
+    { type: 'it-guy', count: 2, hp: 50, speed: 130, color: '#60a5fa', size: 24, score: 30, damage: 12 },
+  ], delay: 1000, message: '💻 Wave 3: IT detected caffeine on the network!' },
+  { enemies: [
+    { type: 'it-guy', count: 3, hp: 60, speed: 140, color: '#60a5fa', size: 24, score: 30, damage: 12 },
+    { type: 'trojan', count: 5, hp: 150, speed: 45, color: '#fb923c', size: 32, score: 50, damage: 15 },
+  ], delay: 1000, message: '🛡️ Wave 4: Tanky trojans with IT support!' },
+  { enemies: [
+    { type: 'ceo', count: 1, hp: 500, speed: 35, color: '#f43f5e', size: 44, score: 200, damage: 25 },
+    { type: 'manager', count: 4, hp: 100, speed: 65, color: '#fbbf24', size: 28, score: 25, damage: 10 },
+    { type: 'it-guy', count: 3, hp: 65, speed: 135, color: '#60a5fa', size: 24, score: 30, damage: 12 },
+  ], delay: 1000, message: '🔥 Wave 5: THE CEO WANTS A TRIPLE SOY LATTE!' },
 ];
 
 export const CIRCUIT_BOARD_WAVES: TowerDefenseWave[] = [
@@ -207,6 +226,7 @@ export function createTowerDefenseState(coreHealth = 0, mapLayout: MapLayout = '
     coreHealth, maxCoreHealth: coreHealth,
     waveMessage: '', waveMessageTimer: 0,
     enemiesAlive: 0, allWavesDone: false, enemyIdCounter: 0,
+    waitingForPlayer: true, gamePhase: 'waiting',
   };
 }
 
@@ -690,23 +710,36 @@ export function updateTowerDefenseFrame({
   }
 
   // ── Wave management ──
+  // Wave start is controlled by waitingForPlayer flag (set via startNextWave)
   if (!state.allWavesDone) {
     state.waveTimer += deltaTime;
 
-    if (state.spawnQueue.length === 0 && state.enemiesAlive <= 0 && state.waveIndex < waves.length) {
-      if (state.waveTimer >= (waves[state.waveIndex].delay || 5000)) {
-        const wave = waves[state.waveIndex];
-        state.waveMessage = wave.message || `Wave ${state.waveIndex + 1}`;
-        state.waveMessageTimer = 3000;
-        for (const group of wave.enemies) {
-          for (let i = 0; i < group.count; i++) state.spawnQueue.push(group);
-        }
-        state.spawnTimer = 0;
-        state.waveIndex++;
-        if (state.waveIndex >= waves.length) state.allWavesDone = true;
-      }
+    // Auto-set waitingForPlayer when wave is ready and no enemies/spawns remain
+    if (state.spawnQueue.length === 0 && state.enemiesAlive <= 0 && state.waveIndex < waves.length && !state.waitingForPlayer && state.waveIndex > 0) {
+      // A wave just finished — wait for player to start next
+      state.waitingForPlayer = true;
+      state.gamePhase = 'waiting';
     }
 
+    // Start wave when player clicks (waitingForPlayer = false)
+    if (state.waitingForPlayer && state.spawnQueue.length === 0 && state.enemiesAlive <= 0 && state.waveIndex < waves.length) {
+      // Wait for player action — no auto-start
+      state.waveCountdown = -1;
+    } else if (state.spawnQueue.length === 0 && state.enemiesAlive <= 0 && state.waveIndex < waves.length && !state.waitingForPlayer) {
+      // First wave or after player triggers start
+      const wave = waves[state.waveIndex];
+      state.waveMessage = wave.message || `Wave ${state.waveIndex + 1}`;
+      state.waveMessageTimer = 3000;
+      state.gamePhase = 'active';
+      for (const group of wave.enemies) {
+        for (let i = 0; i < group.count; i++) state.spawnQueue.push(group);
+      }
+      state.spawnTimer = 0;
+      state.waveIndex++;
+      if (state.waveIndex >= waves.length) state.allWavesDone = true;
+    }
+
+    // Spawn queued enemies
     if (state.spawnQueue.length > 0) {
       state.spawnTimer += deltaTime;
       if (state.spawnTimer >= 600) {
@@ -724,7 +757,7 @@ export function updateTowerDefenseFrame({
             color: group.color || '#86efac',
             width: group.size || 24, height: group.size || 24,
             health: group.hp || 30, maxHealth: group.hp || 30,
-            damage: group.damage || 15,
+            damage: group.damage || 10,
             tdSpeed: group.speed || 80,
             enemyType,
             hitFlash: 0, facing: 'down',
@@ -800,6 +833,13 @@ export function updateTowerDefenseFrame({
       hitIds: tower.towerType === 'lightning' ? new Set<string>() : undefined,
     });
 
+  }
+
+  // Update game phase
+  if (state.coreHealth <= 0) {
+    state.gamePhase = 'gameover';
+  } else if (state.allWavesDone && state.enemiesAlive <= 0 && state.spawnQueue.length === 0) {
+    state.gamePhase = 'victory';
   }
 
   return {

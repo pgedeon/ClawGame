@@ -79,7 +79,7 @@ interface FloatingManaText {
 
 type StateSetter<T> = Dispatch<SetStateAction<T>>;
 
-const TD_STARTING_MANA = 120;
+const TD_STARTING_MANA = 100;
 const TD_MAX_MANA = 200;
 
 const TYPE_COLORS: Record<string, string> = {
@@ -379,6 +379,8 @@ export function runLegacyCanvasPreviewSession(
   const tdMapLayout = getMapLayout(activeScene as any);
   const coreEntity = isTDMode ? Array.from(entities.values()).find((e: any) => e.id === 'core-bean' || e.id === 'magic-bean') : null;
   const tdState = createTowerDefenseState(coreEntity?.health || coreEntity?.maxHealth || 0, tdMapLayout, canvas.width, canvas.height);
+  // Mutable ref so click handlers can read/modify TD state
+  const tdStateRef = { current: tdState };
   const placementPointer = {
     x: coreEntity?.transform?.x || canvas.width * 0.5,
     y: coreEntity?.transform?.y || canvas.height * 0.6,
@@ -855,7 +857,36 @@ export function runLegacyCanvasPreviewSession(
       }
     }
 
+    // ── Tower Defense: wave start / restart click handling ──
     if (isTDMode && clickPosition) {
+      if (tdStateRef.current) {
+        const td = tdStateRef.current;
+        if (td.gamePhase === 'waiting') {
+          // Start next wave
+          td.waitingForPlayer = false;
+          publishTowerDefenseOverlayState(true);
+        } else if (td.gamePhase === 'gameover' || td.gamePhase === 'victory') {
+          // Restart the game
+          const freshState = createTowerDefenseState(canvas.width);
+          freshState.waitingForPlayer = false;
+          Object.assign(tdStateRef.current, freshState);
+          tdStateRef.current.waitingForPlayer = false;
+          tdStateRef.current.gamePhase = 'active';
+          coordinator.setMana(TD_STARTING_MANA);
+          coordinator.setScore(0);
+          towers.length = 0;
+          projectiles.length = 0;
+          deathParticles.length = 0;
+          manaTexts.length = 0;
+          // Remove all enemies
+          for (const [eid, e] of entities) {
+            if (e.type === 'enemy') entities.delete(eid);
+          }
+          defeatedEnemies.length = 0;
+          publishTowerDefenseOverlayState(true);
+          return; // skip tower placement this frame
+        }
+      }
       tryPlaceTowerAtPoint(clickPosition.x, clickPosition.y);
     }
 
@@ -1044,6 +1075,11 @@ export function runLegacyCanvasPreviewSession(
     }
 
     if (isTDMode) {
+      // Track wave completion for bonus mana
+      const prevWaveIndex = tdState.waveIndex;
+      const prevEnemiesAlive = tdState.enemiesAlive;
+      const prevPhase = tdState.gamePhase;
+
       const tdResult = updateTowerDefenseFrame({
         canvasWidth: canvas.width,
         canvasHeight: canvas.height,
@@ -1058,6 +1094,15 @@ export function runLegacyCanvasPreviewSession(
           handleEnemyDefeat(enemy, { manaReward, deleteEntity: false });
         },
       });
+
+      // Give wave completion bonus when a wave clears (enemies reach 0 while wave was active)
+      if (prevPhase === 'active' && tdState.gamePhase === 'waiting' && prevEnemiesAlive > 0 && tdState.enemiesAlive === 0) {
+        const completedWave = prevWaveIndex; // waveIndex is already incremented
+        const bonus = 30 + completedWave * 10;
+        coordinator.setMana(coordinator.getState().mana + bonus);
+        spawnManaText({ transform: { x: canvas.width / 2, y: canvas.height / 2, height: 0 } }, bonus);
+      }
+
       if (tdResult.gameOver) {
         setGameOver(true);
       }
@@ -1835,6 +1880,152 @@ export function runLegacyCanvasPreviewSession(
       ctx.textAlign = 'right';
       ctx.fillText('basic 30 • frost 40 • cannon 50 • lightning 55', manaBoxX + manaBoxW - 12, manaBoxY + 41);
       ctx.restore();
+
+      // ── Top HUD Bar ──
+      const hudBarH = 36;
+      ctx.save();
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+      ctx.fillRect(0, 0, canvas.width, hudBarH);
+      ctx.strokeStyle = 'rgba(100, 116, 139, 0.3)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, hudBarH);
+      ctx.lineTo(canvas.width, hudBarH);
+      ctx.stroke();
+      ctx.restore();
+
+      // Wave counter
+      const waveDisplay = tdState.allWavesDone ? `${tdWaves.length}/${tdWaves.length}` : `${tdState.waveIndex}/${tdWaves.length}`;
+      ctx.save();
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = 'bold 13px monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText(`WAVE ${waveDisplay}`, 12, 23);
+
+      // Mana bar
+      const manaBarX = 130;
+      const manaBarW = 140;
+      const manaBarH = 14;
+      const manaBarY = 11;
+      const manaFraction = Math.min(1, mana / cs.maxMana);
+      ctx.fillStyle = '#1e293b';
+      ctx.beginPath();
+      ctx.roundRect(manaBarX, manaBarY, manaBarW, manaBarH, 4);
+      ctx.fill();
+      ctx.fillStyle = '#3b82f6';
+      ctx.beginPath();
+      ctx.roundRect(manaBarX, manaBarY, manaBarW * manaFraction, manaBarH, 4);
+      ctx.fill();
+      ctx.fillStyle = '#dbeafe';
+      ctx.font = 'bold 11px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${Math.round(mana)} mana`, manaBarX + manaBarW / 2, manaBarY + 11);
+
+      // Score
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = 'bold 13px monospace';
+      ctx.fillText(`Score: ${score}`, 290, 23);
+
+      // Core HP bar
+      const coreBarX = 420;
+      const coreBarW = 160;
+      const coreBarH = 14;
+      const coreBarY = 11;
+      const corePct = tdState.maxCoreHealth > 0 ? tdState.coreHealth / tdState.maxCoreHealth : 0;
+      ctx.fillStyle = '#1e293b';
+      ctx.beginPath();
+      ctx.roundRect(coreBarX, coreBarY, coreBarW, coreBarH, 4);
+      ctx.fill();
+      ctx.fillStyle = corePct > 0.5 ? '#22c55e' : corePct > 0.25 ? '#eab308' : '#ef4444';
+      ctx.beginPath();
+      ctx.roundRect(coreBarX, coreBarY, coreBarW * corePct, coreBarH, 4);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 11px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(`☕ Core: ${tdState.coreHealth}/${tdState.maxCoreHealth}`, coreBarX + coreBarW / 2, coreBarY + 11);
+
+      // Enemies alive
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#f87171';
+      ctx.font = '12px monospace';
+      ctx.fillText(`Enemies: ${tdState.enemiesAlive}`, canvas.width - 12, 23);
+      ctx.restore();
+
+      // ── Wave start button (when waiting for player) ──
+      if (tdState.waitingForPlayer && tdState.gamePhase === 'waiting' && !tdState.allWavesDone) {
+        const btnW = 220;
+        const btnH = 48;
+        const btnX = canvas.width / 2 - btnW / 2;
+        const btnY = canvas.height / 2 - btnH / 2;
+        const pulse = 0.85 + 0.15 * Math.sin(performance.now() / 400);
+
+        ctx.save();
+        // Background
+        ctx.fillStyle = `rgba(34, 197, 94, ${0.9 * pulse})`;
+        ctx.shadowColor = '#22c55e';
+        ctx.shadowBlur = 20;
+        ctx.beginPath();
+        ctx.roundRect(btnX, btnY, btnW, btnH, 12);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        // Border
+        ctx.strokeStyle = '#4ade80';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        // Text
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 18px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`▶ Start Wave ${tdState.waveIndex + 1}`, canvas.width / 2, btnY + 30);
+        // Subtitle
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.font = '12px sans-serif';
+        ctx.fillText('Click anywhere to start', canvas.width / 2, btnY + btnH + 20);
+        ctx.restore();
+      }
+
+      // ── Game Over Overlay ──
+      if (tdState.gamePhase === 'gameover') {
+        ctx.save();
+        ctx.fillStyle = 'rgba(220, 38, 38, 0.7)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 52px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = '#000';
+        ctx.shadowBlur = 8;
+        ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 30);
+        ctx.font = 'bold 20px sans-serif';
+        ctx.fillText(`Final Score: ${score}`, canvas.width / 2, canvas.height / 2 + 10);
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.font = '16px sans-serif';
+        ctx.fillText('Click anywhere to play again', canvas.width / 2, canvas.height / 2 + 50);
+        ctx.restore();
+      }
+
+      // ── Victory Overlay ──
+      if (tdState.gamePhase === 'victory') {
+        ctx.save();
+        ctx.fillStyle = 'rgba(22, 163, 74, 0.65)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#fef08a';
+        ctx.font = 'bold 52px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = '#000';
+        ctx.shadowBlur = 8;
+        ctx.fillText('VICTORY!', canvas.width / 2, canvas.height / 2 - 30);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 24px sans-serif';
+        ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 + 10);
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.font = '16px sans-serif';
+        ctx.fillText('Click anywhere to play again', canvas.width / 2, canvas.height / 2 + 50);
+        ctx.restore();
+      }
     }
   };
 

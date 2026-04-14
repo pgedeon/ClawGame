@@ -47,6 +47,8 @@ describe('previewReplayState', () => {
       allWavesDone: false,
       enemyIdCounter: 0,
       waveCountdown: -1,
+      waitingForPlayer: true,
+      gamePhase: 'waiting' as const,
     };
     const collectedRuneIds = ['old-rune'];
     const defeatedEnemies = ['old-enemy'];
@@ -80,6 +82,8 @@ describe('previewReplayState', () => {
             allWavesDone: false,
             enemyIdCounter: 12,
             waveCountdown: -1,
+            waitingForPlayer: false,
+            gamePhase: 'active' as const,
           },
           collectedRuneIds: ['rune-a'],
           defeatedEnemies: ['enemy-a'],
