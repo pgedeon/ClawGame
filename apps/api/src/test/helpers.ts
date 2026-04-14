@@ -5,8 +5,12 @@ import { fileRoutes } from '../routes/files';
 import { aiRoutes } from '../routes/aiRoutes';
 import { assetRoutes } from '../routes/assets';
 
+/**
+ * Build a test Fastify app.
+ * PROJECTS_DIR is set by setup.ts before any imports — do NOT override here.
+ */
 export async function buildApp() {
-  const app = Fastify({ logger: false }); // Silent logger in tests
+  const app = Fastify({ logger: false });
 
   app.register(cors, { origin: '*' });
 

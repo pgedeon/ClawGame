@@ -3,7 +3,7 @@ import { ProjectService, CreateProjectInput, UpdateProjectInput } from '../servi
 import { existsSync, readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
-const PROJECTS_DIR = process.env.PROJECTS_DIR || './data/projects';
+function getProjectsDir(): string { return process.env.PROJECTS_DIR || './data/projects'; }
 
 // Global reference to project service (initialized with logger)
 let projectServiceInstance: ProjectService | null = null;

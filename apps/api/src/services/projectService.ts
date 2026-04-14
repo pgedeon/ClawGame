@@ -13,7 +13,7 @@ import {
   createId
 } from '@clawgame/shared';
 
-const PROJECTS_DIR = process.env.PROJECTS_DIR || './data/projects';
+function getProjectsDir(): string { return process.env.PROJECTS_DIR || './data/projects'; }
 
 // Export types for routes
 export type CreateProjectInput = CreateProjectRequest;
@@ -43,8 +43,8 @@ export class ProjectService {
    * Initialize project directory structure
    */
   private async ensureProjectsDir(): Promise<void> {
-    if (!existsSync(PROJECTS_DIR)) {
-      await mkdir(PROJECTS_DIR, { recursive: true });
+    if (!existsSync(getProjectsDir())) {
+      await mkdir(getProjectsDir(), { recursive: true });
     }
   }
 
@@ -54,14 +54,14 @@ export class ProjectService {
   async listProjects(): Promise<ProjectListItem[]> {
     await this.ensureProjectsDir();
     
-    const entries = await readdir(PROJECTS_DIR, { withFileTypes: true });
+    const entries = await readdir(getProjectsDir(), { withFileTypes: true });
     const projects: ProjectListItem[] = [];
 
     for (const entry of entries) {
       if (!entry.isDirectory()) continue;
       
       try {
-        const projectFile = join(PROJECTS_DIR, entry.name, 'clawgame.project.json');
+        const projectFile = join(getProjectsDir(), entry.name, 'clawgame.project.json');
         if (existsSync(projectFile)) {
           const content = await readFile(projectFile, 'utf-8');
           const project: ClawGameProject = JSON.parse(content);
@@ -112,7 +112,7 @@ export class ProjectService {
       return cached;
     }
 
-    const projectDir = join(PROJECTS_DIR, id);
+    const projectDir = join(getProjectsDir(), id);
     const projectFile = join(projectDir, 'clawgame.project.json');
     
     if (!existsSync(projectFile)) {
@@ -164,7 +164,7 @@ export class ProjectService {
       return null;
     }
     
-    const scenesDir = join(PROJECTS_DIR, id, 'scenes');
+    const scenesDir = join(getProjectsDir(), id, 'scenes');
     let sceneCount = 0;
     let entityCount = 0;
     
@@ -211,7 +211,7 @@ export class ProjectService {
   async createProject(input: CreateProjectInput): Promise<{ id: string; project: ClawGameProject }> {
     const project = createDefaultProject(input);
     const projectId = project.project.id;
-    const projectDir = join(PROJECTS_DIR, projectId);
+    const projectDir = join(getProjectsDir(), projectId);
 
     // Create project directory structure
     await mkdir(projectDir, { recursive: true });
@@ -279,7 +279,7 @@ export function render(ctx: CanvasRenderingContext2D) {
       return null;
     }
 
-    const projectDir = join(PROJECTS_DIR, id);
+    const projectDir = join(getProjectsDir(), id);
     const projectFile = join(projectDir, 'clawgame.project.json');
     
     if (updates.name) {
@@ -306,7 +306,7 @@ export function render(ctx: CanvasRenderingContext2D) {
    * Delete project
    */
   async deleteProject(id: string): Promise<boolean> {
-    const projectDir = join(PROJECTS_DIR, id);
+    const projectDir = join(getProjectsDir(), id);
     
     if (!existsSync(projectDir)) {
       return false;
@@ -329,14 +329,14 @@ export function render(ctx: CanvasRenderingContext2D) {
    * Get project directory path
    */
   getProjectDir(projectId: string): string {
-    return join(PROJECTS_DIR, projectId);
+    return join(getProjectsDir(), projectId);
   }
 
   /**
    * Validate project ID exists
    */
   async projectExists(projectId: string): Promise<boolean> {
-    const projectDir = join(PROJECTS_DIR, projectId);
+    const projectDir = join(getProjectsDir(), projectId);
     return existsSync(projectDir);
   }
 }
