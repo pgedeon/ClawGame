@@ -1,0 +1,94 @@
+/* ═════════════════════════════════════════════════════════
+   Device Info Bar - Canvas Dimension Display
+   ═════════════════════════════════════════════════════════ */
+
+/* Device info bar overlay */
+.device-info-bar {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(71, 85, 105, 0.6);
+  border-radius: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #cbd5e1;
+  z-index: 10;
+  transition: opacity 0.2s ease;
+}
+
+.device-info-bar:hover {
+  background: rgba(0, 0, 0, 0.85);
+  border-color: rgba(99, 102, 241, 0.6);
+  opacity: 1;
+}
+
+/* Scale label */
+.device-scale-label {
+  color: #7dd3fc;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+/* Actual dimensions label */
+.device-dims-label {
+  color: #e2e8f0;
+  font-weight: 500;
+}
+
+/* Target device label */
+.device-target-label {
+  color: #94a3b8;
+  font-weight: 400;
+  font-size: 10px;
+}
+
+/* Light mode overrides */
+@media (prefers-color-scheme: light) {
+  .device-info-bar {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(226, 232, 240, 0.8);
+    color: #475569;
+  }
+
+  .device-info-bar:hover {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(99, 102, 241, 0.6);
+  }
+
+  .device-scale-label {
+    color: #0284c7;
+  }
+
+  .device-dims-label {
+    color: #1e293b;
+  }
+
+  .device-target-label {
+    color: #94a3b8;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .device-info-bar {
+    padding: 4px 8px;
+    gap: 6px;
+    font-size: 10px;
+    bottom: 8px;
+    left: 8px;
+  }
+
+  .device-scale-label {
+    font-size: 11px;
+  }
+
+  .device-target-label {
+    display: none; /* Hide target label on small screens */
+  }
+}

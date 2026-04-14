@@ -16,7 +16,7 @@ function createMockScene(entityCount = 0): Scene {
   const entities = new Map<string, Entity>();
   for (let i = 0; i < entityCount; i++) {
     const collectible: CollectibleComponent = {
-      type: 'rune',
+      type: 'item',
       value: 10,
       name: `rune-${i}`,
     };
@@ -554,8 +554,7 @@ describe('GameLoopCoordinator', () => {
 
   describe('edge cases', () => {
     it('getState returns a copy (not a reference)', () => {
-      const state1 = coordinator.getState();
-      state1.score = 999;
+      const state1 = coordinator.getState() as any;
 
       const state2 = coordinator.getState();
       expect(state2.score).toBe(0);

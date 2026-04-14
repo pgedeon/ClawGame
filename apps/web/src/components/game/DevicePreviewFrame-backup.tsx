@@ -2,8 +2,6 @@
  * @clawgame/web - Device Preview Frame
  * Wraps the game canvas in a simulated device viewport for multi-device layout testing.
  * Part of M14: Playtest Lab + Publishing.
- *
- * IMPROVED: Added canvas dimension display for responsive testing
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -39,17 +37,6 @@ export const DevicePreviewFrame: React.FC<DevicePreviewFrameProps> = ({ children
   const menuRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
-  const [canvasWidth, setCanvasWidth] = useState(0);
-  const [canvasHeight, setCanvasHeight] = useState(0);
-
-  // Track canvas dimensions
-  useEffect(() => {
-    const canvas = (children as any)?.props?.ref?.current;
-    if (canvas) {
-      setCanvasWidth(canvas.width);
-      setCanvasHeight(canvas.height);
-    }
-  }, [children]);
 
   // Close menu on outside click
   useEffect(() => {
@@ -87,8 +74,6 @@ export const DevicePreviewFrame: React.FC<DevicePreviewFrameProps> = ({ children
   }, [selectedDevice]);
 
   const isResponsive = selectedDevice.id === 'responsive';
-  const scaledWidth = Math.round((canvasWidth || selectedDevice.width) * scale);
-  const scaledHeight = Math.round((canvasHeight || selectedDevice.height) * scale);
 
   const handleSelect = useCallback((device: DeviceProfile) => {
     setSelectedDevice(device);
@@ -96,7 +81,7 @@ export const DevicePreviewFrame: React.FC<DevicePreviewFrameProps> = ({ children
   }, []);
 
   return (
-    <div className="device-preview-container">
+    <div className="device-preview-wrapper">
       {/* Device selector toolbar */}
       <div className="device-preview-toolbar" ref={menuRef}>
         <button
@@ -143,6 +128,10 @@ export const DevicePreviewFrame: React.FC<DevicePreviewFrameProps> = ({ children
             <RotateCcw size={14} />
           </button>
         )}
+
+        {!isResponsive && scale < 1 && (
+          <span className="device-scale-label">{Math.round(scale * 100)}%</span>
+        )}
       </div>
 
       {/* Canvas area with optional device frame */}
@@ -167,19 +156,6 @@ export const DevicePreviewFrame: React.FC<DevicePreviewFrameProps> = ({ children
             <div className="device-screen">
               {children}
             </div>
-          </div>
-        )}
-
-        {/* FIXED: Canvas dimension display bar */}
-        {!isResponsive && scale < 1 && (
-          <div className="device-info-bar">
-            <span className="device-scale-label">{Math.round(scale * 100)}%</span>
-            <span className="device-dims-label">
-              {scaledWidth} × {scaledHeight}
-            </span>
-            <span className="device-target-label">
-              ({selectedDevice.width} × {selectedDevice.height})
-            </span>
           </div>
         )}
       </div>

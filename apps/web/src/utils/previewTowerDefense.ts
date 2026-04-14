@@ -85,6 +85,7 @@ export interface TowerDefenseState {
   coreHealth: number;
   maxCoreHealth: number;
   waveMessage: string;
+  waveCountdown: number;  // seconds until next wave (-1 = not counting)
   waveMessageTimer: number;
   enemiesAlive: number;
   allWavesDone: boolean;
@@ -125,7 +126,8 @@ export function createTowerDefenseState(coreHealth = 0): TowerDefenseState {
   return {
     waveIndex: 0, waveTimer: 0, spawnQueue: [], spawnTimer: 0,
     coreHealth, maxCoreHealth: coreHealth,
-    waveMessage: '', waveMessageTimer: 0,
+    waveMessage: '',
+    waveCountdown: -1, waveMessageTimer: 0,
     enemiesAlive: 0, allWavesDone: false, enemyIdCounter: 0,
   };
 }
@@ -216,23 +218,33 @@ export function updateTowerDefenseFrame({
     entity.transform.y = Math.max(entity.height / 2, Math.min(canvasHeight - entity.height / 2, entity.transform.y));
   }
 
-  // ── Wave management ──
-  if (!state.allWavesDone) {
-    state.waveTimer += deltaTime;
-
-    if (state.spawnQueue.length === 0 && state.enemiesAlive <= 0 && state.waveIndex < waves.length) {
-      if (state.waveTimer >= (waves[state.waveIndex].delay || 5000)) {
-        const wave = waves[state.waveIndex];
-        state.waveMessage = wave.message || `Wave ${state.waveIndex + 1}`;
-        state.waveMessageTimer = 3000;
-        for (const group of wave.enemies) {
-          for (let i = 0; i < group.count; i++) state.spawnQueue.push(group);
-        }
-        state.spawnTimer = 0;
-        state.waveIndex++;
-        if (state.waveIndex >= waves.length) state.allWavesDone = true;
-      }
+  // ── Wave countdown tracking ──
+    const waveDelay = waves[state.waveIndex]?.delay ?? 5000;
+    const timeWaitingForWave = state.spawnQueue.length === 0 && state.enemiesAlive <= 0 && state.waveIndex < waves.length;
+    if (timeWaitingForWave) {
+      state.waveCountdown = Math.max(0, (waveDelay - state.waveTimer) / 1000);
+    } else if (state.spawnQueue.length === 0 && state.enemiesAlive > 0) {
+      state.waveCountdown = -1;
     }
+    // ── Wave management ──
+    if (!state.allWavesDone) {
+      state.waveTimer += deltaTime;
+
+      if (state.spawnQueue.length === 0 && state.enemiesAlive <= 0 && state.waveIndex < waves.length) {
+        if (state.waveTimer >= (waves[state.waveIndex].delay || 5000)) {
+          const wave = waves[state.waveIndex];
+          state.waveMessage = wave.message || `Wave ${state.waveIndex + 1}`;
+          state.waveMessageTimer = 3000;
+          for (const group of wave.enemies) {
+            for (let i = 0; i < group.count; i++) state.spawnQueue.push(group);
+          }
+          state.spawnTimer = 0;
+          state.waveIndex++;
+          state.waveTimer = 0;
+          state.waveCountdown = -1;
+          if (state.waveIndex >= waves.length) state.allWavesDone = true;
+        }
+      }
 
     if (state.spawnQueue.length > 0) {
       state.spawnTimer += deltaTime;

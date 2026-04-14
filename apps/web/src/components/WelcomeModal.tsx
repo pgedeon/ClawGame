@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, Code, Layers, Play, X, ChevronRight } from 'lucide-react';
 
@@ -47,6 +47,10 @@ export function WelcomeModal({ projectId, projectName }: WelcomeModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const navigate = useNavigate();
 
+  // Refs for focus management
+  const modalRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
   useEffect(() => {
     // Auto-hide after 10 seconds if user doesn't interact
     const timer = setTimeout(() => {
@@ -57,6 +61,69 @@ export function WelcomeModal({ projectId, projectName }: WelcomeModalProps) {
 
     return () => clearTimeout(timer);
   }, [visible, currentStep]);
+
+  // Focus management
+  useEffect(() => {
+    if (visible) {
+      // Store the currently focused element before opening the modal
+      previousFocusRef.current = document.activeElement as HTMLElement;
+
+      // Focus the first focusable element inside the modal
+      const firstFocusable = modalRef.current?.querySelector(
+        'button, a, input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      ) as HTMLElement;
+
+      firstFocusable?.focus();
+
+      // Handle Tab key to trap focus within the modal
+      const handleTab = (e: KeyboardEvent) => {
+        if (e.key === 'Tab') {
+          const focusableElements = Array.from(
+            modalRef.current?.querySelectorAll(
+              'button, a, input, select, textarea, [tabindex]:not([tabindex="-1"])'
+            ) || []
+          ) as HTMLElement[];
+
+          const firstElement = focusableElements[0];
+          const lastElement = focusableElements[focusableElements.length - 1];
+
+          if (e.shiftKey) {
+            // Shift+Tab: Moving backwards
+            if (document.activeElement === firstElement) {
+              e.preventDefault();
+              lastElement.focus();
+            }
+          } else {
+            // Tab: Moving forwards
+            if (document.activeElement === lastElement) {
+              e.preventDefault();
+              firstElement.focus();
+            }
+          }
+        }
+
+        // Close modal on Escape key
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          dismiss();
+        }
+      };
+
+      // Add keyboard event listener
+      document.addEventListener('keydown', handleTab);
+
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden';
+
+      return () => {
+        document.removeEventListener('keydown', handleTab);
+        document.body.style.overflow = '';
+      };
+    } else {
+      // Restore focus to the previously focused element when modal closes
+      previousFocusRef.current?.focus();
+    }
+  }, [visible]);
 
   const dismiss = () => {
     setVisible(false);
@@ -93,43 +160,75 @@ export function WelcomeModal({ projectId, projectName }: WelcomeModalProps) {
   const current = steps[currentStep];
 
   return (
-    <div className="welcome-modal-overlay" onClick={dismiss}>
-      <div className="welcome-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="welcome-modal-close" onClick={dismiss} aria-label="Close">
+    <div
+      className="welcome-modal-overlay"
+      onClick={dismiss}
+      role="presentation"
+    >
+      <div
+        className="welcome-modal"
+        ref={modalRef}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="welcome-modal-title"
+        aria-describedby="welcome-modal-description"
+        tabIndex={-1}
+      >
+        <button
+          className="welcome-modal-close"
+          onClick={dismiss}
+          aria-label="Close welcome modal"
+        >
           <X size={20} />
         </button>
 
         <div className="welcome-modal-icon">
-          <Sparkles size={32} color="#8b5cf6" />
+          <Sparkles size={32} color="#8b5cf6" aria-hidden="true" />
         </div>
 
         <div className="welcome-modal-content">
-          <h1>Welcome, {projectName}!</h1>
-          <p className="welcome-modal-subtitle">
+          <h1 id="welcome-modal-title">
+            Welcome, {projectName}!
+          </h1>
+          <p id="welcome-modal-description" className="welcome-modal-subtitle">
             Your project is ready. Here are the next steps:
           </p>
 
-          <div className="welcome-steps">
+          <div className="welcome-steps" role="list">
             {steps.map((step, index) => (
               <div
                 key={step.id}
                 className={`welcome-step ${index === currentStep ? 'active' : ''} ${index < currentStep ? 'completed' : ''}`}
                 onClick={() => setCurrentStep(index)}
+                role="listitem"
+                tabIndex={index === currentStep ? 0 : -1}
+                aria-current={index === currentStep ? 'step' : undefined}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setCurrentStep(index);
+                  }
+                }}
               >
-                <div className="welcome-step-number">
+                <div className="welcome-step-number" aria-hidden="true">
                   {index < currentStep ? '✓' : step.id}
                 </div>
                 <div className="welcome-step-content">
                   <div className="welcome-step-header">
-                    <span className="welcome-step-icon">{step.icon}</span>
+                    <span className="welcome-step-icon" aria-hidden="true">{step.icon}</span>
                     <h3>{step.title}</h3>
                   </div>
                   <p>{step.description}</p>
                   <button
                     className="welcome-step-action"
-                    onClick={() => handleAction(step.action)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAction(step.action);
+                    }}
+                    aria-label={`Navigate to ${step.label}`}
                   >
-                    {step.label} <ChevronRight size={16} />
+                    {step.label} <ChevronRight size={16} aria-hidden="true" />
                   </button>
                 </div>
               </div>
@@ -137,7 +236,11 @@ export function WelcomeModal({ projectId, projectName }: WelcomeModalProps) {
           </div>
 
           <div className="welcome-modal-actions">
-            <button className="welcome-modal-skip" onClick={dismiss}>
+            <button
+              className="welcome-modal-skip"
+              onClick={dismiss}
+              aria-label="Skip welcome and start exploring"
+            >
               Start exploring on my own
             </button>
           </div>

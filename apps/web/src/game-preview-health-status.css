@@ -1,0 +1,172 @@
+/* ═════════════════════════════════════════════════════════
+   Health Status Badges - Accessibility Enhancements
+   ═════════════════════════════════════════════════════════ */
+
+/* Health bar container */
+.health-bar-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Health status badge - shows text and icon beyond color */
+.health-status-badge {
+  display: flex;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  z-index: 2;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* High health (75%+) */
+.health-status-badge.high {
+  background: rgba(34, 197, 94, 0.9);
+  color: white;
+  border: 1px solid rgba(34, 197, 94, 1);
+}
+
+/* Good health (50-75%) */
+.health-status-badge.good {
+  background: rgba(74, 222, 128, 0.9);
+  color: white;
+  border: 1px solid rgba(74, 222, 128, 1);
+}
+
+/* Low health (25-50%) */
+.health-status-badge.low {
+  background: rgba(234, 179, 8, 0.9);
+  color: white;
+  border: 1px solid rgba(234, 179, 8, 1);
+}
+
+/* Critical health (<25%) */
+.health-status-badge.critical {
+  background: rgba(239, 68, 68, 0.95);
+  color: white;
+  border: 1px solid rgba(239, 68, 68, 1);
+  animation: pulse-critical 1s ease-in-out infinite;
+}
+
+@keyframes pulse-critical {
+  0%, 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.1); }
+}
+
+/* Health status icon */
+.health-status-icon {
+  font-size: 12px;
+}
+
+/* Health status text */
+.health-status-text {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* HUD pause button - improved accessibility */
+.hud-pause-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 12px;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(71, 85, 105, 0.5);
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.hud-pause-btn:hover {
+  background: rgba(51, 65, 85, 0.9);
+  border-color: rgba(99, 102, 241, 0.5);
+  transform: translateY(-1px);
+}
+
+.hud-pause-btn:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Pause button text - shows text for screen readers */
+.hud-pause-text {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* Light mode overrides */
+@media (prefers-color-scheme: light) {
+  .health-status-badge.high {
+    background: rgba(34, 197, 94, 0.85);
+  }
+
+  .health-status-badge.good {
+    background: rgba(74, 222, 128, 0.85);
+  }
+
+  .health-status-badge.low {
+    background: rgba(234, 179, 8, 0.85);
+  }
+
+  .health-status-badge.critical {
+    background: rgba(239, 68, 68, 0.9);
+  }
+
+  .hud-pause-btn {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(148, 163, 184, 0.5);
+    color: #1e293b;
+  }
+
+  .hud-pause-btn:hover {
+    background: rgba(248, 250, 252, 0.95);
+    border-color: rgba(99, 102, 241, 0.4);
+  }
+}
+
+/* Responsive: Hide health status badge on small screens where space is tight */
+@media (max-width: 768px) {
+  .health-status-badge {
+    display: none;
+  }
+}
+
+/* Show health status badge on small screens when health is critical */
+@media (max-width: 768px) {
+  .health-status-badge.critical {
+    display: flex;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .health-status-badge.critical {
+    animation: none;
+  }
+
+  .health-fill {
+    transition: none;
+  }
+
+  .hud-pause-btn {
+    transition: none;
+  }
+}

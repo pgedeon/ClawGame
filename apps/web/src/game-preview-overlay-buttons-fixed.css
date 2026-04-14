@@ -1,0 +1,86 @@
+/* ═════════════════════════════════════════════════════════
+   Game Over / Victory Overlay Buttons - IMPROVED HIERARCHY
+   ═════════════════════════════════════════════════════════ */
+
+.gameover-buttons { display: flex; gap: 12px; justify-content: center; margin-top: 24px; }
+.victory-buttons { display: flex; gap: 12px; justify-content: center; margin-top: 24px; }
+
+/* FIXED: Primary action buttons (Restart) - Most prominent */
+.gameover-buttons .restart-btn, .victory-buttons .restart-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px; /* Increased padding for more prominence */
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6); /* Gradient for visual interest */
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 15px; /* Slightly larger */
+  font-weight: 600; /* Bolder for emphasis */
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4); /* Add shadow for depth */
+  transform: scale(1);
+  transition: all 0.15s ease;
+}
+
+.gameover-buttons .restart-btn:hover, .victory-buttons .restart-btn:hover {
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  transform: scale(1.05) translateY(-2px); /* Scale up and lift */
+  box-shadow: 0 6px 24px rgba(59, 130, 246, 0.6); /* Stronger shadow on hover */
+}
+
+.gameover-buttons .restart-btn:active, .victory-buttons .restart-btn:active {
+  transform: scale(0.98);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+}
+
+/* FIXED: Secondary action buttons (Back) - Less prominent */
+.gameover-buttons .back-btn, .victory-buttons .back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px; /* Moderate padding */
+  background: rgba(30, 41, 59, 0.8); /* Slightly transparent */
+  border: 1px solid rgba(71, 85, 105, 0.6); /* Add border for definition */
+  border-radius: 8px;
+  color: #cbd5e1; /* Lighter text color */
+  font-size: 14px; /* Standard size */
+  font-weight: 500; /* Medium weight */
+  cursor: pointer;
+  opacity: 0.85; /* Slightly subdued */
+  transition: all 0.15s ease;
+}
+
+.gameover-buttons .back-btn:hover, .victory-buttons .back-btn:hover {
+  background: rgba(51, 65, 85, 0.9);
+  border-color: rgba(99, 102, 241, 0.5);
+  color: #f1f5f9; /* Brighter text on hover */
+  opacity: 1;
+  transform: translateY(-1px); /* Subtle lift */
+}
+
+.gameover-buttons .back-btn:active, .victory-buttons .back-btn:active {
+  transform: translateY(0);
+  opacity: 0.9;
+}
+
+/* Focus states for accessibility */
+.gameover-buttons .restart-btn:focus, .victory-buttons .restart-btn:focus,
+.gameover-buttons .back-btn:focus, .victory-buttons .back-btn:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Disabled states */
+.gameover-buttons .restart-btn:disabled, .victory-buttons .restart-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.gameover-buttons .back-btn:disabled, .victory-buttons .back-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none !important;
+}

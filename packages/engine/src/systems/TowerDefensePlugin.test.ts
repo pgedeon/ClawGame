@@ -77,8 +77,8 @@ describe('TowerDefensePlugin', () => {
 
     it('counts enemies in scene', () => {
       scene = createMockScene([
-        { id: 'e1', type: 'enemy', transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 }, components: { stats: { hp: 10, maxHp: 10 } } } as Entity,
-        { id: 'e2', type: 'enemy', transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 }, components: { stats: { hp: 0, maxHp: 20 } } as Entity },
+        { id: 'e1', type: 'enemy', transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 }, components: { stats: { hp: 10, maxHp: 10 } } },
+        { id: 'e2', type: 'enemy', transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 }, components: { stats: { hp: 0, maxHp: 20 } } },
       ]);
       plugin.onStart(state, scene);
       plugin.onUpdate(0, state, scene);

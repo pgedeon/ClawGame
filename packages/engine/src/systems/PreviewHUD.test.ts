@@ -123,6 +123,7 @@ describe('PreviewHUD', () => {
         enemiesAlive: 12,
         coreHealth: 80,
         coreMaxHealth: 100,
+    waveCountdown: -1,
       };
       const state = createDefaultHUDState({ towerDefense: td });
 
@@ -138,6 +139,7 @@ describe('PreviewHUD', () => {
         enemiesAlive: 12,
         coreHealth: 80,
         coreMaxHealth: 100,
+    waveCountdown: -1,
         waveMessage: 'Wave 3 incoming!',
         waveMessageAlpha: 0.8,
       };

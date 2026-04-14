@@ -1,5 +1,4 @@
 /* Welcome Modal - Onboarding After Project Creation */
-/* FIXED: Improved contrast ratios to meet WCAG AA standards */
 
 .welcome-modal-overlay {
   position: fixed;
@@ -63,7 +62,6 @@
   justify-content: center;
   cursor: pointer;
   transition: all var(--transition-fast);
-  font-weight: 500; /* Improved readability */
 }
 
 .welcome-modal-close:hover {
@@ -105,13 +103,11 @@
   color: var(--fg);
 }
 
-/* FIXED: Improved contrast for subtitle - now uses darker color */
 .welcome-modal-subtitle {
   text-align: center;
   margin: 0 0 var(--space-xl);
   font-size: var(--text-base);
-  color: #cbd5e1; /* slate-300 instead of slate-400 (#94a3b8) - WCAG AA compliant */
-  line-height: 1.6; /* Improved readability */
+  color: var(--fg-secondary);
 }
 
 .welcome-steps {
@@ -189,11 +185,10 @@
   color: var(--fg);
 }
 
-/* FIXED: Improved contrast for step description */
 .welcome-step-content p {
   margin: 0;
   font-size: var(--text-sm);
-  color: #e2e8f0; /* slate-200 instead of slate-400 - WCAG AA compliant */
+  color: var(--fg-secondary);
   line-height: var(--leading-normal);
 }
 
@@ -223,23 +218,18 @@
   text-align: center;
 }
 
-/* FIXED: Improved contrast for skip link - now more visible */
 .welcome-modal-skip {
   background: none;
   border: none;
-  color: #94a3b8; /* slate-400 - meets WCAG AA on dark background */
+  color: var(--fg-secondary);
   font-size: var(--text-sm);
-  font-weight: 500; /* Added weight for better visibility */
   cursor: pointer;
   padding: var(--space-sm) var(--space-md);
   transition: color var(--transition-fast);
-  text-decoration: underline; /* Visual cue it's clickable */
-  text-decoration-thickness: 1px;
-  text-underline-offset: 2px;
 }
 
 .welcome-modal-skip:hover {
-  color: #cbd5e1; /* slate-300 on hover - meets WCAG AAA */
+  color: var(--fg);
 }
 
 /* Mobile Responsive */
@@ -265,29 +255,5 @@
 
   .welcome-step-number {
     margin-bottom: var(--space-sm);
-  }
-}
-
-/* Light mode specific fixes */
-@media (prefers-color-scheme: light) {
-  .welcome-modal-subtitle {
-    color: #475569; /* slate-600 - WCAG AA compliant on white */
-  }
-
-  .welcome-step-content p {
-    color: #64748b; /* slate-500 - WCAG AA compliant on white */
-  }
-
-  .welcome-modal-skip {
-    color: #64748b; /* slate-600 - WCAG AA compliant on white */
-  }
-
-  .welcome-modal-skip:hover {
-    color: #475569; /* slate-700 on hover - WCAG AAA */
-  }
-
-  .welcome-modal-close {
-    color: #64748b; /* slate-500 - meets WCAG AA */
-    font-weight: 500;
   }
 }

@@ -1,0 +1,295 @@
+/* Replay Controls - Improved spacing and visual hierarchy */
+/* FIXED: Grouped buttons, better padding, clearer hierarchy */
+
+/* ═════════════════════════════════════════════════════════
+   Replay Controls (M14: Deterministic replay capture) - IMPROVED
+   ═════════════════════════════════════════════════════════ */
+
+.replay-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px; /* Increased from 12px to maintain consistent spacing */
+  padding: 12px 16px; /* Increased from 8px 12px - less cramped */
+  background: rgba(30, 41, 59, 0.9);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(71, 85, 105, 0.4);
+  margin-bottom: 8px;
+  flex-wrap: wrap; /* Allow wrapping on smaller screens */
+}
+
+.replay-timeline {
+  flex: 1.2;
+  display: flex;
+  align-items: center;
+  min-width: 200px; /* Ensure minimum width */
+}
+
+.replay-seek {
+  width: 100%;
+  accent-color: #7dd3fc;
+  cursor: pointer;
+  height: 6px; /* Slightly taller for easier clicking */
+}
+
+.replay-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #e2e8f0;
+  flex: 0 0 auto; /* Don't grow/shrink - let timeline be flexible */
+  min-width: 200px; /* Ensure status text is readable */
+}
+
+.recording-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #ef4444;
+  font-weight: 500;
+}
+
+.recording-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.8); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.playback-indicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #818cf8;
+  font-weight: 500;
+}
+
+/* FIXED: Button groups for better organization */
+.replay-buttons {
+  display: flex;
+  gap: 8px; /* Increased from 6px - better separation */
+  align-items: center;
+}
+
+.replay-primary-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.replay-secondary-group {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.replay-tertiary-group {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+/* Base button styles */
+.replay-buttons button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap; /* Prevent text wrapping */
+}
+
+/* FIXED: Visual hierarchy - Primary buttons (larger, more prominent) */
+.record-start-btn,
+.playback-play-btn {
+  padding: 8px 16px; /* Primary action - more padding */
+  font-size: 13px; /* Slightly larger */
+  font-weight: 600;
+}
+
+.record-start-btn {
+  background: rgba(99, 102, 241, 0.2);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.4);
+}
+
+.record-start-btn:hover {
+  background: rgba(99, 102, 241, 0.3);
+  border-color: rgba(99, 102, 241, 0.6);
+  transform: translateY(-1px); /* Subtle lift effect */
+}
+
+.playback-play-btn {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.playback-play-btn:hover:not(:disabled) {
+  background: rgba(34, 197, 94, 0.3);
+  border-color: rgba(34, 197, 94, 0.6);
+  transform: translateY(-1px);
+}
+
+/* FIXED: Secondary buttons (standard size) */
+.record-stop-btn,
+.playback-pause-btn,
+.playback-reset-btn {
+  padding: 6px 12px; /* Secondary action - moderate padding */
+  font-size: 12px;
+}
+
+.record-stop-btn {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.record-stop-btn:hover {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: rgba(239, 68, 68, 0.6);
+}
+
+.playback-pause-btn {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+}
+
+.playback-pause-btn:hover:not(:disabled) {
+  background: rgba(251, 191, 36, 0.3);
+  border-color: rgba(251, 191, 36, 0.6);
+}
+
+.playback-reset-btn {
+  background: rgba(156, 163, 175, 0.2);
+  color: #d1d5db;
+  border: 1px solid rgba(156, 163, 175, 0.4);
+}
+
+.playback-reset-btn:hover {
+  background: rgba(156, 163, 175, 0.3);
+  border-color: rgba(156, 163, 175, 0.6);
+}
+
+/* FIXED: Tertiary buttons (minimal, utility) */
+.playback-step-btn,
+.playback-step-back-btn,
+.playback-download-btn {
+  padding: 5px 10px; /* Tertiary action - minimal padding */
+  font-size: 11px;
+  opacity: 0.85; /* Slightly subdued */
+}
+
+.playback-step-btn {
+  background: rgba(56, 189, 248, 0.18);
+  color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+}
+
+.playback-step-btn:hover:not(:disabled) {
+  background: rgba(56, 189, 248, 0.28);
+  border-color: rgba(56, 189, 248, 0.5);
+  opacity: 1;
+}
+
+.playback-step-back-btn {
+  background: rgba(244, 114, 182, 0.16);
+  color: #f9a8d4;
+  border: 1px solid rgba(244, 114, 182, 0.32);
+}
+
+.playback-step-back-btn:hover:not(:disabled) {
+  background: rgba(244, 114, 182, 0.26);
+  border-color: rgba(244, 114, 182, 0.46);
+  opacity: 1;
+}
+
+.playback-download-btn {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.playback-download-btn:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.25);
+  border-color: rgba(99, 102, 241, 0.5);
+  opacity: 1;
+}
+
+.replay-buttons button:disabled {
+  opacity: 0.4; /* More obvious disabled state */
+  cursor: not-allowed;
+  transform: none !important; /* No hover effect when disabled */
+}
+
+/* FIXED: Better responsive behavior */
+@media (max-width: 900px) {
+  .replay-controls {
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .replay-status {
+    width: 100%;
+    order: 1; /* Status first on mobile */
+    min-width: auto;
+  }
+
+  .replay-timeline {
+    width: 100%;
+    order: 2; /* Timeline second */
+  }
+
+  .replay-buttons {
+    width: 100%;
+    order: 3; /* Buttons last */
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .replay-primary-group,
+  .replay-secondary-group,
+  .replay-tertiary-group {
+    width: 100%;
+    justify-content: center;
+    margin-bottom: 4px;
+  }
+}
+
+@media (max-width: 600px) {
+  .replay-buttons button {
+    font-size: 11px; /* Smaller text on mobile */
+    padding: 4px 8px; /* Smaller padding */
+  }
+
+  .replay-status {
+    font-size: 11px;
+  }
+}
+
+/* FIXED: Separator lines between button groups for visual clarity */
+.replay-button-separator {
+  width: 1px;
+  height: 24px;
+  background: rgba(71, 85, 105, 0.5);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+  .replay-button-separator {
+    display: none; /* Hide separators on mobile */
+  }
+}

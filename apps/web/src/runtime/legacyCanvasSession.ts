@@ -1421,6 +1421,7 @@ for (let i = deathParticles.length - 1; i >= 0; i--) {
       coreMaxHealth: tdState.maxCoreHealth,
       waveMessage: tdState.waveMessage || undefined,
       waveMessageAlpha: tdState.waveMessageTimer > 0 ? Math.min(1, tdState.waveMessageTimer / 1000) : undefined,
+    waveCountdown: (tdState as any).waveCountdown ?? -1,
       selectedTower: selectedTower ? {
         id: selectedTower.id,
         damage: selectedTower.damage,
