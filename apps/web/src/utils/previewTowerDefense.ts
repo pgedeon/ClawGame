@@ -230,12 +230,117 @@ export function registerTowerDefenseEnemyDefeat(state: TowerDefenseState): void 
   state.enemiesAlive = Math.max(0, state.enemiesAlive - 1);
 }
 
+type TowerDefenseProjectileEffect = {
+  towerType: TowerType;
+  splashRadius?: number;
+  slowDuration?: number;
+  chainCount?: number;
+  chainRange?: number;
+  chainDamage?: number;
+  hitIds?: Set<string>;
+};
+
+const towerDefenseProjectileEffects = new Map<string, TowerDefenseProjectileEffect>();
+
+function isTowerDefenseProjectile(projectile: TowerDefenseProjectile): boolean {
+  return projectile.id.startsWith('tp-');
+}
+
+function pruneTowerDefenseProjectileEffects(projectiles: TowerDefenseProjectile[]): void {
+  const activeProjectileIds = new Set(projectiles.filter(isTowerDefenseProjectile).map((projectile) => projectile.id));
+  for (const projectileId of towerDefenseProjectileEffects.keys()) {
+    if (!activeProjectileIds.has(projectileId)) {
+      towerDefenseProjectileEffects.delete(projectileId);
+    }
+  }
+}
+
+function applyTowerDefenseProjectileDamage(
+  enemy: TowerDefenseEntity,
+  damage: number,
+  entities: Map<string, TowerDefenseEntity>,
+  state: TowerDefenseState,
+): void {
+  enemy.health = (enemy.health || 0) - damage;
+  enemy.hitFlash = 200;
+
+  if ((enemy.health || 0) <= 0) {
+    registerTowerDefenseEnemyDefeat(state);
+    entities.delete(enemy.id);
+  }
+}
+
+function spawnTowerDefenseProjectile(
+  projectiles: TowerDefenseProjectile[],
+  projectile: TowerDefenseProjectile,
+  effect: TowerDefenseProjectileEffect,
+): void {
+  projectiles.push(projectile);
+  towerDefenseProjectileEffects.set(projectile.id, effect);
+}
+
+function spawnLightningChainProjectile(
+  projectiles: TowerDefenseProjectile[],
+  entities: Map<string, TowerDefenseEntity>,
+  impactX: number,
+  impactY: number,
+  currentTime: number,
+  random: () => number,
+  effect: TowerDefenseProjectileEffect,
+): void {
+  if (!effect.chainCount || effect.chainCount <= 0 || !effect.chainRange) return;
+
+  const hitIds = new Set(effect.hitIds || []);
+  let nextTarget: TowerDefenseEntity | null = null;
+  let minDist = Infinity;
+
+  for (const entity of entities.values()) {
+    if (entity.type !== 'enemy' || hitIds.has(entity.id)) continue;
+
+    const dx = entity.transform.x - impactX;
+    const dy = entity.transform.y - impactY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < effect.chainRange && dist < minDist) {
+      nextTarget = entity;
+      minDist = dist;
+    }
+  }
+
+  if (!nextTarget) return;
+
+  const dx = nextTarget.transform.x - impactX;
+  const dy = nextTarget.transform.y - impactY;
+  const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+  const nextHitIds = new Set(hitIds);
+  nextHitIds.add(nextTarget.id);
+
+  spawnTowerDefenseProjectile(projectiles, {
+    id: `tp-${currentTime}-${random()}-chain-${effect.chainCount}`,
+    x: impactX,
+    y: impactY,
+    vx: (dx / dist) * 600,
+    vy: (dy / dist) * 600,
+    damage: effect.chainDamage ?? 0,
+    color: '#fef08a',
+    createdAt: currentTime,
+  }, {
+    towerType: 'lightning',
+    chainCount: effect.chainCount - 1,
+    chainRange: effect.chainRange,
+    chainDamage: effect.chainDamage,
+    hitIds: nextHitIds,
+  });
+}
+
 export function updateTowerDefenseFrame({
   canvasWidth, canvasHeight, currentTime, deltaTime,
   entities, towers, projectiles, state, waves,
   random = Math.random,
 }: UpdateTowerDefenseFrameOptions): TowerDefenseUpdateResult {
   const target = entities.get('core-bean') || entities.get('magic-bean') || entities.get('player') || entities.get('player-1');
+  const deltaSeconds = deltaTime / 1000;
+
+  pruneTowerDefenseProjectileEffects(projectiles);
 
   // ── Enemy movement via waypoint routing ──
   for (const entity of entities.values()) {
@@ -277,6 +382,78 @@ export function updateTowerDefenseFrame({
 
     entity.transform.x = Math.max(entity.width / 2, Math.min(canvasWidth - entity.width / 2, entity.transform.x));
     entity.transform.y = Math.max(entity.height / 2, Math.min(canvasHeight - entity.height / 2, entity.transform.y));
+  }
+
+  // ── Tower defense projectile movement + impacts ──
+  for (let i = projectiles.length - 1; i >= 0; i--) {
+    const projectile = projectiles[i];
+    if (!isTowerDefenseProjectile(projectile)) continue;
+
+    projectile.x += projectile.vx * deltaSeconds;
+    projectile.y += projectile.vy * deltaSeconds;
+
+    if (
+      projectile.x < -50 ||
+      projectile.x > canvasWidth + 50 ||
+      projectile.y < -50 ||
+      projectile.y > canvasHeight + 50
+    ) {
+      towerDefenseProjectileEffects.delete(projectile.id);
+      projectiles.splice(i, 1);
+      continue;
+    }
+
+    let hitEnemy: TowerDefenseEntity | null = null;
+    for (const entity of entities.values()) {
+      if (entity.type !== 'enemy') continue;
+
+      const dx = entity.transform.x - projectile.x;
+      const dy = entity.transform.y - projectile.y;
+      if (Math.sqrt(dx * dx + dy * dy) <= 15) {
+        hitEnemy = entity;
+        break;
+      }
+    }
+
+    if (!hitEnemy) continue;
+
+    const effect = towerDefenseProjectileEffects.get(projectile.id);
+    const impactX = hitEnemy.transform.x;
+    const impactY = hitEnemy.transform.y;
+    const impactId = hitEnemy.id;
+
+    applyTowerDefenseProjectileDamage(hitEnemy, projectile.damage, entities, state);
+
+    if (effect?.towerType === 'cannon' && effect.splashRadius) {
+      for (const entity of entities.values()) {
+        if (entity.type !== 'enemy' || entity.id === impactId) continue;
+
+        const dx = entity.transform.x - impactX;
+        const dy = entity.transform.y - impactY;
+        if (Math.sqrt(dx * dx + dy * dy) <= effect.splashRadius) {
+          applyTowerDefenseProjectileDamage(entity, projectile.damage * 0.6, entities, state);
+        }
+      }
+    }
+
+    if (effect?.towerType === 'frost' && effect.slowDuration && entities.has(impactId)) {
+      const impactedEnemy = entities.get(impactId);
+      if (impactedEnemy) {
+        impactedEnemy.slowedUntil = currentTime + effect.slowDuration;
+      }
+    }
+
+    if (effect?.towerType === 'lightning') {
+      const chainHitIds = new Set(effect.hitIds || []);
+      chainHitIds.add(impactId);
+      spawnLightningChainProjectile(projectiles, entities, impactX, impactY, currentTime, random, {
+        ...effect,
+        hitIds: chainHitIds,
+      });
+    }
+
+    towerDefenseProjectileEffects.delete(projectile.id);
+    projectiles.splice(i, 1);
   }
 
   // ── Wave countdown tracking ──
@@ -383,7 +560,7 @@ export function updateTowerDefenseFrame({
       projSpeed = 600;
     }
 
-    projectiles.push({
+    spawnTowerDefenseProjectile(projectiles, {
       id: `tp-${currentTime}-${random()}`,
       x: tower.x, y: tower.y,
       vx: (pdx / pdist) * projSpeed,
@@ -391,71 +568,15 @@ export function updateTowerDefenseFrame({
       damage: tower.damage,
       color: projColor,
       createdAt: currentTime,
+    }, {
+      towerType: tower.towerType,
+      splashRadius: tower.splashRadius,
+      slowDuration: tower.slowDuration,
+      chainCount: tower.chainCount,
+      chainRange: tower.chainRange,
+      chainDamage: tower.damage * 0.7,
+      hitIds: tower.towerType === 'lightning' ? new Set<string>() : undefined,
     });
-
-    // Cannon splash
-    if (tower.towerType === 'cannon' && tower.splashRadius) {
-      for (const entity of entities.values()) {
-        if (entity.type !== 'enemy' || entity.id === primary.id) continue;
-        const dx = entity.transform.x - primary.transform.x;
-        const dy = entity.transform.y - primary.transform.y;
-        if (Math.sqrt(dx * dx + dy * dy) < tower.splashRadius!) {
-          entity.health = (entity.health || 0) - tower.damage * 0.6;
-          entity.hitFlash = 200;
-          if (entity.health <= 0) {
-            registerTowerDefenseEnemyDefeat(state);
-            entities.delete(entity.id);
-          }
-        }
-      }
-    }
-
-    // Frost slow
-    if (tower.towerType === 'frost' && tower.slowAmount && tower.slowDuration) {
-      primary.slowedUntil = currentTime + tower.slowDuration;
-    }
-
-    // Lightning chain
-    if (tower.towerType === 'lightning' && tower.chainCount && tower.chainRange) {
-      let lastTarget: TowerDefenseEntity = primary;
-      const hitIds = new Set<string>([primary.id]);
-
-      for (let i = 0; i < tower.chainCount; i++) {
-        let nextTarget: TowerDefenseEntity | null = null;
-        let minDist = Infinity;
-
-        for (const entity of entities.values()) {
-          if (entity.type !== 'enemy' || hitIds.has(entity.id)) continue;
-          const dx = entity.transform.x - lastTarget.transform.x;
-          const dy = entity.transform.y - lastTarget.transform.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < tower.chainRange! && dist < minDist) {
-            nextTarget = entity;
-            minDist = dist;
-          }
-        }
-
-        if (!nextTarget) break;
-
-        const ndx = nextTarget.transform.x - lastTarget.transform.x;
-        const ndy = nextTarget.transform.y - lastTarget.transform.y;
-        const ndist = Math.sqrt(ndx * ndx + ndy * ndy) || 1;
-
-        projectiles.push({
-          id: `tp-${currentTime}-${random()}-chain-${i}`,
-          x: lastTarget.transform.x,
-          y: lastTarget.transform.y,
-          vx: (ndx / ndist) * 600,
-          vy: (ndy / ndist) * 600,
-          damage: tower.damage * 0.7,
-          color: '#fef08a',
-          createdAt: currentTime,
-        });
-
-        hitIds.add(nextTarget.id);
-        lastTarget = nextTarget;
-      }
-    }
   }
 
   return {

@@ -70,6 +70,8 @@ export function createPreviewProjectileScene(
   const runtimeEntities = new Map<string, Entity>();
 
   for (const projectile of projectiles) {
+    if (projectile.id.startsWith('tp-')) continue;
+
     const size = getProjectileSize(projectile);
     const projectileComponent: ProjectileComponent = {
       vx: projectile.vx,
@@ -120,6 +122,8 @@ export function applyPreviewProjectileScene(scene: Scene, projectiles: PreviewPr
 
   for (let i = projectiles.length - 1; i >= 0; i--) {
     const projectile = projectiles[i];
+    if (projectile.id.startsWith('tp-')) continue;
+
     const runtimeProjectile = runtimeProjectiles.get(projectile.id);
 
     if (!runtimeProjectile) {

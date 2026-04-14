@@ -71,4 +71,41 @@ describe('createPreviewProjectileScene', () => {
     expect(projectiles[0].id).toBe('proj-1');
     expect(projectiles[0].x).toBeGreaterThan(100);
   });
+
+  it('leaves tower-defense projectiles to the TD update loop', () => {
+    const projectiles = [
+      {
+        id: 'tp-1',
+        x: 100,
+        y: 100,
+        vx: 200,
+        vy: 0,
+        damage: 30,
+      },
+      {
+        id: 'proj-1',
+        x: 100,
+        y: 100,
+        vx: 200,
+        vy: 0,
+        damage: 30,
+      },
+    ];
+
+    const scene = createPreviewProjectileScene(projectiles, []);
+
+    expect(scene.entities.has('tp-1')).toBe(false);
+
+    const projectileSystem = new ProjectileSystem({ width: 400, height: 400 });
+    projectileSystem.attach(new EventBus());
+    projectileSystem.update(scene, 0.1);
+
+    applyPreviewProjectileScene(scene, projectiles);
+
+    expect(projectiles.find((projectile) => projectile.id === 'tp-1')).toMatchObject({
+      x: 100,
+      y: 100,
+    });
+    expect(projectiles.find((projectile) => projectile.id === 'proj-1')?.x).toBeGreaterThan(100);
+  });
 });
