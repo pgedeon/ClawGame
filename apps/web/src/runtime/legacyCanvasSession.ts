@@ -2100,6 +2100,19 @@ export function runLegacyCanvasPreviewSession(
         ctx.fillText('Click anywhere to play again', canvas.width / 2, canvas.height / 2 + 50);
         ctx.restore();
       }
+
+      // ── DEBUG INFO ──
+      {
+        const dbgEnemies = Array.from(entities.values()).filter(e => e.type === 'enemy').length;
+        ctx.save();
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(0, canvas.height - 22, canvas.width, 22);
+        ctx.fillStyle = '#0f0';
+        ctx.font = '12px monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText(`DEBUG towers:${towers.length} enemies:${dbgEnemies} projs:${projectiles.length} phase:${tdState.gamePhase} wave:${tdState.waveIndex} wait:${String(tdState.waitingForPlayer)} coreHP:${tdState.coreHealth} time:${Math.round(performance.now()/1000)}`, 6, canvas.height - 7);
+        ctx.restore();
+      }
     }
   };
 
