@@ -1733,12 +1733,15 @@ export function runLegacyCanvasPreviewSession(
         ctx.translate(tower.x, tower.y);
         const isSelected = tower.id === selectedTowerId;
         const isHovered = tower.id === hoveredTowerId;
-        // Range circle (brighter when selected)
-        ctx.strokeStyle = isSelected || isHovered ? 'rgba(251,191,36,0.35)' : 'rgba(210,105,30,0.15)';
+        // Range circle — always visible, brighter when selected/hovered
+        const rangeAlpha = isSelected || isHovered ? 0.4 : 0.18;
+        ctx.strokeStyle = isSelected || isHovered ? `rgba(251,191,36,${rangeAlpha})` : `rgba(210,105,30,${rangeAlpha})`;
         ctx.lineWidth = isSelected || isHovered ? 1.5 : 1;
+        if (!isSelected && !isHovered) ctx.setLineDash([4, 4]);
         ctx.beginPath();
         ctx.arc(0, 0, tower.range, 0, Math.PI * 2);
         ctx.stroke();
+        ctx.setLineDash([]);
         // Tower body
         ctx.fillStyle = tower.color;
         ctx.beginPath();
@@ -2052,11 +2055,12 @@ export function runLegacyCanvasPreviewSession(
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 18px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(`▶ Start Wave ${tdState.waveIndex + 1}`, canvas.width / 2, btnY + 30);
+        const countdown = (tdState as any).waveAutoStartTimer > 0 ? Math.ceil((tdState as any).waveAutoStartTimer / 1000) : 0;
+        ctx.fillText(countdown > 0 ? `▶ Wave ${tdState.waveIndex + 1} in ${countdown}s...` : `▶ Start Wave ${tdState.waveIndex + 1}`, canvas.width / 2, btnY + 30);
         // Subtitle
         ctx.fillStyle = 'rgba(255,255,255,0.7)';
         ctx.font = '12px sans-serif';
-        ctx.fillText('Click anywhere to start', canvas.width / 2, btnY + btnH + 20);
+        ctx.fillText(tdState.waveIndex === 0 && countdown > 0 ? 'Place towers now — or click to start early!' : 'Click anywhere to start', canvas.width / 2, btnY + btnH + 20);
         ctx.restore();
       }
 
@@ -2101,16 +2105,25 @@ export function runLegacyCanvasPreviewSession(
         ctx.restore();
       }
 
-      // ── DEBUG INFO ──
+      // ── Status bar ──
       {
         const dbgEnemies = Array.from(entities.values()).filter(e => e.type === 'enemy').length;
         ctx.save();
-        ctx.fillStyle = 'rgba(0,0,0,0.7)';
-        ctx.fillRect(0, canvas.height - 22, canvas.width, 22);
-        ctx.fillStyle = '#0f0';
-        ctx.font = '12px monospace';
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
+        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        ctx.font = '11px monospace';
         ctx.textAlign = 'left';
-        ctx.fillText(`DEBUG towers:${towers.length} enemies:${dbgEnemies} projs:${projectiles.length} phase:${tdState.gamePhase} wave:${tdState.waveIndex} wait:${String(tdState.waitingForPlayer)} coreHP:${tdState.coreHealth} time:${Math.round(performance.now()/1000)}`, 6, canvas.height - 7);
+        const statusParts = [
+          `☕ Wave ${tdState.waveIndex}/${tdWaves.length}`,
+          `🏰 Towers: ${towers.length}`,
+          `👾 Enemies: ${dbgEnemies}`,
+          `❤️ Core: ${tdState.coreHealth}/${tdState.maxCoreHealth}`,
+        ];
+        if (tdState.waveCountdown > 0) {
+          statusParts.push(`⏱ Next wave: ${tdState.waveCountdown}s`);
+        }
+        ctx.fillText(statusParts.join('  |  '), 8, canvas.height - 6);
         ctx.restore();
       }
     }

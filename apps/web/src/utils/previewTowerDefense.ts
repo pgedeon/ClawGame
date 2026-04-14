@@ -128,6 +128,7 @@ export interface TowerDefenseState {
   allWavesDone: boolean;
   enemyIdCounter: number;
   waitingForPlayer: boolean;
+  waveAutoStartTimer: number; // ms countdown for auto-starting wave 1
   gamePhase: TowerDefenseGamePhase;
 }
 
@@ -227,6 +228,7 @@ export function createTowerDefenseState(coreHealth = 0, mapLayout: MapLayout = '
     waveMessage: '', waveMessageTimer: 0,
     enemiesAlive: 0, allWavesDone: false, enemyIdCounter: 0,
     waitingForPlayer: true, gamePhase: 'waiting',
+    waveAutoStartTimer: 4000, // auto-start wave 1 after 4s
   };
 }
 
@@ -729,8 +731,17 @@ export function updateTowerDefenseFrame({
 
     // Start wave when player clicks (waitingForPlayer = false)
     if (state.waitingForPlayer && state.spawnQueue.length === 0 && state.enemiesAlive <= 0 && state.waveIndex < waves.length) {
-      // Wait for player action — no auto-start
-      state.waveCountdown = -1;
+      // Auto-start wave 1 after countdown (subsequent waves wait for player click)
+      if (state.waveIndex === 0 && state.waveAutoStartTimer > 0) {
+        state.waveAutoStartTimer -= deltaTime;
+        state.waveCountdown = Math.ceil(state.waveAutoStartTimer / 1000);
+        if (state.waveAutoStartTimer <= 0) {
+          state.waitingForPlayer = false;
+          state.waveAutoStartTimer = 0;
+        }
+      } else {
+        state.waveCountdown = -1;
+      }
     } else if (state.spawnQueue.length === 0 && state.enemiesAlive <= 0 && state.waveIndex < waves.length && !state.waitingForPlayer) {
       // First wave or after player triggers start
       const wave = waves[state.waveIndex];
