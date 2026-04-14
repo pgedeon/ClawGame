@@ -45,7 +45,7 @@ export interface HUDSelectedTower {
   mana: number;
 }
 export interface HUDState {
-  score: number;
+  score: number; highScore?: number;
   health: number;
   maxHealth: number;
   mana: number;
@@ -114,6 +114,12 @@ export class PreviewHUD {
    ctx.font = 'bold 14px monospace';
    ctx.textAlign = 'left';
    ctx.fillText(`Score: ${state.score}`, 20, 35);
+    if (state.highScore) {
+      ctx.fillStyle = state.score >= state.highScore ? "#fbbf24" : "rgba(255,255,255,0.5)";
+      ctx.font = "11px monospace";
+      ctx.fillText(`Best: ${state.highScore}`, 20, 52);
+      ctx.fillStyle = "white";
+    }
    ctx.font = '12px monospace';
    ctx.fillText(`FPS: ${state.fps}`, 20, 85);
    ctx.fillText(`Runes: ${state.collectedRunes}`, 20, 100);

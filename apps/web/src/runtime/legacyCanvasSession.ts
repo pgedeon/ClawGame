@@ -125,6 +125,7 @@ export interface LegacyCanvasPreviewSessionOptions {
   canvasRef: RefObject<HTMLCanvasElement | null>;
   animationRef: MutableRefObject<number | null>;
   gameStatsRef: MutableRefObject<GameStats>;
+  highScoreRef?: MutableRefObject<number>;
   gameLoopState: MutableRefObject<any>;
   activeScene: PreviewSceneData;
   projectGenre: string;
@@ -174,6 +175,7 @@ export function runLegacyCanvasPreviewSession(
     canvasRef,
     animationRef,
     gameStatsRef,
+    highScoreRef,
     gameLoopState,
     activeScene,
     projectGenre,
@@ -1438,6 +1440,7 @@ for (let i = deathParticles.length - 1; i >= 0; i--) {
 
     const hudState: HUDState = {
       score: cs.score,
+      highScore: highScoreRef?.current,
       health: cs.health,
       maxHealth: cs.maxHealth,
       mana: cs.mana,

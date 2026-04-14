@@ -95,6 +95,7 @@ export function useGamePreview(
   const runtimeHostRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
+  const highScoreRef = useRef<number>(0);
   const gameStatsRef = useRef<GameStats>({ fps: 60, entities: 0, memory: '0MB' });
   const gameLoopState = useRef<any>(null);
   const [previewRuntime] = useState(() => resolvePreviewRuntimeSelection());
@@ -110,7 +111,10 @@ export function useGamePreview(
   const [gamePaused, setGamePaused] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [victory, setVictory] = useState(false);
-  const [playerScore, setPlayerScore] = useState(0);
+const [playerScore, setPlayerScore] = useState(0);
+  const [highScore, setHighScore] = useState(() => {
+    try { return parseInt(localStorage.getItem('clawgame:highScore') || '0', 10); } catch { return 0; }
+  });
   const [playerHealth, setPlayerHealth] = useState(100);
   const [playerMana, setPlayerMana] = useState(100);
   const [collectedRunes, setCollectedRunes] = useState<string[]>([]);
@@ -502,6 +506,7 @@ export function useGamePreview(
       canvasRef,
       animationRef,
       gameStatsRef,
+      highScoreRef,
       gameLoopState,
       activeScene,
       projectGenre: genreKey,
@@ -543,6 +548,16 @@ export function useGamePreview(
       setGameStats,
     });
   }, [previewRuntime, activeScene, gameStarted, gamePaused, gameOver, victory, syncRPGState, questHUDText, handleSave, isRecording, replaySessionKey, replayAutoplay, replayStartProgress]);
+
+  // Track high score in localStorage
+  useEffect(() => {
+    if ((gameOver || victory) && playerScore > highScore) {
+      setHighScore(playerScore);
+      try { localStorage.setItem('clawgame:highScore', String(playerScore)); } catch {}
+    }
+  }, [gameOver, victory, playerScore, highScore]);
+
+  useEffect(() => { highScoreRef.current = highScore; }, [highScore]);
 
 /* ─── Keyboard Shortcuts ─── */
 useEffect(() => {
@@ -667,7 +682,7 @@ useEffect(() => {
     previewRuntime,
     runtimeHostRef,
     canvasRef, gameStats, gameStarted, gamePaused, gameOver, victory,
-    playerScore, playerHealth, playerMana, collectedRunes, timeElapsed,
+    playerScore, highScore, playerHealth, playerMana, collectedRunes, timeElapsed,
     activePanel, notifications, inventoryItems, questList,
     dialogueSpeaker, dialoguePortrait, dialogueText, dialogueChoices,
     craftingGrid, craftResult, learnedSpells, saveSlots,

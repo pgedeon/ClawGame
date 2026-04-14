@@ -45,7 +45,7 @@ const GamePreviewContent: React.FC = () => {
     previewRuntime,
     runtimeHostRef,
     canvasRef, gameStats, gameStarted, gamePaused, gameOver, victory,
-    playerScore, playerHealth, playerMana, collectedRunes, timeElapsed,
+    playerScore, highScore, playerHealth, playerMana, collectedRunes, timeElapsed,
     activePanel, notifications, inventoryItems, questList,
     dialogueSpeaker, dialoguePortrait, dialogueText, dialogueChoices,
     craftingGrid, craftResult, learnedSpells, saveSlots,
@@ -226,6 +226,7 @@ const GamePreviewContent: React.FC = () => {
               <div className="gameover-screen-icon"><Skull size={64} /></div>
               <h2>Game Over</h2>
               <p className="gameover-score">Score: {playerScore}</p>
+              {highScore > 0 && <p className="gameover-stats" style={{ color: playerScore >= highScore ? "#fbbf24" : "rgba(255,255,255,0.6)" }}>Best: {highScore}</p>}
               <p className="gameover-stats">Runes: {collectedRunes.length}</p>
               <p className="gameover-time">Time: {timeElapsed}s</p>
               <div className="gameover-buttons">
@@ -242,6 +243,7 @@ const GamePreviewContent: React.FC = () => {
               <div className="victory-screen-icon"><Trophy size={64} /></div>
               <h2>Victory!</h2>
               <p className="victory-score">Score: {playerScore}</p>
+              {highScore > 0 && <p className="victory-time" style={{ color: playerScore >= highScore ? "#fbbf24" : "rgba(255,255,255,0.6)" }}>Best: {highScore}</p>}
               <p className="victory-time">Time: {timeElapsed}s</p>
               <p className="victory-health">Health: {Math.round(playerHealth)}%</p>
               <div className="victory-buttons">
