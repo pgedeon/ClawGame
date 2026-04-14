@@ -24,6 +24,34 @@ export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
   lightning: { damage: 20, range: 140, fireRate: 1200, cost: 55, color: '#fbbf24', chainCount: 3, chainRange: 100 },
 };
 
+export const TOWER_TYPE_ORDER: TowerType[] = ['basic', 'cannon', 'frost', 'lightning'];
+
+export const TOWER_DISPLAY: Record<TowerType, { icon: string; name: string }> = {
+  basic: { icon: '☕', name: 'Basic' },
+  cannon: { icon: '💣', name: 'Cannon' },
+  frost: { icon: '❄️', name: 'Frost' },
+  lightning: { icon: '⚡', name: 'Lightning' },
+};
+
+export type TowerDefenseOverlayFeedbackKind = 'error' | 'info' | 'success';
+
+export interface TowerDefenseOverlayState {
+  enabled: boolean;
+  selectedTowerType: TowerType;
+  feedback: {
+    message: string;
+    kind: TowerDefenseOverlayFeedbackKind;
+  } | null;
+}
+
+export const DEFAULT_TOWER_DEFENSE_OVERLAY_STATE: TowerDefenseOverlayState = {
+  enabled: false,
+  selectedTowerType: 'basic',
+  feedback: null,
+};
+
+export const TOWER_PLACEMENT_RADIUS = 18;
+
 export interface TowerDefenseTower {
   id: string;
   x: number;
@@ -181,16 +209,123 @@ export function createTowerDefenseState(coreHealth = 0, mapLayout: MapLayout = '
   };
 }
 
-export function createTowerDefenseTower(
-  player: { transform: { x: number; y: number } },
+export function getTowerDefensePathPoints(
+  layout: MapLayout,
+  w: number,
+  h: number,
+  corePosition?: { x: number; y: number } | null,
+): Waypoint[] {
+  const waypoints = getMapWaypoints(layout, w, h);
+  if (waypoints.length === 0) {
+    return corePosition ? [corePosition] : [];
+  }
+
+  if (layout === 'coffee-run') {
+    const pathPoints: Waypoint[] = [
+      { x: 100, y: h },
+      ...waypoints.slice(1),
+    ];
+    if (corePosition) {
+      pathPoints.push({ x: corePosition.x, y: corePosition.y });
+    } else {
+      pathPoints.push({ x: 400, y: 55 });
+    }
+    return pathPoints;
+  }
+
+  return corePosition
+    ? [...waypoints, { x: corePosition.x, y: corePosition.y }]
+    : waypoints;
+}
+
+export interface TowerPlacementValidationOptions {
+  x: number;
+  y: number;
+  canvasWidth: number;
+  canvasHeight: number;
+  towers: TowerDefenseTower[];
+  mapLayout: MapLayout;
+  corePosition?: { x: number; y: number } | null;
+}
+
+export interface TowerPlacementValidationResult {
+  valid: boolean;
+  reason?: 'bounds' | 'path' | 'overlap' | 'core';
+}
+
+function distanceFromPointToSegment(
+  px: number,
+  py: number,
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+): number {
+  const abx = bx - ax;
+  const aby = by - ay;
+  const abLengthSquared = abx * abx + aby * aby;
+  if (abLengthSquared === 0) {
+    return Math.hypot(px - ax, py - ay);
+  }
+
+  const t = Math.max(0, Math.min(1, ((px - ax) * abx + (py - ay) * aby) / abLengthSquared));
+  const closestX = ax + abx * t;
+  const closestY = ay + aby * t;
+  return Math.hypot(px - closestX, py - closestY);
+}
+
+export function validateTowerPlacement({
+  x,
+  y,
+  canvasWidth,
+  canvasHeight,
+  towers,
+  mapLayout,
+  corePosition,
+}: TowerPlacementValidationOptions): TowerPlacementValidationResult {
+  const towerPadding = TOWER_PLACEMENT_RADIUS + 4;
+  if (
+    x < towerPadding
+    || x > canvasWidth - towerPadding
+    || y < towerPadding
+    || y > canvasHeight - towerPadding
+  ) {
+    return { valid: false, reason: 'bounds' };
+  }
+
+  if (corePosition && Math.hypot(x - corePosition.x, y - corePosition.y) < 46) {
+    return { valid: false, reason: 'core' };
+  }
+
+  for (const tower of towers) {
+    if (Math.hypot(x - tower.x, y - tower.y) < TOWER_PLACEMENT_RADIUS * 2 + 8) {
+      return { valid: false, reason: 'overlap' };
+    }
+  }
+
+  const pathPoints = getTowerDefensePathPoints(mapLayout, canvasWidth, canvasHeight, corePosition);
+  for (let index = 0; index < pathPoints.length - 1; index++) {
+    const start = pathPoints[index];
+    const end = pathPoints[index + 1];
+    const distance = distanceFromPointToSegment(x, y, start.x, start.y, end.x, end.y);
+    if (distance < 34) {
+      return { valid: false, reason: 'path' };
+    }
+  }
+
+  return { valid: true };
+}
+
+export function createTowerDefenseTowerAt(
+  position: { x: number; y: number },
   type: TowerType = 'basic',
   now = Date.now(),
 ): TowerDefenseTower {
   const cfg = TOWER_CONFIGS[type];
   return {
     id: `tower-${now}`,
-    x: player.transform.x,
-    y: player.transform.y,
+    x: position.x,
+    y: position.y,
     range: cfg.range,
     damage: cfg.damage,
     fireRate: cfg.fireRate,
@@ -205,6 +340,14 @@ export function createTowerDefenseTower(
     chainCount: cfg.chainCount,
     chainRange: cfg.chainRange,
   };
+}
+
+export function createTowerDefenseTower(
+  player: { transform: { x: number; y: number } },
+  type: TowerType = 'basic',
+  now = Date.now(),
+): TowerDefenseTower {
+  return createTowerDefenseTowerAt(player.transform, type, now);
 }
 
 export function getUpgradeCost(tower: TowerDefenseTower): number {

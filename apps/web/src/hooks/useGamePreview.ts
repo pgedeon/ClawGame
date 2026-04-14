@@ -22,6 +22,11 @@ import { SaveLoadManager } from '../rpg/saveload';
 import { createDefaultPreviewScene } from '../utils/previewScene';
 import { ReplayRecorder, ReplayPlayer, downloadReplay, type ReplayData } from '../rpg/replay';
 import { resolvePreviewRuntimeSelection, runPreviewRuntimeSession } from '../runtime';
+import {
+  DEFAULT_TOWER_DEFENSE_OVERLAY_STATE,
+  type TowerDefenseOverlayState,
+  type TowerType,
+} from '../utils/previewTowerDefense';
 
 /* ─── Types ─── */
 export interface GameStats { fps: number; entities: number; memory: string; }
@@ -70,9 +75,9 @@ export const GENRE_CONTROLS: Record<string, {
   strategy: {
     title: 'Tower Defense', description: 'Defend the Sacred Bean from caffeine-crazed office workers!',
     items: [
-      { icon: '🎯', text: 'WASD to move your espresso machine' },
-      { icon: '☕', text: 'SPACE to shoot espresso shots' },
-      { icon: '🏗️', text: 'T to place a Coffee Trap tower (30 mana)' },
+      { icon: '🖱️', text: 'Click to place the selected tower' },
+      { icon: '🏗️', text: 'Use 1-4 or the tower bar to switch towers' },
+      { icon: '⌨️', text: 'WASD moves the keyboard cursor, T places there' },
       { icon: '🛡️', text: 'Defend the Sacred Bean at all costs!' },
     ],
   },
@@ -117,6 +122,7 @@ const [playerScore, setPlayerScore] = useState(0);
   });
   const [playerHealth, setPlayerHealth] = useState(100);
   const [playerMana, setPlayerMana] = useState(100);
+  const [towerDefenseOverlay, setTowerDefenseOverlay] = useState<TowerDefenseOverlayState>(DEFAULT_TOWER_DEFENSE_OVERLAY_STATE);
   const [collectedRunes, setCollectedRunes] = useState<string[]>([]);
   const [timeElapsed, setTimeElapsed] = useState(0);
 
@@ -321,6 +327,15 @@ const [playerScore, setPlayerScore] = useState(0);
     setGamePaused(prev => !prev);
   }, []);
 
+  const handleSelectTowerType = useCallback((towerType: TowerType) => {
+    setTowerDefenseOverlay((prev) => ({
+      ...prev,
+      enabled: prev.enabled || genreKey === 'strategy' || genreKey === 'tower-defense',
+      selectedTowerType: towerType,
+    }));
+    gameLoopState.current?.setSelectedTowerType?.(towerType);
+  }, [genreKey]);
+
   const handleDialogueChoice = useCallback((index: number | undefined) => {
     const mgr = dialogueMgrRef.current as any;
     if (index !== undefined) {
@@ -365,6 +380,7 @@ const [playerScore, setPlayerScore] = useState(0);
     setReplaySessionKey(0);
     setReplayAutoplay(false);
     setReplayStartProgress(0);
+    setTowerDefenseOverlay(DEFAULT_TOWER_DEFENSE_OVERLAY_STATE);
   }, []);
 
   const handleBackToEditor = useCallback(() => {
@@ -390,6 +406,7 @@ const [playerScore, setPlayerScore] = useState(0);
     setCollectedRunes([]);
     setTimeElapsed(0);
     setActivePanel('none');
+    setTowerDefenseOverlay(DEFAULT_TOWER_DEFENSE_OVERLAY_STATE);
   }, []);
 
   const handleToggleRecording = useCallback(() => {
@@ -546,6 +563,7 @@ const [playerScore, setPlayerScore] = useState(0);
       setDialogueText,
       setDialogueChoices,
       setGameStats,
+      setTowerDefenseOverlayState: setTowerDefenseOverlay,
     });
   }, [previewRuntime, activeScene, gameStarted, gamePaused, gameOver, victory, syncRPGState, questHUDText, handleSave, isRecording, replaySessionKey, replayAutoplay, replayStartProgress]);
 
@@ -683,6 +701,7 @@ useEffect(() => {
     runtimeHostRef,
     canvasRef, gameStats, gameStarted, gamePaused, gameOver, victory,
     playerScore, highScore, playerHealth, playerMana, collectedRunes, timeElapsed,
+    towerDefenseOverlay,
     activePanel, notifications, inventoryItems, questList,
     dialogueSpeaker, dialoguePortrait, dialogueText, dialogueChoices,
     craftingGrid, craftResult, learnedSpells, saveSlots,
@@ -692,6 +711,7 @@ useEffect(() => {
     handleUseItem, handleEquipItem, handleCraftingCell, handleLearnSpell,
     handleAssignHotkey, handleSave, handleLoad, handleDeleteSave,
     handlePauseResume, handleDialogueChoice, setActivePanel,
+    handleSelectTowerType,
     handleToggleRecording, handlePlayReplay, handlePauseReplay, handleSeekReplay, handleStepBackReplay, handleStepReplay, handleResetReplay, handleDownloadReplay,
   };
 }

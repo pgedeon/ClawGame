@@ -15,6 +15,7 @@ import { Play, ArrowLeft, Skull, Trophy, Monitor, Smartphone, Tablet, Maximize2,
 import '../game-preview.css';
 import { useSceneLoader } from '../hooks/useSceneLoader';
 import { useGamePreview, GENRE_CONTROLS } from '../hooks/useGamePreview';
+import { PreviewCanvas } from '../components/PreviewCanvas';
 import { RPGPanels } from '../components/game/RPGPanels';
 import { ReplayControls } from '../components/game/ReplayControls';
 import { KeyboardShortcutsLegend } from '../components/game/KeyboardShortcutsLegend'
@@ -46,6 +47,7 @@ const GamePreviewContent: React.FC = () => {
     runtimeHostRef,
     canvasRef, gameStats, gameStarted, gamePaused, gameOver, victory,
     playerScore, highScore, playerHealth, playerMana, collectedRunes, timeElapsed,
+    towerDefenseOverlay,
     activePanel, notifications, inventoryItems, questList,
     dialogueSpeaker, dialoguePortrait, dialogueText, dialogueChoices,
     craftingGrid, craftResult, learnedSpells, saveSlots,
@@ -55,6 +57,7 @@ const GamePreviewContent: React.FC = () => {
     handleUseItem, handleEquipItem, handleCraftingCell, handleLearnSpell,
     handleAssignHotkey, handleSave, handleLoad, handleDeleteSave,
     handlePauseResume, handleDialogueChoice, setActivePanel,
+    handleSelectTowerType,
     handleToggleRecording, handlePlayReplay, handlePauseReplay, handleSeekReplay, handleStepBackReplay, handleStepReplay, handleResetReplay, handleDownloadReplay,
   } = useGamePreview(projectId, projectScene, projectGenre);
 
@@ -140,9 +143,14 @@ const GamePreviewContent: React.FC = () => {
       <div className="gp-canvas-area">
         {isResponsive ? (
           <div className="gp-canvas-fill">
-            <div ref={runtimeHostRef} className="game-preview-runtime-host">
-              <canvas ref={canvasRef} className="game-preview-canvas" />
-            </div>
+            <PreviewCanvas
+              runtimeHostRef={runtimeHostRef}
+              canvasRef={canvasRef}
+              towerDefenseOverlay={towerDefenseOverlay}
+              playerMana={playerMana}
+              showTowerDefenseUi={gameStarted && !gameOver && !victory}
+              onSelectTowerType={handleSelectTowerType}
+            />
           </div>
         ) : (
           <div className="gp-canvas-centered">
@@ -151,9 +159,14 @@ const GamePreviewContent: React.FC = () => {
               style={{ width: deviceW, height: deviceH }}
             >
               <div className="gp-device-screen">
-                <div ref={runtimeHostRef} className="game-preview-runtime-host">
-                  <canvas ref={canvasRef} className="game-preview-canvas" />
-                </div>
+                <PreviewCanvas
+                  runtimeHostRef={runtimeHostRef}
+                  canvasRef={canvasRef}
+                  towerDefenseOverlay={towerDefenseOverlay}
+                  playerMana={playerMana}
+                  showTowerDefenseUi={gameStarted && !gameOver && !victory}
+                  onSelectTowerType={handleSelectTowerType}
+                />
               </div>
             </div>
             <div className="gp-device-info">
