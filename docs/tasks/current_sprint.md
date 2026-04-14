@@ -113,6 +113,12 @@ The correct move is to finish the runtime foundation before adding more M14 surf
 - Updated `runPreviewRuntimeSession` to combine Phaser preparation with legacy fallback instead of treating runtime selection as a single direct call path
 - Re-verified the host/preparation slice with `pnpm --filter @clawgame/web build`, `pnpm --filter @clawgame/web test`, and repo-root Vitest for `packages/phaser-runtime/src/buildPreviewBootstrap.test.ts`
 
+### 2026-04-14
+
+- Added engine `DamageSystem` (`packages/engine/src/systems/DamageSystem.ts`) that subscribes to `projectile:hit`, applies damage via `StatsComponent`, emits `entity:damage`/`entity:defeated`, and removes defeated entities. 7 tests passing.
+- Added `entity:damage` and `entity:defeated` typed events to the EventBus.
+- This moves combat/death bookkeeping toward engine ownership — the preview TD utility can start delegating damage application to this system instead of managing health/removal inline.
+
 ### Next Slice
 
 - Reduce `useGamePreview.ts` further by extracting simulation concerns into runtime-oriented modules

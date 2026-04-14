@@ -380,6 +380,7 @@ export function runLegacyCanvasPreviewSession(
   let lastTime = performance.now();
   let lastShotTime = 0;
   let healPulse: { x: number; y: number; startTime: number; duration: number } | null = null;
+let spellEffect: { x: number; y: number; startTime: number; duration: number; color: string; type: string } | null = null;
   const defeatedEnemies: string[] = [];
 
   // Delegate invincibility to coordinator; track locally only for replay restore
@@ -1025,15 +1026,21 @@ export function runLegacyCanvasPreviewSession(
               vy: dy * spell.projectileSpeed,
               damage: spell.damage,
               color: spell.projectileColor,
-              createdAt: simulationTime,
-              isSpell: true,
-              trail: [],
-            });
-          }
-        }
-        syncRPGState();
+      });
       }
-    }
+      // Spell effect: burst + screen flash for all cast spells (inside player guard)
+      spellEffect = {
+        x: player.transform.x,
+        y: player.transform.y,
+        startTime: simulationTime,
+        duration: spell.effectType === 'aoe' ? 0.7 : 0.4,
+        color: spell.projectileColor,
+        type: spell.effectType,
+      };
+      syncRPGState();
+    }  // close if(player)
+  }    // close if(spell)
+}
 
     projectileSystem.setWorldBounds({ width: canvas.width, height: canvas.height });
     const projectileScene = createPreviewProjectileScene(projectiles, entities.values());
@@ -1522,6 +1529,58 @@ export function runLegacyCanvasPreviewSession(
         healPulse = null;
       }
     }
+
+  // Spell effect: screen flash + burst particles
+  if (spellEffect) {
+    const elapsed = getGameTime() - spellEffect.startTime;
+    if (elapsed < spellEffect.duration * 1000) {
+      const progress = elapsed / (spellEffect.duration * 1000);
+      const invProgress = 1 - progress;
+      
+      // Screen flash - full canvas colored overlay
+      ctx.save();
+      ctx.globalAlpha = invProgress * 0.3;
+      ctx.fillStyle = spellEffect.color;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+      
+      // Burst ring expanding outward
+      const ringRadius = 20 + progress * 60;
+      ctx.save();
+      ctx.globalAlpha = invProgress * 0.8;
+      ctx.strokeStyle = spellEffect.color;
+      ctx.lineWidth = 3 * invProgress;
+      ctx.shadowColor = spellEffect.color;
+      ctx.shadowBlur = 15 * invProgress;
+      ctx.beginPath();
+      ctx.arc(spellEffect.x, spellEffect.y, ringRadius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+      
+      // Burst particles - 8 particles radiating outward
+      const particleCount = 8;
+      for (let i = 0; i < particleCount; i++) {
+        const angle = (i / particleCount) * Math.PI * 2;
+        const dist = progress * 80;
+        const px = spellEffect.x + Math.cos(angle) * dist;
+        const py = spellEffect.y + Math.sin(angle) * dist;
+        const particleAlpha = invProgress * 0.9;
+        const particleSize = 4 * invProgress;
+        
+        ctx.save();
+        ctx.globalAlpha = particleAlpha;
+        ctx.fillStyle = spellEffect.color;
+        ctx.shadowColor = spellEffect.color;
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.arc(px, py, Math.max(0.5, particleSize), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    } else {
+      spellEffect = null;
+    }
+  }
     projectiles.forEach((projectile) => {
       const isTD = isTDMode && projectile.id?.startsWith('tp-');
       // Update trail for spell projectiles and TD projectiles

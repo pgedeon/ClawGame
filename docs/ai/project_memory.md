@@ -74,3 +74,9 @@
 3. **M8 Phase 3:** Advanced AI features (code analysis, refactoring, optimization)
 4. **Mobile responsiveness audit** — improve touch interactions across all pages
 5. **Template preview demos** — Add interactive examples for each template
+
+### 2026-04-14
+- Added engine `DamageSystem` that subscribes to `projectile:hit` events, applies damage to `StatsComponent`, and emits `entity:damage` / `entity:defeated` events. Removes defeated entities from scene.
+- Added `entity:damage` and `entity:defeated` typed events to `EngineEvents` in EventBus.
+- This is the first step toward engine-owned combat/death bookkeeping instead of page-level simulation in `useGamePreview.ts`.
+- Next step: wire the preview TD system's `applyTowerDefenseProjectileDamage` to go through the engine DamageSystem instead of managing health/removal inline.

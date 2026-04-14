@@ -58,6 +58,8 @@ export interface EngineEvents {
   'collision:trigger': { triggerId: string; entityId: string; event?: string; target?: string };
   'projectile:hit': { projectileId: string; targetId: string; targetType?: string; damage: number };
   'projectile:destroy': { projectileId: string; reason: 'hit' | 'blocked' | 'bounds' | 'expired'; targetId?: string; targetType?: string };
+  'entity:damage': { entityId: string; damage: number; remainingHealth: number };
+  'entity:defeated': { entityId: string; type: string };
 
   // AI behavior events
   'ai:target-acquired': { entityId: string; targetId: string; behavior: string };

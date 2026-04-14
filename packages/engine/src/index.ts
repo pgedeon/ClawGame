@@ -34,6 +34,7 @@ export { RenderSystem } from './systems/RenderSystem';
 export { PhysicsSystem } from './systems/PhysicsSystem';
 export { CollisionSystem } from './systems/CollisionSystem';
 export { ProjectileSystem } from './systems/ProjectileSystem';
+export { DamageSystem } from './systems/DamageSystem';
 export { AnimationSystem } from './systems/AnimationSystem';
 export { AnimationStateMachineSystem } from './systems/AnimationStateMachineSystem';
 export type { CollisionEvent } from './systems/CollisionSystem';
