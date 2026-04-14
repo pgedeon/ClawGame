@@ -138,6 +138,86 @@ describe('previewTowerDefense', () => {
     expect(entities.get('enemy-1')?.hitFlash).toBe(200);
   });
 
+  it('moves enemies along waypoint segments instead of directly at the core', () => {
+    const entities = new Map<string, any>([
+      ['magic-bean', {
+        id: 'magic-bean',
+        type: 'npc',
+        width: 32,
+        height: 32,
+        transform: { x: 400, y: 55 },
+      }],
+      ['enemy-path', {
+        id: 'enemy-path',
+        type: 'enemy',
+        width: 24,
+        height: 24,
+        transform: { x: 100, y: 588 },
+        damage: 12,
+        tdSpeed: 80,
+        currentWaypointIndex: 1,
+      }],
+    ]);
+    const state = createTowerDefenseState(100, 'coffee-run', 800, 600);
+    state.enemiesAlive = 1;
+
+    updateTowerDefenseFrame({
+      canvasWidth: 800,
+      canvasHeight: 600,
+      currentTime: 1000,
+      deltaTime: 1000,
+      entities,
+      towers: [],
+      projectiles: [],
+      state,
+      waves: [],
+    });
+
+    expect(entities.get('enemy-path')?.transform.x).toBe(100);
+    expect(entities.get('enemy-path')?.transform.y).toBe(508);
+    expect(entities.get('enemy-path')?.currentWaypointIndex).toBe(1);
+  });
+
+  it('advances to the next waypoint once an enemy is within the arrival radius', () => {
+    const entities = new Map<string, any>([
+      ['magic-bean', {
+        id: 'magic-bean',
+        type: 'npc',
+        width: 32,
+        height: 32,
+        transform: { x: 400, y: 55 },
+      }],
+      ['enemy-turn', {
+        id: 'enemy-turn',
+        type: 'enemy',
+        width: 24,
+        height: 24,
+        transform: { x: 100, y: 466 },
+        damage: 12,
+        tdSpeed: 80,
+        currentWaypointIndex: 1,
+      }],
+    ]);
+    const state = createTowerDefenseState(100, 'coffee-run', 800, 600);
+    state.enemiesAlive = 1;
+
+    updateTowerDefenseFrame({
+      canvasWidth: 800,
+      canvasHeight: 600,
+      currentTime: 1000,
+      deltaTime: 100,
+      entities,
+      towers: [],
+      projectiles: [],
+      state,
+      waves: [],
+    });
+
+    expect(entities.get('enemy-turn')?.currentWaypointIndex).toBe(2);
+    expect(entities.get('enemy-turn')?.transform.y).toBe(460);
+    expect(entities.get('enemy-turn')?.transform.x).toBeGreaterThan(100);
+  });
+
   it('applies cannon splash and frost slow on hit instead of on fire', () => {
     const cannonEntities = new Map<string, any>([
       ['enemy-primary', {

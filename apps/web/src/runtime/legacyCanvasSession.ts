@@ -1240,7 +1240,9 @@ export function runLegacyCanvasPreviewSession(
 
     // ─── TD Mode: Draw enemy path on background ───
     if (isTDMode) {
-      const pathPoints = getTowerDefensePathPoints(tdState.mapLayout, canvas.width, canvas.height, coreEntity?.transform || null);
+      const pathPoints = tdState.waypoints.length > 0
+        ? tdState.waypoints
+        : getTowerDefensePathPoints(tdState.mapLayout, canvas.width, canvas.height, coreEntity?.transform || null);
       // Draw path background (dirt road)
       ctx.save();
       ctx.strokeStyle = '#3d2b1f';
@@ -1273,6 +1275,20 @@ export function runLegacyCanvasPreviewSession(
       }
       ctx.stroke();
       ctx.setLineDash([]);
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.moveTo(pathPoints[0].x, pathPoints[0].y);
+      for (let i = 1; i < pathPoints.length; i++) {
+        ctx.lineTo(pathPoints[i].x, pathPoints[i].y);
+      }
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      for (let i = 1; i < pathPoints.length - 1; i++) {
+        ctx.beginPath();
+        ctx.arc(pathPoints[i].x, pathPoints[i].y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
       // Entry arrow
       ctx.fillStyle = '#ef4444';
       ctx.font = 'bold 18px sans-serif';

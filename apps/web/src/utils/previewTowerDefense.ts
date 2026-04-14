@@ -538,6 +538,14 @@ export function updateTowerDefenseFrame({
 }: UpdateTowerDefenseFrameOptions): TowerDefenseUpdateResult {
   const target = entities.get('core-bean') || entities.get('magic-bean') || entities.get('player') || entities.get('player-1');
   const deltaSeconds = deltaTime / 1000;
+  const pathWaypoints = target
+    ? getTowerDefensePathPoints(state.mapLayout, canvasWidth, canvasHeight, target.transform)
+    : state.waypoints;
+  const spawnWaypointIndex = pathWaypoints.length > 1 ? 1 : 0;
+
+  if (pathWaypoints.length > 0) {
+    state.waypoints = pathWaypoints;
+  }
 
   pruneTowerDefenseProjectileEffects(projectiles);
 
@@ -549,34 +557,48 @@ export function updateTowerDefenseFrame({
     const isSlowed = Boolean(entity.slowedUntil && entity.slowedUntil > currentTime);
     const effectiveSpeed = isSlowed ? baseSpeed * 0.5 : baseSpeed;
 
-    const waypointIdx = entity.currentWaypointIndex ?? 1;
-    const waypoint = state.waypoints[waypointIdx];
+    let waypointIdx = entity.currentWaypointIndex ?? spawnWaypointIndex;
+    let remainingDistance = effectiveSpeed * deltaSeconds;
+    const arrivalRadius = 8;
 
-    if (waypoint) {
+    while (remainingDistance > 0) {
+      const waypoint = pathWaypoints[waypointIdx];
+      if (!waypoint) break;
+
       const dx = waypoint.x - entity.transform.x;
       const dy = waypoint.y - entity.transform.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist > 5) {
-        entity.transform.x += (dx / dist) * effectiveSpeed * (deltaTime / 1000);
-        entity.transform.y += (dy / dist) * effectiveSpeed * (deltaTime / 1000);
+      const dist = Math.hypot(dx, dy);
+
+      if (dist <= arrivalRadius) {
+        entity.transform.x = waypoint.x;
+        entity.transform.y = waypoint.y;
+        waypointIdx += 1;
+        continue;
+      }
+
+      const travelDistance = Math.min(remainingDistance, dist);
+      const ratio = travelDistance / dist;
+      entity.transform.x += dx * ratio;
+      entity.transform.y += dy * ratio;
+      remainingDistance -= travelDistance;
+
+      if (dist - travelDistance <= arrivalRadius) {
+        entity.transform.x = waypoint.x;
+        entity.transform.y = waypoint.y;
+        waypointIdx += 1;
       } else {
-        entity.currentWaypointIndex = waypointIdx + 1;
+        break;
       }
-    } else if (target) {
-      // No more waypoints — go direct to core
-      const dx = target.transform.x - entity.transform.x;
-      const dy = target.transform.y - entity.transform.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist > 5) {
-        entity.transform.x += (dx / dist) * effectiveSpeed * (deltaTime / 1000);
-        entity.transform.y += (dy / dist) * effectiveSpeed * (deltaTime / 1000);
-      }
-      if (dist < 30) {
-        state.coreHealth -= entity.damage || 5;
-        registerTowerDefenseEnemyDefeat(state);
-        entities.delete(entity.id);
-        if (state.coreHealth < 0) state.coreHealth = 0;
-      }
+    }
+
+    entity.currentWaypointIndex = waypointIdx;
+
+    if (target && waypointIdx >= pathWaypoints.length && pathWaypoints.length > 0) {
+      state.coreHealth -= entity.damage || 5;
+      registerTowerDefenseEnemyDefeat(state);
+      entities.delete(entity.id);
+      if (state.coreHealth < 0) state.coreHealth = 0;
+      continue;
     }
 
     entity.transform.x = Math.max(entity.width / 2, Math.min(canvasWidth - entity.width / 2, entity.transform.x));
@@ -692,7 +714,7 @@ export function updateTowerDefenseFrame({
         const group = state.spawnQueue.shift();
         if (group) {
           state.enemyIdCounter++;
-          const spawn = state.waypoints[0] || { x: 60, y: -20 };
+          const spawn = pathWaypoints[0] || { x: 60, y: -20 };
           const id = `td-enemy-${state.enemyIdCounter}`;
           const enemyType = group.enemyType || group.type || 'intern';
           entities.set(id, {
@@ -707,7 +729,7 @@ export function updateTowerDefenseFrame({
             enemyType,
             hitFlash: 0, facing: 'down',
             scoreValue: group.score || 10,
-            currentWaypointIndex: 1,
+            currentWaypointIndex: spawnWaypointIndex,
           });
           state.enemiesAlive++;
         }
