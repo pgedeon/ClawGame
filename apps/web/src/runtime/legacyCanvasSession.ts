@@ -67,7 +67,20 @@ interface GameStats {
   memory: string;
 }
 
+interface FloatingManaText {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  maxLife: number;
+  amount: number;
+}
+
 type StateSetter<T> = Dispatch<SetStateAction<T>>;
+
+const TD_STARTING_MANA = 120;
+const TD_MAX_MANA = 200;
 
 const TYPE_COLORS: Record<string, string> = {
   player: '#3b82f6',
@@ -278,11 +291,14 @@ export function runLegacyCanvasPreviewSession(
   // Owns score, health, mana, collected items, time, victory/defeat state.
   // Auto-listens to collision:pickup and collision:damage on the bus.
 
+  const isTDMode = projectGenre === 'strategy' || projectGenre === 'tower-defense';
+
   const allRunesInScene = activeScene.entities.filter(
     (entity) => entity.type === 'collectible' && entity.components?.collectible?.type === 'rune',
   );
 
   const coordinator = new GameLoopCoordinator({
+    initialState: isTDMode ? { mana: TD_STARTING_MANA, maxMana: TD_MAX_MANA } : undefined,
     victoryConditions: allRunesInScene.length > 0
       ? [{ type: 'collect-all', tag: 'rune' }]
       : [],
@@ -344,7 +360,8 @@ export function runLegacyCanvasPreviewSession(
   const liveKeys: Record<string, boolean> = {};
   let previousKeys: Record<string, boolean> = {};
   const projectiles: any[] = [];
-const deathParticles: any[] = [];
+  const deathParticles: any[] = [];
+  const manaTexts: FloatingManaText[] = [];
   let frameCount = 0;
   let lastTime = performance.now();
   let lastShotTime = 0;
@@ -354,7 +371,6 @@ const deathParticles: any[] = [];
   // Delegate invincibility to coordinator; track locally only for replay restore
   let localInvincibleTimer = 0;
 
-  const isTDMode = projectGenre === 'strategy' || projectGenre === 'tower-defense';
   const towers: TowerDefenseTower[] = [];
   let selectedTowerId: string | null = null;
   let hoveredTowerId: string | null = null;
@@ -386,6 +402,67 @@ const deathParticles: any[] = [];
   if (activeScene.dialogueTrees) {
     activeScene.dialogueTrees.forEach((dt: any) => dialogueMgr.registerTree(dt));
   }
+
+  const spawnEnemyDeathParticles = (enemy: any) => {
+    const color = enemy.color || '#ef4444';
+    for (let i = 0; i < 12; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 40 + Math.random() * 80;
+      deathParticles.push({
+        x: enemy.transform.x,
+        y: enemy.transform.y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 600,
+        maxLife: 600,
+        color,
+        size: 3 + Math.random() * 4,
+      });
+    }
+  };
+
+  const spawnManaText = (enemy: any, amount: number) => {
+    if (amount <= 0) return;
+    manaTexts.push({
+      x: enemy.transform.x,
+      y: enemy.transform.y - Math.max(18, (enemy.height || 24) * 0.6),
+      vx: (Math.random() - 0.5) * 18,
+      vy: -44,
+      life: 900,
+      maxLife: 900,
+      amount,
+    });
+  };
+
+  const awardTowerDefenseBounty = (enemy: any, manaReward?: number) => {
+    if (!isTDMode) return;
+
+    let bounty = manaReward ?? 0;
+    if (manaReward === undefined) {
+      registerTowerDefenseEnemyDefeat(tdState, enemy, (reward) => {
+        bounty = reward;
+      });
+    }
+
+    if (bounty <= 0) return;
+    coordinator.setMana(coordinator.getState().mana + bounty);
+    spawnManaText(enemy, bounty);
+  };
+
+  const handleEnemyDefeat = (
+    enemy: any,
+    options: { manaReward?: number; deleteEntity?: boolean } = {},
+  ) => {
+    coordinator.addScore(enemy.scoreValue || 50);
+    defeatedEnemies.push(enemy.id);
+    questMgr.onKill(enemy.enemyType || 'slime');
+    awardTowerDefenseBounty(enemy, options.manaReward);
+    spawnEnemyDeathParticles(enemy);
+    if (options.deleteEntity !== false) {
+      entities.delete(enemy.id);
+    }
+    syncRPGState();
+  };
 
   // ─── Collision subscriptions ───
   // Note: collision:pickup and collision:damage are now auto-handled by the
@@ -426,29 +503,7 @@ const deathParticles: any[] = [];
       enemy.health -= damage;
       enemy.hitFlash = 200;
       if (enemy.health <= 0) {
-        coordinator.addScore(enemy.scoreValue || 50);
-        defeatedEnemies.push(enemy.id);
-        questMgr.onKill(enemy.enemyType || 'slime');
-        if (isTDMode) {
-          registerTowerDefenseEnemyDefeat(tdState);
-        }
-        syncRPGState();
-              const color = enemy.color || "#ef4444";
-              for (let i = 0; i < 12; i++) {
-                const angle = Math.random() * Math.PI * 2;
-                const speed = 40 + Math.random() * 80;
-                deathParticles.push({
-                  x: enemy.transform.x,
-                  y: enemy.transform.y,
-                  vx: Math.cos(angle) * speed,
-                  vy: Math.sin(angle) * speed,
-                  life: 600,
-                  maxLife: 600,
-                  color,
-                  size: 3 + Math.random() * 4,
-                });
-              }
-        entities.delete(enemy.id);
+        handleEnemyDefeat(enemy);
       }
     }),
     collisionBus.on('collision:trigger', ({ event }) => {
@@ -925,14 +980,21 @@ const deathParticles: any[] = [];
     const projectileScene = createPreviewProjectileScene(projectiles, entities.values());
     projectileSystem.update(projectileScene, frameDeltaTime / 1000);
     applyPreviewProjectileScene(projectileScene, projectiles);
-for (let i = deathParticles.length - 1; i >= 0; i--) {
-  const p = deathParticles[i];
-  p.x += p.vx * (frameDeltaTime / 1000);
-  p.y += p.vy * (frameDeltaTime / 1000);
-  p.vy += 120 * (frameDeltaTime / 1000); // gravity
-  p.life -= frameDeltaTime;
-  if (p.life <= 0) deathParticles.splice(i, 1);
-}
+    for (let i = deathParticles.length - 1; i >= 0; i--) {
+      const p = deathParticles[i];
+      p.x += p.vx * (frameDeltaTime / 1000);
+      p.y += p.vy * (frameDeltaTime / 1000);
+      p.vy += 120 * (frameDeltaTime / 1000);
+      p.life -= frameDeltaTime;
+      if (p.life <= 0) deathParticles.splice(i, 1);
+    }
+    for (let i = manaTexts.length - 1; i >= 0; i--) {
+      const manaText = manaTexts[i];
+      manaText.x += manaText.vx * (frameDeltaTime / 1000);
+      manaText.y += manaText.vy * (frameDeltaTime / 1000);
+      manaText.life -= frameDeltaTime;
+      if (manaText.life <= 0) manaTexts.splice(i, 1);
+    }
 
 
     movementSystem.setWorldBounds({ width: canvas.width, height: canvas.height });
@@ -992,6 +1054,9 @@ for (let i = deathParticles.length - 1; i >= 0; i--) {
         projectiles,
         state: tdState,
         waves: tdWaves,
+        onEnemyDefeated: (enemy, manaReward) => {
+          handleEnemyDefeat(enemy, { manaReward, deleteEntity: false });
+        },
       });
       if (tdResult.gameOver) {
         setGameOver(true);
@@ -1645,6 +1710,23 @@ for (let i = deathParticles.length - 1; i >= 0; i--) {
       }
     }
 
+    manaTexts.forEach((manaText) => {
+      const alpha = Math.max(0, manaText.life / manaText.maxLife);
+      const rise = 1 - alpha;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.textAlign = 'center';
+      ctx.font = `bold ${16 + rise * 2}px sans-serif`;
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = 'rgba(15, 23, 42, 0.9)';
+      ctx.fillStyle = '#60a5fa';
+      ctx.shadowColor = 'rgba(96, 165, 250, 0.8)';
+      ctx.shadowBlur = 10;
+      ctx.strokeText(`+${manaText.amount} mana`, manaText.x, manaText.y);
+      ctx.fillText(`+${manaText.amount} mana`, manaText.x, manaText.y);
+      ctx.restore();
+    });
+
     // ─── HUD (via @clawgame/engine PreviewHUD) ───
     const cs = coordinator.getState();
     const weapon = inventory.equipment.weapon;
@@ -1709,6 +1791,35 @@ for (let i = deathParticles.length - 1; i >= 0; i--) {
     });
 
     previewHUD.render(hudState, minimapEntities);
+
+    if (isTDMode) {
+      const manaBoxW = 184;
+      const manaBoxH = 52;
+      const manaBoxX = Math.min(225, Math.max(12, canvas.width - manaBoxW - 140));
+      const manaBoxY = 84;
+      const manaPulse = 0.55 + 0.45 * Math.sin(performance.now() / 300);
+
+      ctx.save();
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+      ctx.beginPath();
+      ctx.roundRect(manaBoxX, manaBoxY, manaBoxW, manaBoxH, 10);
+      ctx.fill();
+      ctx.strokeStyle = `rgba(96, 165, 250, ${0.7 + manaPulse * 0.3})`;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = '#93c5fd';
+      ctx.font = 'bold 11px monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText('MANA', manaBoxX + 14, manaBoxY + 18);
+      ctx.fillStyle = '#dbeafe';
+      ctx.font = 'bold 24px monospace';
+      ctx.fillText(`${Math.round(mana)}`, manaBoxX + 14, manaBoxY + 41);
+      ctx.fillStyle = 'rgba(191, 219, 254, 0.85)';
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText('basic 30 • frost 40 • cannon 50 • lightning 55', manaBoxX + manaBoxW - 12, manaBoxY + 41);
+      ctx.restore();
+    }
   };
 
   const gameLoop = () => {
