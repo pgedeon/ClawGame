@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   createTowerDefenseState,
   createTowerDefenseTower,
+  createTowerDefenseTowerAt,
   registerTowerDefenseEnemyDefeat,
   updateTowerDefenseFrame,
+  validateTowerPlacement,
   type TowerDefenseTower,
 } from '../utils/previewTowerDefense';
 
@@ -367,5 +369,46 @@ describe('previewTowerDefense', () => {
     registerTowerDefenseEnemyDefeat(state);
 
     expect(state.enemiesAlive).toBe(0);
+  });
+
+  it('rejects placements that overlap the path or another tower', () => {
+    const existingTower = createTowerDefenseTowerAt({ x: 220, y: 220 }, 'basic');
+
+    expect(validateTowerPlacement({
+      x: 100,
+      y: 450,
+      canvasWidth: 800,
+      canvasHeight: 600,
+      towers: [],
+      mapLayout: 'coffee-run',
+      corePosition: { x: 400, y: 55 },
+    })).toEqual({ valid: false, reason: 'path' });
+
+    expect(validateTowerPlacement({
+      x: 230,
+      y: 220,
+      canvasWidth: 800,
+      canvasHeight: 600,
+      towers: [existingTower],
+      mapLayout: 'coffee-run',
+      corePosition: { x: 400, y: 55 },
+    })).toEqual({ valid: false, reason: 'overlap' });
+  });
+
+  it('accepts open build spots away from the path', () => {
+    expect(validateTowerPlacement({
+      x: 520,
+      y: 360,
+      canvasWidth: 800,
+      canvasHeight: 600,
+      towers: [],
+      mapLayout: 'coffee-run',
+      corePosition: { x: 400, y: 55 },
+    })).toEqual({ valid: true });
+
+    const tower = createTowerDefenseTower({ transform: { x: 520, y: 360 } }, 'lightning');
+    expect(tower.towerType).toBe('lightning');
+    expect(tower.x).toBe(520);
+    expect(tower.y).toBe(360);
   });
 });

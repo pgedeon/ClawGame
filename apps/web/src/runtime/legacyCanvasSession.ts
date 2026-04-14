@@ -39,11 +39,19 @@ import {
 } from '../utils/previewProjectileScene';
 import {
   createTowerDefenseState,
-  createTowerDefenseTower, TOWER_CONFIGS,
+  createTowerDefenseTowerAt,
+  DEFAULT_TOWER_DEFENSE_OVERLAY_STATE,
+  TOWER_CONFIGS,
+  TOWER_PLACEMENT_RADIUS,
+  getMapLayout,
+  getTowerDefensePathPoints,
   getTowerDefenseWaves,
   registerTowerDefenseEnemyDefeat,
   updateTowerDefenseFrame,
+  validateTowerPlacement,
   getUpgradeCost, getSellValue, upgradeTower, MAX_UPGRADE_LEVEL,
+  type TowerDefenseOverlayFeedbackKind,
+  type TowerDefenseOverlayState,
   type TowerType, type TowerDefenseTower,
 } from '../utils/previewTowerDefense';
 import {
@@ -165,6 +173,7 @@ export interface LegacyCanvasPreviewSessionOptions {
   setDialogueText: StateSetter<string>;
   setDialogueChoices: StateSetter<Array<{ text: string; index: number }>>;
   setGameStats: StateSetter<GameStats>;
+  setTowerDefenseOverlayState?: StateSetter<TowerDefenseOverlayState>;
 }
 
 export function runLegacyCanvasPreviewSession(
@@ -215,6 +224,7 @@ export function runLegacyCanvasPreviewSession(
     setDialogueText,
     setDialogueChoices,
     setGameStats,
+    setTowerDefenseOverlayState,
   } = options;
 
   if (!canvasRef.current) return;
@@ -347,10 +357,21 @@ const deathParticles: any[] = [];
   const isTDMode = projectGenre === 'strategy' || projectGenre === 'tower-defense';
   const towers: TowerDefenseTower[] = [];
   let selectedTowerId: string | null = null;
-const selectedTowerType: { current: TowerType } = { current: 'basic' };
+  let hoveredTowerId: string | null = null;
+  const selectedTowerType: { current: TowerType } = { current: 'basic' };
   const tdWaves = getTowerDefenseWaves(activeScene as any);
+  const tdMapLayout = getMapLayout(activeScene as any);
   const coreEntity = isTDMode ? Array.from(entities.values()).find((e: any) => e.id === 'core-bean' || e.id === 'magic-bean') : null;
-  const tdState = createTowerDefenseState(coreEntity?.health || coreEntity?.maxHealth || 0);
+  const tdState = createTowerDefenseState(coreEntity?.health || coreEntity?.maxHealth || 0, tdMapLayout, canvas.width, canvas.height);
+  const placementPointer = {
+    x: coreEntity?.transform?.x || canvas.width * 0.5,
+    y: coreEntity?.transform?.y || canvas.height * 0.6,
+    active: isTDMode,
+    source: 'keyboard' as 'mouse' | 'keyboard',
+  };
+  let pendingCanvasClick: { x: number; y: number } | null = null;
+  let placementFeedback: { message: string; kind: TowerDefenseOverlayFeedbackKind; expiresAt: number } | null = null;
+  let lastOverlaySignature = '';
 
   inventoryRef.current = new InventoryManager() as any;
   questMgrRef.current = new QuestManager() as any;
@@ -453,6 +474,132 @@ const selectedTowerType: { current: TowerType } = { current: 'basic' };
     sellValue: 3,
   });
 
+  const getCanvasPoint = (clientX: number, clientY: number) => {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = rect.width > 0 ? canvas.width / rect.width : 1;
+    const scaleY = rect.height > 0 ? canvas.height / rect.height : 1;
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY,
+    };
+  };
+
+  const setPlacementPointer = (
+    x: number,
+    y: number,
+    source: 'mouse' | 'keyboard',
+  ) => {
+    placementPointer.x = Math.max(0, Math.min(canvas.width, x));
+    placementPointer.y = Math.max(0, Math.min(canvas.height, y));
+    placementPointer.active = true;
+    placementPointer.source = source;
+
+    hoveredTowerId = null;
+    for (const tower of towers) {
+      if (Math.hypot(tower.x - placementPointer.x, tower.y - placementPointer.y) <= TOWER_PLACEMENT_RADIUS + 4) {
+        hoveredTowerId = tower.id;
+        break;
+      }
+    }
+  };
+
+  const setPlacementFeedback = (
+    message: string,
+    kind: TowerDefenseOverlayFeedbackKind = 'info',
+    durationMs = 1400,
+  ) => {
+    placementFeedback = {
+      message,
+      kind,
+      expiresAt: performance.now() + durationMs,
+    };
+  };
+
+  const publishTowerDefenseOverlayState = (force = false) => {
+    if (!setTowerDefenseOverlayState) return;
+
+    if (placementFeedback && placementFeedback.expiresAt <= performance.now()) {
+      placementFeedback = null;
+    }
+
+    const nextState: TowerDefenseOverlayState = {
+      enabled: isTDMode,
+      selectedTowerType: selectedTowerType.current,
+      feedback: placementFeedback
+        ? {
+            message: placementFeedback.message,
+            kind: placementFeedback.kind,
+          }
+        : null,
+    };
+    const signature = JSON.stringify(nextState);
+    if (!force && signature === lastOverlaySignature) return;
+
+    lastOverlaySignature = signature;
+    setTowerDefenseOverlayState(nextState);
+  };
+
+  const findTowerAtPoint = (x: number, y: number): TowerDefenseTower | null => {
+    for (const tower of towers) {
+      if (Math.hypot(tower.x - x, tower.y - y) <= TOWER_PLACEMENT_RADIUS + 4) {
+        return tower;
+      }
+    }
+    return null;
+  };
+
+  const tryPlaceTowerAtPoint = (x: number, y: number) => {
+    const existingTower = findTowerAtPoint(x, y);
+    if (existingTower) {
+      selectedTowerId = existingTower.id;
+      publishTowerDefenseOverlayState();
+      return true;
+    }
+
+    const cfg = TOWER_CONFIGS[selectedTowerType.current];
+    if (coordinator.getState().mana < cfg.cost) {
+      setPlacementFeedback('Not enough mana', 'error');
+      publishTowerDefenseOverlayState();
+      return false;
+    }
+
+    const validation = validateTowerPlacement({
+      x,
+      y,
+      canvasWidth: canvas.width,
+      canvasHeight: canvas.height,
+      towers,
+      mapLayout: tdState.mapLayout,
+      corePosition: coreEntity?.transform || null,
+    });
+    if (!validation.valid) {
+      const message = validation.reason === 'path'
+        ? 'Cannot place on the path'
+        : validation.reason === 'overlap'
+          ? 'Too close to another tower'
+          : validation.reason === 'core'
+            ? 'Too close to the core'
+            : 'Cannot place there';
+      setPlacementFeedback(message, 'error');
+      publishTowerDefenseOverlayState();
+      return false;
+    }
+
+    if (!coordinator.useMana(cfg.cost)) {
+      setPlacementFeedback('Not enough mana', 'error');
+      publishTowerDefenseOverlayState();
+      return false;
+    }
+
+    const newTower = createTowerDefenseTowerAt({ x, y }, selectedTowerType.current);
+    towers.push(newTower);
+    selectedTowerId = newTower.id;
+    publishTowerDefenseOverlayState();
+    return true;
+  };
+
+  publishTowerDefenseOverlayState(true);
+
   gameLoopState.current = {
     entities,
     getHealth: () => coordinator.getState().health,
@@ -470,6 +617,15 @@ const selectedTowerType: { current: TowerType } = { current: 'basic' };
     dialogueMgr,
     spellMgr,
     canvas,
+    getSelectedTowerType: () => selectedTowerType.current,
+    setSelectedTowerType: (nextType: TowerType) => {
+      selectedTowerType.current = nextType;
+      publishTowerDefenseOverlayState();
+    },
+    placeSelectedTowerAtPointer: () => {
+      if (!isTDMode || !placementPointer.active) return false;
+      return tryPlaceTowerAtPoint(placementPointer.x, placementPointer.y);
+    },
   };
 
   const handleKeyDown = (event: KeyboardEvent) => {
@@ -491,23 +647,39 @@ const selectedTowerType: { current: TowerType } = { current: 'basic' };
   };
 
   window.addEventListener('keydown', handleKeyDown);
+  const queueCanvasInteraction = (x: number, y: number, source: 'mouse' | 'keyboard' = 'mouse') => {
+    if (!isTDMode) return;
+    setPlacementPointer(x, y, source);
+    pendingCanvasClick = { x, y };
+  };
+  const handleCanvasMouseMove = (event: MouseEvent) => {
+    if (!isTDMode) return;
+    const point = getCanvasPoint(event.clientX, event.clientY);
+    setPlacementPointer(point.x, point.y, 'mouse');
+  };
   const handleCanvasClick = (event: MouseEvent) => {
     if (!isTDMode) return;
-    const rect = canvas.getBoundingClientRect();
-    const clickX = event.clientX - rect.left;
-    const clickY = event.clientY - rect.top;
-    let clicked: TowerDefenseTower | null = null;
-    for (const tower of towers) {
-      const dx = tower.x - clickX;
-      const dy = tower.y - clickY;
-      if (Math.sqrt(dx * dx + dy * dy) < 20) {
-        clicked = tower;
-        break;
-      }
-    }
-    selectedTowerId = clicked ? clicked.id : null;
+    const point = getCanvasPoint(event.clientX, event.clientY);
+    queueCanvasInteraction(point.x, point.y, 'mouse');
   };
-  canvas.addEventListener("click", handleCanvasClick);
+  const handleCanvasTouch = (event: TouchEvent) => {
+    if (!isTDMode || event.touches.length === 0) return;
+    event.preventDefault();
+    const touch = event.touches[0];
+    const point = getCanvasPoint(touch.clientX, touch.clientY);
+    setPlacementPointer(point.x, point.y, 'mouse');
+  };
+  const handleCanvasTouchStart = (event: TouchEvent) => {
+    if (!isTDMode || event.touches.length === 0) return;
+    event.preventDefault();
+    const touch = event.touches[0];
+    const point = getCanvasPoint(touch.clientX, touch.clientY);
+    queueCanvasInteraction(point.x, point.y, 'mouse');
+  };
+  canvas.addEventListener('mousemove', handleCanvasMouseMove);
+  canvas.addEventListener('click', handleCanvasClick);
+  canvas.addEventListener('touchmove', handleCanvasTouch, { passive: false });
+  canvas.addEventListener('touchstart', handleCanvasTouchStart, { passive: false });
   window.addEventListener('keyup', handleKeyUp);
 
   const syncReplayPlaybackState = (activeReplayPlayer: ReplayPlayer | null) => {
@@ -566,6 +738,7 @@ const selectedTowerType: { current: TowerType } = { current: 'basic' };
     activeKeys,
     activeReplayPlayer = null,
     allowPanelShortcuts = true,
+    clickPosition = null,
     recordReplayFrame = false,
     syncUi = true,
   }: {
@@ -573,6 +746,7 @@ const selectedTowerType: { current: TowerType } = { current: 'basic' };
     activeKeys: Record<string, boolean>;
     activeReplayPlayer?: ReplayPlayer | null;
     allowPanelShortcuts?: boolean;
+    clickPosition?: { x: number; y: number } | null;
     recordReplayFrame?: boolean;
     syncUi?: boolean;
   }) => {
@@ -626,24 +800,29 @@ const selectedTowerType: { current: TowerType } = { current: 'basic' };
       }
     }
 
-    if (wasJustPressed('t') && isTDMode) {
-      const player = entities.get('player') || entities.get('player-1');
-      const cfg = TOWER_CONFIGS[selectedTowerType.current];
-    if (player && coordinator.useMana(cfg.cost)) {
-        towers.push(createTowerDefenseTower(player, selectedTowerType.current));
+    if (isTDMode && clickPosition) {
+      tryPlaceTowerAtPoint(clickPosition.x, clickPosition.y);
+    }
+
+    if ((wasJustPressed('t') || wasJustPressed('enter')) && isTDMode) {
+      if (placementPointer.active) {
+        tryPlaceTowerAtPoint(placementPointer.x, placementPointer.y);
       }
     }
     if (wasJustPressed('1') && isTDMode) selectedTowerType.current = 'basic';
-  if (wasJustPressed('2') && isTDMode) selectedTowerType.current = 'cannon';
-  if (wasJustPressed('3') && isTDMode) selectedTowerType.current = 'frost';
-  if (wasJustPressed('4') && isTDMode) selectedTowerType.current = 'lightning';
-  if (wasJustPressed("u") && isTDMode && selectedTowerId) {
+    if (wasJustPressed('2') && isTDMode) selectedTowerType.current = 'cannon';
+    if (wasJustPressed('3') && isTDMode) selectedTowerType.current = 'frost';
+    if (wasJustPressed('4') && isTDMode) selectedTowerType.current = 'lightning';
+    if (wasJustPressed("u") && isTDMode && selectedTowerId) {
       const tower = towers.find((t) => t.id === selectedTowerId);
       if (tower && tower.upgradeLevel < MAX_UPGRADE_LEVEL) {
         const cost = getUpgradeCost(tower);
         if (coordinator.useMana(cost)) {
           upgradeTower(tower);
+        } else {
+          setPlacementFeedback('Not enough mana', 'error');
         }
+        publishTowerDefenseOverlayState();
       }
     }
     if (wasJustPressed("s") && isTDMode && selectedTowerId) {
@@ -654,6 +833,7 @@ const selectedTowerType: { current: TowerType } = { current: 'basic' };
         coordinator.setMana(coordinator.getState().mana + sellValue);
         towers.splice(idx, 1);
         selectedTowerId = null;
+        publishTowerDefenseOverlayState();
       }
     }
 
@@ -766,6 +946,23 @@ for (let i = deathParticles.length - 1; i >= 0; i--) {
     physicsSystem.update(runtimeScene, frameDeltaTime / 1000);
     applyPreviewRuntimeScene(runtimeScene, entities);
 
+    if (isTDMode) {
+      const keyboardMovement = activeKeys.arrowleft
+        || activeKeys.arrowright
+        || activeKeys.arrowup
+        || activeKeys.arrowdown
+        || activeKeys.a
+        || activeKeys.d
+        || activeKeys.w
+        || activeKeys.s;
+      if (keyboardMovement) {
+        const player = entities.get('player') || entities.get('player-1');
+        if (player) {
+          setPlacementPointer(player.transform.x, player.transform.y, 'keyboard');
+        }
+      }
+    }
+
     entities.forEach((entity: any) => {
       if (entity.type === 'enemy' && entity.hitFlash > 0) {
         entity.hitFlash -= frameDeltaTime;
@@ -806,7 +1003,10 @@ for (let i = deathParticles.length - 1; i >= 0; i--) {
 
     if (recordReplayFrame && replayRecorderRef.current?.isRecording) {
       const cs = coordinator.getState();
-      replayRecorderRef.current.recordInput(Object.keys(activeKeys).filter((key) => activeKeys[key]));
+      replayRecorderRef.current.recordInput(
+        Object.keys(activeKeys).filter((key) => activeKeys[key]),
+        clickPosition || undefined,
+      );
       replayRecorderRef.current.recordSnapshot({
         entities: Array.from(entities.values()).map((entity: any) => clonePreviewReplayEntity(entity)),
         stats: {
@@ -831,6 +1031,7 @@ for (let i = deathParticles.length - 1; i >= 0; i--) {
     }
 
     if (syncUi) {
+      publishTowerDefenseOverlayState();
       frameCount++;
       if (frameCount % 10 === 0 || Boolean(activeReplayPlayer)) {
         const cs = coordinator.getState();
@@ -880,6 +1081,7 @@ for (let i = deathParticles.length - 1; i >= 0; i--) {
           frameDeltaTime: stepMs,
           activeKeys: createKeyState(replayFrame?.keys ?? []),
           allowPanelShortcuts: false,
+          clickPosition: replayFrame?.click ?? null,
           recordReplayFrame: false,
           syncUi: false,
         });
@@ -921,6 +1123,8 @@ for (let i = deathParticles.length - 1; i >= 0; i--) {
     }
 
     const activeKeys = activeReplayPlayer ? createKeyState(replayFrame?.keys ?? []) : liveKeys;
+    const frameClickPosition = activeReplayPlayer ? (replayFrame?.click ?? null) : pendingCanvasClick;
+    pendingCanvasClick = null;
 
     if (activeReplayPlayer && frameDeltaTime <= 0) {
       syncReplayPlaybackState(activeReplayPlayer);
@@ -932,6 +1136,7 @@ for (let i = deathParticles.length - 1; i >= 0; i--) {
       frameDeltaTime,
       activeKeys,
       activeReplayPlayer,
+      clickPosition: frameClickPosition,
       recordReplayFrame: isRecording,
     });
   };
@@ -970,19 +1175,7 @@ for (let i = deathParticles.length - 1; i >= 0; i--) {
 
     // ─── TD Mode: Draw enemy path on background ───
     if (isTDMode) {
-      // Draw a snaking path from entry to core
-      const pathPoints = [
-        { x: 100, y: canvas.height },     // entry (bottom)
-        { x: 100, y: 460 },               // turn right
-        { x: 660, y: 460 },               // turn up
-        { x: 660, y: 280 },               // turn left
-        { x: 250, y: 280 },               // turn up
-        { x: 250, y: 200 },               // turn right
-        { x: 660, y: 200 },               // turn up
-        { x: 660, y: 123 },               // turn left
-        { x: 400, y: 123 },               // to core
-        { x: 400, y: 55 },                // core
-      ];
+      const pathPoints = getTowerDefensePathPoints(tdState.mapLayout, canvas.width, canvas.height, coreEntity?.transform || null);
       // Draw path background (dirt road)
       ctx.save();
       ctx.strokeStyle = '#3d2b1f';
@@ -1304,24 +1497,68 @@ for (let i = deathParticles.length - 1; i >= 0; i--) {
       ctx.textAlign = 'center';
       ctx.shadowColor = '#000';
       ctx.shadowBlur = 2;
-      ctx.fillText('YOU', 0, h / 2 + 12);
+      ctx.fillText(isTDMode ? 'CURSOR' : 'YOU', 0, h / 2 + 12);
       ctx.shadowBlur = 0;
       ctx.restore();
     }
 
     if (isTDMode) {
+      if (placementPointer.active) {
+        const previewConfig = TOWER_CONFIGS[selectedTowerType.current];
+        const previewPlacement = validateTowerPlacement({
+          x: placementPointer.x,
+          y: placementPointer.y,
+          canvasWidth: canvas.width,
+          canvasHeight: canvas.height,
+          towers,
+          mapLayout: tdState.mapLayout,
+          corePosition: coreEntity?.transform || null,
+        });
+        const canAffordPreview = coordinator.getState().mana >= previewConfig.cost;
+        const previewValid = previewPlacement.valid && canAffordPreview;
+        ctx.save();
+        ctx.translate(placementPointer.x, placementPointer.y);
+        ctx.strokeStyle = previewValid ? 'rgba(96, 165, 250, 0.45)' : 'rgba(239, 68, 68, 0.45)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, previewConfig.range, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = previewValid ? 'rgba(96, 165, 250, 0.12)' : 'rgba(239, 68, 68, 0.12)';
+        ctx.beginPath();
+        ctx.arc(0, 0, previewConfig.range, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = previewValid ? 0.7 : 0.45;
+        ctx.fillStyle = previewConfig.color;
+        ctx.beginPath();
+        ctx.roundRect(-10, -6, 20, 16, 3);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.65)';
+        ctx.beginPath();
+        ctx.arc(0, -6, 8, Math.PI, 0);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = previewValid ? '#60a5fa' : '#ef4444';
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.arc(0, 0, TOWER_PLACEMENT_RADIUS + 2, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+      }
+
       for (const tower of towers) {
         ctx.save();
         ctx.translate(tower.x, tower.y);
         const isSelected = tower.id === selectedTowerId;
+        const isHovered = tower.id === hoveredTowerId;
         // Range circle (brighter when selected)
-        ctx.strokeStyle = isSelected ? 'rgba(251,191,36,0.35)' : 'rgba(210,105,30,0.15)';
-        ctx.lineWidth = isSelected ? 1.5 : 1;
+        ctx.strokeStyle = isSelected || isHovered ? 'rgba(251,191,36,0.35)' : 'rgba(210,105,30,0.15)';
+        ctx.lineWidth = isSelected || isHovered ? 1.5 : 1;
         ctx.beginPath();
         ctx.arc(0, 0, tower.range, 0, Math.PI * 2);
         ctx.stroke();
         // Tower body
-        ctx.fillStyle = '#D2691E';
+        ctx.fillStyle = tower.color;
         ctx.beginPath();
         ctx.roundRect(-10, -6, 20, 16, 3);
         ctx.fill();
@@ -1343,7 +1580,7 @@ for (let i = deathParticles.length - 1; i >= 0; i--) {
           ctx.globalAlpha = 1;
         }
         // Selection highlight
-        if (isSelected) {
+        if (isSelected || isHovered) {
           ctx.strokeStyle = '#fbbf24';
           ctx.lineWidth = 2;
           ctx.shadowColor = '#fbbf24';
@@ -1489,11 +1726,15 @@ for (let i = deathParticles.length - 1; i >= 0; i--) {
     window.removeEventListener('resize', resizeCanvas);
     resizeObserver.disconnect();
     window.removeEventListener('keydown', handleKeyDown);
-    canvas.removeEventListener("click", handleCanvasClick);
+    canvas.removeEventListener('mousemove', handleCanvasMouseMove);
+    canvas.removeEventListener('click', handleCanvasClick);
+    canvas.removeEventListener('touchmove', handleCanvasTouch);
+    canvas.removeEventListener('touchstart', handleCanvasTouchStart);
     window.removeEventListener('keyup', handleKeyUp);
     collisionSubscriptions.forEach((subscription) => subscription.unsubscribe());
     coordinatorSubscriptions.forEach((subscription) => subscription.unsubscribe());
     coordinator.reset();
+    setTowerDefenseOverlayState?.(DEFAULT_TOWER_DEFENSE_OVERLAY_STATE);
     if (replayPlayerRef.current === replayPlayer) {
       replayPlayerRef.current = null;
     }
