@@ -32,7 +32,7 @@ describe('previewReplayState', () => {
       ['stale', { id: 'stale', type: 'enemy', width: 1, height: 1, transform: { x: 0, y: 0 } }],
     ]);
     const projectiles = [{ id: 'old-proj', x: 0, y: 0, vx: 0, vy: 0, damage: 1 }];
-    const towers = [{ id: 'old-tower', x: 0, y: 0, range: 50, damage: 1, fireRate: 1000, lastShot: 0, color: '#000', upgradeLevel: 0, baseCost: 30 }];
+    const towers = [{ id: 'old-tower', x: 0, y: 0, range: 50, damage: 1, fireRate: 1000, lastShot: 0, color: '#000', upgradeLevel: 0, baseCost: 30, towerType: "basic" as const }];
     const tdState = {
       waveIndex: 0,
       waveTimer: 0,
@@ -63,7 +63,7 @@ describe('previewReplayState', () => {
         stats: { score: 55, health: 90, mana: 70 },
         runtime: {
           projectiles: [{ id: 'proj-1', x: 4, y: 5, vx: 10, vy: 0, damage: 25 }],
-          towers: [{ id: 'tower-1', x: 8, y: 9, range: 150, damage: 20, fireRate: 800, lastShot: 200, color: '#abc', upgradeLevel: 0, baseCost: 30 }],
+          towers: [{ id: 'tower-1', x: 8, y: 9, range: 150, damage: 20, fireRate: 800, lastShot: 200, color: '#abc', upgradeLevel: 0, baseCost: 30, towerType: "basic" as const }],
           tdState: {
             waveIndex: 2,
             waveTimer: 300,
@@ -95,7 +95,7 @@ describe('previewReplayState', () => {
 
     expect(Array.from(entities.keys())).toEqual(['player']);
     expect(projectiles).toEqual([{ id: 'proj-1', x: 4, y: 5, vx: 10, vy: 0, damage: 25 }]);
-    expect(towers).toEqual([{ id: 'tower-1', x: 8, y: 9, range: 150, damage: 20, fireRate: 800, lastShot: 200, color: '#abc', upgradeLevel: 0, baseCost: 30 }]);
+    expect(towers).toEqual([{ id: 'tower-1', x: 8, y: 9, range: 150, damage: 20, fireRate: 800, lastShot: 200, color: '#abc', upgradeLevel: 0, baseCost: 30, towerType: "basic" as const }]);
     expect(tdState.waveIndex).toBe(2);
     expect(collectedRuneIds).toEqual(['rune-a']);
     expect(defeatedEnemies).toEqual(['enemy-a']);

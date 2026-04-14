@@ -39,12 +39,12 @@ import {
 } from '../utils/previewProjectileScene';
 import {
   createTowerDefenseState,
-  createTowerDefenseTower,
+  createTowerDefenseTower, TOWER_CONFIGS,
   getTowerDefenseWaves,
   registerTowerDefenseEnemyDefeat,
   updateTowerDefenseFrame,
   getUpgradeCost, getSellValue, upgradeTower, MAX_UPGRADE_LEVEL,
-  type TowerDefenseTower,
+  type TowerType, type TowerDefenseTower,
 } from '../utils/previewTowerDefense';
 import {
   clonePreviewReplayEntity,
@@ -345,6 +345,7 @@ const deathParticles: any[] = [];
   const isTDMode = projectGenre === 'strategy' || projectGenre === 'tower-defense';
   const towers: TowerDefenseTower[] = [];
   let selectedTowerId: string | null = null;
+const selectedTowerType: { current: TowerType } = { current: 'basic' };
   const tdWaves = getTowerDefenseWaves(activeScene as any);
   const coreEntity = isTDMode ? Array.from(entities.values()).find((e: any) => e.id === 'core-bean' || e.id === 'magic-bean') : null;
   const tdState = createTowerDefenseState(coreEntity?.health || coreEntity?.maxHealth || 0);
@@ -625,11 +626,16 @@ const deathParticles: any[] = [];
 
     if (wasJustPressed('t') && isTDMode) {
       const player = entities.get('player') || entities.get('player-1');
-      if (player && coordinator.useMana(30)) {
-        towers.push(createTowerDefenseTower(player));
+      const cfg = TOWER_CONFIGS[selectedTowerType.current];
+    if (player && coordinator.useMana(cfg.cost)) {
+        towers.push(createTowerDefenseTower(player, selectedTowerType.current));
       }
     }
-    if (wasJustPressed("u") && isTDMode && selectedTowerId) {
+    if (wasJustPressed('1') && isTDMode) selectedTowerType.current = 'basic';
+  if (wasJustPressed('2') && isTDMode) selectedTowerType.current = 'cannon';
+  if (wasJustPressed('3') && isTDMode) selectedTowerType.current = 'frost';
+  if (wasJustPressed('4') && isTDMode) selectedTowerType.current = 'lightning';
+  if (wasJustPressed("u") && isTDMode && selectedTowerId) {
       const tower = towers.find((t) => t.id === selectedTowerId);
       if (tower && tower.upgradeLevel < MAX_UPGRADE_LEVEL) {
         const cost = getUpgradeCost(tower);

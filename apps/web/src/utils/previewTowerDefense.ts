@@ -1,19 +1,27 @@
-export interface TowerDefenseEnemyGroup {
-  type?: string;
-  count: number;
-  hp?: number;
-  speed?: number;
-  color?: string;
-  size?: number;
-  score?: number;
-  damage?: number;
+export interface TowerDefenseEnemyGroup { type?: string; count: number; hp?: number; speed?: number; color?: string; size?: number; score?: number; damage?: number; }
+export interface TowerDefenseWave { enemies: TowerDefenseEnemyGroup[]; delay?: number; message?: string; }
+
+export type TowerType = 'basic' | 'cannon' | 'frost' | 'lightning';
+
+export interface TowerConfig {
+  damage: number;
+  range: number;
+  fireRate: number; // ms
+  cost: number;
+  color: string;
+  splashRadius?: number;   // 0 = no splash
+  slowAmount?: number;     // 0-1, fraction of normal speed to slow to
+  slowDuration?: number;   // ms
+  chainCount?: number;     // 0 = no chain
+  chainRange?: number;
 }
 
-export interface TowerDefenseWave {
-  enemies: TowerDefenseEnemyGroup[];
-  delay?: number;
-  message?: string;
-}
+export const TOWER_CONFIGS: Record<TowerType, TowerConfig> = {
+  basic:     { damage: 15, range: 150, fireRate: 800,  cost: 30, color: '#D2691E' },
+  cannon:    { damage: 35, range: 130, fireRate: 1500, cost: 50, color: '#6b7280', splashRadius: 60 },
+  frost:     { damage: 10, range: 160, fireRate: 900,  cost: 40, color: '#60a5fa', slowAmount: 0.5, slowDuration: 2000 },
+  lightning: { damage: 20, range: 140, fireRate: 1200, cost: 55, color: '#fbbf24', chainCount: 3, chainRange: 100 },
+};
 
 export interface TowerDefenseTower {
   id: string;
@@ -21,11 +29,17 @@ export interface TowerDefenseTower {
   y: number;
   range: number;
   damage: number;
-  fireRate: number;
+  fireRate: number; // ms
   lastShot: number;
   color: string;
   upgradeLevel: number;
   baseCost: number;
+  towerType: TowerType;
+  splashRadius?: number;
+  slowAmount?: number;
+  slowDuration?: number;
+  chainCount?: number;
+  chainRange?: number;
 }
 
 export const TOWER_BASE_COST = 30;
@@ -47,13 +61,7 @@ export interface TowerDefenseEntity {
   type: string;
   width: number;
   height: number;
-  transform: {
-    x: number;
-    y: number;
-    scaleX?: number;
-    scaleY?: number;
-    rotation?: number;
-  };
+  transform: { x: number; y: number; scaleX?: number; scaleY?: number; rotation?: number; };
   components?: Record<string, any>;
   color?: string;
   health?: number;
@@ -66,6 +74,7 @@ export interface TowerDefenseEntity {
   hitFlash?: number;
   facing?: string;
   scoreValue?: number;
+  slowedUntil?: number;
 }
 
 export interface TowerDefenseState {
@@ -101,11 +110,11 @@ export interface TowerDefenseUpdateResult {
 }
 
 export const DEFAULT_TOWER_DEFENSE_WAVES: TowerDefenseWave[] = [
-  { enemies: [{ type: 'intern', count: 5, hp: 25, speed: 80, color: '#86efac', size: 22, score: 10 }], delay: 3000, message: 'Wave 1: Interns smell fresh coffee...' },
-  { enemies: [{ type: 'manager', count: 4, hp: 60, speed: 60, color: '#fbbf24', size: 28, score: 25 }], delay: 5000, message: 'Wave 2: Middle management!' },
-  { enemies: [{ type: 'intern', count: 8, hp: 30, speed: 100, color: '#86efac', size: 22, score: 10 }, { type: 'manager', count: 3, hp: 70, speed: 55, color: '#fbbf24', size: 28, score: 25 }], delay: 6000, message: 'Wave 3: The interns told their friends...' },
-  { enemies: [{ type: 'it-guy', count: 5, hp: 45, speed: 120, color: '#60a5fa', size: 24, score: 30 }], delay: 6000, message: 'Wave 4: IT detected caffeine on the network!' },
-  { enemies: [{ type: 'ceo', count: 1, hp: 300, speed: 40, color: '#f43f5e', size: 40, score: 200 }, { type: 'manager', count: 6, hp: 90, speed: 60, color: '#fbbf24', size: 28, score: 25 }], delay: 8000, message: 'Wave 5: THE CEO WANTS A TRIPLE SOY LATTE!' },
+  { enemies: [{ type: 'intern',    count: 5,  hp: 25, speed: 80,  color: '#86efac', size: 22, score: 10 }], delay: 3000, message: 'Wave 1: Interns smell fresh coffee...' },
+  { enemies: [{ type: 'manager',   count: 4,  hp: 60, speed: 60,  color: '#fbbf24', size: 28, score: 25 }], delay: 5000, message: 'Wave 2: Middle management!' },
+  { enemies: [{ type: 'intern',    count: 8,  hp: 30, speed: 100, color: '#86efac', size: 22, score: 10 }, { type: 'manager', count: 3, hp: 70, speed: 55, color: '#fbbf24', size: 28, score: 25 }], delay: 6000, message: 'Wave 3: The interns told their friends...' },
+  { enemies: [{ type: 'it-guy',    count: 5,  hp: 45, speed: 120, color: '#60a5fa', size: 24, score: 30 }], delay: 6000, message: 'Wave 4: IT detected caffeine on the network!' },
+  { enemies: [{ type: 'ceo',       count: 1,  hp: 300, speed: 40, color: '#f43f5e', size: 40, score: 200 }, { type: 'manager', count: 6, hp: 90, speed: 60, color: '#fbbf24', size: 28, score: 25 }], delay: 8000, message: 'Wave 5: THE CEO WANTS A TRIPLE SOY LATTE!' },
 ];
 
 export function getTowerDefenseWaves(scene: { waves?: TowerDefenseWave[] }): TowerDefenseWave[] {
@@ -114,53 +123,55 @@ export function getTowerDefenseWaves(scene: { waves?: TowerDefenseWave[] }): Tow
 
 export function createTowerDefenseState(coreHealth = 0): TowerDefenseState {
   return {
-    waveIndex: 0,
-    waveTimer: 0,
-    spawnQueue: [],
-    spawnTimer: 0,
-    coreHealth,
-    maxCoreHealth: coreHealth,
-    waveMessage: '',
-    waveMessageTimer: 0,
-    enemiesAlive: 0,
-    allWavesDone: false,
-    enemyIdCounter: 0,
+    waveIndex: 0, waveTimer: 0, spawnQueue: [], spawnTimer: 0,
+    coreHealth, maxCoreHealth: coreHealth,
+    waveMessage: '', waveMessageTimer: 0,
+    enemiesAlive: 0, allWavesDone: false, enemyIdCounter: 0,
   };
 }
 
-export function createTowerDefenseTower(player: { transform: { x: number; y: number } }, now = Date.now()): TowerDefenseTower {
+export function createTowerDefenseTower(
+  player: { transform: { x: number; y: number } },
+  type: TowerType = 'basic',
+  now = Date.now(),
+): TowerDefenseTower {
+  const cfg = TOWER_CONFIGS[type];
   return {
     id: `tower-${now}`,
     x: player.transform.x,
     y: player.transform.y,
-    range: 150,
-    damage: 15,
-    fireRate: 800,
+    range: cfg.range,
+    damage: cfg.damage,
+    fireRate: cfg.fireRate,
     lastShot: 0,
-    color: '#D2691E',
+    color: cfg.color,
     upgradeLevel: 0,
-    baseCost: TOWER_BASE_COST,
+    baseCost: cfg.cost,
+    towerType: type,
+    splashRadius: cfg.splashRadius,
+    slowAmount: cfg.slowAmount,
+    slowDuration: cfg.slowDuration,
+    chainCount: cfg.chainCount,
+    chainRange: cfg.chainRange,
   };
 }
 
-/** Get the cost to upgrade a tower to the next level (50% of base cost per level) */
 export function getUpgradeCost(tower: TowerDefenseTower): number {
   return Math.floor(tower.baseCost * 0.5);
 }
 
-/** Get sell value (50% of total invested mana) */
 export function getSellValue(tower: TowerDefenseTower): number {
   const totalInvested = tower.baseCost + tower.upgradeLevel * getUpgradeCost(tower);
   return Math.floor(totalInvested * 0.5);
 }
 
-/** Apply an upgrade to a tower. Returns true if upgraded. */
 export function upgradeTower(tower: TowerDefenseTower): boolean {
   if (tower.upgradeLevel >= MAX_UPGRADE_LEVEL) return false;
   tower.upgradeLevel++;
   tower.damage = Math.round(tower.damage * 1.25 * 10) / 10;
   tower.range = Math.round(tower.range * 1.15);
   tower.fireRate = Math.max(200, Math.round(tower.fireRate / 1.2));
+  if (tower.splashRadius) tower.splashRadius = Math.round(tower.splashRadius * 1.2);
   return true;
 }
 
@@ -169,47 +180,43 @@ export function registerTowerDefenseEnemyDefeat(state: TowerDefenseState): void 
 }
 
 export function updateTowerDefenseFrame({
-  canvasWidth,
-  canvasHeight,
-  currentTime,
-  deltaTime,
-  entities,
-  towers,
-  projectiles,
-  state,
-  waves,
+  canvasWidth, canvasHeight, currentTime, deltaTime,
+  entities, towers, projectiles, state, waves,
   random = Math.random,
 }: UpdateTowerDefenseFrameOptions): TowerDefenseUpdateResult {
   const target = entities.get('core-bean') || entities.get('magic-bean') || entities.get('player') || entities.get('player-1');
 
-  entities.forEach((entity) => {
-    if (entity.type !== 'enemy') return;
+  // ── Enemy movement + core collision ──
+  for (const entity of entities.values()) {
+    if (entity.type !== 'enemy') continue;
 
-    const patrolSpeed = entity.tdSpeed || entity.components?.ai?.speed || 60;
+    const baseSpeed = entity.tdSpeed || entity.components?.ai?.speed || 60;
+    const isSlowed = Boolean(entity.slowedUntil && entity.slowedUntil > currentTime);
+    const effectiveSpeed = isSlowed ? baseSpeed * 0.5 : baseSpeed;
+
     if (target) {
       const dx = target.transform.x - entity.transform.x;
       const dy = target.transform.y - entity.transform.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
 
       if (dist > 5) {
-        entity.transform.x += (dx / dist) * patrolSpeed * (deltaTime / 1000);
-        entity.transform.y += (dy / dist) * patrolSpeed * (deltaTime / 1000);
+        entity.transform.x += (dx / dist) * effectiveSpeed * (deltaTime / 1000);
+        entity.transform.y += (dy / dist) * effectiveSpeed * (deltaTime / 1000);
       }
 
       if (dist < 30) {
         state.coreHealth -= entity.damage || 5;
         registerTowerDefenseEnemyDefeat(state);
         entities.delete(entity.id);
-        if (state.coreHealth < 0) {
-          state.coreHealth = 0;
-        }
+        if (state.coreHealth < 0) state.coreHealth = 0;
       }
     }
 
     entity.transform.x = Math.max(entity.width / 2, Math.min(canvasWidth - entity.width / 2, entity.transform.x));
     entity.transform.y = Math.max(entity.height / 2, Math.min(canvasHeight - entity.height / 2, entity.transform.y));
-  });
+  }
 
+  // ── Wave management ──
   if (!state.allWavesDone) {
     state.waveTimer += deltaTime;
 
@@ -219,15 +226,11 @@ export function updateTowerDefenseFrame({
         state.waveMessage = wave.message || `Wave ${state.waveIndex + 1}`;
         state.waveMessageTimer = 3000;
         for (const group of wave.enemies) {
-          for (let i = 0; i < group.count; i++) {
-            state.spawnQueue.push(group);
-          }
+          for (let i = 0; i < group.count; i++) state.spawnQueue.push(group);
         }
         state.spawnTimer = 0;
         state.waveIndex++;
-        if (state.waveIndex >= waves.length) {
-          state.allWavesDone = true;
-        }
+        if (state.waveIndex >= waves.length) state.allWavesDone = true;
       }
     }
 
@@ -241,22 +244,18 @@ export function updateTowerDefenseFrame({
           const spawnX = 100 + random() * (canvasWidth - 200);
           const id = `td-enemy-${state.enemyIdCounter}`;
           entities.set(id, {
-            id,
-            type: 'enemy',
+            id, type: 'enemy',
             transform: { x: spawnX, y: -20, scaleX: 1, scaleY: 1, rotation: 0 },
             components: {},
             color: group.color || '#86efac',
-            width: group.size || 24,
-            height: group.size || 24,
-            health: group.hp || 30,
-            maxHealth: group.hp || 30,
+            width: group.size || 24, height: group.size || 24,
+            health: group.hp || 30, maxHealth: group.hp || 30,
             damage: group.damage || 15,
             tdSpeed: group.speed || 80,
             enemyType: group.type || 'intern',
             patrolOrigin: { x: spawnX, y: -20 },
             patrolOffset: random() * Math.PI * 2,
-            hitFlash: 0,
-            facing: 'down',
+            hitFlash: 0, facing: 'down',
             scoreValue: group.score || 10,
           });
           state.enemiesAlive++;
@@ -269,39 +268,123 @@ export function updateTowerDefenseFrame({
     state.waveMessageTimer = Math.max(0, state.waveMessageTimer - deltaTime);
   }
 
+  // ── Tower firing + type effects ──
   for (const tower of towers) {
     if (currentTime - tower.lastShot < tower.fireRate) continue;
 
-    let nearest: TowerDefenseEntity | null = null;
-    let nearestDistance = Infinity;
-    entities.forEach((entity) => {
-      if (entity.type !== 'enemy') return;
+    // Collect targets in range, sorted by distance
+    const targetsInRange: TowerDefenseEntity[] = [];
+    for (const entity of entities.values()) {
+      if (entity.type !== 'enemy') continue;
       const dx = entity.transform.x - tower.x;
       const dy = entity.transform.y - tower.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      if (distance < tower.range && distance < nearestDistance) {
-        nearest = entity;
-        nearestDistance = distance;
+      if (Math.sqrt(dx * dx + dy * dy) < tower.range) {
+        targetsInRange.push(entity);
       }
+    }
+    if (targetsInRange.length === 0) continue;
+
+    targetsInRange.sort((a, b) => {
+      const da = Math.hypot(a.transform.x - tower.x, a.transform.y - tower.y);
+      const db = Math.hypot(b.transform.x - tower.x, b.transform.y - tower.y);
+      return da - db;
     });
 
-    if (!nearest) continue;
-    const nearestEnemy = nearest as TowerDefenseEntity;
+    const primary = targetsInRange[0];
+    const pdx = primary.transform.x - tower.x;
+    const pdy = primary.transform.y - tower.y;
+    const pdist = Math.sqrt(pdx * pdx + pdy * pdy) || 1;
 
     tower.lastShot = currentTime;
-    const dx = nearestEnemy.transform.x - tower.x;
-    const dy = nearestEnemy.transform.y - tower.y;
-    const distance = Math.sqrt(dx * dx + dy * dy) || 1;
+
+    // Determine projectile color and speed by tower type
+    let projColor = tower.color;
+    let projSpeed = 350;
+    if (tower.towerType === 'cannon') {
+      projColor = '#4b5563';
+      projSpeed = 280;
+    } else if (tower.towerType === 'frost') {
+      projColor = '#93c5fd';
+      projSpeed = 400;
+    } else if (tower.towerType === 'lightning') {
+      projColor = '#fef08a';
+      projSpeed = 600;
+    }
+
+    // Fire at primary target
     projectiles.push({
-      id: `tp-${currentTime}-${Math.random()}`,
-      x: tower.x,
-      y: tower.y,
-      vx: (dx / distance) * 350,
-      vy: (dy / distance) * 350,
+      id: `tp-${currentTime}-${random()}`,
+      x: tower.x, y: tower.y,
+      vx: (pdx / pdist) * projSpeed,
+      vy: (pdy / pdist) * projSpeed,
       damage: tower.damage,
-      color: '#8B4513',
+      color: projColor,
       createdAt: currentTime,
     });
+
+    // ── Cannon: splash damage near primary ──
+    if (tower.towerType === 'cannon' && tower.splashRadius) {
+      for (const entity of entities.values()) {
+        if (entity.type !== 'enemy' || entity.id === primary.id) continue;
+        const dx = entity.transform.x - primary.transform.x;
+        const dy = entity.transform.y - primary.transform.y;
+        if (Math.sqrt(dx * dx + dy * dy) < tower.splashRadius!) {
+          entity.health = (entity.health || 0) - tower.damage * 0.6;
+          entity.hitFlash = 200;
+          if (entity.health <= 0) {
+            registerTowerDefenseEnemyDefeat(state);
+            entities.delete(entity.id);
+          }
+        }
+      }
+    }
+
+    // ── Frost: slow primary ──
+    if (tower.towerType === 'frost' && tower.slowAmount && tower.slowDuration) {
+      primary.slowedUntil = currentTime + tower.slowDuration;
+    }
+
+    // ── Lightning: chain to nearby enemies ──
+    if (tower.towerType === 'lightning' && tower.chainCount && tower.chainRange) {
+      let lastTarget: TowerDefenseEntity = primary;
+      const hitIds = new Set<string>([primary.id]);
+
+      for (let i = 0; i < tower.chainCount; i++) {
+        let nextTarget: TowerDefenseEntity | null = null;
+        let minDist = Infinity;
+
+        for (const entity of entities.values()) {
+          if (entity.type !== 'enemy' || hitIds.has(entity.id)) continue;
+          const dx = entity.transform.x - lastTarget.transform.x;
+          const dy = entity.transform.y - lastTarget.transform.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < tower.chainRange! && dist < minDist) {
+            nextTarget = entity;
+            minDist = dist;
+          }
+        }
+
+        if (!nextTarget) break;
+
+        const ndx = nextTarget.transform.x - lastTarget.transform.x;
+        const ndy = nextTarget.transform.y - lastTarget.transform.y;
+        const ndist = Math.sqrt(ndx * ndx + ndy * ndy) || 1;
+
+        projectiles.push({
+          id: `tp-${currentTime}-${random()}-chain-${i}`,
+          x: lastTarget.transform.x,
+          y: lastTarget.transform.y,
+          vx: (ndx / ndist) * 600,
+          vy: (ndy / ndist) * 600,
+          damage: tower.damage * 0.7,
+          color: '#fef08a',
+          createdAt: currentTime,
+        });
+
+        hitIds.add(nextTarget.id);
+        lastTarget = nextTarget;
+      }
+    }
   }
 
   return {

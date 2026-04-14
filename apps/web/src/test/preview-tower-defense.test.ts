@@ -62,7 +62,7 @@ describe('previewTowerDefense', () => {
         transform: { x: 260, y: 100 },
       }],
     ]);
-    const towers: TowerDefenseTower[] = [createTowerDefenseTower({ transform: { x: 100, y: 100 } }, 1)];
+    const towers: TowerDefenseTower[] = [createTowerDefenseTower({ transform: { x: 100, y: 100 } }, 'basic')];
     const projectiles: any[] = [];
     const state = createTowerDefenseState(500);
 
