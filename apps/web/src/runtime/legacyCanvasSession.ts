@@ -8,7 +8,6 @@ import { InventoryManager } from '../rpg/inventory';
 import { QuestManager } from '../rpg/quests';
 import { DialogueManager } from '../rpg/dialogue';
 import { SpellCraftingManager } from '../rpg/spellcrafting';
-import type { CombatLogManager } from '../rpg/combatlog';
 import {
   ReplayRecorder,
   ReplayPlayer,
@@ -22,7 +21,6 @@ import {
   GameLoopCoordinator,
   MovementSystem,
   PhysicsSystem,
-  DamageSystem,
   ProjectileSystem,
   PreviewHUD,
   type HUDState,
@@ -176,7 +174,6 @@ export interface LegacyCanvasPreviewSessionOptions {
   questMgrRef: MutableRefObject<QuestManager>;
   dialogueMgrRef: MutableRefObject<DialogueManager>;
   spellMgrRef: MutableRefObject<SpellCraftingManager>;
-  combatLogRef?: MutableRefObject<CombatLogManager>;
   replayRecorderRef: MutableRefObject<ReplayRecorder | null>;
   replayPlayerRef: MutableRefObject<ReplayPlayer | null>;
   replayDataRef: MutableRefObject<ReplayData | null>;
@@ -298,9 +295,6 @@ export function runLegacyCanvasPreviewSession(
   const projectileSystem = new ProjectileSystem({ width: canvas.width, height: canvas.height });
   projectileSystem.attach(collisionBus);
 
-  const damageSystem = new DamageSystem();
-  damageSystem.attach(collisionBus);
-
   // ─── Preview HUD Renderer (M14) ───
   const previewHUD = new PreviewHUD(ctx, { width: canvas.width, height: canvas.height });
 
@@ -384,7 +378,6 @@ export function runLegacyCanvasPreviewSession(
   let lastTime = performance.now();
   let lastShotTime = 0;
   let healPulse: { x: number; y: number; startTime: number; duration: number } | null = null;
-let spellEffect: { x: number; y: number; startTime: number; duration: number; color: string; type: string } | null = null;
   const defeatedEnemies: string[] = [];
 
   // Delegate invincibility to coordinator; track locally only for replay restore
@@ -528,47 +521,17 @@ let spellEffect: { x: number; y: number; startTime: number; duration: number; co
       // We only track invincibility flash timer for the renderer
       localInvincibleTimer = 1000;
     }),
-    // Damage is now handled by DamageSystem via projectile:hit → StatsComponent.
-    // Sync engine damage results back to preview entities.
- collisionBus.on('projectile:hit', ({ targetId, isSpell }) => {
-  if (!isSpell) return;
-  const target = entities.get(targetId);
-  if (!target) return;
-  // Screen flash burst at impact point
-  spellEffect = {
-    x: target.transform.x,
-    y: target.transform.y,
-    startTime: performance.now(),
-    duration: 0.15,
-    color: '#fb923c',
-    type: 'burst',
-  };
-  // Spell impact particles
-  for (let i = 0; i < 10; i++) {
-    const angle = (Math.PI * 2 * i) / 10;
-    deathParticles.push({
-      x: target.transform.x,
-      y: target.transform.y,
-      vx: Math.cos(angle) * 120,
-      vy: Math.sin(angle) * 120,
-      life: 400,
-      maxLife: 400,
-      color: '#fb923c',
-      size: 4 + Math.random() * 3,
-    });
-  }
-}),
+    collisionBus.on('projectile:hit', ({ targetId, targetType, damage }) => {
+      if (targetType !== 'enemy') return;
 
-    collisionBus.on('entity:damage', ({ entityId, remainingHealth }) => {
-      const enemy = entities.get(entityId);
+      const enemy = entities.get(targetId);
       if (!enemy) return;
-      enemy.health = remainingHealth;
+
+      enemy.health -= damage;
       enemy.hitFlash = 200;
-    }),
-    collisionBus.on('entity:defeated', ({ entityId }) => {
-      const enemy = entities.get(entityId);
-      if (!enemy) return;
-      handleEnemyDefeat(enemy);
+      if (enemy.health <= 0) {
+        handleEnemyDefeat(enemy);
+      }
     }),
     collisionBus.on('collision:trigger', ({ event }) => {
       if (event === 'level_complete' || event === 'victory') {
@@ -1042,14 +1005,13 @@ let spellEffect: { x: number; y: number; startTime: number; duration: number; co
       const hotkey = parseInt(justPressedHotkey, 10);
       const spell = spellMgr.castSpell(hotkey);
       if (spell) {
-        options.combatLogRef?.current?.spell(`${spell.icon} ${spell.name} cast! (DMG: ${spell.damage}, MP: ${spell.manaCost})`);
         coordinator.useMana(spell.manaCost);
         const player = entities.get('player') || entities.get('player-1');
         if (player) {
           const { dx, dy } = getMovementDirection(activeKeys);
           if (spell.effectType === 'heal') {
             // Trigger heal pulse effect
-            healPulse = { x: player.transform.x, y: player.transform.y, startTime: performance.now(), duration: 0.5 };
+            healPulse = { x: player.transform.x, y: player.transform.y, startTime: simulationTime, duration: 0.5 };
             coordinator.heal(spell.damage);
           } else if (spell.effectType === 'projectile') {
             projectiles.push({
@@ -1060,21 +1022,15 @@ let spellEffect: { x: number; y: number; startTime: number; duration: number; co
               vy: dy * spell.projectileSpeed,
               damage: spell.damage,
               color: spell.projectileColor,
-      });
+              createdAt: simulationTime,
+              isSpell: true,
+              trail: [],
+            });
+          }
+        }
+        syncRPGState();
       }
-      // Spell effect: burst + screen flash for all cast spells (inside player guard)
-      spellEffect = {
-        x: player.transform.x,
-        y: player.transform.y,
-        startTime: performance.now(),
-        duration: spell.effectType === 'aoe' ? 0.7 : 0.4,
-        color: spell.projectileColor,
-        type: spell.effectType,
-      };
-      syncRPGState();
-    }  // close if(player)
-  }    // close if(spell)
-}
+    }
 
     projectileSystem.setWorldBounds({ width: canvas.width, height: canvas.height });
     const projectileScene = createPreviewProjectileScene(projectiles, entities.values());
@@ -1113,7 +1069,6 @@ let spellEffect: { x: number; y: number; startTime: number; duration: number; co
     }
     movementSystem.update(runtimeScene, toEngineInputState(activeKeys), frameDeltaTime / 1000);
     physicsSystem.update(runtimeScene, frameDeltaTime / 1000);
-    damageSystem.update(runtimeScene, frameDeltaTime / 1000);
     applyPreviewRuntimeScene(runtimeScene, entities);
 
     if (isTDMode) {
@@ -1564,58 +1519,6 @@ let spellEffect: { x: number; y: number; startTime: number; duration: number; co
         healPulse = null;
       }
     }
-
-  // Spell effect: screen flash + burst particles
-  if (spellEffect) {
-    const elapsed = getGameTime() - spellEffect.startTime;
-    if (elapsed < spellEffect.duration * 1000) {
-      const progress = elapsed / (spellEffect.duration * 1000);
-      const invProgress = 1 - progress;
-      
-      // Screen flash - full canvas colored overlay
-      ctx.save();
-      ctx.globalAlpha = invProgress * 0.3;
-      ctx.fillStyle = spellEffect.color;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.restore();
-      
-      // Burst ring expanding outward
-      const ringRadius = 20 + progress * 60;
-      ctx.save();
-      ctx.globalAlpha = invProgress * 0.8;
-      ctx.strokeStyle = spellEffect.color;
-      ctx.lineWidth = 3 * invProgress;
-      ctx.shadowColor = spellEffect.color;
-      ctx.shadowBlur = 15 * invProgress;
-      ctx.beginPath();
-      ctx.arc(spellEffect.x, spellEffect.y, ringRadius, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
-      
-      // Burst particles - 8 particles radiating outward
-      const particleCount = 8;
-      for (let i = 0; i < particleCount; i++) {
-        const angle = (i / particleCount) * Math.PI * 2;
-        const dist = progress * 80;
-        const px = spellEffect.x + Math.cos(angle) * dist;
-        const py = spellEffect.y + Math.sin(angle) * dist;
-        const particleAlpha = invProgress * 0.9;
-        const particleSize = 4 * invProgress;
-        
-        ctx.save();
-        ctx.globalAlpha = particleAlpha;
-        ctx.fillStyle = spellEffect.color;
-        ctx.shadowColor = spellEffect.color;
-        ctx.shadowBlur = 8;
-        ctx.beginPath();
-        ctx.arc(px, py, Math.max(0.5, particleSize), 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      }
-    } else {
-      spellEffect = null;
-    }
-  }
     projectiles.forEach((projectile) => {
       const isTD = isTDMode && projectile.id?.startsWith('tp-');
       // Update trail for spell projectiles and TD projectiles
