@@ -104,7 +104,7 @@ export const SPELL_RECIPES: SpellRecipe[] = [
     damage: 45,
     manaCost: 18,
     cooldown: 1100,
-    icon: '⚡',
+    icon: '✨',
     projectileSpeed: 800,
     projectileColor: '#fbbf24',
     effectType: 'projectile',
@@ -200,4 +200,5 @@ export const SPELL_RECIPES: SpellRecipe[] = [
     projectileColor: '#fde68a',
     effectType: 'shield',
   },
+  { id: 'vortex-drain', name: 'Vortex Drain', description: 'A swirling void that leeches health from nearby foes', pattern: [ [ 'shadow', null, 'shadow' ], [ null, 'water', null ], [ 'shadow', null, 'shadow' ], ], element: 'shadow', damage: 20, manaCost: 18, cooldown: 2200, icon: '🌀', projectileSpeed: 0, projectileColor: '#7c3aed', effectType: 'drain', }, { id: 'inferno-wave', name: 'Inferno Wave', description: 'A wave of fire that scorches all enemies in its path', pattern: [ [ 'fire', 'fire', 'fire' ], [ null, null, null ], [ 'fire', 'fire', 'fire' ], ], element: 'fire', damage: 55, manaCost: 25, cooldown: 1800, icon: '🌊', projectileSpeed: 350, projectileColor: '#dc2626', effectType: 'wave', }, { id: 'temporal-shift', name: 'Temporal Shift', description: 'Slows all enemies in a wide radius', pattern: [ [ 'air', null, 'air' ], [ null, 'shadow', null ], [ 'air', null, 'air' ], ], element: 'air', damage: 5, manaCost: 20, cooldown: 5000, icon: '⏳', projectileSpeed: 0, projectileColor: '#e879f9', effectType: 'slow', }, { id: 'smite', name: 'Divine Smite', description: 'Calls down holy light on a target area', pattern: [ [ null, 'light', null ], [ 'light', null, 'light' ], [ null, 'light', null ], ], element: 'light', damage: 60, manaCost: 28, cooldown: 2000, icon: '⚡', projectileSpeed: 0, projectileColor: '#fef08a', effectType: 'smite', }, { id: 'torrent', name: 'Mud Torrent', description: 'A rush of earth and water that pushes and damages', pattern: [ [ 'water', null, 'water' ], [ null, 'earth', null ], [ null, null, null ], ], element: 'earth', damage: 45, manaCost: 22, cooldown: 1600, icon: '🌊', projectileSpeed: 500, projectileColor: '#78716c', effectType: 'push', },
 ];
