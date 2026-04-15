@@ -4,7 +4,7 @@
  * Extracted from GamePreviewPage for modularity.
  */
 
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { Save, Trash2, Upload } from 'lucide-react';
 import type { Item, Quest, LearnedSpell, ElementType } from '../../rpg/types';
 
@@ -77,6 +77,33 @@ const closeBtnStyle: React.CSSProperties = {
   background: 'none', color: '#94a3b8', border: 'none', cursor: 'pointer', fontSize: 18,
 };
 
+
+
+/* ─── Tooltip Styles ─── */
+
+const tooltipStyle: React.CSSProperties = {
+  position: 'fixed',
+  background: 'rgba(15,23,42,0.97)',
+  border: '1px solid #475569',
+  borderRadius: 10,
+  padding: '10px 14px',
+  color: '#e2e8f0',
+  fontSize: 12,
+  zIndex: 9999,
+  pointerEvents: 'none',
+  maxWidth: 260,
+  boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+  lineHeight: 1.5,
+};
+
+const rarityColors: Record<string, string> = {
+  common: '#94a3b8',
+  uncommon: '#22c55e',
+  rare: '#3b82f6',
+  epic: '#a855f7',
+  legendary: '#f59e0b',
+};
+
 /* ─── Component ─── */
 
 export function RPGPanels({
@@ -106,6 +133,15 @@ export function RPGPanels({
   dialogueChoices,
   onDialogueChoice,
 }: RPGPanelsProps) {
+  const [tooltip, setTooltip] = useState<{ item: Item; x: number; y: number } | null>(null);
+
+  const showTooltip = useCallback((item: Item, e: React.MouseEvent) => {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setTooltip({ item, x: rect.right + 8, y: Math.min(rect.top, window.innerHeight - 200) });
+  }, []);
+
+  const hideTooltip = useCallback(() => setTooltip(null), []);
+
   if (activePanel === 'none') return null;
 
   return (
@@ -118,8 +154,12 @@ export function RPGPanels({
           </div>
           {inventoryItems.length === 0 && <div style={{ color: '#64748b', fontSize: 13 }}>No items yet. Defeat enemies and collect loot!</div>}
           {inventoryItems.map(item => (
-            <div key={item.id} style={{
+            <div key={item.id}
+              onMouseEnter={(e) => showTooltip(item, e)}
+              onMouseLeave={hideTooltip}
+              style={{
               padding: 10, marginBottom: 8, background: 'rgba(0,0,0,0.3)', borderRadius: 8,
+              cursor: 'pointer',
               borderLeft: `3px solid ${item.rarity === 'legendary' ? '#f59e0b' : item.rarity === 'epic' ? '#a855f7' : item.rarity === 'rare' ? '#3b82f6' : item.rarity === 'uncommon' ? '#22c55e' : '#64748b'}`,
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -348,6 +388,48 @@ export function RPGPanels({
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Item Tooltip */}
+      {tooltip && (
+        <div style={{
+          ...tooltipStyle,
+          left: tooltip.x,
+          top: tooltip.y,
+          borderLeft: `3px solid ${rarityColors[tooltip.item.rarity] || '#64748b'}`,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+            <strong style={{ fontSize: 14 }}>{tooltip.item.icon} {tooltip.item.name}</strong>
+            <span style={{
+              fontSize: 10,
+              color: rarityColors[tooltip.item.rarity] || '#64748b',
+              textTransform: 'uppercase',
+              letterSpacing: 1,
+            }}>{tooltip.item.rarity}</span>
+          </div>
+          <div style={{ color: '#94a3b8', margin: '4px 0', fontSize: 11 }}>{tooltip.item.description}</div>
+          {tooltip.item.type && (
+            <div style={{ fontSize: 10, color: '#64748b', marginBottom: 4 }}>Type: {tooltip.item.type}</div>
+          )}
+          {tooltip.item.stats && Object.keys(tooltip.item.stats).length > 0 && (
+            <div style={{ borderTop: '1px solid #334155', paddingTop: 6, marginTop: 6 }}>
+              {Object.entries(tooltip.item.stats).map(([k, v]) => (
+                <div key={k} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#94a3b8' }}>{k}</span>
+                  <span style={{ color: typeof v === 'number' && v > 0 ? '#22c55e' : '#ef4444' }}>
+                    {typeof v === 'number' && v > 0 ? `+${v}` : v}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+          {tooltip.item.usable && (
+            <div style={{ marginTop: 6, fontSize: 10, color: '#22c55e' }}>✦ Click "Use" to activate</div>
+          )}
+          {tooltip.item.equippable && (
+            <div style={{ marginTop: 6, fontSize: 10, color: '#3b82f6' }}>✦ Click "Equip" to wear</div>
+          )}
         </div>
       )}
     </>
