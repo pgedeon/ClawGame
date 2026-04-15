@@ -1,4 +1,5 @@
 import React from 'react';
+import { DungeonMinimap } from './game/DungeonMinimap';
 import {
   TOWER_CONFIGS,
   TOWER_DISPLAY,
@@ -14,6 +15,7 @@ interface PreviewCanvasProps {
   playerMana: number;
   showTowerDefenseUi: boolean;
   onSelectTowerType: (towerType: TowerType) => void;
+  minimapData?: { playerX: number; playerY: number; entities: any[] };
 }
 
 export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
@@ -23,12 +25,23 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
   playerMana,
   showTowerDefenseUi,
   onSelectTowerType,
+  minimapData,
 }) => {
   return (
     <div ref={runtimeHostRef} className="game-preview-runtime-host">
       <canvas ref={canvasRef} className="game-preview-canvas" />
 
-      {showTowerDefenseUi && towerDefenseOverlay.enabled && (
+      {minimapData && minimapData.playerX !== 0 && (
+        <DungeonMinimap
+          playerX={minimapData.playerX}
+          playerY={minimapData.playerY}
+          entities={minimapData.entities}
+          worldWidth={800}
+          worldHeight={600}
+        />
+      )}
+
+      {showTowerDefenseUi && towerDefenseOverlay?.enabled && (
         <div className="td-selection-overlay">
           {towerDefenseOverlay.feedback && (
             <div className={`td-placement-feedback td-placement-feedback-${towerDefenseOverlay.feedback.kind}`}>

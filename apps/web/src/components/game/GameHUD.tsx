@@ -6,6 +6,7 @@
  */
 
 import React from 'react';
+import { DungeonMinimap, type MinimapEntity } from './DungeonMinimap';
 
 interface GameHUDProps {
   health: number;
@@ -16,6 +17,7 @@ interface GameHUDProps {
   totalRunes: number;
   isPaused: boolean;
   onPause: () => void;
+  minimapData?: { playerX: number; playerY: number; entities: MinimapEntity[] };
 }
 
 export function GameHUD({
@@ -27,6 +29,7 @@ export function GameHUD({
   totalRunes,
   isPaused,
   onPause,
+  minimapData,
 }: GameHUDProps) {
   const healthPct = maxHealth > 0 ? (health / maxHealth) * 100 : 100;
   const healthColor = healthPct > 50 ? '#22c55e' : healthPct > 25 ? '#eab308' : '#ef4444';
@@ -88,6 +91,16 @@ export function GameHUD({
           <span aria-hidden="true">{isPaused ? '▶️' : '⏸️'}</span>
         </button>
       </div>
+
+      {minimapData && minimapData.playerX !== 0 && (
+        <DungeonMinimap
+          playerX={minimapData.playerX}
+          playerY={minimapData.playerY}
+          entities={minimapData.entities}
+          worldWidth={800}
+          worldHeight={600}
+        />
+      )}
     </div>
   );
 }
