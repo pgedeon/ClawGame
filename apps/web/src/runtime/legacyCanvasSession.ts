@@ -22,6 +22,7 @@ import {
   GameLoopCoordinator,
   MovementSystem,
   PhysicsSystem,
+  DamageSystem,
   ProjectileSystem,
   PreviewHUD,
   type HUDState,
@@ -297,6 +298,9 @@ export function runLegacyCanvasPreviewSession(
   const projectileSystem = new ProjectileSystem({ width: canvas.width, height: canvas.height });
   projectileSystem.attach(collisionBus);
 
+  const damageSystem = new DamageSystem();
+  damageSystem.attach(collisionBus);
+
   // ─── Preview HUD Renderer (M14) ───
   const previewHUD = new PreviewHUD(ctx, { width: canvas.width, height: canvas.height });
 
@@ -524,17 +528,47 @@ let spellEffect: { x: number; y: number; startTime: number; duration: number; co
       // We only track invincibility flash timer for the renderer
       localInvincibleTimer = 1000;
     }),
-    collisionBus.on('projectile:hit', ({ targetId, targetType, damage }) => {
-      if (targetType !== 'enemy') return;
+    // Damage is now handled by DamageSystem via projectile:hit → StatsComponent.
+    // Sync engine damage results back to preview entities.
+ collisionBus.on('projectile:hit', ({ targetId, isSpell }) => {
+  if (!isSpell) return;
+  const target = entities.get(targetId);
+  if (!target) return;
+  // Screen flash burst at impact point
+  spellEffect = {
+    x: target.transform.x,
+    y: target.transform.y,
+    startTime: performance.now(),
+    duration: 0.15,
+    color: '#fb923c',
+    type: 'burst',
+  };
+  // Spell impact particles
+  for (let i = 0; i < 10; i++) {
+    const angle = (Math.PI * 2 * i) / 10;
+    deathParticles.push({
+      x: target.transform.x,
+      y: target.transform.y,
+      vx: Math.cos(angle) * 120,
+      vy: Math.sin(angle) * 120,
+      life: 400,
+      maxLife: 400,
+      color: '#fb923c',
+      size: 4 + Math.random() * 3,
+    });
+  }
+}),
 
-      const enemy = entities.get(targetId);
+    collisionBus.on('entity:damage', ({ entityId, remainingHealth }) => {
+      const enemy = entities.get(entityId);
       if (!enemy) return;
-
-      enemy.health -= damage;
+      enemy.health = remainingHealth;
       enemy.hitFlash = 200;
-      if (enemy.health <= 0) {
-        handleEnemyDefeat(enemy);
-      }
+    }),
+    collisionBus.on('entity:defeated', ({ entityId }) => {
+      const enemy = entities.get(entityId);
+      if (!enemy) return;
+      handleEnemyDefeat(enemy);
     }),
     collisionBus.on('collision:trigger', ({ event }) => {
       if (event === 'level_complete' || event === 'victory') {
@@ -1015,7 +1049,7 @@ let spellEffect: { x: number; y: number; startTime: number; duration: number; co
           const { dx, dy } = getMovementDirection(activeKeys);
           if (spell.effectType === 'heal') {
             // Trigger heal pulse effect
-            healPulse = { x: player.transform.x, y: player.transform.y, startTime: simulationTime, duration: 0.5 };
+            healPulse = { x: player.transform.x, y: player.transform.y, startTime: performance.now(), duration: 0.5 };
             coordinator.heal(spell.damage);
           } else if (spell.effectType === 'projectile') {
             projectiles.push({
@@ -1032,7 +1066,7 @@ let spellEffect: { x: number; y: number; startTime: number; duration: number; co
       spellEffect = {
         x: player.transform.x,
         y: player.transform.y,
-        startTime: simulationTime,
+        startTime: performance.now(),
         duration: spell.effectType === 'aoe' ? 0.7 : 0.4,
         color: spell.projectileColor,
         type: spell.effectType,
@@ -1079,6 +1113,7 @@ let spellEffect: { x: number; y: number; startTime: number; duration: number; co
     }
     movementSystem.update(runtimeScene, toEngineInputState(activeKeys), frameDeltaTime / 1000);
     physicsSystem.update(runtimeScene, frameDeltaTime / 1000);
+    damageSystem.update(runtimeScene, frameDeltaTime / 1000);
     applyPreviewRuntimeScene(runtimeScene, entities);
 
     if (isTDMode) {

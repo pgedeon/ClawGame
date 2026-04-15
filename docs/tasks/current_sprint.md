@@ -113,6 +113,14 @@ The correct move is to finish the runtime foundation before adding more M14 surf
 - Updated `runPreviewRuntimeSession` to combine Phaser preparation with legacy fallback instead of treating runtime selection as a single direct call path
 - Re-verified the host/preparation slice with `pnpm --filter @clawgame/web build`, `pnpm --filter @clawgame/web test`, and repo-root Vitest for `packages/phaser-runtime/src/buildPreviewBootstrap.test.ts`
 
+### 2026-04-15
+
+- Wired `DamageSystem` into the legacy canvas preview session so non-TD projectile hits now flow through engine-owned damage/death bookkeeping instead of inline `enemy.health -= damage` in the `projectile:hit` handler.
+- Added `StatsComponent` to enemy entities in `createPreviewRuntimeScene` so the engine DamageSystem can track health.
+- `applyPreviewRuntimeScene` now syncs health from engine StatsComponent back to preview entities.
+- Replaced inline `projectile:hit` → `enemy.health -= damage` handler with `entity:damage` / `entity:defeated` event listeners, delegating actual damage application to the engine.
+- Added 3 new preview-runtime-scene tests for StatsComponent creation and health sync (114 web tests total).
+
 ### 2026-04-14
 
 - Added engine `DamageSystem` (`packages/engine/src/systems/DamageSystem.ts`) that subscribes to `projectile:hit`, applies damage via `StatsComponent`, emits `entity:damage`/`entity:defeated`, and removes defeated entities. 7 tests passing.

@@ -66,6 +66,7 @@ export class ProjectileSystem {
           targetId: target.id,
           targetType: targetCollision.type,
           damage: projectile.damage,
+      isSpell: !!(projectile as any).isSpell,
         });
 
         if (projectile.destroyOnHit !== false) {

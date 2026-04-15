@@ -484,6 +484,7 @@ describe('ProjectileSystem', () => {
         targetId: 'enemy-1',
         targetType: 'enemy',
         damage: 25,
+  isSpell: false,
       },
     ]);
     expect(destroys).toEqual([

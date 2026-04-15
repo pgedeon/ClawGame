@@ -1,4 +1,4 @@
-import type { AIComponent, CollisionComponent, Component, Entity, InputState, MovementComponent, Scene } from '@clawgame/engine';
+import type { AIComponent, CollisionComponent, Component, Entity, InputState, MovementComponent, Scene, StatsComponent } from '@clawgame/engine';
 
 export interface PreviewRuntimeEntity {
   id: string;
@@ -12,6 +12,8 @@ export interface PreviewRuntimeEntity {
   components?: Record<string, any>;
   patrolOrigin?: { x: number; y: number };
   facing?: string;
+  health?: number;
+  maxHealth?: number;
 }
 
 function toTopLeft(entity: PreviewRuntimeEntity) {
@@ -109,6 +111,14 @@ function createEnemyAIComponent(
   };
 }
 
+function createStatsComponent(entity: PreviewRuntimeEntity): StatsComponent | null {
+  if (entity.type !== 'enemy') return null;
+  const hp = entity.health ?? entity.components?.stats?.health ?? 50;
+  const maxHp = entity.maxHealth ?? entity.components?.stats?.maxHealth ?? hp;
+  if (hp <= 0) return null;
+  return { health: hp, maxHealth: maxHp };
+}
+
 export function createPreviewRuntimeScene(
   entities: Iterable<PreviewRuntimeEntity>,
   options: {
@@ -126,7 +136,8 @@ export function createPreviewRuntimeScene(
 
     const movement = createMovementComponent(entity);
     const collision = createCollisionComponent(entity);
-    if (!movement && !collision) continue;
+    const stats = createStatsComponent(entity);
+    if (!movement && !collision && !stats) continue;
 
     const components = new Map<string, Component>();
     if (movement) {
@@ -134,6 +145,9 @@ export function createPreviewRuntimeScene(
     }
     if (collision) {
       components.set('collision', collision);
+    }
+    if (stats) {
+      components.set('stats', stats);
     }
 
     const runtimeEntity: Entity = {
@@ -173,6 +187,12 @@ export function applyPreviewRuntimeScene(runtimeScene: Scene, entities: Map<stri
     const movement = runtimeEntity.components.get('movement') as MovementComponent | undefined;
     if (movement?.vx) {
       previewEntity.facing = movement.vx > 0 ? 'right' : movement.vx < 0 ? 'left' : previewEntity.facing;
+    }
+
+    // Sync health from engine StatsComponent back to preview entity
+    const stats = runtimeEntity.components.get('stats') as StatsComponent | undefined;
+    if (stats && previewEntity.health !== undefined) {
+      previewEntity.health = stats.health;
     }
   }
 }

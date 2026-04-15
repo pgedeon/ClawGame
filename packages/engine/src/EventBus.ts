@@ -56,7 +56,7 @@ export interface EngineEvents {
   'collision:pickup': { playerId: string; collectibleId: string; type: string; value: number };
   'collision:damage': { playerId: string; enemyId: string; damage: number };
   'collision:trigger': { triggerId: string; entityId: string; event?: string; target?: string };
-  'projectile:hit': { projectileId: string; targetId: string; targetType?: string; damage: number };
+  'projectile:hit': { projectileId: string; targetId: string; targetType?: string; damage: number; isSpell?: boolean };
   'projectile:destroy': { projectileId: string; reason: 'hit' | 'blocked' | 'bounds' | 'expired'; targetId?: string; targetType?: string };
   'entity:damage': { entityId: string; damage: number; remainingHealth: number };
   'entity:defeated': { entityId: string; type: string };

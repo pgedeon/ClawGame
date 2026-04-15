@@ -75,8 +75,13 @@
 4. **Mobile responsiveness audit** — improve touch interactions across all pages
 5. **Template preview demos** — Add interactive examples for each template
 
+### 2026-04-15
+- Wired DamageSystem into legacy canvas preview session. Non-TD projectile hits now go through engine damage pipeline instead of inline health manipulation.
+- Enemy entities now get StatsComponent in the runtime scene. `applyPreviewRuntimeScene` syncs health back.
+- The `projectile:hit` handler in legacyCanvasSession.ts was replaced with `entity:damage` + `entity:defeated` listeners.
+- Still TODO: wire TD projectile damage through DamageSystem (TD enemies are excluded from the runtime scene).
+
 ### 2026-04-14
 - Added engine `DamageSystem` that subscribes to `projectile:hit` events, applies damage to `StatsComponent`, and emits `entity:damage` / `entity:defeated` events. Removes defeated entities from scene.
 - Added `entity:damage` and `entity:defeated` typed events to `EngineEvents` in EventBus.
 - This is the first step toward engine-owned combat/death bookkeeping instead of page-level simulation in `useGamePreview.ts`.
-- Next step: wire the preview TD system's `applyTowerDefenseProjectileDamage` to go through the engine DamageSystem instead of managing health/removal inline.
