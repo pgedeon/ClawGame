@@ -587,6 +587,29 @@ const [playerScore, setPlayerScore] = useState(0);
 
   useEffect(() => { highScoreRef.current = highScore; }, [highScore]);
 
+/* ─── Auto-Save ─── */
+useEffect(() => {
+  if (!gameStarted || gameOver) return;
+  const mgr = saveMgrRef.current as any;
+  if (!mgr.startAutoSave) return;
+
+  mgr.startAutoSave(() => {
+    const gls = gameLoopState.current;
+    if (!gls) return null;
+    return {
+      playerPosition: { x: 0, y: 0 },
+      playerHealth: gls.getHealth(),
+      playerScore: gls.getScore(),
+      inventory: (inventoryRef.current as any).serialize(),
+      quests: (questMgrRef.current as any).serialize(),
+      timestamp: Date.now(),
+      gameTime: timeElapsed,
+    } as any;
+  });
+
+  return () => { mgr.stopAutoSave?.(); };
+}, [gameStarted, gameOver, timeElapsed]);
+
 /* ─── Keyboard Shortcuts ─── */
 useEffect(() => {
   const handleKeyDown = (e: KeyboardEvent) => {
