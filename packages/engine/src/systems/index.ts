@@ -8,4 +8,3 @@ export { ProjectileSystem } from './ProjectileSystem';
 export { RenderSystem } from './RenderSystem';
 export { DamageSystem } from './DamageSystem';
 
-export type { CollisionEvent } from './CollisionSystem';

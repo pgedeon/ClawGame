@@ -21,6 +21,7 @@ export class PhaserSceneEditor extends Phaser.Scene {
   private selectedEntityId: string | null = null;
   private assetCache = new Map<string, HTMLImageElement>();
   private viewportZoom = 1;
+  private isReady = false;
   
   // Public API for React integration
   public onEntitySelected: (id: string) => void = () => {};
@@ -50,6 +51,7 @@ export class PhaserSceneEditor extends Phaser.Scene {
   }
 
   create(): void {
+    this.isReady = true;
     this.drawGrid();
     // Use events property from Phaser Scene
     if ('events' in this) {
@@ -64,6 +66,7 @@ export class PhaserSceneEditor extends Phaser.Scene {
   /* ─── Entity sync ─── */
 
   syncEntities(entities: Entity[], cache: Map<string, HTMLImageElement>): void {
+    if (!this.isReady || !this.add) return; // Guard against Scene not being initialized
     this.assetCache = cache;
     const activeIds = new Set(entities.map(e => e.id));
     for (const [id] of this.entityMap) {
@@ -75,6 +78,8 @@ export class PhaserSceneEditor extends Phaser.Scene {
   }
 
   private syncEntity(entity: Entity): void {
+    if (!this.isReady || !this.add) return; // Guard against Scene not being initialized
+    
     const existing = this.entityMap.get(entity.id);
     const comps = entity.components instanceof Map ? entity.components : new Map(Object.entries(entity.components || {}));
     const sprite = comps.get('sprite') as Sprite | undefined;
@@ -161,6 +166,7 @@ export class PhaserSceneEditor extends Phaser.Scene {
   }
 
   setViewport(x: number, y: number, zoom: number): void {
+    if (!this.isReady || !this.cameras.main) return;
     this.cameras.main.setScroll(x, y);
     this.cameras.main.setZoom(zoom);
     this.viewportZoom = zoom;
@@ -168,6 +174,7 @@ export class PhaserSceneEditor extends Phaser.Scene {
   }
 
   public showGhostEntity(template: { type: string; width: number; height: number; color: string } | null): void {
+    if (!this.isReady || !this.add) return;
     if (this.ghostObject) { this.ghostObject.destroy(); this.ghostObject = null; }
     if (!template) return;
     this.ghostObject = this.add.container(0, 0);
@@ -182,6 +189,7 @@ export class PhaserSceneEditor extends Phaser.Scene {
   }
 
   public drawGrid(): void {
+    if (!this.isReady || !this.add) return;
     if (!this.gridGraphics) {
       this.gridGraphics = this.add.graphics();
     }
@@ -200,13 +208,14 @@ export class PhaserSceneEditor extends Phaser.Scene {
   }
 
   private drawSelectionOverlay(): void {
+    if (!this.isReady || !this.add) return;
     if (!this.overlayGraphics) {
       this.overlayGraphics = this.add.graphics();
     }
     this.overlayGraphics.clear();
     if (!this.selectedEntityId) return;
     const render = this.entityMap.get(this.selectedEntityId);
-    if (!render) return;
+    if (!render || !render.container) return;
     this.overlayGraphics.lineStyle(2, 0xfacc15, 1);
     const bounds = render.container.getBounds();
     this.overlayGraphics.strokeRect(
