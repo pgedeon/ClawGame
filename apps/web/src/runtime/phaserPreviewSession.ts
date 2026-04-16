@@ -34,7 +34,8 @@ export function runPhaserPreviewSession(
   const runtime = new ClawgamePhaserRuntime();
 
   // Pick the right scene class based on genre
-  if (genre === 'td') {
+  // Note: genre values are 'platformer', 'rpg', 'puzzle', 'tower-defense'
+  if (genre === 'tower-defense') {
     runtime.setSceneFactory(() => new TowerDefenseScene());
   }
 
