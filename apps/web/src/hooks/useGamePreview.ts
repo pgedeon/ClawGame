@@ -131,7 +131,7 @@ export function useGamePreview(
   const pendingReplayStepMsRef = useRef(0);
 
   // Runtime kind from localStorage
-  const runtimeKind = localStorage.getItem('clawgame-preview-runtime') || 'legacy-canvas';
+  const runtimeKind = localStorage.getItem('clawgame-preview-runtime') || 'phaser4';
   const previewRuntime = {
     active: getRuntimeDescriptor(runtimeKind),
     kinds: RUNTIME_DESCRIPTORS,
@@ -260,43 +260,14 @@ export function useGamePreview(
     }
   }, []);
 
-  // Game loop hook
-  useEffect(() => {
-    if (!gameStarted || gamePaused || gameOver || victory) return;
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let lastTime = 0;
-    let currentTime = 0;
-
-    const gameLoop = (timestamp: number) => {
-      if (!lastTime) lastTime = timestamp;
-      const deltaTime = Math.min((timestamp - lastTime) / 1000, 0.1);
-      lastTime = timestamp;
-      currentTime += deltaTime;
-
-      setGameStats({ fps: 60, entities: 0, memory: '0MB' });
-      setTimeElapsed(prev => prev + deltaTime);
-      animationRef.current = requestAnimationFrame(gameLoop);
-    };
-
-    animationRef.current = requestAnimationFrame(gameLoop);
-
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-        animationRef.current = null;
-      }
-    };
-  }, [gameStarted, gamePaused, gameOver, victory]);
-
   // Initialize preview runtime session
   useEffect(() => {
-    if (!canvasRef.current) return;
+    // Check the right ref based on runtime kind
+    const needsCanvas = runtimeKind === 'legacy-canvas';
+    const needsHost = runtimeKind === 'phaser4';
+
+    if (needsCanvas && !canvasRef.current) return;
+    if (needsHost && !runtimeHostRef.current) return;
 
     const cleanup = runPreviewRuntimeSession(runtimeKind, {
       canvasRef, animationRef, gameStatsRef, highScoreRef, gameLoopState,
@@ -321,7 +292,7 @@ export function useGamePreview(
     highScoreRef,
     gameLoopState,
     runtimeHostRef,
-    
+
     // Core game state
     gameStarted,
     gamePaused,
@@ -334,7 +305,7 @@ export function useGamePreview(
     collectedRunes,
     timeElapsed,
     highScore,
-    
+
     // RPG state
     activePanel,
     notifications,
@@ -349,12 +320,7 @@ export function useGamePreview(
     learnedSpells,
     saveSlots,
     combatLogEntries,
-    
-    // Tower Defense state
-    towerDefenseOverlay,
-    selectedTowerType,
-    tdFeedback,
-    
+
     // Replay state
     hasReplay,
     playbackTime,
@@ -363,45 +329,25 @@ export function useGamePreview(
     isPlayingBack,
     isRecording,
     recordingTime,
-    
-    // Minimap state
-    minimapData,
-    
-    // Runtime info
+
+    // Refs
+    inventoryRef,
+    questMgrRef,
+    dialogueMgrRef,
+    spellMgrRef,
+    combatLogRef: combatLogManagerRef,
+    replayRecorderRef,
+    replayPlayerRef,
+    replayDataRef,
+    pendingReplayStepMsRef,
+
+    // Runtime
     previewRuntime,
-    
+
     // Controls
     controls,
-    
-    // Handlers
-    setActivePanel,
-    setGameStats,
-    setPlayerScore,
-    setPlayerHealth,
-    setPlayerMana,
-    setCollectedRunes,
-    setTimeElapsed,
-    setHighScore,
-    setTowerDefenseOverlayState: setTowerDefenseOverlay,
-    setSelectedTowerType,
-    setTdFeedback,
-    setHasReplay,
-    setPlaybackTime,
-    setPlaybackDuration,
-    setPlaybackProgress,
-    setIsPlayingBack,
-    setMinimapData,
-    setNotifications,
-    setInventoryItems,
-    setQuestList,
-    setDialogueSpeaker,
-    setDialoguePortrait,
-    setDialogueText,
-    setDialogueChoices,
-    setCraftingGrid,
-    setCraftResult,
-    setLearnedSpells,
-    setSaveSlots,
+
+    // Event handlers
     handleStartGame,
     handleRestart,
     handleBackToEditor,
@@ -410,9 +356,6 @@ export function useGamePreview(
     handleCraftingCell,
     handleLearnSpell,
     handleAssignHotkey,
-    handleSave,
-    handleLoad: () => {},
-    handleDeleteSave: () => {},
     handlePauseResume,
     handleDialogueChoice,
     handleSelectTowerType,
@@ -425,6 +368,19 @@ export function useGamePreview(
     handleResetReplay,
     handleDownloadReplay,
     handleClearCombatLog,
-    syncRPGState: syncRPGStateInternal,
+    setActivePanel,
+    syncRPGStateInternal,
+    handleSave,
+    handleLoad: (_slotId: number) => {},
+    handleDeleteSave: (_slotId: number) => {},
+
+    // Tower Defense
+    towerDefenseOverlay,
+    selectedTowerType,
+    tdFeedback,
+
+    // Minimap
+    minimapData,
+    setMinimapData,
   };
 }
