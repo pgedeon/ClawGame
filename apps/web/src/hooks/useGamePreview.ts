@@ -343,6 +343,7 @@ export function useGamePreview(
 
     // Runtime
     previewRuntime,
+    runtimeKind,
 
     // Controls
     controls,

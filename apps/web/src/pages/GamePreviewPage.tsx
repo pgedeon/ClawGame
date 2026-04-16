@@ -61,6 +61,7 @@ const GamePreviewContent: React.FC = () => {
     handleSelectTowerType,
     handleToggleRecording, handlePlayReplay, handlePauseReplay, handleSeekReplay, handleStepBackReplay, handleStepReplay, handleResetReplay, handleDownloadReplay,
     minimapData,
+    runtimeKind,
   } = useGamePreview(projectId ?? '', projectScene, projectGenre);
 
   if (loading) {
@@ -153,6 +154,7 @@ const GamePreviewContent: React.FC = () => {
               showTowerDefenseUi={gameStarted && !gameOver && !victory}
               onSelectTowerType={handleSelectTowerType}
               minimapData={minimapData}
+              runtimeKind={runtimeKind}
             />
           </div>
         ) : (
@@ -169,6 +171,7 @@ const GamePreviewContent: React.FC = () => {
                   playerMana={playerMana}
                   showTowerDefenseUi={gameStarted && !gameOver && !victory}
                   onSelectTowerType={handleSelectTowerType}
+                  runtimeKind={runtimeKind}
                 />
               </div>
             </div>
