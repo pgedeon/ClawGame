@@ -1,23 +1,23 @@
-import type { PreviewRuntimeSelection } from './PreviewRuntime';
+import type { MutableRefObject } from 'react';
 import {
   runLegacyCanvasPreviewSession,
   type LegacyCanvasPreviewSessionOptions,
 } from './legacyCanvasSession';
-import { preparePhaserPreviewSession } from './phaserPreviewSession';
+import {
+  preparePhaserPreviewSession,
+  runPhaserPreviewSession,
+} from './phaserPreviewSession';
 
-export type PreviewRuntimeSessionOptions = LegacyCanvasPreviewSessionOptions;
+export type PreviewRuntimeSelection = string;
+
+export interface PreviewRuntimeSessionOptions extends LegacyCanvasPreviewSessionOptions {
+  runtimeHostRef: MutableRefObject<HTMLDivElement | null>;
+}
 
 function combineCleanups(cleanups: Array<(() => void) | void>): (() => void) | void {
-  const activeCleanups = cleanups.filter((cleanup): cleanup is () => void => typeof cleanup === 'function');
-  if (activeCleanups.length === 0) {
-    return undefined;
-  }
-
-  return () => {
-    for (const cleanup of activeCleanups.reverse()) {
-      cleanup();
-    }
-  };
+  const activeCleanups = cleanups.filter((c): c is () => void => typeof c === 'function');
+  if (activeCleanups.length === 0) return undefined;
+  return () => { for (const c of activeCleanups.reverse()) c(); };
 }
 
 export function runPreviewRuntimeSession(
@@ -26,22 +26,19 @@ export function runPreviewRuntimeSession(
 ): (() => void) | void {
   const cleanups: Array<(() => void) | void> = [];
 
-  if (selection.requested.kind === 'phaser4') {
-    const phaserPreparation = preparePhaserPreviewSession(selection, options);
-    cleanups.push(phaserPreparation.cleanup);
-  }
-
-  switch (selection.active.kind) {
-    case 'legacy-canvas':
-      cleanups.push(runLegacyCanvasPreviewSession(options));
-      break;
-    case 'phaser4':
-      cleanups.push(runLegacyCanvasPreviewSession(options));
-      break;
-    default:
-      cleanups.push(runLegacyCanvasPreviewSession(options));
-      break;
+  if (selection === 'phaser4') {
+    const preparation = preparePhaserPreviewSession(selection, options);
+    cleanups.push(preparation.cleanup);
+    const hostEl = options.runtimeHostRef?.current;
+    if (hostEl) {
+      const session = runPhaserPreviewSession(hostEl, preparation.bootstrap, preparation.genre);
+      cleanups.push(session.destroy);
+    }
+  } else {
+    cleanups.push(runLegacyCanvasPreviewSession(options));
   }
 
   return combineCleanups(cleanups);
 }
+
+export type { PreviewRuntimeDescriptor } from './previewRuntimeConfig';

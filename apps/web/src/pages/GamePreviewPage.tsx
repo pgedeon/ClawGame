@@ -61,7 +61,7 @@ const GamePreviewContent: React.FC = () => {
     handleSelectTowerType,
     handleToggleRecording, handlePlayReplay, handlePauseReplay, handleSeekReplay, handleStepBackReplay, handleStepReplay, handleResetReplay, handleDownloadReplay,
     minimapData,
-  } = useGamePreview(projectId, projectScene, projectGenre);
+  } = useGamePreview(projectId ?? '', projectScene, projectGenre);
 
   if (loading) {
     return (
@@ -201,7 +201,7 @@ const GamePreviewContent: React.FC = () => {
           craftResult={craftResult}
           onCraftingCell={handleCraftingCell}
           onLearnSpell={handleLearnSpell}
-          learnedSpells={learnedSpells}
+          learnedSpells={learnedSpells as any}
           onAssignHotkey={handleAssignHotkey}
           saveSlots={saveSlots}
           gamePaused={gamePaused}

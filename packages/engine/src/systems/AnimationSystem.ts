@@ -8,7 +8,7 @@
  * - Emits 'animation:complete' for non-looping animations
  */
 
-import { Entity, Scene } from '../types';
+import { Entity, Scene, AnimationComponent } from '../types';
 import { EventBus } from '../EventBus';
 
 export class AnimationSystem {
@@ -20,69 +20,76 @@ export class AnimationSystem {
     this.eventBus = eventBus;
   }
 
-  update(scene: Scene, deltaTime: number): void {
-    scene.entities.forEach((entity) => {
-      this.updateEntity(entity, deltaTime);
-    });
-  }
-
-  private updateEntity(entity: Entity, deltaTime: number): void {
-    const anim = entity.components.get('animation');
-    if (!anim || !('frames' in anim)) return;
-
-    const frames = anim.frames as string[];
-    const frameRate = (anim as any).frameRate as number ?? 10;
-    const loop = (anim as any).loop as boolean ?? true;
-
-    if (frames.length === 0) return;
-    if (frames.length === 1) {
-      (anim as any).currentFrame = 0;
-      return;
-    }
-
-    const key = entity.id;
-    const prev = this.elapsed.get(key) ?? 0;
-    const total = prev + deltaTime;
-    const frameDuration = 1 / frameRate;
-
-    const currentFrame = (anim as any).currentFrame as number ?? 0;
-    const newElapsed = total;
-
-    // How many frame advances?
-    const framesAdvanced = Math.floor(newElapsed / frameDuration);
-    if (framesAdvanced > 0) {
-      let next = currentFrame + framesAdvanced;
-      if (loop) {
-        next = next % frames.length;
-      } else {
-        if (next >= frames.length - 1) {
-          next = frames.length - 1;
-          this.eventBus?.emit('animation:complete', {
-            entityId: entity.id,
-            entityName: entity.name,
-            animation: { frames, frameRate, loop },
-          });
-        }
-      }
-      (anim as any).currentFrame = next;
-      this.elapsed.set(key, newElapsed - framesAdvanced * frameDuration);
-    } else {
-      this.elapsed.set(key, newElapsed);
-    }
-  }
-
-  /** Reset animation state for a specific entity (e.g., on scene reload) */
-  resetEntity(entityId: string): void {
+  /** Untrack entity for animation timing */
+  remove(entityId: string): void {
     this.elapsed.delete(entityId);
   }
 
-  /** Reset all tracked state */
+  update(scene: Scene, deltaTime: number): void {
+    for (const entity of scene.entities.values()) {
+      const animation = entity.components.get('animation') as AnimationComponent | undefined;
+      if (!animation || !animation.frames || animation.frames.length === 0) continue;
+
+      const currentElapsed = this.elapsed.get(entity.id) || 0;
+      const newElapsed = currentElapsed + deltaTime;
+
+      // Simple animation progress: advance one frame per interval
+      const frameDuration = 1 / (animation.frameRate || 10);
+      const frameIndex = Math.floor(newElapsed / frameDuration);
+
+      // Track active state
+      const active = animation.active !== false;
+      if (!active) continue;
+
+      // Advance frame, handling loop vs end behavior
+      if (frameIndex < animation.frames.length) {
+        animation.currentFrame = frameIndex;
+      } else {
+        // Handle animation completion
+        if (!animation.loop) {
+          animation.currentFrame = animation.frames.length - 1;
+          animation.active = false;
+          this.eventBus?.emit('animation:complete', {
+            entityId: entity.id,
+            entityName: entity.type,
+            animation: {
+              frames: animation.frames,
+              frameRate: animation.frameRate,
+              loop: animation.loop,
+            },
+          });
+        } else {
+          // Loop animation: reset elapsed time and start from beginning
+          const loops = Math.floor(newElapsed / (frameDuration * animation.frames.length));
+          const localElapsed = newElapsed - loops * frameDuration * animation.frames.length;
+          const localFrameIndex = Math.floor(localElapsed / frameDuration);
+          animation.currentFrame = localFrameIndex;
+        }
+      }
+
+      // Track elapsed time for this entity
+      this.elapsed.set(entity.id, newElapsed);
+    }
+  }
+
+  /** Reset animation system state */
   reset(): void {
     this.elapsed.clear();
   }
 
+  /**
+   * Detach method for compatibility
+   */
+  detach(): void {
+    this.reset();
+    this.eventBus = null;
+  }
+
+  /**
+   * Destroy method for compatibility
+   */
   destroy(): void {
-    this.elapsed.clear();
+    this.reset();
     this.eventBus = null;
   }
 }

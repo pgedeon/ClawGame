@@ -159,4 +159,11 @@ export class PhysicsSystem {
       }
     }
   }
+
+  /**
+   * Detach method for compatibility
+   */
+  detach(): void {
+    // No cleanup required for physics system
+  }
 }

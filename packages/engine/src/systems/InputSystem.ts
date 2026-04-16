@@ -16,6 +16,20 @@ export class InputSystem {
   }
 
   /**
+   * Set input state directly (for replay integration)
+   */
+  setState(newState: InputState): void {
+    this.state = { ...newState };
+  }
+
+  /**
+   * Update input system (placeholder for compatibility)
+   */
+  update(scene: any, inputState: InputState): void {
+    this.state = { ...inputState };
+  }
+
+  /**
    * Bind to a canvas element for keyboard input
    */
   bind(canvas: HTMLCanvasElement): void {
@@ -89,34 +103,18 @@ export class InputSystem {
   }
 
   /**
-   * Update input state (placeholder for consistent API)
+   * Detach method for compatibility
    */
-  update(canvas: HTMLCanvasElement, inputState: InputState): void {
-    // The bind method handles event listening, no explicit update needed
-    // This method is for consistency with other systems
+  detach(): void {
+    this.unbind();
   }
 
   /**
-   * Check if the event target is an editable element (input, textarea, contenteditable)
-   * In those cases we don't want to preventDefault or steal keyboard input.
+   * Check if target element is editable (should not block input)
    */
-  private isEditableElement(element: Element | null): boolean {
-    if (!element) return false;
-
-    const tagName = element.tagName.toLowerCase();
-    if (tagName === 'input' || tagName === 'textarea' || tagName === 'select') {
-      return true;
-    }
-
-    if (element.getAttribute('contenteditable') === 'true') {
-      return true;
-    }
-
-    // Check for CodeMirror editor
-    if (element.closest('.cm-editor') || element.closest('.CodeMirror')) {
-      return true;
-    }
-
-    return false;
+  private isEditableElement(element: Element): boolean {
+    return element.tagName === 'INPUT' || 
+           element.tagName === 'TEXTAREA' || 
+           element.getAttribute('contenteditable') === 'true';
   }
 }

@@ -1,4 +1,5 @@
-import type { AIComponent, CollisionComponent, Component, Entity, InputState, MovementComponent, Scene, StatsComponent } from '@clawgame/engine';
+import type { AIComponent, CollisionComponent, Component, Entity, InputState, MovementComponent, Scene, StatsComponent, SpriteComponent } from '@clawgame/engine';
+import { createPlaceholderSprite } from './placeholderSprites';
 
 export interface PreviewRuntimeEntity {
   id: string;
@@ -65,6 +66,14 @@ function createCollisionComponent(entity: PreviewRuntimeEntity): CollisionCompon
     };
   }
 
+  if (entity.type === 'td-enemy') {
+    return {
+      width: entity.width,
+      height: entity.height,
+      type: 'enemy',
+    };
+  }
+
   if (entity.type === 'obstacle' || entity.type === 'platform') {
     return {
       width: entity.width,
@@ -77,46 +86,66 @@ function createCollisionComponent(entity: PreviewRuntimeEntity): CollisionCompon
   return null;
 }
 
-function createEnemyAIComponent(
-  entity: PreviewRuntimeEntity,
-  playerId: string | undefined,
-  player: PreviewRuntimeEntity | undefined,
-): AIComponent | null {
-  if (!playerId || !player) return null;
-
-  const speed = entity.components?.ai?.speed ?? 50;
-  const dx = player.transform.x - entity.transform.x;
-  const dy = player.transform.y - entity.transform.y;
-  const distance = Math.sqrt(dx * dx + dy * dy);
-  const range = entity.components?.ai?.range ?? 200;
-
-  if (distance <= range) {
-    return {
-      type: 'chase',
-      targetEntity: playerId,
-      speed,
-      range,
+function createStatsComponent(entity: PreviewRuntimeEntity): StatsComponent | null {
+  if (entity.type === 'enemy' || entity.type === 'td-enemy') {
+    const hp = entity.health ?? entity.components?.stats?.health ?? entity.components?.ai?.health ?? 50;
+    const maxHp = entity.maxHealth ?? entity.components?.stats?.maxHealth ?? entity.components?.ai?.maxHealth ?? hp;
+    if (hp <= 0) return null;
+    return { 
+      health: hp, 
+      maxHealth: maxHp,
+      attackPower: entity.components?.ai?.attackPower,
+      defense: entity.components?.stats?.defense ?? 0
+    };
+  }
+  
+  // For other entity types that might have stats
+  if (entity.type === 'player') {
+    const hp = entity.health ?? entity.components?.stats?.health ?? 100;
+    const maxHp = entity.maxHealth ?? entity.components?.stats?.maxHealth ?? hp;
+    return { 
+      health: hp, 
+      maxHealth: maxHp,
+      defense: entity.components?.stats?.defense ?? 0
     };
   }
 
-  const origin = entity.patrolOrigin ?? { x: entity.transform.x, y: entity.transform.y };
-  const travel = 100;
+  return null;
+}
+
+function createSpriteComponent(entity: PreviewRuntimeEntity): SpriteComponent {
+  const spriteColor = entity.components?.sprite?.color;
+  
+  // Create placeholder image for this entity type
+  const image = createPlaceholderSprite(
+    entity.type,
+    entity.width,
+    entity.height,
+    spriteColor
+  );
+
   return {
-    type: 'patrol',
-    patrolStart: { x: origin.x - travel - entity.width / 2, y: origin.y - entity.height / 2 },
-    patrolEnd: { x: origin.x + travel - entity.width / 2, y: origin.y - entity.height / 2 },
-    patrolSpeed: speed,
-    speed,
-    range,
+    width: entity.width,
+    height: entity.height,
+    image,
+    color: spriteColor,
+    offsetX: 0,
+    offsetY: 0,
   };
 }
 
-function createStatsComponent(entity: PreviewRuntimeEntity): StatsComponent | null {
-  if (entity.type !== 'enemy') return null;
-  const hp = entity.health ?? entity.components?.stats?.health ?? 50;
-  const maxHp = entity.maxHealth ?? entity.components?.stats?.maxHealth ?? hp;
-  if (hp <= 0) return null;
-  return { health: hp, maxHealth: maxHp };
+function createAIComponent(entity: PreviewRuntimeEntity): AIComponent | null {
+  if (entity.type === 'enemy' || entity.type === 'td-enemy') {
+    const ai = entity.components?.ai || {};
+    return {
+      type: ai.type || 'patrol',
+      speed: ai.speed || 50,
+      health: ai.health || (entity.health || 50),
+      attackPower: ai.attackPower || 10,
+    };
+  }
+  
+  return null;
 }
 
 export function createPreviewRuntimeScene(
@@ -131,13 +160,16 @@ export function createPreviewRuntimeScene(
   const playerId = player?.id;
 
   for (const entity of previewEntities) {
-    if (!['player', 'enemy', 'obstacle', 'platform'].includes(entity.type)) continue;
-    if (options.isTowerDefense && entity.type === 'enemy') continue;
+    // Include all entity types, but focus on core ones for runtime
+    if (!['player', 'enemy', 'td-enemy', 'obstacle', 'platform', 'core'].includes(entity.type)) continue;
 
     const movement = createMovementComponent(entity);
     const collision = createCollisionComponent(entity);
     const stats = createStatsComponent(entity);
-    if (!movement && !collision && !stats) continue;
+    const sprite = createSpriteComponent(entity);
+    const ai = createAIComponent(entity);
+    
+    if (!movement && !collision && !stats && !ai) continue;
 
     const components = new Map<string, Component>();
     if (movement) {
@@ -149,6 +181,10 @@ export function createPreviewRuntimeScene(
     if (stats) {
       components.set('stats', stats);
     }
+    if (ai) {
+      components.set('ai', ai);
+    }
+    components.set('sprite', sprite);
 
     const runtimeEntity: Entity = {
       id: entity.id,
@@ -157,22 +193,11 @@ export function createPreviewRuntimeScene(
       components,
     };
 
-    if (entity.type === 'player') {
-      runtimeEntity.components.set('playerInput', {});
-    }
-
-    if (entity.type === 'enemy') {
-      const ai = createEnemyAIComponent(entity, playerId, player);
-      if (ai) {
-        runtimeEntity.components.set('ai', ai);
-      }
-    }
-
-    runtimeEntities.set(runtimeEntity.id, runtimeEntity);
+    runtimeEntities.set(entity.id, runtimeEntity);
   }
 
   return {
-    name: 'preview-runtime-scene',
+    name: 'preview-scene',
     entities: runtimeEntities,
   };
 }

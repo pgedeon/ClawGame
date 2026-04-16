@@ -6,19 +6,34 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import {
-  BehaviorGraph,
-  BehaviorNode,
-  BehaviorEdge,
-  BehaviorNodeType,
-  CompositeKind,
-  DecoratorKind,
-  ConditionKind,
-  ActionKind,
-} from '@clawgame/engine';
 import { useToast } from '../components/Toast';
 import { logger } from '../utils/logger';
 import '../scene-editor.css';
+
+type BehaviorNodeType = 'composite' | 'condition' | 'action' | 'decorator';
+
+interface BehaviorNode {
+  id: string;
+  type: BehaviorNodeType;
+  data: Record<string, unknown>;
+  label: string;
+}
+
+interface BehaviorEdge {
+  id: string;
+  from: string;
+  to: string;
+}
+
+interface BehaviorGraph {
+  id: string;
+  name: string;
+  root: string;
+  nodes: BehaviorNode[];
+  edges: BehaviorEdge[];
+  variables: Record<string, unknown>;
+  tags: string[];
+}
 
 interface GraphNode {
   id: string;

@@ -19,7 +19,7 @@ export type { Entity, Transform, Scene, SerializableEntity };
 export { toSerializableEntity, toRuntimeEntity };
 
 // Tool modes for the editor
-export type ToolMode = 'select' | 'move' | 'add-entity';
+export type ToolMode = 'select' | 'move' | 'add-entity' | 'pan' | 'paint-tile' | 'erase';
 
 // Entity templates for quick creation
 export interface EntityTemplate {
@@ -81,6 +81,67 @@ export const ENTITY_TEMPLATES: EntityTemplate[] = [
       const m = new Map<string, any>();
       m.set('sprite', { width: 32, height: 32, color: '#475569' });
       m.set('collision', { width: 32, height: 32, type: 'wall' });
+      return m;
+    })(),
+  },
+  {
+    id: 'platform',
+    type: 'obstacle',
+    name: '▬ Platform',
+    transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+    components: (() => {
+      const m = new Map<string, any>();
+      m.set('sprite', { width: 128, height: 16, color: '#64748b' });
+      m.set('collision', { width: 128, height: 16, type: 'wall' });
+      return m;
+    })(),
+  },
+  {
+    id: 'npc',
+    type: 'npc',
+    name: '🧑 NPC',
+    transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+    components: (() => {
+      const m = new Map<string, any>();
+      m.set('sprite', { width: 32, height: 48, color: '#22c55e' });
+      m.set('collision', { width: 32, height: 48, type: 'none' });
+      m.set('ai', { type: 'idle' });
+      return m;
+    })(),
+  },
+  {
+    id: 'zone',
+    type: 'custom',
+    name: '📡 Trigger Zone',
+    transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+    components: (() => {
+      const m = new Map<string, any>();
+      m.set('sprite', { width: 64, height: 64, color: '#a855f7' });
+      m.set('collision', { width: 64, height: 64, type: 'collectible' });
+      return m;
+    })(),
+  },
+  {
+    id: 'text',
+    type: 'custom',
+    name: '📝 Text Label',
+    transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+    components: (() => {
+      const m = new Map<string, any>();
+      m.set('sprite', { width: 100, height: 24, color: '#1e293b' });
+      m.set('text', { content: 'Hello!', fontSize: 16, color: '#ffffff' });
+      return m;
+    })(),
+  },
+  {
+    id: 'particles',
+    type: 'custom',
+    name: '🔥 Particle Emitter',
+    transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+    components: (() => {
+      const m = new Map<string, any>();
+      m.set('sprite', { width: 16, height: 16, color: '#f97316' });
+      m.set('particles', { rate: 10, lifespan: 1000, speed: 50, color: '#f97316' });
       return m;
     })(),
   },

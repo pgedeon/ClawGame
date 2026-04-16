@@ -1,39 +1,43 @@
-import type { PreviewRuntimeSelection } from './PreviewRuntime';
 import type { LegacyCanvasPreviewSessionOptions } from './legacyCanvasSession';
 import {
+  ClawgamePhaserRuntime,
   buildPhaserPreviewBootstrap,
   type PhaserPreviewBootstrap,
 } from '../../../../packages/phaser-runtime/src';
+import { TowerDefenseScene } from './TowerDefenseScene';
 
 export interface PhaserPreviewPreparation {
   bootstrap: PhaserPreviewBootstrap;
+  genre: string;
   cleanup: () => void;
 }
 
 export function preparePhaserPreviewSession(
-  selection: PreviewRuntimeSelection,
+  _selection: string,
   options: LegacyCanvasPreviewSessionOptions,
 ): PhaserPreviewPreparation {
-  const bootstrap = buildPhaserPreviewBootstrap(options.activeScene);
-  const runtimeHost = options.runtimeHostRef.current;
-
-  if (runtimeHost) {
-    runtimeHost.dataset.previewRuntimeRequested = selection.requested.kind;
-    runtimeHost.dataset.previewRuntimePrepared = 'phaser4';
-    runtimeHost.dataset.previewRuntimePreparedEntities = String(bootstrap.metadata.entityCount);
-    runtimeHost.dataset.previewRuntimePreparedAssets = String(bootstrap.metadata.assetCount);
-    runtimeHost.dataset.previewRuntimeFallback = selection.fellBack ? 'true' : 'false';
-  }
+  const sceneData = options.activeScene?.current ?? options.activeScene;
+  const bootstrap = buildPhaserPreviewBootstrap(sceneData || { entities: [], name: 'empty' });
 
   return {
     bootstrap,
-    cleanup: () => {
-      if (!runtimeHost) return;
-      delete runtimeHost.dataset.previewRuntimeRequested;
-      delete runtimeHost.dataset.previewRuntimePrepared;
-      delete runtimeHost.dataset.previewRuntimePreparedEntities;
-      delete runtimeHost.dataset.previewRuntimePreparedAssets;
-      delete runtimeHost.dataset.previewRuntimeFallback;
-    },
+    genre: options.projectGenre || 'platformer',
+    cleanup: () => {},
   };
+}
+
+export function runPhaserPreviewSession(
+  hostElement: HTMLDivElement,
+  bootstrap: PhaserPreviewBootstrap,
+  genre?: string,
+): { destroy: () => void } {
+  const runtime = new ClawgamePhaserRuntime();
+
+  // Pick the right scene class based on genre
+  if (genre === 'td') {
+    runtime.setSceneFactory(() => new TowerDefenseScene());
+  }
+
+  runtime.mount(hostElement, bootstrap);
+  return { destroy: () => runtime.destroy() };
 }

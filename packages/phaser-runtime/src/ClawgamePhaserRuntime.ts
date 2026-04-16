@@ -23,6 +23,53 @@ export const PHASER4_RUNTIME_DESCRIPTOR: PhaserRuntimeDescriptor = {
 
 type SceneFactory = () => ClawgamePhaserScene;
 
+/**
+ * Creates a minimal placeholder scene that auto-replaces itself
+ * with the real scene once Phaser systems are ready.
+ */
+export class PlaceholderScene extends Scene {
+  private realScene: ClawgamePhaserScene;
+  private bootstrap: PhaserPreviewBootstrap;
+
+  constructor(realScene: ClawgamePhaserScene, bootstrap: PhaserPreviewBootstrap) {
+    super({ key: bootstrap.sceneKey ?? 'clawgame-phaser-preview' });
+    this.realScene = realScene;
+    this.bootstrap = bootstrap;
+  }
+
+  init(): void {
+    // Copy Phaser systems to the real scene instance
+    const systems = [
+      'sys', 'game', 'cameras', 'add', 'make', 'physics',
+      'input', 'time', 'anims', 'load', 'events', 'children',
+      'scene', 'displayList', 'updateList',
+    ];
+    for (const s of systems) {
+      try { (this.realScene as any)[s] = (this as any)[s]; } catch {}
+    }
+    // Set bootstrap
+    if (typeof this.realScene.init === 'function') {
+      this.realScene.init({ bootstrap: this.bootstrap });
+    } else {
+      this.realScene.setBootstrap(this.bootstrap);
+    }
+  }
+
+  preload(): void {
+    if (typeof this.realScene.preload === 'function') {
+      this.realScene.preload();
+    }
+  }
+
+  create(): void {
+    this.realScene.create();
+  }
+
+  update(time: number, delta: number): void {
+    this.realScene.update(time, delta);
+  }
+}
+
 export class ClawgamePhaserRuntime {
   readonly kind = PHASER4_RUNTIME_DESCRIPTOR.kind;
   readonly descriptor = PHASER4_RUNTIME_DESCRIPTOR;
@@ -52,11 +99,8 @@ export class ClawgamePhaserRuntime {
     const width = opts?.width ?? bootstrap.bounds?.width ?? 800;
     const height = opts?.height ?? bootstrap.bounds?.height ?? 600;
 
-    const sceneKey = bootstrap.sceneKey ?? 'clawgame-phaser-preview';
     const sceneInstance = this.createScene();
-
-    // Store bootstrap so the scene can pick it up in init()
-    (sceneInstance as any).__clawgame_bootstrap = bootstrap;
+    const placeholder = new PlaceholderScene(sceneInstance, bootstrap);
 
     this.game = new Game({
       type: AUTO,
@@ -64,34 +108,7 @@ export class ClawgamePhaserRuntime {
       height,
       parent,
       backgroundColor: bootstrap.backgroundColor ?? '#0f172a',
-      scene: {
-        key: sceneKey,
-        // Use init to inject bootstrap before create runs
-        init: function(this: Phaser.Scene, data: any) {
-          sceneInstance['scene'] = this.scene;
-          // Copy Phaser's internal systems to our scene
-          (sceneInstance as any).sys = this.sys;
-          (sceneInstance as any).game = this.game;
-          (sceneInstance as any).cameras = this.cameras;
-          (sceneInstance as any).add = this.add;
-          (sceneInstance as any).make = this.make;
-          (sceneInstance as any).physics = this.physics;
-          (sceneInstance as any).input = this.input;
-          (sceneInstance as any).time = this.time;
-          (sceneInstance as any).anims = this.anims;
-          (sceneInstance as any).load = this.load;
-          (sceneInstance as any).events = this.events;
-          (sceneInstance as any).children = this.children;
-          // Set bootstrap
-          sceneInstance.setBootstrap(data?.bootstrap ?? bootstrap);
-        },
-        create: function(this: Phaser.Scene) {
-          sceneInstance.create();
-        },
-        update: function(this: Phaser.Scene, time: number, delta: number) {
-          sceneInstance.update(time, delta);
-        },
-      },
+      scene: [placeholder],
       physics: {
         default: 'arcade',
         arcade: { debug: false },

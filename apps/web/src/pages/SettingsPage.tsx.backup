@@ -60,11 +60,6 @@ export function SettingsPage() {
   const [apiStatus, setApiStatus] = useState<'unknown' | 'connected' | 'error'>('unknown');
   const runtimeSelection = resolvePreviewRuntimeSelection({
     getItem: (key) => key === 'clawgame-preview-runtime' ? previewRuntime : null,
-    setItem: (key: string, value: string) => {
-      if (key === "clawgame-preview-runtime") {
-        setPreviewRuntime(value as PreviewRuntimeKind);
-      }
-    },
   });
 
   // Apply theme changes

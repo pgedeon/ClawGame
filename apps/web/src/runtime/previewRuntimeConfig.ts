@@ -1,25 +1,25 @@
+import { LEGACY_CANVAS_RUNTIME_DESCRIPTOR } from './legacyCanvasRuntime';
 import type {
+  PreviewRuntimeKind,
+  PreviewRuntimeDescriptor,
+  PreviewRuntimeSelection,
+} from './PreviewRuntime';
+
+export type {
   PreviewRuntimeDescriptor,
   PreviewRuntimeKind,
   PreviewRuntimeSelection,
 } from './PreviewRuntime';
-import { LEGACY_CANVAS_RUNTIME_DESCRIPTOR } from './legacyCanvasRuntime';
 
-interface StorageLike {
-  getItem(key: string): string | null;
-  setItem?(key: string, value: string): void;
-}
-
-export const PREVIEW_RUNTIME_STORAGE_KEY = 'clawgame-preview-runtime';
-export const DEFAULT_PREVIEW_RUNTIME_KIND: PreviewRuntimeKind = 'legacy-canvas';
+export const DEFAULT_PREVIEW_RUNTIME_KIND: PreviewRuntimeKind = 'phaser4';
 
 export const PHASER4_RUNTIME_DESCRIPTOR: PreviewRuntimeDescriptor = {
   kind: 'phaser4',
   label: 'Phaser 4 Runtime',
   shortLabel: 'Phaser 4',
-  description: 'Phaser 4 backend scaffold with canonical scene bootstrap mapping; mount path still pending.',
-  experimental: true,
-  available: false,
+  description: 'Phaser 4 runtime with Arcade physics, scene bootstrap, and entity rendering.',
+  experimental: false,
+  available: true,
 };
 
 const PREVIEW_RUNTIME_DESCRIPTORS: Record<PreviewRuntimeKind, PreviewRuntimeDescriptor> = {
@@ -27,58 +27,47 @@ const PREVIEW_RUNTIME_DESCRIPTORS: Record<PreviewRuntimeKind, PreviewRuntimeDesc
   phaser4: PHASER4_RUNTIME_DESCRIPTOR,
 };
 
+type StorageLike = { getItem(key: string): string | null; setItem(key: string, value: string): void };
+
 function getDefaultStorage(): StorageLike | undefined {
-  if (typeof window === 'undefined') {
-    return undefined;
-  }
+  if (typeof window === 'undefined') return undefined;
   return window.localStorage;
 }
 
 function normalizePreviewRuntimeKind(value: string | null | undefined): PreviewRuntimeKind | null {
-  if (value === 'legacy-canvas' || value === 'phaser4') {
-    return value;
-  }
+  if (value === 'legacy-canvas' || value === 'phaser4') return value;
   return null;
 }
 
-export function getRequestedPreviewRuntimeKind(storage: StorageLike | undefined = getDefaultStorage()): PreviewRuntimeKind {
-  const configured = normalizePreviewRuntimeKind(storage?.getItem(PREVIEW_RUNTIME_STORAGE_KEY));
-  return configured ?? DEFAULT_PREVIEW_RUNTIME_KIND;
+export const PREVIEW_RUNTIME_STORAGE_KEY = 'clawgame-preview-runtime';
+
+export function listPreviewRuntimeDescriptors(): PreviewRuntimeDescriptor[] {
+  return Object.values(PREVIEW_RUNTIME_DESCRIPTORS);
 }
 
 export function getPreviewRuntimeDescriptor(kind: PreviewRuntimeKind): PreviewRuntimeDescriptor {
   return PREVIEW_RUNTIME_DESCRIPTORS[kind];
 }
 
-export function listPreviewRuntimeDescriptors(): PreviewRuntimeDescriptor[] {
-  return Object.values(PREVIEW_RUNTIME_DESCRIPTORS);
+export function getRequestedPreviewRuntimeKind(storage?: StorageLike): PreviewRuntimeKind {
+  const s = storage ?? getDefaultStorage();
+  const stored = normalizePreviewRuntimeKind(s?.getItem(PREVIEW_RUNTIME_STORAGE_KEY) ?? null);
+  return stored ?? DEFAULT_PREVIEW_RUNTIME_KIND;
 }
 
-export function setRequestedPreviewRuntimeKind(
-  kind: PreviewRuntimeKind,
-  storage: StorageLike | undefined = getDefaultStorage(),
-): void {
-  storage?.setItem?.(PREVIEW_RUNTIME_STORAGE_KEY, kind);
+export function setRequestedPreviewRuntimeKind(kind: PreviewRuntimeKind, storage?: StorageLike): void {
+  const s = storage ?? getDefaultStorage();
+  s?.setItem(PREVIEW_RUNTIME_STORAGE_KEY, kind);
 }
 
-export function resolvePreviewRuntimeSelection(
-  storage: StorageLike | undefined = getDefaultStorage(),
-): PreviewRuntimeSelection {
+export function resolvePreviewRuntimeSelection(storage?: StorageLike): PreviewRuntimeSelection {
   const requestedKind = getRequestedPreviewRuntimeKind(storage);
-  const requested = getPreviewRuntimeDescriptor(requestedKind);
+  const requested = PREVIEW_RUNTIME_DESCRIPTORS[requestedKind];
 
   if (requested.available) {
-    return {
-      active: requested,
-      requested,
-      fellBack: false,
-    };
+    return { requested, active: requested, fellBack: false };
   }
 
-  return {
-    active: LEGACY_CANVAS_RUNTIME_DESCRIPTOR,
-    requested,
-    fellBack: requested.kind !== LEGACY_CANVAS_RUNTIME_DESCRIPTOR.kind,
-    reason: `${requested.label} has scene bootstrap scaffolding but is not mounted by the preview yet.`,
-  };
+  const fallback = LEGACY_CANVAS_RUNTIME_DESCRIPTOR;
+  return { requested, active: fallback, fellBack: true, reason: `${requested.shortLabel} not available` };
 }

@@ -1,17 +1,17 @@
-import * as Phaser from 'phaser';
+import { Scene, GameObjects } from 'phaser';
 import type { PhaserPreviewBootstrap, PhaserPreviewEntity } from './types';
 
 /**
- * ClawgamePhaserScene — base preview scene extending Phaser.Scene.
+ * ClawgamePhaserScene — base preview scene extending Phaser Scene.
  * Renders canonical entities as color-coded shapes.
  */
-export class ClawgamePhaserScene extends Phaser.Scene {
+export class ClawgamePhaserScene extends Scene {
   protected bootstrap: PhaserPreviewBootstrap | null = null;
-  private entitySprites: Map<string, Phaser.GameObjects.Rectangle | Phaser.GameObjects.Image> = new Map();
+  private entitySprites: Map<string, GameObjects.Rectangle | GameObjects.Image> = new Map();
   private _initialized = false;
 
-  constructor(config?: string | Phaser.Types.Scenes.SettingsObject) {
-    super(typeof config === 'string' ? config : (config as any)?.key || 'clawgame-preview');
+  constructor(config?: string | any) {
+    super(config || 'clawgame-preview');
   }
 
   setBootstrap(bootstrap: PhaserPreviewBootstrap): void {
@@ -31,13 +31,21 @@ export class ClawgamePhaserScene extends Phaser.Scene {
 
   create(): void {
     if (!this.bootstrap) return;
-    this.cameras.main.setBackgroundColor(this.bootstrap.backgroundColor || '#1a1a2e');
+    try {
+      this.cameras?.main?.setBackgroundColor(this.bootstrap.backgroundColor || '#1a1a2e');
+    } catch {}
     const bounds = this.bootstrap.bounds || { width: 800, height: 600 };
-    this.physics.world.setBounds(0, 0, bounds.width, bounds.height);
+    try {
+      this.physics?.world?.setBounds(0, 0, bounds.width, bounds.height);
+    } catch {}
     for (const entity of this.bootstrap.entities) {
-      this.createEntity(entity);
+      try { this.createEntity(entity); } catch {}
     }
     this._initialized = true;
+  }
+
+  init(_data?: any): void {
+    // Optional — override in subclasses to receive bootstrap data
   }
 
   update(_time: number, _delta: number): void {
@@ -45,10 +53,11 @@ export class ClawgamePhaserScene extends Phaser.Scene {
   }
 
   protected createEntity(entity: PhaserPreviewEntity): void {
-    let obj: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Image;
+    if (!this.add) return;
+    let obj: GameObjects.Rectangle | GameObjects.Image;
     if (entity.assetKey) {
       obj = this.add.image(entity.x, entity.y, entity.assetKey);
-      (obj as Phaser.GameObjects.Image).setDisplaySize(entity.width, entity.height);
+      (obj as GameObjects.Image).setDisplaySize(entity.width, entity.height);
     } else {
       const color = this.getColorForType(entity.type);
       obj = this.add.rectangle(entity.x, entity.y, entity.width, entity.height, color);
@@ -57,7 +66,7 @@ export class ClawgamePhaserScene extends Phaser.Scene {
     obj.setScale(entity.scaleX || 1, entity.scaleY || 1);
     obj.setOrigin(0.5, 0.5);
 
-    if (entity.body.kind !== 'none') {
+    if (entity.body.kind !== 'none' && this.physics) {
       this.physics.add.existing(obj, entity.body.kind === 'static');
       const body = (obj as any).body as Phaser.Physics.Arcade.Body | undefined;
       if (body) {
@@ -79,7 +88,7 @@ export class ClawgamePhaserScene extends Phaser.Scene {
     return colors[type] || 0x8b5cf6;
   }
 
-  getEntity(id: string): Phaser.GameObjects.GameObject | undefined { return this.entitySprites.get(id); }
-  getEntities(): Map<string, Phaser.GameObjects.Rectangle | Phaser.GameObjects.Image> { return this.entitySprites; }
+  getEntity(id: string): GameObjects.GameObject | undefined { return this.entitySprites.get(id); }
+  getEntities(): Map<string, GameObjects.Rectangle | GameObjects.Image> { return this.entitySprites; }
   get isReady(): boolean { return this._initialized; }
 }

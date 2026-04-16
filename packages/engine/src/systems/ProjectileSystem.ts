@@ -106,4 +106,11 @@ export class ProjectileSystem {
     const overlapY = Math.min(ay + a.height, by + b.height) - Math.max(ay, by);
     return overlapX > 0 && overlapY > 0;
   }
+
+  /**
+   * Detach method for compatibility
+   */
+  detach(): void {
+    this.eventBus = null;
+  }
 }

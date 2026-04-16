@@ -60,4 +60,11 @@ export class AISystem {
     movement.vx = Math.cos(angle) * speed * 60;
     movement.vy = Math.sin(angle) * speed * 60;
   }
+
+  /**
+   * Detach method for compatibility
+   */
+  detach(): void {
+    // No cleanup required for AI system
+  }
 }

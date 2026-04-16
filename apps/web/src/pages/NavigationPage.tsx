@@ -5,15 +5,7 @@
  */
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import {
-  NavigationSystem,
-  createWaypoint,
-  createNavigationPath,
-  type Waypoint,
-  type NavigationPath,
-  type NavigationState,
-} from '@clawgame/engine';
+import { useParams } from 'react-router-dom';
 import { useToast } from '../components/Toast';
 import { logger } from '../utils/logger';
 import '../scene-editor.css';
@@ -39,7 +31,6 @@ interface NavigationPathData {
 
 export function NavigationPage() {
   const { projectId } = useParams<{ projectId: string }>();
-  const navigate = useNavigate();
   const toast = useToast();
 
   const [waypoints, setWaypoints] = useState<WaypointNode[]>([]);

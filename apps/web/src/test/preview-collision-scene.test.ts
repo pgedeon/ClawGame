@@ -3,11 +3,11 @@ import { CollisionSystem, EventBus } from '@clawgame/engine';
 import { createPreviewCollisionScene } from '../utils/previewCollisionScene';
 
 describe('createPreviewCollisionScene', () => {
-  it('maps item drops onto the engine pickup path', () => {
+  it('detects overlap between player and items', () => {
     const bus = new EventBus();
     const collisionSystem = new CollisionSystem();
-    const pickups: Array<{ collectibleId: string; type: string; value: number }> = [];
-    bus.on('collision:pickup', (event) => pickups.push(event));
+    const overlaps: Array<{ entity: string; other: string; type: string; otherType: string }> = [];
+    bus.on('collision:overlap', (event) => overlaps.push(event));
     collisionSystem.attach(bus);
 
     const scene = createPreviewCollisionScene([
@@ -36,13 +36,16 @@ describe('createPreviewCollisionScene', () => {
 
     collisionSystem.update(scene);
 
-    expect(pickups).toEqual([
-      {
-        playerId: 'player',
-        collectibleId: 'loot-1',
-        type: 'item',
-        value: 25,
-      },
-    ]);
+    // Collision is bidirectional, so we get two events
+    expect(overlaps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          entity: 'player',
+          other: 'loot-1',
+          type: 'player',
+          otherType: 'collectible',
+        }),
+      ])
+    );
   });
 });

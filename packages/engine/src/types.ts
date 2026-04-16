@@ -1,53 +1,13 @@
-export interface AnimationState {
-  name: string;
-  animation: AnimationComponent;
-  /** Whether this state can loop indefinitely */
-  canLoop: boolean;
-  /** Default transition when this state completes */
-  defaultTransition?: string;
-  /** List of possible transitions to other states */
-  transitions: AnimationTransition[];
-}
-
-export interface AnimationTransition {
-  to: string;
-  delay?: number;
-  conditions: AnimationCondition[];
-}
-
-export interface AnimationCondition {
-  type: 'timer' | 'input' | 'health' | 'state' | 'random';
-  params?: Record<string, any>;
-  /** Comparison operator ('=', '>', '<', '>=', '<=') */
-  operator?: string;
-  /** Value to compare against */
-  value?: any;
-}
-
-export interface AnimationStateMachineComponent {
-  /** Current active state name */
-  currentState: string;
-  /** Map of all animation states */
-  states: { [stateName: string]: AnimationState };
-  /** Track transition timing */
-  transitionTimer?: number;
-  /** Whether state machine is active */
-  active: boolean;
-}
-
 export interface AnimationComponent {
   frames: string[];
   frameRate: number;
   loop: boolean;
   currentFrame?: number;
   active?: boolean;
-  states?: { [stateName: string]: AnimationState };
-  currentState?: string;
 }
 
 // ─── Component Types ───
 
-/** Transform component for entity positioning and scaling */
 export interface Transform {
   x: number;
   y: number;
@@ -58,7 +18,6 @@ export interface Transform {
   scaleY?: number;
 }
 
-/** Sprite component for visual rendering */
 export interface SpriteComponent {
   image?: HTMLImageElement;
   width?: number;
@@ -75,7 +34,6 @@ export interface SpriteComponent {
   assetRef?: string;
 }
 
-/** Movement component for entity physics and velocity */
 export interface MovementComponent {
   vx: number;
   vy: number;
@@ -87,7 +45,6 @@ export interface MovementComponent {
   onGround?: boolean;
 }
 
-/** AI component for behavior and decision making */
 export interface AIComponent {
   type?: 'patrol' | 'chase' | 'idle' | 'attack';
   patrolStart?: { x: number; y: number };
@@ -103,7 +60,6 @@ export interface AIComponent {
   attackPower?: number;
 }
 
-/** Collision component for physics and collision detection */
 export interface CollisionComponent {
   width: number;
   height: number;
@@ -113,7 +69,6 @@ export interface CollisionComponent {
   type?: 'solid' | 'trigger' | 'sensor' | 'player' | 'enemy' | 'collectible' | 'wall' | 'projectile';
 }
 
-/** Stats component for entity attributes and combat */
 export interface StatsComponent {
   health: number;
   maxHealth: number;
@@ -122,34 +77,27 @@ export interface StatsComponent {
   speed?: number;
 }
 
-/** Player input component for keyboard/gamepad input */
 export interface PlayerInputComponent {
   keys: Record<string, boolean>;
   gamepad?: number;
   actions?: Record<string, boolean>;
 }
 
-/** Collectible component for items and pickups */
 export interface CollectibleComponent {
   type: 'health' | 'coin' | 'powerup' | 'key' | 'weapon' | 'item';
   value?: number;
   name?: string;
 }
 
-/** Projectile component for moving hit-scan and spawned shots */
 export interface ProjectileComponent {
   vx: number;
   vy: number;
   damage: number;
-  /** Collision targets this projectile can damage or block against */
   targetTypes?: Array<'solid' | 'trigger' | 'sensor' | 'player' | 'enemy' | 'collectible' | 'wall'>;
-  /** Lifetime in seconds before the projectile expires */
   lifetime?: number;
-  /** Whether the projectile should be removed after the first collision */
   destroyOnHit?: boolean;
 }
 
-/** Physics component for advanced physics simulation */
 export interface PhysicsComponent {
   mass?: number;
   restitution?: number;
@@ -161,7 +109,6 @@ export interface PhysicsComponent {
   bounce?: number;
 }
 
-/** Trigger component for event-based interactions */
 export interface TriggerComponent {
   onEnter?: string;
   onExit?: string;
@@ -172,7 +119,6 @@ export interface TriggerComponent {
   once?: boolean;
 }
 
-/** Camera component for view and viewport control */
 export interface CameraComponent {
   follow?: string;
   bounds?: { width: number; height: number };
@@ -180,7 +126,6 @@ export interface CameraComponent {
   shake?: number;
 }
 
-/** Renderer configuration for rendering systems */
 export interface RendererConfig {
   width: number;
   height: number;
@@ -191,7 +136,6 @@ export interface RendererConfig {
   showFPS?: boolean;
 }
 
-/** Union of all known component types */
 export type Component =
   | Transform
   | SpriteComponent
@@ -205,12 +149,8 @@ export type Component =
   | PhysicsComponent
   | TriggerComponent
   | CameraComponent
-  | AnimationComponent
-  | AnimationStateMachineComponent;
+  | AnimationComponent;
 
-// ─── Entity Types ───
-
-/** Entity type classification used across editor, preview, and engine */
 export type EntityType =
   | 'player'
   | 'enemy'
@@ -227,44 +167,25 @@ export type EntityType =
   | 'custom'
   | 'unknown';
 
-// ─── Serializable (JSON-friendly) types ───
-
-/**
- * SerializableEntity — plain object for JSON storage, API transport, and AI generation.
- * Components are a plain Record (not a Map).
- */
 export interface SerializableEntity {
   id: string;
   name?: string;
   type: EntityType;
   transform: Transform;
   components: Record<string, any>;
-  /** Parent entity for hierarchy */
   parent?: string;
   children?: string[];
-  /** Tags for filtering/searching */
   tags?: string[];
 }
 
-/**
- * SerializableScene — plain object representation of a full scene.
- */
 export interface SerializableScene {
   name: string;
   entities: SerializableEntity[];
-  /** Scene-level metadata */
   bounds?: { width: number; height: number };
   spawnPoint?: { x: number; y: number };
-  /** Background color or asset reference */
   background?: string;
 }
 
-// ─── Runtime types (engine-internal) ───
-
-/**
- * Entity — runtime game object with Map-based components.
- * Used internally by the engine during gameplay.
- */
 export interface Entity {
   id: string;
   name?: string;
@@ -273,24 +194,20 @@ export interface Entity {
   components: Map<string, Component>;
 }
 
-/**
- * Scene — runtime scene with Map-based entity lookup.
- */
 export interface Scene {
   name: string;
   entities: Map<string, Entity>;
 }
 
-// ─── Conversion Utilities ───
-
-/** Convert a serializable entity to a runtime entity */
 export function toRuntimeEntity(se: SerializableEntity): Entity {
   const components = new Map<string, Component>();
+
   for (const [key, value] of Object.entries(se.components)) {
-    if (key !== 'transform') { // transform is top-level
+    if (key !== 'transform') {
       components.set(key, value as Component);
     }
   }
+
   return {
     id: se.id,
     name: se.name,
@@ -300,69 +217,52 @@ export function toRuntimeEntity(se: SerializableEntity): Entity {
   };
 }
 
-/** Convert a runtime entity to a serializable entity */
-export function toSerializableEntity(e: Entity): SerializableEntity {
+export function toSerializableEntity(entity: Entity): SerializableEntity {
   const components: Record<string, any> = {};
-  e.components.forEach((value, key) => {
-    // Strip runtime-only fields (like HTMLImageElement)
+
+  entity.components.forEach((value, key) => {
     if (key === 'sprite' && value && typeof value === 'object') {
       const { image, ...rest } = value as SpriteComponent;
       components[key] = rest;
-    } else {
-      components[key] = value;
+      return;
     }
+
+    components[key] = value;
   });
+
   return {
-    id: e.id,
-    name: e.name,
-    type: e.type ?? 'custom',
-    transform: { ...e.transform },
+    id: entity.id,
+    name: entity.name,
+    type: entity.type ?? 'custom',
+    transform: { ...entity.transform },
     components,
   };
 }
 
-/** Convert a serializable scene to a runtime scene */
-export function toRuntimeScene(ss: SerializableScene): Scene {
+export function toRuntimeScene(scene: SerializableScene): Scene {
   const entities = new Map<string, Entity>();
-  for (const entity of ss.entities) {
+
+  for (const entity of scene.entities) {
     entities.set(entity.id, toRuntimeEntity(entity));
   }
-  return { name: ss.name, entities };
-}
 
-/** Convert a runtime scene to a serializable scene */
-export function toSerializableScene(s: Scene, meta?: Partial<SerializableScene>): SerializableScene {
-  const entities: SerializableEntity[] = [];
-  s.entities.forEach((entity) => {
-    entities.push(toSerializableEntity(entity));
-  });
   return {
-    name: s.name,
+    name: scene.name,
     entities,
-    ...meta,
   };
 }
 
-// ─── Input & Renderer types ───
+export function toSerializableScene(scene: Scene, meta?: Partial<SerializableScene>): SerializableScene {
+  return {
+    name: scene.name,
+    entities: Array.from(scene.entities.values()).map((entity) => toSerializableEntity(entity)),
+    ...meta,
+  };
+}
 
 export interface InputState {
   up: boolean;
   down: boolean;
   left: boolean;
   right: boolean;
-}
-
-export interface EngineErrorPayload {
-  error: Error;
-  message?: string;
-  timestamp?: number;
-}
-
-export interface AnimationStateChangeEvent {
-  entityId: string;
-  entityName: string;
-  fromState: string;
-  toState: string;
-  animation: { frames: string[]; frameRate: number; loop: boolean };
-  timestamp?: number;
 }

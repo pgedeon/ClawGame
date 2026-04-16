@@ -1,204 +1,220 @@
 /**
- * @clawgame/engine - Main engine class
+ * @clawgame/engine - Main game engine
+ *
+ * Coordinates systems, manages game loop, handles scene lifecycle,
+ * and provides core engine services to the application.
  */
 
-import { Entity, Scene, InputState, RendererConfig } from './types';
+import type { Scene, InputState } from './types';
 import { EventBus } from './EventBus';
 import { InputSystem } from './systems/InputSystem';
 import { MovementSystem } from './systems/MovementSystem';
-import { AISystem } from './systems/AISystem';
-import { RenderSystem } from './systems/RenderSystem';
 import { PhysicsSystem } from './systems/PhysicsSystem';
+import { AISystem } from './systems/AISystem';
+import { ProjectileSystem } from './systems/ProjectileSystem';
 import { CollisionSystem } from './systems/CollisionSystem';
 import { AnimationSystem } from './systems/AnimationSystem';
-import { ProjectileSystem } from './systems/ProjectileSystem';
+import { RenderSystem } from './systems/RenderSystem';
+import { DamageSystem } from './systems/DamageSystem';
+
+export type EngineOptions = {
+  canvas?: HTMLCanvasElement;
+  width?: number;
+  height?: number;
+  debug?: boolean;
+};
 
 export class Engine {
-  private canvas: HTMLCanvasElement;
-  private ctx: CanvasRenderingContext2D;
-  private scene: Scene | null = null;
-  private inputState: InputState = { up: false, down: false, left: false, right: false };
-  private isRunning = false;
-  private lastTime = 0;
-  private config: RendererConfig;
+  private canvas: HTMLCanvasElement | null = null;
+  private ctx: CanvasRenderingContext2D | null = null;
+  private width: number = 800;
+  private height: number = 600;
+  private debug: boolean = false;
 
-  /** Shared event bus for all engine communication */
-  readonly events: EventBus;
+  // Core systems
+  public eventBus: EventBus;
+  public inputSystem: InputSystem;
+  public movementSystem: MovementSystem;
+  public physicsSystem: PhysicsSystem;
+  public aiSystem: AISystem;
+  public projectileSystem: ProjectileSystem;
+  public collisionSystem: CollisionSystem;
+  public animationSystem: AnimationSystem;
+  public renderSystem: RenderSystem;
+  public damageSystem: DamageSystem;
 
-  // Systems
-  private inputSystem: InputSystem;
-  private movementSystem: MovementSystem;
-  private aiSystem: AISystem;
-  private renderSystem: RenderSystem;
-  private physicsSystem: PhysicsSystem;
-  private collisionSystem: CollisionSystem;
-  private animationSystem: AnimationSystem;
-  private projectileSystem: ProjectileSystem;
+  // Scene management
+  public scene: Scene | null = null;
+  private animationFrameId: number | null = null;
+  private lastTime: number = 0;
+  private updateCallback: ((deltaTime: number) => void) | null = null;
 
-  private updateCallback?: (deltaTime: number) => void;
-  private errorCallback?: (error: Error) => void;
-
-  constructor(canvas: HTMLCanvasElement, config: RendererConfig) {
-    this.canvas = canvas;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      throw new Error('Failed to get 2D context');
+  constructor(options: EngineOptions = {}) {
+    // Setup canvas and context
+    if (options.canvas) {
+      this.setCanvas(options.canvas);
+    } else {
+      this.width = options.width || this.width;
+      this.height = options.height || this.height;
     }
-    this.ctx = ctx;
-    this.config = config;
-
-    // Initialize event bus
-    this.events = new EventBus();
+    this.debug = options.debug || this.debug;
 
     // Initialize systems
+    this.eventBus = new EventBus();
     this.inputSystem = new InputSystem();
-    this.movementSystem = new MovementSystem();
+    this.movementSystem = new MovementSystem({ width: this.width, height: this.height });
+    this.physicsSystem = new PhysicsSystem({ width: this.width, height: this.height });
     this.aiSystem = new AISystem();
-    this.renderSystem = new RenderSystem(this.ctx, this.config);
-    this.physicsSystem = new PhysicsSystem({ width: config.width, height: config.height });
+    this.projectileSystem = new ProjectileSystem({ width: this.width, height: this.height });
     this.collisionSystem = new CollisionSystem();
     this.animationSystem = new AnimationSystem();
-    this.projectileSystem = new ProjectileSystem({ width: config.width, height: config.height });
+    this.renderSystem = new RenderSystem();
+    this.damageSystem = new DamageSystem();
 
-    // Wire systems to event bus
-    this.collisionSystem.attach(this.events);
-    this.animationSystem.attach(this.events);
-    this.projectileSystem.attach(this.events);
-  }
+    // Connect systems to event bus
+    this.projectileSystem.attach(this.eventBus);
+    this.damageSystem.attach(this.eventBus);
 
-  /**
-   * Load a scene
-   */
-  loadScene(scene: Scene): void {
-    const prevName = this.scene?.name;
-    this.scene = scene;
-    this.collisionSystem.resetTriggers();
-    this.animationSystem.reset();
-    if (prevName) {
-      this.events.emit('scene:unload', { sceneName: prevName });
+    // Setup debug logging
+    if (this.debug) {
+      console.log('Engine initialized with systems:', {
+        input: this.inputSystem,
+        movement: this.movementSystem,
+        physics: this.physicsSystem,
+        ai: this.aiSystem,
+        projectile: this.projectileSystem,
+        collision: this.collisionSystem,
+        animation: this.animationSystem,
+        render: this.renderSystem,
+        damage: this.damageSystem,
+      });
     }
-    this.events.emit('scene:load', { sceneName: scene.name });
   }
 
   /**
-   * Get current input state
+   * Set the canvas element for the engine
    */
-  getInputState(): InputState {
-    return this.inputState;
+  setCanvas(canvas: HTMLCanvasElement): void {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    if (!this.ctx) {
+      throw new Error('Could not get 2D rendering context');
+    }
+
+    // Set canvas size
+    this.width = canvas.width;
+    this.height = canvas.height;
+
+    // Bind input system to canvas
+    this.inputSystem.bind(canvas);
+
+    // Set canvas on render system
+    this.renderSystem.setCanvas(canvas);
+
+    if (this.debug) {
+      console.log(`Engine bound to canvas ${this.width}x${this.height}`);
+    }
   }
 
   /**
-   * Get current scene
+   * Get the current scene
    */
   getScene(): Scene | null {
     return this.scene;
   }
 
   /**
-   * Get current FPS from render system
+   * Set the current scene
    */
-  getFPS(): number {
-    return this.renderSystem.getFPS();
+  setScene(scene: Scene): void {
+    this.scene = scene;
+    
+    if (this.debug) {
+      console.log(`Scene set with ${scene.entities.size} entities`);
+    }
   }
 
   /**
-   * Update renderer config at runtime (e.g. toggle grid/hitboxes)
+   * Load a scene from scene data
    */
-  setConfig(partial: Partial<RendererConfig>): void {
-    this.config = { ...this.config, ...partial };
-    this.physicsSystem.setWorldBounds({ width: this.config.width, height: this.config.height });
-    this.projectileSystem.setWorldBounds({ width: this.config.width, height: this.config.height });
+  loadScene(sceneData: { name: string; entities: Map<string, any> }): Scene {
+    const scene: Scene = {
+      name: sceneData.name,
+      entities: sceneData.entities,
+    };
+    this.setScene(scene);
+    return scene;
   }
 
   /**
-   * Get current config
+   * Create a new default scene
    */
-  getConfig(): RendererConfig {
-    return { ...this.config };
-  }
-
-  /**
-   * Register a frame image for animation rendering
-   */
-  registerFrameImage(assetRef: string, image: HTMLImageElement): void {
-    this.renderSystem.registerFrameImage(assetRef, image);
-  }
-
-  /**
-   * Set callback for when error occurs
-   */
-  onError(callback: (error: Error) => void): void {
-    this.errorCallback = callback;
-  }
-
-  /**
-   * Set callback for each update frame
-   */
-  onUpdate(callback: (deltaTime: number) => void): void {
-    this.updateCallback = callback;
+  createScene(): Scene {
+    const scene: Scene = {
+      name: `scene-${Date.now()}`,
+      entities: new Map(),
+    };
+    this.setScene(scene);
+    return scene;
   }
 
   /**
    * Start the game loop
    */
   start(): void {
-    if (this.isRunning) return;
-
-    try {
-      this.isRunning = true;
-      this.lastTime = performance.now();
-      this.setupEventListeners();
-      this.events.emit('engine:start', {});
-      this.gameLoop();
-    } catch (error) {
-      this.handleError(error as Error);
+    if (this.animationFrameId !== null) {
+      console.warn('Engine already started');
+      return;
     }
+
+    if (this.debug) {
+      console.log('Starting game loop');
+    }
+
+    this.lastTime = performance.now();
+    this.gameLoop();
   }
 
   /**
    * Stop the game loop
    */
   stop(): void {
-    this.isRunning = false;
-    this.cleanupEventListeners();
-    this.events.emit('engine:stop', {});
+    if (this.animationFrameId === null) {
+      console.warn('Engine not running');
+      return;
+    }
+
+    if (this.debug) {
+      console.log('Stopping game loop');
+    }
+
+    cancelAnimationFrame(this.animationFrameId);
+    this.animationFrameId = null;
   }
 
   /**
-   * Check if engine is running
+   * Set the update callback
    */
-  isActive(): boolean {
-    return this.isRunning;
-  }
-
-  /**
-   * Destroy the engine — stop loop, detach input, cleanup render system
-   */
-  destroy(): void {
-    this.stop();
-    this.renderSystem.destroy();
-    this.animationSystem.destroy();
-    this.events.clear();
-    this.scene = null;
+  setUpdateCallback(callback: (deltaTime: number) => void): void {
+    this.updateCallback = callback;
   }
 
   /**
    * Main game loop
    */
   private gameLoop = (): void => {
-    if (!this.isRunning) return;
-
     const currentTime = performance.now();
-    const deltaTime = (currentTime - this.lastTime) / 1000; // Convert to seconds
+    const deltaTime = Math.min((currentTime - this.lastTime) / 1000, 0.1); // Cap at 0.1s to prevent huge jumps
     this.lastTime = currentTime;
-
-    // Update input state from keyboard
-    this.inputSystem.update(this.canvas, this.inputState);
 
     // Update scene with all systems
     if (this.scene) {
+      // Update input system
+      this.inputSystem.update(this.scene, this.inputSystem.getState());
+
+      // Update scene with all systems
       this.physicsSystem.update(this.scene, deltaTime);
-      this.movementSystem.update(this.scene, this.inputSystem.getState(), deltaTime);
+      this.movementSystem.update(this.scene, deltaTime);
       this.aiSystem.update(this.scene, deltaTime);
       this.projectileSystem.update(this.scene, deltaTime);
       this.collisionSystem.update(this.scene);
@@ -214,74 +230,29 @@ export class Engine {
     }
 
     // Continue the loop
-    requestAnimationFrame(this.gameLoop);
+    this.animationFrameId = requestAnimationFrame(this.gameLoop);
   };
 
   /**
-   * Setup event listeners for user input
+   * Destroy the engine — stop loop, detach input, cleanup render system
    */
-  private setupEventListeners(): void {
-    // Canvas keyboard events
-    window.addEventListener('keydown', this.handleKeyDown);
-    window.addEventListener('keyup', this.handleKeyUp);
-  }
+  destroy(): void {
+    this.stop();
 
-  /**
-   * Cleanup event listeners when stopping
-   */
-  private cleanupEventListeners(): void {
-    window.removeEventListener('keydown', this.handleKeyDown);
-    window.removeEventListener('keyup', this.handleKeyUp);
-  }
+    // Detach all systems
+    this.inputSystem.unbind();
+    if (this.inputSystem.detach) this.inputSystem.detach();
+    if (this.aiSystem.detach) this.aiSystem.detach();
+    if (this.movementSystem.detach) this.movementSystem.detach();
+    if (this.physicsSystem.detach) this.physicsSystem.detach();
+    if (this.projectileSystem.detach) this.projectileSystem.detach();
+    if (this.collisionSystem.detach) this.collisionSystem.detach();
+    if (this.animationSystem.detach) this.animationSystem.detach();
+    if (this.renderSystem.detach) this.renderSystem.detach();
+    if (this.damageSystem.detach) this.damageSystem.detach();
 
-  /**
-   * Handle key down events
-   */
-  private handleKeyDown = (event: KeyboardEvent): void => {
-    switch (event.key) {
-      case 'ArrowUp':
-        this.inputState.up = true;
-        break;
-      case 'ArrowDown':
-        this.inputState.down = true;
-        break;
-      case 'ArrowLeft':
-        this.inputState.left = true;
-        break;
-      case 'ArrowRight':
-        this.inputState.right = true;
-        break;
+    if (this.debug) {
+      console.log('Engine destroyed');
     }
-  };
-
-  /**
-   * Handle key up events
-   */
-  private handleKeyUp = (event: KeyboardEvent): void => {
-    switch (event.key) {
-      case 'ArrowUp':
-        this.inputState.up = false;
-        break;
-      case 'ArrowDown':
-        this.inputState.down = false;
-        break;
-      case 'ArrowLeft':
-        this.inputState.left = false;
-        break;
-      case 'ArrowRight':
-        this.inputState.right = false;
-        break;
-    }
-  };
-
-  /**
-   * Handle errors from systems or game loop
-   */
-  private handleError(error: Error): void {
-    console.error('Engine error:', error);
-    if (this.errorCallback) {
-      this.errorCallback(error);
-    }
-    this.events.emit('engine:error' as any, { error, message: error.message, timestamp: performance.now() });
   }
 }

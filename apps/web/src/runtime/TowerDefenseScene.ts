@@ -1,4 +1,4 @@
-import * as Phaser from 'phaser';
+import { GameObjects, Input } from 'phaser';
 import { ClawgamePhaserScene } from '../../../../packages/phaser-runtime/src';
 import {
   createTowerDefenseState,
@@ -20,21 +20,17 @@ import {
 } from '../utils/previewTowerDefense';
 import type { PhaserPreviewBootstrap } from '../../../../packages/phaser-runtime/src/types';
 
-/**
- * TowerDefenseScene — full TD game loop using Phaser rendering
- * with the existing previewTowerDefense logic for game mechanics.
- */
 export class TowerDefenseScene extends ClawgamePhaserScene {
   private tdState!: TowerDefenseState;
   private tdWaves: TowerDefenseWave[] = [];
   private towers: TowerDefenseTower[] = [];
   private tdProjectiles: TowerDefenseProjectile[] = [];
   private tdEntities: Map<string, any> = new Map();
-  private renderEntities: Map<string, Phaser.GameObjects.Arc> = new Map();
-  private projectileSprites: Map<string, Phaser.GameObjects.Arc> = new Map();
-  private towerContainers: Map<string, Phaser.GameObjects.Container> = new Map();
-  private pathGraphics!: Phaser.GameObjects.Graphics;
-  private rangeIndicator!: Phaser.GameObjects.Arc;
+  private renderEntities: Map<string, GameObjects.Arc> = new Map();
+  private projectileSprites: Map<string, GameObjects.Arc> = new Map();
+  private towerContainers: Map<string, GameObjects.Container> = new Map();
+  private pathGraphics!: GameObjects.Graphics;
+  private rangeIndicator!: GameObjects.Arc;
   private _gameOver = false;
   private _victory = false;
   private _selectedTowerId: string | null = null;
@@ -69,16 +65,13 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
     this.tdState = createTowerDefenseState(100, mapLayout, width, height);
     this.tdWaves = getTowerDefenseWaves({ name: this.bootstrap.sceneName } as any);
 
-    // Draw path
     this.pathGraphics = this.add.graphics();
     this.drawPath(waypoints);
 
-    // Range indicator
     this.rangeIndicator = this.add.circle(0, 0, 100, 0xffffff, 0.1);
     this.rangeIndicator.setStrokeStyle(1, 0xffffff, 0.3);
     this.rangeIndicator.setVisible(false);
 
-    // Core entity
     const core = this.bootstrap.entities.find(e => e.type === 'player' || e.type === 'core');
     if (core) {
       this.tdEntities.set('core-bean', {
@@ -89,8 +82,7 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
       });
     }
 
-    // Input: click to select/interact with towers
-    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+    this.input.on('pointerdown', (pointer: Input.Pointer) => {
       if (this._gameOver || this._victory) return;
       const clicked = this.findTowerAt(pointer.worldX, pointer.worldY);
       if (clicked) {
@@ -129,8 +121,6 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
     this.onStateUpdate?.(this.tdState, this.towers);
   }
 
-  // ── Public API for UI overlay ──
-
   placeTower(x: number, y: number, type: TowerType): { success: boolean; reason?: string } {
     if (!this.bootstrap) return { success: false, reason: 'not initialized' };
     const { width, height } = this.bootstrap.bounds || { width: 800, height: 600 };
@@ -166,8 +156,6 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
   getTowers(): TowerDefenseTower[] { return this.towers; }
   isGameOver(): boolean { return this._gameOver; }
   isVictory(): boolean { return this._victory; }
-
-  // ── Internal rendering ──
 
   private drawPath(waypoints: Waypoint[]): void {
     if (waypoints.length < 2) return;
