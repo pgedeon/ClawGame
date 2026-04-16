@@ -127,7 +127,7 @@ export function runLegacyCanvasPreviewSession(options: LegacyCanvasPreviewSessio
     const layout = getMapLayout(scene);
     const waypoints = getMapWaypoints(layout, canvas.width, canvas.height);
     tdState = createTowerDefenseState(20, layout, canvas.width, canvas.height);
-    
+
     // Initialize overlay state
     setTowerDefenseOverlayState({
       enabled: true,
@@ -210,7 +210,7 @@ export function runLegacyCanvasPreviewSession(options: LegacyCanvasPreviewSessio
 
     const scene = activeScene.current || {};
     const waves = getTowerDefenseWaves(scene);
-    
+
     // Update game state
     const result = updateTowerDefenseFrame({
       canvasWidth: canvas.width,
@@ -222,32 +222,18 @@ export function runLegacyCanvasPreviewSession(options: LegacyCanvasPreviewSessio
       projectiles: tdProjectiles,
       state: tdState,
       waves,
-      onEnemyDefeated: (enemy, reward) => {
-        mana += reward;
+      onEnemyDefeated: (_enemy: TowerDefenseEntity, manaReward: number) => {
+        mana += manaReward;
         setPlayerMana(mana);
-        const currentScore = gameStatsRef.current.fps || 0;
-        const enemyScore = enemy.scoreValue ?? 0;
-        const newScore = currentScore + enemyScore;
-        setPlayerScore(newScore + reward);
-        if (newScore > highScoreRef.current) {
-          highScoreRef.current = newScore;
-        }
       },
-      random: Math.random,
     });
 
-    // Update health and game state
+    // Update health from state
     setPlayerHealth(tdState.coreHealth);
-    
-    if (result.gameOver) {
-      gameLoopState.current.gameOver = true;
-      setTowerDefenseOverlayState({ enabled: false, selectedTowerType, feedback: null });
-    }
-    
-    if (result.victory) {
-      gameLoopState.current.victory = true;
-      setTowerDefenseOverlayState({ enabled: false, selectedTowerType, feedback: null });
-    }
+
+    // Update game over/victory from result
+    gameLoopState.current.gameOver = result.gameOver;
+    gameLoopState.current.victory = result.victory;
   };
 
   // Draw tower defense elements
@@ -275,18 +261,18 @@ export function runLegacyCanvasPreviewSession(options: LegacyCanvasPreviewSessio
       const cx = core.transform.x;
       const cy = core.transform.y;
       const cr = 20;
-      
+
       ctx.fillStyle = '#a855f7';
       ctx.beginPath();
       ctx.arc(cx, cy, cr, 0, Math.PI * 2);
       ctx.fill();
-      
+
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 20px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('☕', cx, cy);
-      
+
       // Core health
       ctx.fillStyle = '#ffffff';
       ctx.font = '12px sans-serif';
@@ -296,13 +282,13 @@ export function runLegacyCanvasPreviewSession(options: LegacyCanvasPreviewSessio
     // Draw towers
     for (const tower of tdTowers) {
       const tr = 18;
-      
+
       // Tower body
       ctx.fillStyle = tower.color;
       ctx.beginPath();
       ctx.arc(tower.x, tower.y, tr, 0, Math.PI * 2);
       ctx.fill();
-      
+
       // Tower icon
       ctx.fillStyle = '#ffffff';
       ctx.font = '16px sans-serif';
@@ -315,14 +301,14 @@ export function runLegacyCanvasPreviewSession(options: LegacyCanvasPreviewSessio
         lightning: '⚡',
       };
       ctx.fillText(icons[tower.towerType], tower.x, tower.y);
-      
+
       // Upgrade level indicator
       if (tower.upgradeLevel > 0) {
         ctx.fillStyle = '#fbbf24';
         ctx.font = 'bold 10px sans-serif';
         ctx.fillText(`+${tower.upgradeLevel}`, tower.x + tr - 5, tower.y - tr + 8);
       }
-      
+
       // Range indicator for selected tower
       if (tower.towerType === selectedTowerType) {
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
@@ -336,17 +322,17 @@ export function runLegacyCanvasPreviewSession(options: LegacyCanvasPreviewSessio
     // Draw enemies
     for (const entity of tdEntities.values()) {
       if (entity.type !== 'enemy') continue;
-      
+
       const size = (entity.width || 24) / 2;
       const ex = entity.transform.x;
       const ey = entity.transform.y;
-      
+
       // Enemy body
       ctx.fillStyle = entity.color || '#fb923c';
       ctx.beginPath();
       ctx.arc(ex, ey, size, 0, Math.PI * 2);
       ctx.fill();
-      
+
       // Slow effect
       if (entity.slowedUntil && entity.slowedUntil > Date.now()) {
         ctx.fillStyle = 'rgba(96, 165, 250, 0.3)';
@@ -354,7 +340,7 @@ export function runLegacyCanvasPreviewSession(options: LegacyCanvasPreviewSessio
         ctx.arc(ex, ey, size + 3, 0, Math.PI * 2);
         ctx.fill();
       }
-      
+
       // Hit flash
       if (entity.hitFlash && entity.hitFlash > 0) {
         ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
@@ -362,7 +348,7 @@ export function runLegacyCanvasPreviewSession(options: LegacyCanvasPreviewSessio
         ctx.arc(ex, ey, size, 0, Math.PI * 2);
         ctx.fill();
       }
-      
+
       // Health bar
       const health = entity.health || 0;
       const maxHealth = entity.maxHealth || 1;
@@ -371,10 +357,10 @@ export function runLegacyCanvasPreviewSession(options: LegacyCanvasPreviewSessio
         const barH = 4;
         const barX = ex - size;
         const barY = ey - size - 8;
-        
+
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         ctx.fillRect(barX, barY, barW, barH);
-        
+
         const healthPct = Math.max(0, health / maxHealth);
         ctx.fillStyle = healthPct > 0.5 ? '#22c55e' : healthPct > 0.25 ? '#eab308' : '#ef4444';
         ctx.fillRect(barX, barY, barW * healthPct, barH);
@@ -411,8 +397,10 @@ export function runLegacyCanvasPreviewSession(options: LegacyCanvasPreviewSessio
 
   // Game loop
   const gameLoop = (timestamp: number) => {
-    if (!gameStarted) return;
-    if (gamePaused || gameOver || victory) {
+    const currentTime = gameLoopState.current;
+    const isGameStarted = currentTime.gameStarted;
+
+    if (isGameStarted && (gamePaused || gameOver || victory)) {
       animationRef.current = requestAnimationFrame(gameLoop);
       return;
     }
@@ -424,72 +412,82 @@ export function runLegacyCanvasPreviewSession(options: LegacyCanvasPreviewSessio
     ctx.fillStyle = isTowerDefense ? '#2d1f1a' : '#1a1a2e';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    if (isTowerDefense && tdState) {
-      // Update tower defense
-      updateTowerDefense(timestamp, deltaTime * 1000);
-      
-      // Draw tower defense
-      drawTowerDefense();
-      
-      // Update game stats
-      setGameStats({
-        fps: Math.round(1 / deltaTime),
-        entities: tdEntities.size + tdTowers.length + tdProjectiles.length,
-        memory: '0MB',
-      });
-    } else {
-      // Draw regular entities
-      const entities = activeScene.current?.entities ?? [];
-      let entityArray: any[] = [];
-      if (entities instanceof Map) {
-        entityArray = Array.from(entities.values());
-      } else if (Array.isArray(entities)) {
-        entityArray = entities;
-      } else if (entities.entities instanceof Map) {
-        entityArray = Array.from(entities.entities.values());
-      } else if (Array.isArray(entities.entities)) {
-        entityArray = entities.entities;
-      }
-      
-      for (const entity of entityArray) {
-        if (!entity) continue;
+    if (isGameStarted) {
+      if (isTowerDefense && tdState) {
+        // Update tower defense
+        updateTowerDefense(timestamp, deltaTime * 1000);
 
-        const transform = (entity as any).transform ?? { x: 0, y: 0 };
-        const x = transform.x ?? 0;
-        const y = transform.y ?? 0;
-        const width = (entity as any).width ?? 32;
-        const height = (entity as any).height ?? 32;
-        const type = (entity as any).type ?? 'unknown';
+        // Draw tower defense
+        drawTowerDefense();
 
-        ctx.fillStyle = getEntityColor(type);
-        ctx.fillRect(x - width / 2, y - height / 2, width, height);
-
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '12px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(type, x, y - height / 2 - 5);
-
-        const health = (entity as any).health ?? 0;
-        const maxHealth = (entity as any).maxHealth ?? 0;
-        if (type === 'enemy' && maxHealth > 0 && health < maxHealth) {
-          const barW = width;
-          const barH = 5;
-          const barY = -height / 2 - 12;
-          const pct = health / maxHealth;
-          ctx.fillStyle = '#1a1a2e';
-          ctx.fillRect(x - barW / 2, y + barY, barW, barH);
-          ctx.fillStyle = pct > 0.5 ? '#22c55e' : pct > 0.25 ? '#eab308' : '#ef4444';
-          ctx.fillRect(x - barW / 2, y + barY, barW * pct, barH);
-          ctx.fillStyle = '#ffffff';
-          ctx.font = '9px sans-serif';
-          ctx.fillText(`${health}/${maxHealth}`, x, y + barY + barH + 10);
+        // Update game stats
+        setGameStats({
+          fps: Math.round(1 / deltaTime),
+          entities: tdEntities.size + tdTowers.length + tdProjectiles.length,
+          memory: '0MB',
+        });
+      } else {
+        // Draw regular entities
+        const entities = activeScene.current?.entities ?? [];
+        let entityArray: any[] = [];
+        if (entities instanceof Map) {
+          entityArray = Array.from(entities.values());
+        } else if (Array.isArray(entities)) {
+          entityArray = entities;
+        } else if (entities.entities instanceof Map) {
+          entityArray = Array.from(entities.entities.values());
+        } else if (Array.isArray(entities.entities)) {
+          entityArray = entities.entities;
         }
+
+        for (const entity of entityArray) {
+          if (!entity) continue;
+
+          const transform = (entity as any).transform ?? { x: 0, y: 0 };
+          const x = transform.x ?? 0;
+          const y = transform.y ?? 0;
+          const width = (entity as any).width ?? 32;
+          const height = (entity as any).height ?? 32;
+          const type = (entity as any).type ?? 'unknown';
+
+          ctx.fillStyle = getEntityColor(type);
+          ctx.fillRect(x - width / 2, y - height / 2, width, height);
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '12px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(type, x, y - height / 2 - 5);
+
+          const health = (entity as any).health ?? 0;
+          const maxHealth = (entity as any).maxHealth ?? 0;
+          if (type === 'enemy' && maxHealth > 0 && health < maxHealth) {
+            const barW = width;
+            const barH = 5;
+            const barY = -height / 2 - 12;
+            const pct = health / maxHealth;
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(x - barW / 2, y + barY, barW, barH);
+            ctx.fillStyle = pct > 0.5 ? '#22c55e' : pct > 0.25 ? '#eab308' : '#ef4444';
+            ctx.fillRect(x - barW / 2, y + barY, barW * pct, barH);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '9px sans-serif';
+            ctx.fillText(`${health}/${maxHealth}`, x, y + barY + barH + 10);
+          }
+        }
+
+        setGameStats({ fps: Math.round(1 / deltaTime), entities: entityArray.length, memory: '0MB' });
       }
 
-      setGameStats({ fps: Math.round(1 / deltaTime), entities: entityArray.length, memory: '0MB' });
+      setTimeElapsed(prev => prev + deltaTime);
+    } else {
+      // Game not started - show ready message
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 24px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('Press Start Game', canvas.width / 2, canvas.height / 2);
     }
 
-    setTimeElapsed(prev => prev + deltaTime);
     animationRef.current = requestAnimationFrame(gameLoop);
   };
 
