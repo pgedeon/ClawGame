@@ -31,15 +31,26 @@ function buildBodyConfig(entity: CanonicalEntityLike, width: number, height: num
     return { kind: 'none', width, height };
   }
 
-  if (collision.trigger || collision.type === 'trigger' || collision.type === 'sensor') {
+  // Respect boolean flags as overrides
+  if (collision.solid === true) {
+    return { kind: 'static', width, height };
+  }
+  if (collision.trigger === true) {
     return { kind: 'sensor', width, height };
   }
 
-  if (collision.solid || collision.type === 'wall' || entity.type === 'platform' || entity.type === 'obstacle') {
+  // Read collision.type directly
+  const colType = collision.type;
+  if (colType === 'solid') {
     return { kind: 'static', width, height };
   }
+  if (colType === 'trigger' || colType === 'sensor') {
+    return { kind: 'sensor', width, height };
+  }
 
-  if (entity.type === 'player' || entity.type === 'enemy' || entity.type === 'projectile') {
+  // Fallback to entity type for dynamic bodies
+  const entityType = entity.type;
+  if (entityType === 'player' || entityType === 'enemy' || entityType === 'projectile') {
     return { kind: 'dynamic', width, height };
   }
 

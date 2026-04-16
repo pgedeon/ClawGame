@@ -26,9 +26,12 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
   private towers: TowerDefenseTower[] = [];
   private tdProjectiles: TowerDefenseProjectile[] = [];
   private tdEntities: Map<string, any> = new Map();
-  private renderEntities: Map<string, GameObjects.Arc> = new Map();
-  private projectileSprites: Map<string, GameObjects.Arc> = new Map();
+  private renderEntityMap: Map<string, GameObjects.Arc> = new Map();
+  private projectileMap: Map<string, GameObjects.Arc> = new Map();
   private towerContainers: Map<string, GameObjects.Container> = new Map();
+  private enemyGroup!: Phaser.GameObjects.Group;
+  private projectileGroup!: Phaser.GameObjects.Group;
+  private towerGroup!: Phaser.GameObjects.Group;
   private pathGraphics!: GameObjects.Graphics;
   private rangeIndicator!: GameObjects.Arc;
   private _gameOver = false;
@@ -52,13 +55,18 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
     this.towers = [];
     this.tdProjectiles = [];
     this.tdEntities.clear();
-    this.renderEntities.clear();
+    this.renderEntityMap.clear();
   }
 
   create(): void {
     super.create();
     if (!this.bootstrap) return;
     const { width, height } = this.bootstrap.bounds || { width: 800, height: 600 };
+
+    // Create Phaser groups for lifecycle management
+    this.enemyGroup = this.add.group({ runChildUpdate: false });
+    this.projectileGroup = this.add.group({ runChildUpdate: false });
+    this.towerGroup = this.add.group({ runChildUpdate: false });
 
     const mapLayout = getMapLayout({ name: this.bootstrap.sceneName });
     const waypoints = getMapWaypoints(mapLayout, width, height);
@@ -176,17 +184,30 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
     for (const [id, entity] of this.tdEntities) {
       active.add(id);
       if (id === 'core-bean') continue;
-      let r = this.renderEntities.get(id);
+      let r = this.renderEntityMap.get(id);
       if (!r) {
-        const color = entity.color ? this.parseColor(entity.color) : 0xef4444;
-        const radius = Math.max(8, (entity.width || 24) / 2);
-        r = this.add.circle(entity.transform.x, entity.transform.y, radius, color);
-        r.setDepth(10);
-        this.renderEntities.set(id, r);
+        // Try to recycle a dead member from the group
+        const dead = this.enemyGroup.getFirstDead(false) as GameObjects.Arc | null;
+        if (dead) {
+          dead.setActive(true).setVisible(true);
+          const color = entity.color ? this.parseColor(entity.color) : 0xef4444;
+          dead.setFillStyle(color);
+          const radius = Math.max(8, (entity.width || 24) / 2);
+          dead.setRadius(radius);
+          dead.setPosition(entity.transform.x, entity.transform.y);
+          r = dead;
+        } else {
+          const color = entity.color ? this.parseColor(entity.color) : 0xef4444;
+          const radius = Math.max(8, (entity.width || 24) / 2);
+          r = this.add.circle(entity.transform.x, entity.transform.y, radius, color);
+          r.setDepth(10);
+          this.enemyGroup.add(r);
+        }
+        this.renderEntityMap.set(id, r);
       }
       r.setPosition(entity.transform.x, entity.transform.y);
     }
-    for (const [id] of this.renderEntities) {
+    for (const [id] of this.renderEntityMap) {
       if (!active.has(id)) this.removeRenderEntity(id);
     }
   }
@@ -195,16 +216,30 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
     const active = new Set<string>();
     for (const p of this.tdProjectiles) {
       active.add(p.id);
-      let s = this.projectileSprites.get(p.id);
+      let s = this.projectileMap.get(p.id);
       if (!s) {
-        s = this.add.circle(p.x, p.y, 4, this.parseColor(p.color || '#ffff00'));
-        s.setDepth(20);
-        this.projectileSprites.set(p.id, s);
+        // Try to recycle a dead member from the group
+        const dead = this.projectileGroup.getFirstDead(false) as GameObjects.Arc | null;
+        if (dead) {
+          dead.setActive(true).setVisible(true);
+          dead.setFillStyle(this.parseColor(p.color || '#ffff00'));
+          dead.setPosition(p.x, p.y);
+          s = dead;
+        } else {
+          s = this.add.circle(p.x, p.y, 4, this.parseColor(p.color || '#ffff00'));
+          s.setDepth(20);
+          this.projectileGroup.add(s);
+        }
+        this.projectileMap.set(p.id, s);
       }
       s.setPosition(p.x, p.y);
     }
-    for (const [id, s] of this.projectileSprites) {
-      if (!active.has(id)) { s.destroy(); this.projectileSprites.delete(id); }
+    for (const [id, s] of this.projectileMap) {
+      if (!active.has(id)) {
+        // Kill (deactivate) instead of destroy for recycling
+        this.projectileGroup.kill(s);
+        this.projectileMap.delete(id);
+      }
     }
   }
 
@@ -222,17 +257,26 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
         range.setStrokeStyle(0.5, 0xffffff, 0.1);
         c.add([range, base]);
         this.towerContainers.set(tower.id, c);
+        this.towerGroup.add(c);
       }
       c.setPosition(tower.x, tower.y);
     }
     for (const [id, c] of this.towerContainers) {
-      if (!active.has(id)) { c.destroy(); this.towerContainers.delete(id); }
+      if (!active.has(id)) {
+        this.towerGroup.kill(c);
+        c.destroy();
+        this.towerContainers.delete(id);
+      }
     }
   }
 
   private removeRenderEntity(id: string): void {
-    const r = this.renderEntities.get(id);
-    if (r) { r.destroy(); this.renderEntities.delete(id); }
+    const r = this.renderEntityMap.get(id);
+    if (r) {
+      // Kill (deactivate) for recycling instead of destroying
+      this.enemyGroup.kill(r);
+      this.renderEntityMap.delete(id);
+    }
   }
 
   private findTowerAt(x: number, y: number): TowerDefenseTower | null {

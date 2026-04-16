@@ -26,6 +26,7 @@ import {
   getTowerDefenseWaves,
   TOWER_PLACEMENT_RADIUS,
 } from '../utils/previewTowerDefense';
+import { spriteManager } from '../utils/spriteLoader';
 
 export type LegacyCanvasPreviewSessionOptions = {
   canvasRef: MutableRefObject<HTMLCanvasElement | null>;
@@ -65,6 +66,17 @@ export type LegacyCanvasPreviewSessionOptions = {
   handleSave: () => void;
   runtimeHostRef: MutableRefObject<HTMLDivElement | null>;
 };
+
+// Sprite loading state
+interface SpriteInfo {
+  image: HTMLImageElement;
+  width: number;
+  height: number;
+  isLoading: boolean;
+  loadError: boolean;
+}
+
+const spriteCache = new Map<string, SpriteInfo>();
 
 export function runLegacyCanvasPreviewSession(options: LegacyCanvasPreviewSessionOptions): () => void {
   const {
@@ -135,6 +147,76 @@ export function runLegacyCanvasPreviewSession(options: LegacyCanvasPreviewSessio
       feedback: null,
     });
   }
+
+  // Get sprite for entity type (non-async, returns fallback immediately)
+  const getEntitySprite = (entity: any): SpriteInfo => {
+    const entityId = entity.id || 'unknown';
+    const entityType = entity.type || 'unknown';
+    
+    // Check cache first
+    const cacheKey = `${entityId}-${entityType}`;
+    if (spriteCache.has(cacheKey)) {
+      return spriteCache.get(cacheKey)!;
+    }
+
+    // Create fallback sprite immediately
+    const fallbackImg = spriteManager.getFallbackSprite(entityType);
+    const spriteInfo: SpriteInfo = {
+      image: fallbackImg,
+      width: entity.components?.sprite?.width || 32,
+      height: entity.components?.sprite?.height || 32,
+      isLoading: false,
+      loadError: false,
+    };
+    
+    spriteCache.set(cacheKey, spriteInfo);
+    return spriteInfo;
+  };
+
+  // Check if image is ready to be drawn
+  const isImageReady = (image: HTMLImageElement): boolean => {
+    return image.complete && image.naturalWidth > 0 && image.naturalHeight > 0;
+  };
+
+  // Draw entity with sprite (synchronous)
+  const drawEntity = (entity: any, x: number, y: number) => {
+    const spriteInfo = getEntitySprite(entity);
+    const { image, width, height } = spriteInfo;
+
+    // Draw sprite centered at position
+    if (isImageReady(image)) {
+      ctx.drawImage(image, x - width / 2, y - height / 2, width, height);
+    } else {
+      // Fallback to colored rectangle if image not loaded yet
+      const color = getEntityColor(entity.type);
+      ctx.fillStyle = color;
+      ctx.fillRect(x - width / 2, y - height / 2, width, height);
+      
+      // Draw entity type text
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(entity.type, x, y - height / 2 - 5);
+    }
+
+    // Draw health bar for enemies
+    const health = entity.health ?? 0;
+    const maxHealth = entity.maxHealth ?? 0;
+    if (entity.type === 'enemy' && maxHealth > 0 && health < maxHealth) {
+      const barW = width;
+      const barH = 5;
+      const barY = y - height / 2 - 12;
+      const pct = health / maxHealth;
+      
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillRect(x - barW / 2, y + barY, barW, barH);
+      ctx.fillStyle = pct > 0.5 ? '#22c55e' : pct > 0.25 ? '#eab308' : '#ef4444';
+      ctx.fillRect(x - barW / 2, y + barY, barW * pct, barH);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '9px sans-serif';
+      ctx.fillText(`${health}/${maxHealth}`, x, y + barY + barH + 10);
+    }
+  };
 
   // Mouse click handler for tower placement
   const handleCanvasClick = (e: MouseEvent) => {
@@ -283,8 +365,9 @@ export function runLegacyCanvasPreviewSession(options: LegacyCanvasPreviewSessio
     for (const tower of tdTowers) {
       const tr = 18;
 
-      // Tower body
-      ctx.fillStyle = tower.color;
+      // Tower body - using sprite fallback
+      const color = tower.color || '#8b5cf6';
+      ctx.fillStyle = color;
       ctx.beginPath();
       ctx.arc(tower.x, tower.y, tr, 0, Math.PI * 2);
       ctx.fill();
@@ -319,52 +402,11 @@ export function runLegacyCanvasPreviewSession(options: LegacyCanvasPreviewSessio
       }
     }
 
-    // Draw enemies
+    // Draw enemies with sprites
     for (const entity of tdEntities.values()) {
       if (entity.type !== 'enemy') continue;
 
-      const size = (entity.width || 24) / 2;
-      const ex = entity.transform.x;
-      const ey = entity.transform.y;
-
-      // Enemy body
-      ctx.fillStyle = entity.color || '#fb923c';
-      ctx.beginPath();
-      ctx.arc(ex, ey, size, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Slow effect
-      if (entity.slowedUntil && entity.slowedUntil > Date.now()) {
-        ctx.fillStyle = 'rgba(96, 165, 250, 0.3)';
-        ctx.beginPath();
-        ctx.arc(ex, ey, size + 3, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // Hit flash
-      if (entity.hitFlash && entity.hitFlash > 0) {
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.beginPath();
-        ctx.arc(ex, ey, size, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // Health bar
-      const health = entity.health || 0;
-      const maxHealth = entity.maxHealth || 1;
-      if (health < maxHealth) {
-        const barW = size * 2;
-        const barH = 4;
-        const barX = ex - size;
-        const barY = ey - size - 8;
-
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(barX, barY, barW, barH);
-
-        const healthPct = Math.max(0, health / maxHealth);
-        ctx.fillStyle = healthPct > 0.5 ? '#22c55e' : healthPct > 0.25 ? '#eab308' : '#ef4444';
-        ctx.fillRect(barX, barY, barW * healthPct, barH);
-      }
+      drawEntity(entity, entity.transform.x, entity.transform.y);
     }
 
     // Draw projectiles
@@ -398,6 +440,7 @@ export function runLegacyCanvasPreviewSession(options: LegacyCanvasPreviewSessio
   // Game loop
   const gameLoop = (timestamp: number) => {
     const currentTime = gameLoopState.current;
+
     const isGameStarted = currentTime.gameStarted;
 
     if (isGameStarted && (gamePaused || gameOver || victory)) {
@@ -427,7 +470,7 @@ export function runLegacyCanvasPreviewSession(options: LegacyCanvasPreviewSessio
           memory: '0MB',
         });
       } else {
-        // Draw regular entities
+        // Draw regular entities with sprites
         const entities = activeScene.current?.entities ?? [];
         let entityArray: any[] = [];
         if (entities instanceof Map) {
@@ -446,33 +489,8 @@ export function runLegacyCanvasPreviewSession(options: LegacyCanvasPreviewSessio
           const transform = (entity as any).transform ?? { x: 0, y: 0 };
           const x = transform.x ?? 0;
           const y = transform.y ?? 0;
-          const width = (entity as any).width ?? 32;
-          const height = (entity as any).height ?? 32;
-          const type = (entity as any).type ?? 'unknown';
 
-          ctx.fillStyle = getEntityColor(type);
-          ctx.fillRect(x - width / 2, y - height / 2, width, height);
-
-          ctx.fillStyle = '#ffffff';
-          ctx.font = '12px sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText(type, x, y - height / 2 - 5);
-
-          const health = (entity as any).health ?? 0;
-          const maxHealth = (entity as any).maxHealth ?? 0;
-          if (type === 'enemy' && maxHealth > 0 && health < maxHealth) {
-            const barW = width;
-            const barH = 5;
-            const barY = -height / 2 - 12;
-            const pct = health / maxHealth;
-            ctx.fillStyle = '#1a1a2e';
-            ctx.fillRect(x - barW / 2, y + barY, barW, barH);
-            ctx.fillStyle = pct > 0.5 ? '#22c55e' : pct > 0.25 ? '#eab308' : '#ef4444';
-            ctx.fillRect(x - barW / 2, y + barY, barW * pct, barH);
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '9px sans-serif';
-            ctx.fillText(`${health}/${maxHealth}`, x, y + barY + barH + 10);
-          }
+          drawEntity(entity, x, y);
         }
 
         setGameStats({ fps: Math.round(1 / deltaTime), entities: entityArray.length, memory: '0MB' });
@@ -498,9 +516,10 @@ export function runLegacyCanvasPreviewSession(options: LegacyCanvasPreviewSessio
   return () => {
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
-      animationRef.current = null;
     }
+    animationRef.current = null;
     canvas.removeEventListener('click', handleCanvasClick);
+    spriteCache.clear();
   };
 }
 

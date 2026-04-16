@@ -2,7 +2,7 @@
 
 > Track issues discovered during development.
 
-**Last Updated:** 2026-04-10 07:49 UTC
+**Last Updated:** 2026-04-16 09:05 UTC
 
 ---
 
@@ -13,7 +13,6 @@
 | Issue | Description | Discovered | Impact | Workaround |
 |-------|-------------|------------|--------|------------|
 | AI service misleading status | AI Command shows "Connected to: clawgame-ai / glm-4.5-flash" on welcome screen, but generation falls back to templates with "⚠️ AI service offline — using local code generation". Users don't know if real AI is actually working. | 2026-04-09 (Game Dev) | Medium - Falls back to functional templates but confusing UX | Set `USE_REAL_AI=1` in API environment to verify real AI is active |
-| Game canvas visual rendering | Game Preview shows entities but no visible sprites. Canvas is dark and hard to tell what's happening during gameplay. | 2026-04-09 (Game Dev) | Medium - Game runs but visual feedback is poor | Entities have colored rectangles as fallback; add sprite images to assets |
 
 ### 🟢 Low Priority
 
@@ -31,6 +30,7 @@
 
 | Issue | Description | Discovered | Resolved | Fix Version |
 |-------|-------------|------------|----------|-------------|
+| Game canvas visual rendering | Game Preview shows entities but no visible sprites. Canvas is dark and hard to tell what's happening during gameplay. | 2026-04-09 (Game Dev) | 2026-04-16 | v0.20.1 |
 | NavigationPage TypeScript errors | NavigationPage.tsx used incorrect Toast API (`toast.success()` instead of `toast.showToast()`), causing TypeScript compilation failures. | 2026-04-10 (Game Dev) | 2026-04-10 | v0.19.1 |
 | Game Preview "require is not defined" error | ESM/CommonJS mismatch broke game runtime. Replaced all `require()` calls with proper ESM imports. | 2026-04-09 (Game Dev) | 2026-04-09 | v0.13.0 |
 | No error details on failure | Runtime errors showed generic message with no stack trace. Added error tracking with expandable details. | 2026-04-09 (PM) | 2026-04-09 | v0.13.0 |
