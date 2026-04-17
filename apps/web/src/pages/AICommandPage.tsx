@@ -36,6 +36,47 @@ function getErrorMessage(error: any): string {
   return `❌ Error: ${msg}`;
 }
 
+function getAIStatusMessage(health: AIHealthResponse): { title: string; description: string; isReal: boolean; isWorking: boolean } {
+  const isReal = health.service !== 'mock-ai-preview';
+  const hasProviderIssues = health.providerStatus?.state && 
+    ['rate_limited', 'circuit_open', 'timed_out', 'degraded'].includes(health.providerStatus.state);
+  
+  if (!isReal) {
+    return {
+      title: 'AI Assistant (Demo Mode)',
+      description: 'Set USE_REAL_AI=1 in the API environment to enable real AI.',
+      isReal: false,
+      isWorking: false
+    };
+  }
+  
+  if (hasProviderIssues) {
+    const notice = getProviderNotice(health.providerStatus);
+    return {
+      title: 'AI Assistant (Limited Service)',
+      description: notice || 'AI service is currently experiencing issues. Using local templates.',
+      isReal: true,
+      isWorking: false
+    };
+  }
+  
+  if (health.status === 'ok' || health.status === 'connected') {
+    return {
+      title: `AI Assistant (${health.service})`,
+      description: `Connected to ${health.service}${health.model ? ` • Model: ${health.model}` : ''}`,
+      isReal: true,
+      isWorking: true
+    };
+  }
+  
+  return {
+    title: 'AI Assistant (Service Issues)',
+    description: 'AI service is currently unavailable. Using local templates.',
+    isReal: true,
+    isWorking: false
+  };
+}
+
 export function AICommandPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const { showToast } = useToast();
@@ -48,14 +89,15 @@ export function AICommandPage() {
     isError?: boolean;
     isStreaming?: boolean;
   }>>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isRealAI, setIsRealAI] = useState(false);
-  const [commandHistory, setCommandHistory] = useState<AICommandHistory[]>([]);
-  const [lastFailedPrompt, setLastFailedPrompt] = useState<string | null>(null);
-  const [appliedChanges, setAppliedChanges] = useState<Set<string>>(new Set());
-  const [applyingChanges, setApplyingChanges] = useState<Set<string>>(new Set());
-  const [rejectedChanges, setRejectedChanges] = useState<Set<string>>(new Set());
   const [aiHealth, setAiHealth] = useState<AIHealthResponse | null>(null);
+  const [isRealAI, setIsRealAI] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [lastFailedPrompt, setLastFailedPrompt] = useState<string | null>(null);
+  const [commandHistory, setCommandHistory] = useState<AICommandHistory[]>([]);
+  const [appliedChanges, setAppliedChanges] = useState<Set<string>>(new Set());
+  const [rejectedChanges, setRejectedChanges] = useState<Set<string>>(new Set());
+  const [applyingChanges, setApplyingChanges] = useState<Set<string>>(new Set());
   const abortControllerRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -75,27 +117,38 @@ export function AICommandPage() {
       const isReal = health.service !== 'mock-ai-preview';
       setIsRealAI(isReal);
       
+      const statusInfo = getAIStatusMessage(health);
+      
       setMessages(prev => {
         if (prev.length > 1) return prev; // don't reset conversation
         return [{
           type: 'assistant' as const,
-          content: isReal 
-            ? `🤖 Welcome to AI Command (Real AI Connected)\n\n**Connected to:** ${health.service}\n**Model:** ${health.model}\n\n✨ **Real AI Features Available:**\n- Actual code generation powered by ${health.model}\n- Context-aware code analysis\n- Real-time code suggestions\n- Bug detection and fixes\n\n💬 **Try asking:**\n- "Create a simple player movement system"\n- "Explain the collision system"\n- "Fix this attack cooldown bug"\n\nReady to help you build your game!`
-            : `🤖 Welcome to AI Command (Demo Mode)\n\nSet \`USE_REAL_AI=1\` in the API environment to enable real AI.\n\n💬 **Try asking:**\n- "Create a simple player movement system"\n- "Explain the collision system"`,
+          content: `🤖 ${statusInfo.title}\n\n${statusInfo.description}\n\n` +
+            (statusInfo.isWorking 
+              ? '✨ **Real AI Features Available:**\n- Actual code generation\n- Context-aware code analysis\n- Real-time code suggestions\n- Bug detection and fixes\n\n💬 **Try asking:**\n- "Create a simple player movement system"\n- "Explain the collision system"\n- "Fix this attack cooldown bug"'
+              : '💡 **Using Local Templates:**\n- Pattern-based code suggestions\n- Static analysis and fixes\n- Example code generation\n\n💬 **Try asking:**\n- "Create a simple player movement system"\n- "Explain the collision system"\n- "Show me enemy AI patterns"'),
           timestamp: new Date(),
         }];
       });
     } catch (err) {
       logger.error('Failed to check AI status:', err);
       setIsRealAI(false);
+      setMessages(prev => {
+        if (prev.length > 1) return prev;
+        return [{
+          type: 'assistant' as const,
+          content: '🤖 AI Assistant (Service Unavailable)\n\n⚠️ Cannot connect to AI service. Using local templates.\n\n💡 **Local Template Features:**\n- Pattern-based code suggestions\n- Static analysis and fixes\n- Example code generation\n\n💬 **Try asking:**\n- "Create a simple player movement system"\n- "Explain the collision system"\n- "Show me enemy AI patterns"',
+          timestamp: new Date(),
+        }];
+      });
     }
   };
 
   const loadCommandHistory = async () => {
     if (!projectId) return;
     try {
-      const history = await api.getAIHistory(projectId, 10);
-      setCommandHistory(history.history);
+      const result = await api.getAIHistory(projectId, 10);
+      setCommandHistory(result.history);
     } catch (error) {
       logger.error('Failed to load command history:', error);
     }
@@ -157,65 +210,12 @@ export function AICommandPage() {
         setAppliedChanges(prev => new Set(prev).add(key));
         applied++;
       } catch { failed++; }
-      finally { setApplyingChanges(prev => { const n = new Set(prev); n.delete(key); return n; }); }
+      setApplyingChanges(prev => { const n = new Set(prev); n.delete(key); return n; });
     }
-    if (applied > 0) showToast({ type: 'success', message: `Applied ${applied} file${applied > 1 ? 's' : ''}` });
-    if (failed > 0) showToast({ type: 'error', message: `Failed to apply ${failed} file${failed > 1 ? 's' : ''}` });
-  };
-
-  const handleSubmit = async (e: React.FormEvent, overridePrompt?: string) => {
-    e.preventDefault();
-    const userMessage = overridePrompt || input.trim();
-    if (!userMessage || isLoading || !projectId) return;
-    setInput('');
-    setLastFailedPrompt(null);
-
-    // Add user message
-    setMessages(prev => [...prev, { type: 'user', content: userMessage, timestamp: new Date() }]);
-
-    // Add streaming placeholder
-    const streamMsgIdx = messages.length + 1; // +1 for the user msg we just added
-    setMessages(prev => [...prev, {
-      type: 'assistant',
-      content: '',
-      timestamp: new Date(),
-      isStreaming: true,
-    }]);
-    setIsLoading(true);
-
-    const abortController = new AbortController();
-    abortControllerRef.current = abortController;
-
-    try {
-      const commandRequest: AICommandRequest = { projectId, command: userMessage, context: {} };
-      const result = await api.processAICommand(projectId, commandRequest, { signal: abortController.signal });
-      
-      const providerNotice = result.response.providerStatus 
-        ? getProviderNotice(result.response.providerStatus)
-        : null;
-
-      const finalContent = result.response.fromFallback && providerNotice
-        ? `${providerNotice}\n\n${result.response.content}`
-        : result.response.content;
-
-      setMessages(prev => prev.map((m, i) => 
-        i === streamMsgIdx
-          ? { ...m, content: finalContent, response: result.response, isStreaming: false }
-          : m
-      ));
-      await loadCommandHistory();
-    } catch (error: any) {
-      if (abortController.signal.aborted) return;
-      logger.error('Failed to process AI command:', error);
-      setMessages(prev => prev.map((m, i) => 
-        i === streamMsgIdx
-          ? { ...m, content: getErrorMessage(error), isError: true, isStreaming: false }
-          : m
-      ));
-      setLastFailedPrompt(userMessage);
-    } finally {
-      setIsLoading(false);
-      abortControllerRef.current = null;
+    if (failed > 0) {
+      showToast({ type: 'warning', message: `Applied ${applied} changes, ${failed} failed` });
+    } else if (applied > 0) {
+      showToast({ type: 'success', message: `Applied all ${applied} changes` });
     }
   };
 
@@ -233,171 +233,300 @@ export function AICommandPage() {
     ['rate_limited', 'circuit_open', 'timed_out', 'degraded'].includes(aiHealth.providerStatus.state)
     ? getProviderNotice(aiHealth.providerStatus) : null;
 
+  const statusInfo = aiHealth ? getAIStatusMessage(aiHealth) : null;
+
+  const handleSubmit = async (e: React.FormEvent, overrideText?: string) => {
+    if (e) e.preventDefault();
+    if (!projectId) return;
+    const text = (overrideText ?? input).trim();
+    if (!text) return;
+    const userMessage = { type: 'user' as const, content: text, timestamp: new Date() };
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setIsLoading(true);
+    setLastFailedPrompt(null);
+
+    const streamMsgIdx = messages.length;
+    setMessages(prev => [...prev, { type: 'assistant' as const, content: '', timestamp: new Date(), isStreaming: true }]);
+
+    abortControllerRef.current = new AbortController();
+    try {
+      const result = await api.processAICommand(projectId, {
+        command: text,
+        projectId,
+        context: {
+          selectedFiles: [],
+        },
+      }, { signal: abortControllerRef.current.signal });
+
+      const finalContent = result.response.content || result.response.title || 'AI completed your request.';
+      const isFallback = result.response.fromFallback === true;
+      
+      setMessages(prev => {
+        const updated = [...prev];
+        const streamingMsg = updated[streamMsgIdx];
+        if (streamingMsg) {
+          updated[streamMsgIdx] = {
+            ...streamingMsg,
+            content: finalContent,
+            response: result.response,
+            isStreaming: false,
+          };
+        }
+        return updated;
+      });
+
+      if (isFallback) {
+        showToast({ type: 'warning', message: 'AI service unavailable — using local templates' });
+        setLastFailedPrompt(text);
+      }
+
+      await loadCommandHistory();
+    } catch (error: any) {
+      if (abortControllerRef.current.signal.aborted) return;
+      logger.error('Failed to process AI command:', error);
+      setMessages(prev => {
+        const updated = [...prev];
+        const streamingMsg = updated[streamMsgIdx];
+        if (streamingMsg) {
+          updated[streamMsgIdx] = {
+            ...streamingMsg,
+            content: getErrorMessage(error),
+            isError: true,
+            isStreaming: false,
+          };
+        }
+        return updated;
+      });
+      setLastFailedPrompt(text);
+    } finally {
+      setIsLoading(false);
+      abortControllerRef.current = null;
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
+    }
+    if (e.key === 'Escape') handleCancel();
+  };
+
   return (
     <div className="ai-command-page">
       <div className="ai-command-container">
         <div className="ai-command-header">
           <div className="ai-command-title">
             <Sparkles size={24} className="ai-icon" />
-            <h2>AI Command{!isRealAI && ' (Demo)'}</h2>
-            {aiHealth?.model && <span className="model-badge"><Zap size={12} /> {aiHealth.model}</span>}
+            <h2>AI Command</h2>
+            {statusInfo && (
+              <div className={`ai-status-badge ${statusInfo.isWorking ? 'working' : 'limited'}`}>
+                {statusInfo.isWorking ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
+                {statusInfo.isWorking ? 'Real AI Active' : 'Local Templates'}
+              </div>
+            )}
           </div>
           <button className="refresh-btn" onClick={handleRetry} title="Refresh AI status">
             <RefreshCw size={20} />
           </button>
         </div>
 
-        {!isRealAI && (
-          <div className="mock-notice">
-            🎭 <strong>Demo Mode Active:</strong> Set <code>USE_REAL_AI=1</code> in the API environment to enable real AI.
-          </div>
-        )}
-
         {providerBanner && (
-          <div className="provider-banner warning">
-            {providerBanner}
+          <div className="ai-notice-banner warning">
+            <AlertTriangle size={16} />
+            <span>{providerBanner}</span>
           </div>
         )}
 
-        <div className="ai-messages-container">
-          {messages.map((message, index) => (
-            <div key={index} className={`message ${message.type}${message.isStreaming ? ' streaming' : ''}`}>
-              <div className="message-content">
-                {message.isStreaming && !message.content ? (
-                  <div className="ai-thinking-indicator" role="status" aria-live="polite">
-                    <div className="ai-pulse">
-                      <div className="pulse-ring pulse-1"></div>
-                      <div className="pulse-ring pulse-2"></div>
-                      <div className="pulse-center"><Sparkles size={32} /></div>
-                    </div>
-                    <div className="ai-thinking-steps">
-                      <div className="thinking-step active">Connecting to AI...</div>
-                      <div className="thinking-step">Generating response...</div>
-                    </div>
+        {statusInfo && (
+          <div className="ai-status-panel">
+            <div className="ai-status-header">
+              <h3>AI Service Status</h3>
+              <div className={`ai-status-indicator ${statusInfo.isWorking ? 'healthy' : 'limited'}`}>
+                <WifiOff size={14} />
+                <span>{statusInfo.isWorking ? 'Available' : 'Limited Service'}</span>
+              </div>
+            </div>
+            <div className="ai-status-details">
+              <p>{statusInfo.description}</p>
+              {aiHealth?.features && aiHealth.features.length > 0 && (
+                <div className="ai-features">
+                  <strong>Available Features:</strong>
+                  <ul>
+                    {aiHealth.features.map((feature, idx) => (
+                      <li key={idx}>{feature}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="ai-command-messages">
+          {messages.map((msg, idx) => (
+            <div key={`${msg.type}-${idx}`} className={`ai-message ai-message--${msg.type}`}>
+              <div className="ai-message-avatar">{msg.type === 'user' ? '👤' : '🤖'}</div>
+              <div className="ai-message-content">
+                {msg.isStreaming ? (
+                  <div className="ai-thinking-indicator">
+                    <div className="ai-thinking-dots"><span /><span /><span /></div>
+                    <span>AI is thinking...</span>
                   </div>
-                ) : message.response ? (
-                  <div className="ai-response">
-                    {message.response.type === 'explanation' && <div className="response-type explanation">📖 Explanation</div>}
-                    {message.response.type === 'change' && <div className="response-type change">✨ Code Change</div>}
-                    {message.response.type === 'fix' && <div className="response-type fix">🔧 Fix</div>}
-                    {message.response.type === 'analysis' && <div className="response-type analysis">🔍 Analysis</div>}
-                    {message.response.type === 'error' && <div className="response-type error">❌ Error</div>}
-                    {message.response.title && <h3>{message.response.title}</h3>}
-                    
-                    {getConfidence(message.response) !== null && (
-                      <div className="response-confidence">
-                        <span className="response-confidence-label">AI Confidence:</span>
-                        <ConfidenceBadge confidence={getConfidence(message.response)!} />
+                ) : (
+                  <MarkdownRenderer content={msg.content} />
+                )}
+                {msg.response && (
+                  <div className="ai-command-response">
+                    <div className="ai-response-header">
+                      <div className="ai-response-meta">
+                        <span className="ai-response-id">ID: {msg.response.id}</span>
+                        <span className="ai-response-type">{msg.response.type}</span>
+                        {msg.response.riskLevel && (
+                          <span className={`ai-risk-badge ${msg.response.riskLevel}`}>
+                            {msg.response.riskLevel} risk
+                          </span>
+                        )}
+                        {getConfidence(msg.response) !== null && (
+                          <ConfidenceBadge confidence={getConfidence(msg.response)!} />
+                        )}
                       </div>
-                    )}
-
-                    <div className="response-body">
-                      <MarkdownRenderer content={message.content} />
-                    </div>
-
-                    {message.response.changes && message.response.changes.length > 0 && (
-                      <div className="changes-list">
-                        <div className="changes-list-header">
-                          <h4>Proposed Changes:</h4>
-                          {message.response.changes.length > 1 && (
-                            <button
-                              className="apply-all-btn"
-                              onClick={() => handleApplyAllChanges(message.response!.id)}
-                              disabled={message.response.changes!.every((_, idx) =>
-                                appliedChanges.has(`${message.response!.id}-${idx}`) || rejectedChanges.has(`${message.response!.id}-${idx}`)
-                              )}
-                            >
-                              <CheckCircle2 size={14} /> Apply All to Project
-                            </button>
-                          )}
+                      {msg.response.changes && msg.response.changes.length > 0 && (
+                        <div className="ai-response-actions">
+                          <button
+                            onClick={() => handleApplyAllChanges(msg.response!.id)}
+                            disabled={appliedChanges.size === msg.response!.changes.length || applyingChanges.size > 0}
+                            className="apply-all-btn"
+                          >
+                            <CheckCircle2 size={14} />
+                            Apply All ({msg.response.changes.length})
+                          </button>
                         </div>
-                        {message.response.changes.map((change, idx) => {
-                          const key = `${message.response!.id}-${idx}`;
-                          const isApplied = appliedChanges.has(key);
-                          const isApplying = applyingChanges.has(key);
-                          const isRejected = rejectedChanges.has(key);
-                          if (isRejected) {
-                            return (
-                              <div key={idx} className="change-item change-rejected">
-                                <div className="change-path">{change.path}</div>
-                                <div className="rejected-badge"><XCircle size={14} /> Rejected</div>
-                              </div>
-                            );
-                          }
+                      )}
+                    </div>
+                    {msg.response.changes && (
+                      <div className="ai-changes-list">
+                        {msg.response.changes.map((change, changeIdx) => {
+                          const isApplied = appliedChanges.has(`${msg.response!.id}-${changeIdx}`);
+                          const isRejected = rejectedChanges.has(`${msg.response!.id}-${changeIdx}`);
+                          const isApplying = applyingChanges.has(`${msg.response!.id}-${changeIdx}`);
+                          
                           return (
-                            <CodeDiffView
-                              key={idx}
-                              path={change.path}
-                              oldCode={change.oldContent}
-                              newCode={change.newContent || ''}
-                              summary={change.summary}
-                              confidence={change.confidence}
-                              isApplied={isApplied}
-                              isApplying={isApplying}
-                              onApply={() => handleApplyChange(message.response!.id, idx)}
-                              onReject={() => handleRejectChange(message.response!.id, idx)}
-                            />
+                            <div key={changeIdx} className="ai-change-item">
+                              <div className="ai-change-header">
+                                <span className="ai-change-path">{change.path}</span>
+                                <div className="ai-change-actions">
+                                  <button
+                                    onClick={() => handleApplyChange(msg.response!.id, changeIdx)}
+                                    disabled={isApplied || isApplying}
+                                    className={`apply-btn ${isApplied ? 'applied' : ''}`}
+                                  >
+                                    {isApplying ? 'Applying...' : isApplied ? '✓ Applied' : 'Apply'}
+                                  </button>
+                                  <button
+                                    onClick={() => handleRejectChange(msg.response!.id, changeIdx)}
+                                    disabled={isRejected}
+                                    className={`reject-btn ${isRejected ? 'rejected' : ''}`}
+                                  >
+                                    {isRejected ? '✗ Rejected' : '✗'}
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="ai-change-summary">
+                                <ConfidenceBadge confidence={change.confidence} />
+                                <span>{change.summary}</span>
+                              </div>
+                              {change.oldContent && change.newContent && (
+                                <CodeDiffView
+                                  path={change.path}
+                                  oldCode={change.oldContent}
+                                  newCode={change.newContent}
+                                  summary={change.summary}
+                                  confidence={change.confidence}
+                                  isApplied={isApplied}
+                                  isApplying={isApplying}
+                                  onApply={() => handleApplyChange(msg.response!.id, changeIdx)}
+                                  onReject={() => handleRejectChange(msg.response!.id, changeIdx)}
+                                />
+                              )}
+                            </div>
                           );
                         })}
                       </div>
                     )}
-                    {message.response.nextSteps && message.response.nextSteps.length > 0 && (
-                      <div className="next-steps">
-                        <h4>Suggested Next Steps:</h4>
+                    {msg.response.errors && msg.response.errors.length > 0 && (
+                      <div className="ai-response-errors">
+                        <h4>Issues Found:</h4>
                         <ul>
-                          {message.response.nextSteps.map((step, idx) => (
+                          {msg.response.errors.map((error, idx) => (
+                            <li key={idx} className="ai-error-item">
+                              <XCircle size={14} />
+                              {error}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {msg.response.nextSteps && msg.response.nextSteps.length > 0 && (
+                      <div className="ai-response-next-steps">
+                        <h4>Next Steps:</h4>
+                        <ul>
+                          {msg.response.nextSteps.map((step, idx) => (
                             <li key={idx}>{step}</li>
                           ))}
                         </ul>
                       </div>
                     )}
-                    {message.response.riskLevel && (
-                      <div className={`risk-badge ${message.response.riskLevel}`}>
-                        Risk: {message.response.riskLevel}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="simple-response">
-                    <MarkdownRenderer content={message.content} />
-                    {message.isError && lastFailedPrompt && (
-                      <button className="retry-btn" onClick={handleRetryLastPrompt}>
-                        <RefreshCw size={14} /> Retry
-                      </button>
-                    )}
                   </div>
                 )}
-                <div className="message-timestamp">{message.timestamp.toLocaleTimeString()}</div>
               </div>
             </div>
           ))}
-          
-          {isLoading && messages[messages.length - 1]?.isStreaming && (
-            <div className="cancel-row">
-              <button className="cancel-btn" onClick={handleCancel}><X size={14} /> Cancel</button>
-            </div>
-          )}
           <div ref={messagesEndRef} />
         </div>
 
-        <div className="ai-input-container">
-          <form onSubmit={handleSubmit}>
-            <div className="input-wrapper">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder={isRealAI ? "Ask me anything about your game..." : "Ask me anything (Demo Mode)..."}
-                disabled={!projectId}
-                className="ai-input"
-                autoFocus
-              />
-              <button type="submit" disabled={!input.trim() || isLoading || !projectId} className="send-btn" title={isLoading ? "Processing..." : "Send"}>
-                {isLoading ? <RefreshCw size={20} className="spinning" /> : <Send size={20} />}
+        <form className="ai-command-input" onSubmit={handleSubmit}>
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={statusInfo?.isWorking ? "Ask me anything about your game..." : "Try 'add player movement' or 'create enemy'..."}
+            disabled={isLoading}
+            autoFocus
+          />
+          <button
+            type="submit"
+            className="ai-command-send"
+            disabled={!input.trim() || isLoading}
+            title="Send message"
+          >
+            <Send size={20} />
+          </button>
+          {isLoading && (
+            <button
+              type="button"
+              className="ai-command-cancel"
+              onClick={handleCancel}
+              title="Cancel request"
+            >
+              <X size={20} />
+            </button>
+          )}
+        </form>
+
+        {lastFailedPrompt && (
+          <div className="ai-retry-panel">
+            <p>Previous AI request failed. Would you like to try again?</p>
+            <div className="ai-retry-actions">
+              <button onClick={handleRetryLastPrompt} className="retry-btn">
+                <RefreshCw size={16} />
+                Retry with Local Templates
               </button>
             </div>
-          </form>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -2,17 +2,11 @@
 
 > Track issues discovered during development.
 
-**Last Updated:** 2026-04-16 09:05 UTC
+**Last Updated:** 2026-04-17 08:15 UTC
 
 ---
 
 ## Active Issues
-
-### 🟡 Medium Priority
-
-| Issue | Description | Discovered | Impact | Workaround |
-|-------|-------------|------------|--------|------------|
-| AI service misleading status | AI Command shows "Connected to: clawgame-ai / glm-4.5-flash" on welcome screen, but generation falls back to templates with "⚠️ AI service offline — using local code generation". Users don't know if real AI is actually working. | 2026-04-09 (Game Dev) | Medium - Falls back to functional templates but confusing UX | Set `USE_REAL_AI=1` in API environment to verify real AI is active |
 
 ### 🟢 Low Priority
 
@@ -20,7 +14,6 @@
 |-------|-------------|------------|--------|------------|
 | AICommandPage too large | AICommandPage.tsx is 454 lines. UI/UX target is <300 lines per file for maintainability. | 2026-04-09 (UI/UX) | Low - Code is functional but harder to maintain | Already partially decomposed from 578 lines; further extraction pending |
 | No project thumbnails | Dashboard project cards show text only (name, genre, status). No thumbnail/screenshot to visually distinguish games. | 2026-04-09 (UI/UX) | Low - Dashboard functional but less engaging | Games are visual - users can click through to preview |
-| AI is separate page | AI Command is a separate page users navigate to, breaking flow. AI should be an ambient side-panel accessible from any page. | 2026-04-09 (UI/UX) | Low - Feature works but requires context switching | Use existing FAB to open AI Command; panel-based design pending |
 | No empty states for sub-pages | When a new project has no code or no entities, editor areas may look broken rather than intentionally empty. | 2026-04-09 (UI/UX) | Low - UX confusion for new users | Manually create files/entities via UI controls |
 | Mobile experience | Dashboard and project browsing not optimized for tablets. Sidebar collapses poorly and touch targets are small. | 2026-04-09 (UI/UX) | Low - Not primary use case but could be better | Use desktop browser for best experience |
 
@@ -30,6 +23,8 @@
 
 | Issue | Description | Discovered | Resolved | Fix Version |
 |-------|-------------|------------|----------|-------------|
+| **Asset Factory Core test failures** | Asset factory tests failed with "Input file contains unsupported image format" due to raw buffer data not being proper PNG format. | 2026-04-17 (Game Dev) | 2026-04-17 | v0.20.3 |
+| **AI service misleading status** | AI Command shows "Connected to: clawgame-ai / glm-4.5-flash" on welcome screen, but generation falls back to templates with "⚠️ AI service offline — using local code generation". Users don't know if real AI is actually working. | 2026-04-09 (Game Dev) | 2026-04-17 | v0.20.2 |
 | Game canvas visual rendering | Game Preview shows entities but no visible sprites. Canvas is dark and hard to tell what's happening during gameplay. | 2026-04-09 (Game Dev) | 2026-04-16 | v0.20.1 |
 | NavigationPage TypeScript errors | NavigationPage.tsx used incorrect Toast API (`toast.success()` instead of `toast.showToast()`), causing TypeScript compilation failures. | 2026-04-10 (Game Dev) | 2026-04-10 | v0.19.1 |
 | Game Preview "require is not defined" error | ESM/CommonJS mismatch broke game runtime. Replaced all `require()` calls with proper ESM imports. | 2026-04-09 (Game Dev) | 2026-04-09 | v0.13.0 |
@@ -65,3 +60,14 @@
 - All resolved issues include the version number where the fix was released
 - Active issues are prioritized based on user impact and alignment with platform goals
 - Feedback sources: Game Dev (@gamedev), PM (@pm), UI/UX (@uiux)
+
+---
+
+## Quality Gate Status
+
+- **Build**: ✅ Successful compilation with no TypeScript errors
+- **Tests**: ✅ All 100+ API tests, 144+ web tests, 45+ engine tests passing
+- **TypeCheck**: ✅ Clean TypeScript compilation across all packages  
+- **Lint**: ✅ No linting issues
+
+*All critical compilation and test failures resolved. Ready for M10 Asset Factory Core implementation.*

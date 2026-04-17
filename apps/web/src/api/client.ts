@@ -455,6 +455,24 @@ export interface ExportResult {
   assetCount: number;
 }
 
+// ─── Hosted Publishing types ───
+
+export interface HostedOptions {
+  expiresInDays?: number; // How long before the hosted link expires
+  public?: boolean; // Whether the game should be publicly accessible
+}
+
+export interface HostedExport {
+  id: string;
+  projectId: string;
+  projectName: string;
+  filename: string;
+  hostedUrl: string;
+  createdAt: string;
+  expiresAt?: string;
+  downloadUrl: string;
+}
+
 // ─── API functions ───
 
 export const api = {
@@ -744,6 +762,31 @@ export const api = {
     request<{ success: boolean }>(`/api/projects/${projectId}/exports/${filename}`, {
       method: 'DELETE',
     }),
+
+  // Hosted Publishing operations
+  hostExport: (projectId: string, exportFilename: string, options?: HostedOptions) =>
+    request<{ success: boolean; hosted: HostedExport; message: string }>(`/api/projects/${projectId}/exports/${exportFilename}/host`, {
+      method: 'POST',
+      body: JSON.stringify(options || {}),
+    }),
+
+  getHostedExport: (hostedId: string) =>
+    request<HostedExport>(`/api/hosted/${hostedId}`),
+
+  viewHostedExport: (hostedId: string) =>
+    `${API_BASE}/api/hosted/${hostedId}/view`,
+
+  listHostedExports: (projectId: string) =>
+    request<{ hosted: HostedExport[] }>(`/api/projects/${projectId}/hosted`)
+      .then((r) => r.hosted),
+
+  deleteHostedExport: (projectId: string, hostedId: string) =>
+    request<{ success: boolean; message: string }>(`/api/projects/${projectId}/hosted/${hostedId}`, {
+      method: 'DELETE',
+    }),
+
+  getHostedHealth: () =>
+    request<{ status: string; hostedDir: string; baseUrl: string }>(`/api/hosted/health`),
 
   // Git operations
   gitStatus: (projectId: string) =>

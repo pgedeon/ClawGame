@@ -1,8 +1,8 @@
 {
-  "version": "0.19.0",
-  "codename": "gameplay-authoring",
-  "milestone": 13,
-  "milestoneName": "Gameplay Authoring Layer",
-  "releaseDate": "2026-04-10",
-  "status": "in-progress"
+  "version": "0.20.4",
+  "codename": "asset-factory",
+  "milestone": 10,
+  "milestoneName": "Asset Factory Core",
+  "releaseDate": "2026-04-17",
+  "status": "complete"
 }

@@ -5,12 +5,13 @@ import type { LucideIcon } from 'lucide-react';
 import { api, type ProjectListItem } from '../api/client';
 import { sidebarItems } from '../constants/sidebar';
 import { ToastProvider, ToastList } from './Toast';
-import { AIFAB } from './AIFAB';
+import { AISidePanel } from './AISidePanel';
 import { CommandPalette, useCommandPaletteToggle } from './CommandPalette';
 import { SkipLink } from './SkipLink';
 import { ProjectNotesPanel } from './ProjectNotesPanel';
 import { logger } from '../utils/logger';
 import '../project-notes.css';
+import '../ai-sidepanel.css';
 
 interface SidebarNavItem {
   path: string;
@@ -54,6 +55,25 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Get current page context and selection state
+  const getPageContext = () => {
+    const pathParts = location.pathname.split('/');
+    const lastPart = pathParts[pathParts.length - 1];
+    
+    // Context mappings for different pages
+    const contextMap: Record<string, string> = {
+      'editor': 'Code Editor',
+      'scene-editor': 'Scene Editor', 
+      'behavior-graph': 'Behavior Graph',
+      'ai': 'AI Command',
+      'assets': 'Asset Studio',
+      'preview': 'Game Preview',
+      'ai-settings': 'AI Settings'
+    };
+    
+    return contextMap[lastPart] || lastPart || 'Dashboard';
   };
 
   // Project-specific navigation items
@@ -174,9 +194,15 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
           </div>
         )}
 
-        {/* Floating AI button — visible on project pages */}
+        {/* AI Side Panel — persistent on project pages */}
         {isInProjectContext && (
-          <AIFAB projectId={projectId || undefined} pageContext={location.pathname.split("/").pop() || ""} />
+          <AISidePanel
+            projectId={projectId || undefined}
+            pageContext={getPageContext()}
+            selectedCode={getSelectedCode()}
+            currentFile={getCurrentFile()}
+            selectedEntities={getSelectedEntities()}
+          />
         )}
 
         {/* Command Palette — global */}
@@ -189,4 +215,23 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
       <ToastList />
     </ToastProvider>
   );
+
+  // Helper functions to get current context
+  function getSelectedCode(): string | undefined {
+    // This would be implemented based on current editor selection
+    // For now, return undefined
+    return undefined;
+  }
+
+  function getCurrentFile(): string | undefined {
+    // This would be implemented based on current file in editor
+    // For now, return undefined
+    return undefined;
+  }
+
+  function getSelectedEntities(): string[] | undefined {
+    // This would be implemented based on scene editor selection
+    // For now, return undefined
+    return undefined;
+  }
 }

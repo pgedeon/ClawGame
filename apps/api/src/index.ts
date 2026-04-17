@@ -9,6 +9,7 @@ import { fileRoutes } from './routes/files';
 import { aiRoutes } from './routes/aiRoutes';
 import { assetRoutes } from './routes/assets';
 import { exportRoutes } from './routes/exportRoutes';
+import { hostedRoutes } from './routes/hostedRoutes';
 import { sceneAnalysisRoutes } from './routes/sceneAnalysis';
 import { saveRoutes } from './routes/saves';
 import { gitRoutes } from './routes/git';
@@ -49,6 +50,9 @@ app.register(assetRoutes);
 
 // Game export functionality
 app.register(exportRoutes);
+
+// Hosted publishing service
+app.register(hostedRoutes);
 
 // Scene analysis for AI context
 app.register(sceneAnalysisRoutes);

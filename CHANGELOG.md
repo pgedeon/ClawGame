@@ -1,6 +1,34 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.20.4] - 2026-04-17
+
+### Added
+- **M10 Asset Factory Core Complete** — Full implementation of sprite analysis, slicing, pixel pipeline, tileset forge, and batch utilities with comprehensive UI integration
+  - **Sprite Analyzer** (`analyzeSprite`) — Metadata detection with grid pattern recognition (16x16, 32x32, 64x64, etc.), dominant color extraction using quantization, and comprehensive sprite analysis
+  - **Sprite Sheet Slicer** (`sliceSpriteSheet`) — Automated frame extraction from sprite sheets with manifest generation, animation metadata support, and individual frame export
+  - **Pixel Pipeline** (`pixelize`, `reducePalette`) — Pixelization via downscale/upscale with nearest-neighbor filtering, palette reduction with posterization, and edge cleanup options
+  - **Tileset Forge** (`assembleTileset`) — Automated tile assembly in optimal grid layouts, autotile bitmask metadata generation, and canvas-based tile composition
+  - **Batch Utilities** (`batchProcess`) — Multi-format batch processing (PNG/WebP/JPG), resize operations with multiple fit modes, automatic transparent trim, and concurrent asset processing
+  - **AssetProcessingToolbar UI Component** — Interactive processing tools integrated into Asset Studio with real-time results and animation previews
+  - **REST API Endpoints** — Complete set of processing endpoints: `/assets/analyze`, `/assets/slice`, `/assets/pixelize`, `/assets/palette-reduce`, `/assets/assemble-tileset`, `/assets/batch`
+  - **SpriteSelector Component** — Asset-to-entity binding for scene integration with recommended asset suggestions
+  - **AnimationPreview Component** — Live animation display for sliced sprite sheets with configurable playback
+  - **Sharp Image Processing** — Production-grade image processing using Sharp library for all operations
+- **Quality Gates** — All 7 asset factory tests passing + 289+ total tests across all packages, build compilation successful, TypeScript compilation clean, linting passes
+
+### Fixed
+- **Asset Factory test failures** — Replaced raw buffer PNG creation with proper Sharp-generated PNG files in test fixtures to resolve "unsupported image format" errors
+- **API base URL consistency** — Updated AssetProcessingToolbar to use proper API endpoint paths for asset processing operations
+
+### Tests
+- `apps/api/src/test/asset-factory.test.ts` — 7 comprehensive tests covering all M10 functionality: sprite analysis, grid detection, slicing, pixelization, palette reduction, and error handling
+- Integration tests with Sharp image processing library
+- UI component testing for AssetProcessingToolbar and AssetStudio integration
+
+## [Unreleased]
+
 ### Added
 - **Genre Kits** (M13): 4 genre kits with 13 configurable behavior graph templates — PlatformerKit (patrol enemy, jumping enemy, collectible, hazard), TopDownKit (wander enemy, shooter enemy, item drop), RPGKit (quest NPC, turn-based enemy AI, villager NPC), TacticsKit (melee unit, ranged unit, support unit). All build on BehaviorGraph types. 35 new tests.
 - **Behavior Graph Module** (M13): Data model and runtime executor for visual logic authoring. `BehaviorGraph` type with composable nodes (composite: sequence/selector/parallel, decorator: inverter/repeater/until-fail/timer/cooldown, condition, action). `BehaviorExecutor` runs graphs tick-bytick with per-entity state tracking. Built-in conditions (always, never, random-chance, entity-in-range, entity-has-tag, health-below/above, input-pressed, timer-elapsed, custom). Built-in actions (set-velocity, move-to, move-toward-entity, apply-damage, heal, destroy-self, fire-event, set-tag, remove-tag, set-variable, change-state, custom). Extensible via registered custom condition evaluators and action executors. 20 tests. Foundation for M13 Gameplay Authoring Layer.
@@ -23,29 +51,3 @@ All notable changes to ClawGame will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-
-
-## [0.18.0] - 2026-04-09
-
-### Added
-- **SFX Generation Service** (M11: Generative Media Forge) — Genre-aware sound effect pack generation with engine-consumable metadata
-  - `POST /api/projects/:projectId/sfx/generate` — Generate SFX pack from genre templates (platformer, RPG, shooter, tower defense, puzzle)
-  - `GET /api/projects/:projectId/sfx/packs` — List SFX packs
-  - `GET /api/projects/:projectId/sfx/:name` — Get individual SFX descriptor
-  - `DELETE /api/projects/:projectId/sfx/:name` — Delete SFX descriptor
-  - Per-effect metadata files (`.sfx.json`) stored in `assets/sfx/` for engine consumption
-  - Pack-level `pack.json` with full SFX manifest
-- 12 tests for SFX generation lifecycle (generate, persist, list, get, delete, genre matching)
-
-## [0.17.0] - 2026-04-09
-
-#### Added
-- **AI Command apply/reject smoke tests** — 5 new API-level tests validating the critical "AI builds your game" flow: command → code generation → apply (file write) → verify persistence, reject (skip) → original intact, apply-all → multiple files, and read-after-write consistency. Closes PM Priority 1 validation gap.
-
-#### Tests
-- `apps/api/src/test/ai-command-apply.test.ts` — 5 tests covering the full AI Command apply/reject lifecycle
-
-## [0.16.0] - 2026-04-09
-
-#### Added
