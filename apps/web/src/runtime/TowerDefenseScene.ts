@@ -1,4 +1,4 @@
-import { GameObjects, Input } from 'phaser';
+import { GameObjects, Input, Math as PhaserMath, Input as PhaserInput } from 'phaser';
 import { ClawgamePhaserScene } from '../../../../packages/phaser-runtime/src';
 import {
   createTowerDefenseState,
@@ -29,9 +29,9 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
   private renderEntityMap: Map<string, GameObjects.Arc> = new Map();
   private projectileMap: Map<string, GameObjects.Arc> = new Map();
   private towerContainers: Map<string, GameObjects.Container> = new Map();
-  private enemyGroup!: Phaser.GameObjects.Group;
-  private projectileGroup!: Phaser.GameObjects.Group;
-  private towerGroup!: Phaser.GameObjects.Group;
+  private enemyGroup!: GameObjects.Group;
+  private projectileGroup!: GameObjects.Group;
+  private towerGroup!: GameObjects.Group;
   private pathGraphics!: GameObjects.Graphics;
   private rangeIndicator!: GameObjects.Arc;
   private _gameOver = false;
@@ -169,13 +169,13 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
         this.cursor.x += (cx / len) * this.cursorSpeed * (delta / 1000);
         this.cursor.y += (cy / len) * this.cursorSpeed * (delta / 1000);
       }
-      this.cursor.x = Phaser.Math.Clamp(this.cursor.x, 10, width - 10);
-      this.cursor.y = Phaser.Math.Clamp(this.cursor.y, 10, height - 10);
+      this.cursor.x = PhaserMath.Clamp(this.cursor.x, 10, width - 10);
+      this.cursor.y = PhaserMath.Clamp(this.cursor.y, 10, height - 10);
       this.cursorLabel.setPosition(this.cursor.x, this.cursor.y + 24);
     }
 
     // ─── Keyboard tower placement (T) ───
-    if (this.tKey && Phaser.Input.Keyboard.JustDown(this.tKey)) {
+    if (this.tKey && PhaserInput.Keyboard.JustDown(this.tKey)) {
       const result = this.placeTower(this.cursor.x, this.cursor.y, this.selectedTowerType);
       if (result.success) {
         // Show brief feedback
@@ -186,10 +186,10 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
 
     // ─── Tower type selection (1-4) ───
     const towerTypes: TowerType[] = ['basic', 'cannon', 'frost', 'lightning'];
-    if (this.oneKey && Phaser.Input.Keyboard.JustDown(this.oneKey)) this.selectedTowerType = towerTypes[0];
-    if (this.twoKey && Phaser.Input.Keyboard.JustDown(this.twoKey)) this.selectedTowerType = towerTypes[1];
-    if (this.threeKey && Phaser.Input.Keyboard.JustDown(this.threeKey)) this.selectedTowerType = towerTypes[2];
-    if (this.fourKey && Phaser.Input.Keyboard.JustDown(this.fourKey)) this.selectedTowerType = towerTypes[3];
+    if (this.oneKey && PhaserInput.Keyboard.JustDown(this.oneKey)) this.selectedTowerType = towerTypes[0];
+    if (this.twoKey && PhaserInput.Keyboard.JustDown(this.twoKey)) this.selectedTowerType = towerTypes[1];
+    if (this.threeKey && PhaserInput.Keyboard.JustDown(this.threeKey)) this.selectedTowerType = towerTypes[2];
+    if (this.fourKey && PhaserInput.Keyboard.JustDown(this.fourKey)) this.selectedTowerType = towerTypes[3];
 
     // Update cursor label
     if (this.cursorLabel) {
@@ -198,12 +198,12 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
     }
 
     // ─── Upgrade selected tower (U) ───
-    if (this.uKey && Phaser.Input.Keyboard.JustDown(this.uKey) && this._selectedTowerId) {
+    if (this.uKey && PhaserInput.Keyboard.JustDown(this.uKey) && this._selectedTowerId) {
       this.upgradeSelectedTower();
     }
 
     // ─── Next wave (N) ───
-    if (this.nKey && Phaser.Input.Keyboard.JustDown(this.nKey)) {
+    if (this.nKey && PhaserInput.Keyboard.JustDown(this.nKey)) {
       this.startNextWave();
     }
 
