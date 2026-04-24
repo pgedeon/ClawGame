@@ -319,7 +319,7 @@ export interface ExportOptions {
   includeAssets?: boolean;
   minify?: boolean;
   compress?: boolean;
-  format?: 'html' | 'zip';
+  format?: 'html' | 'zip' | 'phaser-html';
 }
 
 export interface ExportResult {

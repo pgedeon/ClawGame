@@ -17,14 +17,14 @@ export interface ExportOptions {
   includeAssets?: boolean;
   minify?: boolean;
   compress?: boolean;
-  format?: 'html' | 'zip';
+  format?: 'html' | 'zip' | 'phaser-html';
 }
 
 export interface ExportResult {
   projectId: string;
   projectName: string;
   version: string;
-  format: 'html' | 'zip';
+  format: 'html' | 'zip' | 'phaser-html';
   size: number;
   filename: string;
   downloadUrl: string;
@@ -64,6 +64,138 @@ export class ExportService {
       await mkdir(EXPORTS_DIR, { recursive: true });
     }
     return EXPORTS_DIR;
+  }
+
+  /**
+   * Export project as standalone Phaser 4 HTML.
+   */
+  async exportToPhaserHTML(projectId: string, options: ExportOptions = {}): Promise<ExportResult> {
+    const exportsDir = await this.ensureExportsDir();
+    const project = await this.projectService.getProjectDetail(projectId);
+    if (!project) throw new Error('Project not found');
+
+    let sceneData: any = null;
+    const scenePath = join('./data/projects', projectId, 'scenes/main-scene.json');
+    try {
+      if (existsSync(scenePath)) sceneData = JSON.parse(await readFile(scenePath, 'utf-8'));
+    } catch { sceneData = { name: 'Main Scene', entities: [] }; }
+    if (!sceneData) sceneData = { name: 'Main Scene', entities: [] };
+
+    const entities = Array.isArray(sceneData.entities) ? sceneData.entities : Object.values(sceneData.entities || {});
+    const entityMap: Record<string, any> = {};
+    for (const e of entities) {
+      entityMap[e.id || `e-${Object.keys(entityMap).length}`] = {
+        ...e,
+        components: e.components instanceof Map
+          ? e.components
+          : new Map(Object.entries(e.components || {})),
+      };
+    }
+
+    const className = (sceneData.name || 'Main').replace(/[^a-zA-Z0-9]/g, '') + 'Scene';
+    const sceneCode = this.compileSceneToPhaser(className, sceneData.name || 'Main Scene', entityMap, sceneData.metadata);
+
+    let assetData: any[] = [];
+    if (options.includeAssets !== false) assetData = await this.embedAssets(projectId);
+
+    const html = this.generatePhaserHTML(project, className, sceneCode, assetData, sceneData.metadata);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const safeName = project.name.replace(/[^a-zA-Z0-9-]/g, '-');
+    const filename = `${projectId}-${safeName}-phaser-${timestamp}.html`;
+    const filePath = join(exportsDir, filename);
+    await writeFile(filePath, html, 'utf-8');
+
+    const metadata: ExportMetadata = {
+      projectId, projectName: project.name, version: project.version || '1.0.0',
+      createdAt: new Date().toISOString(), includesAssets: options.includeAssets !== false, assetCount: assetData.length,
+    };
+    await writeFile(join(exportsDir, `${filename}.meta.json`), JSON.stringify(metadata, null, 2), 'utf-8');
+
+    return {
+      projectId, projectName: project.name, version: project.version || '1.0.0',
+      format: 'phaser-html', size: Buffer.byteLength(html, 'utf-8'), filename,
+      downloadUrl: `/api/projects/${projectId}/exports/${filename}`,
+      createdAt: metadata.createdAt, includesAssets: options.includeAssets !== false, assetCount: assetData.length,
+    };
+  }
+
+  compileSceneToPhaser(className: string, sceneName: string, entities: Record<string, any>, metadata?: any): string {
+    const lines: string[] = [];
+    const indent = '    ';
+    const assetIds = new Set<string>();
+    for (const entity of Object.values(entities) as any[]) {
+      const comps = entity.components instanceof Map ? entity.components : new Map(Object.entries(entity.components || {}));
+      const sprite = comps.get('sprite');
+      if (sprite?.assetId) assetIds.add(String(sprite.assetId));
+    }
+    lines.push(`${indent}preload() {`);
+    for (const id of assetIds) lines.push(`${indent}  this.load.image('${id}', 'assets/${id}.png');`);
+    lines.push(`${indent}}`);
+    lines.push('');
+    lines.push(`${indent}create() {`);
+    for (const [id, entity] of Object.entries(entities)) {
+      const e = entity as any;
+      const x = e.transform?.x ?? 0;
+      const y = e.transform?.y ?? 0;
+      const name = e.name || id;
+      const safeName = name.replace(/[^a-zA-Z0-9_]/g, '_');
+      const type = (e.type || 'custom') as string;
+      const comps = e.components instanceof Map ? e.components : new Map(Object.entries(e.components || {}));
+      const sprite = comps.get('sprite');
+      const collision = comps.get('collision');
+      if (type === 'text') {
+        const text = comps.get('text');
+        lines.push(`${indent}  this.add.text(${x}, ${y}, '${text?.content || name}', { fontSize: '${text?.fontSize || 16}px', color: '${text?.color || '#ffffff'}' });`);
+      } else if (type === 'zone' || type === 'trigger') {
+        lines.push(`${indent}  this.add.zone(${x}, ${y}, ${collision?.width || 64}, ${collision?.height || 64});`);
+      } else if (type === 'circle') {
+        const r = Math.min(e.transform?.width || 32, e.transform?.height || 32) / 2;
+        lines.push(`${indent}  this.add.circle(${x}, ${y}, ${r}, '${sprite?.color || '#8b5cf6'}');`);
+      } else if (type === 'rectangle') {
+        lines.push(`${indent}  this.add.rectangle(${x}, ${y}, ${e.transform?.width || 32}, ${e.transform?.height || 32}, '${sprite?.color || '#8b5cf6'}');`);
+      } else {
+        const key = sprite?.assetId || safeName;
+        lines.push(`${indent}  const ${safeName} = this.add.sprite(${x}, ${y}, '${key}');`);
+        if (e.transform?.rotation) lines.push(`${indent}  ${safeName}.setRotation(${e.transform.rotation});`);
+        if ((e.transform?.scaleX ?? 1) !== 1 || (e.transform?.scaleY ?? 1) !== 1) lines.push(`${indent}  ${safeName}.setScale(${e.transform.scaleX ?? 1}, ${e.transform.scaleY ?? 1});`);
+        if (collision?.type && collision.type !== 'none') {
+          const isStatic = collision.type === 'wall' || collision.type === 'solid';
+          lines.push(`${indent}  this.physics.add.existing(${safeName}, ${isStatic});`);
+        }
+      }
+    }
+    lines.push(`${indent}}`);
+    return lines.join('\n');
+  }
+
+  generatePhaserHTML(project: any, className: string, sceneCode: string, assets: any[], metadata?: any): string {
+    const w = metadata?.width || 800;
+    const h = metadata?.height || 600;
+    const bg = metadata?.backgroundColor || '#1a1a2e';
+    const base64Assets = assets.filter((a: any) => a.base64)
+      .map((a: any) => `  const ${a.id.replace(/[^a-zA-Z0-9]/g, '_')} = 'data:${a.mimeType || 'image/png'};base64,${a.base64}';`).join('\n');
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${project.name}</title>
+  <style>* { margin: 0; padding: 0; box-sizing: border-box; } body { background: ${bg}; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }</style>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@4.0.0/dist/phaser.min.js"><\/script>
+</head>
+<body>
+  <div id="game-container"></div>
+  <script>
+${base64Assets}
+class ${className} extends Phaser.Scene {
+  constructor() { super('${className}'); }
+${sceneCode}
+}
+const config = { type: Phaser.AUTO, width: ${w}, height: ${h}, backgroundColor: '${bg}', physics: { default: 'arcade', arcade: { debug: false } }, scene: [${className}], parent: 'game-container' };
+new Phaser.Game(config);
+  <\/script>
+</body>
+</html>`;
   }
 
   /**

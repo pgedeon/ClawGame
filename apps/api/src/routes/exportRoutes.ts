@@ -26,6 +26,11 @@ export async function exportRoutes(app: FastifyInstance) {
       const options = request.body || {};
 
       try {
+        if (options.format === 'phaser-html') {
+          const result = await exportServiceInstance!.exportToPhaserHTML(projectId, options);
+          reply.code(201);
+          return result;
+        }
         const result = await exportServiceInstance!.exportToHTML(projectId, options);
         reply.code(201);
         return result;

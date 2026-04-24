@@ -294,13 +294,13 @@ Acceptance:
   - [x] Zone
   - [x] Particle emitter
   - [x] Tilemap layer
-- [ ] Implement render adapters for each object kind.
-- [ ] Implement compile adapters for each object kind.
+- [x] Implement render adapters for each object kind.
+- [x] Implement compile adapters for each object kind.
 - [x] Add object creation menu.
 
 Acceptance:
 
-- [ ] User can add multiple Phaser object types and preview/export them.
+- [x] User can add multiple Phaser object types and preview/export them.
 
 ## Milestone 4: Asset Pack Editor
 
@@ -366,14 +366,14 @@ Acceptance:
 
 ### 5.3 Export Integration
 
-- [ ] Use compiled Phaser scene code in export.
+- [x] Use compiled Phaser scene code in export.
 - [x] Include asset pack files in export.
 - [x] Include runtime bootstrap only where needed.
-- [ ] Add export tests for HTML and ZIP outputs.
+- [x] Add export tests for HTML and ZIP outputs.
 
 Acceptance:
 
-- [ ] Exported game can run independently in a browser.
+- [x] Exported game can run independently in a browser.
 
 ## Milestone 6: Physics Tooling
 

@@ -129,6 +129,39 @@ function generateEntityCreate(entity: Entity, indent: string): string[] {
       lines.push(`${indent}this.add.zone(${x}, ${y}, ${w}, ${h});`);
       break;
     }
+    case 'rectangle': {
+      const w = entity.transform.width || 32;
+      const h = entity.transform.height || 32;
+      const sprite = getComp(entity, 'sprite');
+      const color = (sprite && typeof sprite === 'object' ? String((sprite as any).color ?? '#8b5cf6') : '#8b5cf6');
+      lines.push(`${indent}// ${entity.name || entity.id} (rectangle)`);
+      lines.push(`${indent}this.add.rectangle(${x}, ${y}, ${w}, ${h}, '${color}').setOrigin(0.5);`);
+      break;
+    }
+    case 'circle': {
+      const w = entity.transform.width || 32;
+      const h = entity.transform.height || 32;
+      const radius = Math.min(w, h) / 2;
+      const sprite = getComp(entity, 'sprite');
+      const color = (sprite && typeof sprite === 'object' ? String((sprite as any).color ?? '#8b5cf6') : '#8b5cf6');
+      lines.push(`${indent}// ${entity.name || entity.id} (circle)`);
+      lines.push(`${indent}this.add.circle(${x}, ${y}, ${radius}, '${color}');`);
+      break;
+    }
+    case 'container': {
+      lines.push(`${indent}// ${entity.name || entity.id} (container)`);
+      lines.push(`${indent}const ${safeName}_container = this.add.container(${x}, ${y});`);
+      break;
+    }
+    case 'tilesprite': {
+      const w = entity.transform.width || 256;
+      const h = entity.transform.height || 256;
+      const sprite = getComp(entity, 'sprite');
+      const key = (sprite && typeof sprite === 'object' ? String((sprite as any).assetId ?? safeName) : safeName);
+      lines.push(`${indent}// ${entity.name || entity.id} (tilesprite)`);
+      lines.push(`${indent}this.add.tileSprite(${x}, ${y}, ${w}, ${h}, '${key}');`);
+      break;
+    }
     default: {
       lines.push(`${indent}// ${entity.name || entity.id} (${entityType})`);
       lines.push(`${indent}this.add.rectangle(${x}, ${y}, 32, 32, 0xffffff);`);
