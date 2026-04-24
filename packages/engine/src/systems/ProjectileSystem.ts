@@ -53,7 +53,7 @@ export class ProjectileSystem {
         if (target.id === entity.id || removals.has(entity.id)) continue;
 
         const targetCollision = target.components.get('collision') as CollisionComponent | undefined;
-        if (!targetCollision || targetCollision.type === 'projectile') continue;
+        if (!targetCollision || targetCollision.type === 'projectile' || targetCollision.type === 'none') continue;
         if (projectile.targetTypes?.length && (!targetCollision.type || !projectile.targetTypes.includes(targetCollision.type))) {
           continue;
         }

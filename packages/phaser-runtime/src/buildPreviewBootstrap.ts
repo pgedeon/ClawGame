@@ -2,6 +2,7 @@ import type {
   CanonicalEntityLike,
   CanonicalSceneLike,
   PhaserPreviewAsset,
+  PhaserPreviewAssetUrlResolver,
   PhaserPreviewBodyConfig,
   PhaserPreviewBootstrap,
   PhaserPreviewBootstrapOptions,
@@ -61,16 +62,70 @@ function buildAssetKey(assetRef: string): string {
   return `asset:${assetRef}`;
 }
 
-function buildAssetRecord(entity: CanonicalEntityLike, width: number, height: number): PhaserPreviewAsset | null {
+function normalizeAssetUrl(assetRef: string, options: PhaserPreviewBootstrapOptions): string {
+  if (/^(?:[a-z]+:)?\/\//i.test(assetRef) || assetRef.startsWith('data:')) {
+    return assetRef;
+  }
+
+  if (options.assetBaseUrl) {
+    return `${options.assetBaseUrl.replace(/\/$/, '')}/${assetRef.replace(/^\//, '')}`;
+  }
+
+  if (assetRef.startsWith('./') || assetRef.startsWith('../') || assetRef.startsWith('/')) {
+    return assetRef;
+  }
+
+  return `./${assetRef}`;
+}
+
+function resolveAssetUrl(
+  assetRef: string,
+  entity: CanonicalEntityLike,
+  options: PhaserPreviewBootstrapOptions,
+): string {
+  const resolver: PhaserPreviewAssetUrlResolver | undefined = options.assetUrlResolver;
+  return resolver ? resolver(assetRef, entity) : normalizeAssetUrl(assetRef, options);
+}
+
+export function buildAssetRecord(
+  entity: CanonicalEntityLike,
+  width: number,
+  height: number,
+  options: PhaserPreviewBootstrapOptions = {},
+): PhaserPreviewAsset | null {
   const assetRef = entity.components?.sprite?.assetRef;
   if (typeof assetRef !== 'string' || assetRef.length === 0) {
     return null;
   }
 
+  const sprite = entity.components?.sprite;
+  const frameData = sprite?.frameData;
+  const atlasMeta = sprite?.atlasMeta;
+  const normalizedFrameData =
+    frameData &&
+    typeof frameData.frameWidth === 'number' &&
+    typeof frameData.frameHeight === 'number'
+      ? {
+          frameWidth: frameData.frameWidth,
+          frameHeight: frameData.frameHeight,
+          ...(typeof frameData.endFrame === 'number' ? { endFrame: frameData.endFrame } : {}),
+        }
+      : undefined;
+  const normalizedAtlasMeta =
+    atlasMeta &&
+    typeof atlasMeta.atlasUrl === 'string' &&
+    (atlasMeta.type === 'json' || atlasMeta.type === 'xml')
+      ? { atlasUrl: atlasMeta.atlasUrl, type: atlasMeta.type as 'json' | 'xml' }
+      : undefined;
+
   return {
     key: buildAssetKey(assetRef),
     assetRef,
-    kind: 'image',
+    kind: normalizedAtlasMeta ? 'atlas' : normalizedFrameData ? 'spritesheet' : 'image',
+    loadUrl: resolveAssetUrl(assetRef, entity, options),
+    ...(typeof sprite?.mimeType === 'string' ? { mimeType: sprite.mimeType } : {}),
+    ...(normalizedFrameData ? { frameData: normalizedFrameData } : {}),
+    ...(normalizedAtlasMeta ? { atlasMeta: normalizedAtlasMeta } : {}),
     width,
     height,
   };
@@ -102,13 +157,17 @@ export function buildPhaserPreviewBootstrap(
   scene: CanonicalSceneLike,
   options: PhaserPreviewBootstrapOptions = {},
 ): PhaserPreviewBootstrap {
-  const entities = Array.isArray(scene.entities) ? scene.entities : [];
+  const entities = scene.entities instanceof Map
+    ? Array.from(scene.entities.values())
+    : Array.isArray(scene.entities)
+      ? scene.entities
+      : [];
   const normalizedEntities = entities.map(buildEntityRecord);
   const assetMap = new Map<string, PhaserPreviewAsset>();
 
   for (const entity of entities) {
     const { width, height } = getEntityDimensions(entity);
-    const asset = buildAssetRecord(entity, width, height);
+    const asset = buildAssetRecord(entity, width, height, options);
     if (asset) {
       assetMap.set(asset.assetRef, asset);
     }
@@ -124,12 +183,16 @@ export function buildPhaserPreviewBootstrap(
     sceneName: scene.name || 'Main Scene',
     backgroundColor,
     bounds: {
+      ...(typeof scene.bounds?.x === 'number' ? { x: scene.bounds.x } : {}),
+      ...(typeof scene.bounds?.y === 'number' ? { y: scene.bounds.y } : {}),
       width: typeof boundsWidth === 'number' ? boundsWidth : defaultBounds.width,
       height: typeof boundsHeight === 'number' ? boundsHeight : defaultBounds.height,
     },
     ...(typeof scene.spawnPoint?.x === 'number' && typeof scene.spawnPoint?.y === 'number'
       ? { spawnPoint: { x: scene.spawnPoint.x, y: scene.spawnPoint.y } }
       : {}),
+    ...(scene.camera ? { camera: { ...scene.camera, ...(scene.camera.bounds ? { bounds: { ...scene.camera.bounds } } : {}) } } : {}),
+    ...(scene.physics ? { physics: { ...scene.physics, ...(scene.physics.gravity ? { gravity: { ...scene.physics.gravity } } : {}) } } : {}),
     assets: Array.from(assetMap.values()),
     entities: normalizedEntities,
     metadata: {

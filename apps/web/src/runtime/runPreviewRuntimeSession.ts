@@ -7,11 +7,13 @@ import {
   preparePhaserPreviewSession,
   runPhaserPreviewSession,
 } from './phaserPreviewSession';
+import type { PhaserRuntimeError } from '../../../../packages/phaser-runtime/src';
 
 export type PreviewRuntimeSelection = string;
 
 export interface PreviewRuntimeSessionOptions extends LegacyCanvasPreviewSessionOptions {
   runtimeHostRef: MutableRefObject<HTMLDivElement | null>;
+  onRuntimeError?: (error: PhaserRuntimeError) => void;
 }
 
 function combineCleanups(cleanups: Array<(() => void) | void>): (() => void) | void {
@@ -31,7 +33,12 @@ export function runPreviewRuntimeSession(
     cleanups.push(preparation.cleanup);
     const hostEl = options.runtimeHostRef?.current;
     if (hostEl) {
-      const session = runPhaserPreviewSession(hostEl, preparation.bootstrap, preparation.genre);
+      const session = runPhaserPreviewSession(
+        hostEl,
+        preparation.bootstrap,
+        preparation.genre,
+        options.onRuntimeError,
+      );
       cleanups.push(session.destroy);
     }
   } else {

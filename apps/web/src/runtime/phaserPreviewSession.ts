@@ -2,7 +2,9 @@ import type { LegacyCanvasPreviewSessionOptions } from './legacyCanvasSession';
 import {
   ClawgamePhaserRuntime,
   buildPhaserPreviewBootstrap,
+  consolePhaserRuntimeErrorReporter,
   type PhaserPreviewBootstrap,
+  type PhaserRuntimeError,
 } from '../../../../packages/phaser-runtime/src';
 import { TowerDefenseScene } from './TowerDefenseScene';
 
@@ -30,8 +32,15 @@ export function runPhaserPreviewSession(
   hostElement: HTMLDivElement,
   bootstrap: PhaserPreviewBootstrap,
   genre?: string,
+  onRuntimeError?: (error: PhaserRuntimeError) => void,
 ): { destroy: () => void } {
   const runtime = new ClawgamePhaserRuntime();
+  const errorReporter = {
+    reportError(phase: string, error: unknown, context?: Record<string, unknown>) {
+      consolePhaserRuntimeErrorReporter.reportError(phase, error, context);
+      onRuntimeError?.({ phase, error, ...(context ? { context } : {}) });
+    },
+  };
 
   // Pick the right scene class based on genre
   // Note: genre values are 'platformer', 'rpg', 'puzzle', 'tower-defense'
@@ -39,6 +48,6 @@ export function runPhaserPreviewSession(
     runtime.setSceneFactory(() => new TowerDefenseScene());
   }
 
-  runtime.mount(hostElement, bootstrap);
+  runtime.mount(hostElement, bootstrap, { errorReporter });
   return { destroy: () => runtime.destroy() };
 }

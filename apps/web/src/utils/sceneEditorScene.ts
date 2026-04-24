@@ -1,4 +1,16 @@
 import { type Scene, type SerializableEntity, toRuntimeEntity, toSerializableEntity } from '@clawgame/engine';
+
+export interface EditorSceneMetadata {
+  width?: number;
+  height?: number;
+  backgroundColor?: string;
+  spawnPoint?: { x: number; y: number };
+  bounds?: { x: number; y: number; width: number; height: number };
+}
+
+export interface EditorScene extends Scene {
+  metadata?: EditorSceneMetadata;
+}
 import { inferEntityType } from './previewScene';
 
 function normalizeTransform(transform: any) {
@@ -24,10 +36,16 @@ function normalizeSerializableEntity(entity: any, index: number): SerializableEn
     type,
     transform: normalizeTransform(entity.transform),
     components,
+    visible: typeof entity.visible === 'boolean' ? entity.visible : undefined,
+    locked: typeof entity.locked === 'boolean' ? entity.locked : undefined,
+    phaserKind: typeof entity.phaserKind === 'string' ? entity.phaserKind : undefined,
+    parent: typeof entity.parent === 'string' ? entity.parent : undefined,
+    children: Array.isArray(entity.children) ? entity.children.filter((child: unknown) => typeof child === 'string') : undefined,
+    tags: Array.isArray(entity.tags) ? entity.tags.filter((tag: unknown) => typeof tag === 'string') : undefined,
   };
 }
 
-export function deserializeEditorScene(sceneContent: any): Scene {
+export function deserializeEditorScene(sceneContent: any): EditorScene {
   const entities = new Map<string, ReturnType<typeof toRuntimeEntity>>();
   const rawEntities = Array.isArray(sceneContent?.entities)
     ? sceneContent.entities
@@ -42,22 +60,27 @@ export function deserializeEditorScene(sceneContent: any): Scene {
     }
   });
 
+  const metadata: EditorSceneMetadata = {
+    width: typeof sceneContent?.metadata?.width === 'number' ? sceneContent.metadata.width : 800,
+    height: typeof sceneContent?.metadata?.height === 'number' ? sceneContent.metadata.height : 600,
+    backgroundColor: typeof sceneContent?.metadata?.backgroundColor === 'string' ? sceneContent.metadata.backgroundColor : '#1a1a2e',
+    spawnPoint: sceneContent?.metadata?.spawnPoint ?? undefined,
+    bounds: sceneContent?.metadata?.bounds ?? undefined,
+  };
   return {
     name: typeof sceneContent?.name === 'string' ? sceneContent.name : 'Main Scene',
     entities,
+    metadata,
   };
 }
 
 export function serializeEditorScene(scene: Scene): string {
   const entities = Array.from(scene.entities.values()).map((entity) => toSerializableEntity(entity));
-  return JSON.stringify(
-    {
-      name: scene.name,
-      entities,
-    },
-    null,
-    2,
-  );
+  const serialized: any = { name: scene.name, entities };
+  if ('metadata' in scene && (scene as EditorScene).metadata) {
+    serialized.metadata = (scene as EditorScene).metadata;
+  }
+  return JSON.stringify(serialized, null, 2);
 }
 
 export function createDefaultEditorScene(): Scene {

@@ -5,7 +5,8 @@
  */
 
 import { FastifyInstance } from 'fastify';
-import { ImageStylePresetService, type AssetRole } from '../services/imageStylePresetService';
+import { ImageStylePresetService } from '../services/imageStylePresetService';
+import { AssetRole } from '../types/assetTypes';
 
 export async function imageStylePresetRoutes(app: FastifyInstance) {
   const service = new ImageStylePresetService(app.log);
@@ -15,7 +16,7 @@ export async function imageStylePresetRoutes(app: FastifyInstance) {
     Querystring: { role?: AssetRole };
   }>('/api/image-presets', async (req) => {
     const { role } = req.query;
-    const presets = service.listPresets(role);
+    const presets = role ? service.getAllPresets().filter(p => p.role === role) : service.getAllPresets();
     return { presets, total: presets.length };
   });
 
@@ -41,7 +42,7 @@ export async function imageStylePresetRoutes(app: FastifyInstance) {
     Body: {
       presetId: string;
       description: string;
-      artStyle?: AssetRole extends never ? never : 'pixel' | 'vector' | 'hand-drawn' | 'cartoon' | 'realistic';
+      artStyle?: 'pixel' | 'vector' | 'hand-drawn' | 'cartoon' | 'realistic';
       width?: number;
       height?: number;
       count?: number;
@@ -72,7 +73,7 @@ export async function imageStylePresetRoutes(app: FastifyInstance) {
       });
       return result;
     } catch (err: any) {
-      req.log.error(err, 'Preset generation failed');
+      app.log.error(err, 'Preset generation failed');
       return reply.status(500).send({ error: 'Generation failed', details: err.message });
     }
   });

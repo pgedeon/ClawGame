@@ -87,6 +87,8 @@ export class ProjectService {
               status: project.project.status || 'draft',
               createdAt: project.project.createdAt,
               updatedAt: project.project.updatedAt,
+              assetCount: 0,
+              entityCount: 0,
             });
           }
         }
@@ -196,10 +198,17 @@ export class ProjectService {
       createdAt: project.project.createdAt,
       updatedAt: project.project.updatedAt,
       version: project.version,
+      settings: project.settings || {
+        width: 800,
+        height: 600,
+        backgroundColor: '#1a1a2e',
+        gravity: { x: 0, y: 0.5 },
+      },
       engine: project.engine,
       ai: project.ai,
-      assets: project.assets,
+      assets: project.assets || [],
       openclaw: project.openclaw,
+      assetCount: 0,
       sceneCount,
       entityCount,
     };

@@ -38,6 +38,7 @@ const GitCenterPage = lazy(() => import('./pages/GitCenterPage').then(m => ({ de
 const AISettingsPage = lazy(() => import('./pages/AISettingsPage').then(m => ({ default: m.AISettingsPage })));
 const BehaviorGraphPage = lazy(() => import('./pages/BehaviorGraphPage').then(m => ({ default: m.BehaviorGraphPage })));
 const NavigationPage = lazy(() => import('./pages/NavigationPage').then(m => ({ default: m.NavigationPage })));
+const MediaForgePage = lazy(() => import('./pages/MediaForgePage').then(m => ({ default: m.MediaForgePage })));
 
 function PageLoader() {
   return (
@@ -72,6 +73,14 @@ function LazyNavigationPage() {
   );
 }
 
+function LazyMediaForgePage() {
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <MediaForgePage />
+    </Suspense>
+  );
+}
+
 function App() {
   return (
     <ErrorBoundary>
@@ -91,6 +100,7 @@ function App() {
               <Route path="scene-editor" element={<Suspense fallback={<PageLoader />}><SceneEditorPage /></Suspense>} />
               <Route path="ai" element={<Suspense fallback={<PageLoader />}><AICommandPage /></Suspense>} />
               <Route path="assets" element={<Suspense fallback={<PageLoader />}><AssetStudioPage /></Suspense>} />
+              <Route path="media-forge" element={<Suspense fallback={<PageLoader />}><LazyMediaForgePage /></Suspense>} />
               <Route path="preview" element={<Suspense fallback={<PageLoader />}><GamePreviewPage /></Suspense>} />
               <Route path="export" element={<Suspense fallback={<PageLoader />}><ExportPage /></Suspense>} />
               <Route path="git" element={<Suspense fallback={<PageLoader />}><GitCenterPage /></Suspense>} />

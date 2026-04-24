@@ -21,11 +21,25 @@ export { toSerializableEntity, toRuntimeEntity };
 // Tool modes for the editor
 export type ToolMode = 'select' | 'move' | 'add-entity' | 'pan' | 'paint-tile' | 'erase';
 
+export type PhaserObjectKind =
+  | 'image'
+  | 'sprite'
+  | 'text'
+  | 'rectangle'
+  | 'circle'
+  | 'tileSprite'
+  | 'container'
+  | 'zone'
+  | 'particle-emitter'
+  | 'tilemap-layer';
+
 // Entity templates for quick creation
 export interface EntityTemplate {
   id: string;
   type: EntityType;
+  phaserKind: PhaserObjectKind;
   name: string;
+  category: 'Gameplay' | 'Display' | 'Physics' | 'Effects' | 'Tilemaps';
   transform: Transform;
   components: Map<string, any>;
 }
@@ -34,7 +48,9 @@ export const ENTITY_TEMPLATES: EntityTemplate[] = [
   {
     id: 'player',
     type: 'player',
+    phaserKind: 'sprite',
     name: '🎮 Player',
+    category: 'Gameplay',
     transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
     components: (() => {
       const m = new Map<string, any>();
@@ -48,7 +64,9 @@ export const ENTITY_TEMPLATES: EntityTemplate[] = [
   {
     id: 'enemy',
     type: 'enemy',
+    phaserKind: 'sprite',
     name: '👾 Enemy',
+    category: 'Gameplay',
     transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
     components: (() => {
       const m = new Map<string, any>();
@@ -62,7 +80,9 @@ export const ENTITY_TEMPLATES: EntityTemplate[] = [
   {
     id: 'coin',
     type: 'collectible',
+    phaserKind: 'sprite',
     name: '🪙 Coin',
+    category: 'Gameplay',
     transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
     components: (() => {
       const m = new Map<string, any>();
@@ -75,7 +95,9 @@ export const ENTITY_TEMPLATES: EntityTemplate[] = [
   {
     id: 'wall',
     type: 'obstacle',
+    phaserKind: 'rectangle',
     name: '🧱 Wall',
+    category: 'Physics',
     transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
     components: (() => {
       const m = new Map<string, any>();
@@ -87,7 +109,9 @@ export const ENTITY_TEMPLATES: EntityTemplate[] = [
   {
     id: 'platform',
     type: 'obstacle',
+    phaserKind: 'rectangle',
     name: '▬ Platform',
+    category: 'Physics',
     transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
     components: (() => {
       const m = new Map<string, any>();
@@ -99,7 +123,9 @@ export const ENTITY_TEMPLATES: EntityTemplate[] = [
   {
     id: 'npc',
     type: 'npc',
+    phaserKind: 'sprite',
     name: '🧑 NPC',
+    category: 'Gameplay',
     transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
     components: (() => {
       const m = new Map<string, any>();
@@ -112,19 +138,23 @@ export const ENTITY_TEMPLATES: EntityTemplate[] = [
   {
     id: 'zone',
     type: 'custom',
+    phaserKind: 'zone',
     name: '📡 Trigger Zone',
+    category: 'Physics',
     transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
     components: (() => {
       const m = new Map<string, any>();
-      m.set('sprite', { width: 64, height: 64, color: '#a855f7' });
-      m.set('collision', { width: 64, height: 64, type: 'collectible' });
+      m.set('sprite', { width: 64, height: 64, color: '#22d3ee80', opacity: 0.45 });
+      m.set('collision', { width: 64, height: 64, type: 'none' });
       return m;
     })(),
   },
   {
     id: 'text',
     type: 'custom',
+    phaserKind: 'text',
     name: '📝 Text Label',
+    category: 'Display',
     transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
     components: (() => {
       const m = new Map<string, any>();
@@ -134,9 +164,51 @@ export const ENTITY_TEMPLATES: EntityTemplate[] = [
     })(),
   },
   {
+    id: 'image',
+    type: 'custom',
+    phaserKind: 'image',
+    name: '🖼️ Image',
+    category: 'Display',
+    transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+    components: (() => {
+      const m = new Map<string, any>();
+      m.set('sprite', { width: 64, height: 64, color: '#60a5fa' });
+      return m;
+    })(),
+  },
+  {
+    id: 'rectangle',
+    type: 'custom',
+    phaserKind: 'rectangle',
+    name: '▭ Rectangle',
+    category: 'Display',
+    transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+    components: (() => {
+      const m = new Map<string, any>();
+      m.set('sprite', { width: 96, height: 48, color: '#14b8a6' });
+      return m;
+    })(),
+  },
+  {
+    id: 'circle',
+    type: 'obstacle',
+    phaserKind: 'circle',
+    name: '● Circle',
+    category: 'Display',
+    transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
+    components: (() => {
+      const m = new Map<string, any>();
+      m.set('sprite', { width: 32, height: 32, color: '#a855f7' });
+      m.set('collision', { width: 32, height: 32, type: 'wall', shape: 'circle' });
+      return m;
+    })(),
+  },
+  {
     id: 'particles',
     type: 'custom',
+    phaserKind: 'particle-emitter',
     name: '🔥 Particle Emitter',
+    category: 'Effects',
     transform: { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0 },
     components: (() => {
       const m = new Map<string, any>();

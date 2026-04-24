@@ -40,7 +40,13 @@ export function AssetBrowserPanel({
     try {
       setAssetsLoading(true);
       const assetList = await api.listAssets(projectId);
-      setAssets(assetList);
+      // API returns { success, data, pagination } — unwrap
+      const items = Array.isArray(assetList)
+        ? assetList
+        : Array.isArray((assetList as any)?.data)
+          ? (assetList as any).data
+          : [];
+      setAssets(items);
     } catch (err) {
       logger.error('Failed to load assets:', err);
     } finally {
@@ -152,7 +158,14 @@ export function AssetBrowserPanel({
                 draggable
                 onDragStart={(e) => {
                   e.dataTransfer.effectAllowed = 'copy';
-                  e.dataTransfer.setData('application/json', JSON.stringify({ id: asset.id, name: asset.name }));
+                  e.dataTransfer.setData('application/json', JSON.stringify({
+                    assetId: asset.id,
+                    name: asset.name,
+                    type: asset.type,
+                    url: asset.url,
+                    width: img?.naturalWidth || img?.width,
+                    height: img?.naturalHeight || img?.height,
+                  }));
                 }}
                 onClick={() => setSelectedAssetId(asset.id)}
               >

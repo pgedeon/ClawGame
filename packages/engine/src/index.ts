@@ -3,6 +3,8 @@
  */
 
 export * from './types';
+export * from './asset-pack';
+export * from './scene-compiler';
 
 export { Engine } from './Engine';
 
@@ -20,4 +22,8 @@ export { AnimationSystem } from './systems/AnimationSystem';
 export { DamageSystem } from './systems/DamageSystem';
 
 export { SceneLoader } from './SceneLoader';
-export type { AssetResolver, SceneLoaderOptions, SceneLoadResult } from './SceneLoader';
+export type { AssetResolver, SceneLoaderOptions, SceneLoadResult } from './SceneLoader';export * from './animations';
+export * from './tilemap';
+export * from './prefabs';
+export * from './ai-workflows';
+export * from './history';

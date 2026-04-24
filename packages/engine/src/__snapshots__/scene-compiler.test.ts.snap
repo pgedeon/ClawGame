@@ -1,0 +1,63 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`scene-compiler > compileBootstrapHTML > snapshot test 1`] = `
+"<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ClawGame Export</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    canvas { border: 1px solid #333; }
+  </style>
+</head>
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@4/dist/phaser.min.js"></script>
+  <script src="scene.js"></script>
+  <script>
+    const config = {
+      type: Phaser.AUTO,
+      width: 800,
+      height: 600,
+      backgroundColor: '#0f172a',
+      physics: {
+        default: 'arcade',
+        arcade: { gravity: { y: 0 }, debug: false }
+      },
+      scene: [Test]
+    };
+    new Phaser.Game(config);
+  </script>
+</body>
+</html>"
+`;
+
+exports[`scene-compiler > snapshot tests > compiled scene snapshot 1`] = `
+"import Phaser from 'phaser';
+
+export class SnapshotScene extends Phaser.Scene {
+
+    constructor() {
+      super('SnapshotScene');
+    }
+
+    preload() {
+    this.load.image('hero-sprite', 'assets/hero-sprite.png');
+    }
+
+    create() {
+    // hero (player)
+    const hero = this.add.sprite(100, 200, 'hero-sprite');
+
+    // Title
+    this.add.text(400, 50, 'Hello', {
+      fontSize: '32px',
+      color: '#fff',
+    });
+
+    }
+}
+"
+`;

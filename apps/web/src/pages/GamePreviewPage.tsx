@@ -62,6 +62,7 @@ const GamePreviewContent: React.FC = () => {
     handleToggleRecording, handlePlayReplay, handlePauseReplay, handleSeekReplay, handleStepBackReplay, handleStepReplay, handleResetReplay, handleDownloadReplay,
     minimapData,
     runtimeKind,
+    runtimeErrors,
   } = useGamePreview(projectId ?? '', projectScene, projectGenre);
 
   if (loading) {
@@ -187,6 +188,17 @@ const GamePreviewContent: React.FC = () => {
             {notifications.map(n => (
               <div key={n.id} className={`gp-notification gp-notification-${n.type || 'default'}`}>
                 <span>{n.icon}</span> {n.message}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {runtimeErrors.length > 0 && (
+          <div className="gp-runtime-errors">
+            {runtimeErrors.map(error => (
+              <div key={error.id} className="gp-runtime-error">
+                <strong>{error.phase}</strong>
+                <span>{error.message}</span>
               </div>
             ))}
           </div>

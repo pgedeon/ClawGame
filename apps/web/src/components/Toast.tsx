@@ -8,7 +8,7 @@ export interface Toast {
 }
 
 interface ToastContextType {
-  showToast: (toast: Omit<Toast, 'id'>) => void;
+  showToast: (toast: Omit<Toast, 'id'> | string, type?: Toast['type']) => void;
   toasts: Toast[];
 }
 
@@ -17,12 +17,13 @@ const ToastContext = createContext<ToastContextType | null>(null);
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const showToast = useCallback((toast: Omit<Toast, 'id'>) => {
+  const showToast = useCallback((toast: Omit<Toast, 'id'> | string, type: Toast['type'] = 'info') => {
+    const toastData = typeof toast === 'string' ? { message: toast, type } : toast;
     const id = Date.now().toString();
-    setToasts(prev => [...prev, { ...toast, id }]);
+    setToasts(prev => [...prev, { ...toastData, id }]);
 
     // Auto-dismiss after duration (default 3s)
-    const duration = toast.duration ?? 3000;
+    const duration = toastData.duration ?? 3000;
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
     }, duration);

@@ -181,7 +181,7 @@ export async function aiRoutes(app: FastifyInstance) {
           return { response };
         }
       } catch (err: any) {
-        app.log.error('AI command processing failed:', err);
+        app.log.error({ err }, 'AI command processing failed');
         reply.code(500);
         return { error: 'Failed to process AI command', details: err.message };
       }

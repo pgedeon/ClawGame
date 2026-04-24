@@ -1,69 +1,55 @@
 /**
  * @clawgame/web - Scene Hierarchy Tree
- * A collapsible tree view of scene entities with:
- * - Entity type icons (player, enemy, collectible, etc.)
- * - Click to select
- * - Visibility toggle (eye icon)
- * - Entity count badge
- * - Keyboard navigation (arrow keys, enter to select)
+ * Phaser Editor-style entity list with selection, visibility, lock, rename, and duplicate actions.
  */
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Eye, EyeOff, ChevronRight, ChevronDown } from 'lucide-react';
-
-interface EntityNode {
-  id: string;
-  entityType: string; // inferred type: player, enemy, collectible, etc.
-  components: string[]; // component names for display
-}
+import React, { useMemo, useState, useRef } from 'react';
+import { Eye, EyeOff, ChevronRight, ChevronDown, Lock, Unlock, Copy } from 'lucide-react';
+import type { Entity } from '@clawgame/engine';
 
 interface SceneHierarchyTreeProps {
-  entities: EntityNode[];
+  entities: Entity[];
   selectedEntityId: string | null;
   onSelectEntity: (entityId: string | null) => void;
+  onToggleVisibility: (entityId: string) => void;
+  onToggleLock: (entityId: string) => void;
+  onRenameEntity: (entityId: string, name: string) => void;
+  onDuplicateEntity: (entityId: string) => void;
 }
 
-// Entity type icons and colors
 const ENTITY_ICONS: Record<string, { icon: string; color: string; label: string }> = {
-  player:      { icon: '🎮', color: '#3b82f6', label: 'Player' },
-  enemy:       { icon: '👾', color: '#ef4444', label: 'Enemy' },
+  player: { icon: '🎮', color: '#3b82f6', label: 'Player' },
+  enemy: { icon: '👾', color: '#ef4444', label: 'Enemy' },
   collectible: { icon: '🪙', color: '#f59e0b', label: 'Collectible' },
-  platform:    { icon: '▬', color: '#64748b', label: 'Platform' },
-  wall:        { icon: '🧱', color: '#78716c', label: 'Wall' },
-  npc:         { icon: '💬', color: '#22c55e', label: 'NPC' },
-  unknown:     { icon: '📦', color: '#8b5cf6', label: 'Entity' },
+  obstacle: { icon: '🧱', color: '#78716c', label: 'Obstacle' },
+  platform: { icon: '▬', color: '#64748b', label: 'Platform' },
+  npc: { icon: '💬', color: '#22c55e', label: 'NPC' },
+  custom: { icon: '📦', color: '#8b5cf6', label: 'Custom' },
+  unknown: { icon: '📦', color: '#8b5cf6', label: 'Entity' },
 };
 
-/**
- * Infer entity type from its components.
- */
+function getComponentNames(entity: Entity): string[] {
+  return Array.from(entity.components instanceof Map
+    ? entity.components.keys()
+    : Object.keys(entity.components || {}));
+}
+
 export function inferEntityType(components: string[]): string {
   const compSet = new Set(components);
 
   if (compSet.has('playerInput')) return 'player';
   if (compSet.has('ai')) return 'enemy';
-  if (compSet.has('collision')) {
-    // Check if it has movement (likely player/enemy), otherwise it's a platform/wall
-    if (compSet.has('movement') && !compSet.has('playerInput')) return 'enemy';
-  }
-  // Default: check component hints
   if (compSet.has('movement')) return 'player';
-  if (compSet.has('collision')) return 'wall';
-
+  if (compSet.has('collision')) return 'obstacle';
   return 'unknown';
 }
 
-/**
- * Group entities by inferred type for tree structure.
- */
-function groupEntitiesByType(entities: EntityNode[]): Map<string, EntityNode[]> {
-  const groups = new Map<string, EntityNode[]>();
+function groupEntitiesByType(entities: Entity[]): Map<string, Entity[]> {
+  const groups = new Map<string, Entity[]>();
 
   for (const entity of entities) {
-    const type = entity.entityType || inferEntityType(entity.components);
-    if (!groups.has(type)) {
-      groups.set(type, []);
-    }
+    const type = entity.type || inferEntityType(getComponentNames(entity));
+    if (!groups.has(type)) groups.set(type, []);
     groups.get(type)!.push(entity);
   }
 
@@ -74,74 +60,60 @@ export function SceneHierarchyTree({
   entities,
   selectedEntityId,
   onSelectEntity,
+  onToggleVisibility,
+  onToggleLock,
+  onRenameEntity,
+  onDuplicateEntity,
 }: SceneHierarchyTreeProps) {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
-  const [hiddenEntities, setHiddenEntities] = useState<Set<string>>(new Set());
   const [isFullyExpanded, setIsFullyExpanded] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draftName, setDraftName] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
+  const groups = useMemo(() => groupEntitiesByType(entities), [entities]);
 
-  const groups = groupEntitiesByType(entities);
-
-  // Toggle group collapse
   const toggleGroup = (type: string) => {
     setCollapsedGroups(prev => {
       const next = new Set(prev);
-      if (next.has(type)) {
-        next.delete(type);
-      } else {
-        next.add(type);
-      }
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
       return next;
     });
   };
 
-  // Toggle entity visibility
-  const toggleVisibility = (e: React.MouseEvent, entityId: string) => {
-    e.stopPropagation();
-    setHiddenEntities(prev => {
-      const next = new Set(prev);
-      if (next.has(entityId)) {
-        next.delete(entityId);
-      } else {
-        next.add(entityId);
-      }
-      return next;
-    });
-  };
-
-  // Toggle all groups
   const toggleAll = () => {
-    if (isFullyExpanded) {
-      setCollapsedGroups(new Set(groups.keys()));
-    } else {
-      setCollapsedGroups(new Set());
-    }
+    if (isFullyExpanded) setCollapsedGroups(new Set(groups.keys()));
+    else setCollapsedGroups(new Set());
     setIsFullyExpanded(!isFullyExpanded);
   };
 
-  // Keyboard navigation
+  const beginRename = (entity: Entity) => {
+    setEditingId(entity.id);
+    setDraftName(entity.name || entity.id);
+  };
+
+  const commitRename = () => {
+    if (!editingId) return;
+    const nextName = draftName.trim();
+    if (nextName) onRenameEntity(editingId, nextName);
+    setEditingId(null);
+    setDraftName('');
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (editingId) return;
     const allEntityIds = entities.map(ent => ent.id);
     const currentIndex = selectedEntityId ? allEntityIds.indexOf(selectedEntityId) : -1;
 
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        if (currentIndex < allEntityIds.length - 1) {
-          onSelectEntity(allEntityIds[currentIndex + 1]);
-        } else if (currentIndex === -1 && allEntityIds.length > 0) {
-          onSelectEntity(allEntityIds[0]);
-        }
+        if (currentIndex < allEntityIds.length - 1) onSelectEntity(allEntityIds[currentIndex + 1]);
+        else if (currentIndex === -1 && allEntityIds.length > 0) onSelectEntity(allEntityIds[0]);
         break;
       case 'ArrowUp':
         e.preventDefault();
-        if (currentIndex > 0) {
-          onSelectEntity(allEntityIds[currentIndex - 1]);
-        }
-        break;
-      case 'Enter':
-      case ' ':
-        // Already selected via arrow keys — no-op
+        if (currentIndex > 0) onSelectEntity(allEntityIds[currentIndex - 1]);
         break;
       case 'Escape':
         onSelectEntity(null);
@@ -200,28 +172,91 @@ export function SceneHierarchyTree({
                   <div className="hierarchy-group-entities" role="group">
                     {groupEntities.map(entity => {
                       const isSelected = entity.id === selectedEntityId;
-                      const isHidden = hiddenEntities.has(entity.id);
+                      const isVisible = entity.visible !== false;
+                      const isLocked = Boolean(entity.locked);
+                      const displayName = entity.name || entity.id;
 
                       return (
-                        <button
+                        <div
                           key={entity.id}
-                          className={`hierarchy-entity ${isSelected ? 'selected' : ''} ${isHidden ? 'hidden' : ''}`}
-                          onClick={() => onSelectEntity(entity.id)}
+                          className={`hierarchy-entity ${isSelected ? 'selected' : ''} ${!isVisible ? 'hidden-entity' : ''} ${isLocked ? 'locked-entity' : ''}`}
                           role="treeitem"
+                          tabIndex={0}
                           aria-selected={isSelected}
-                          aria-label={`${entity.id} (${typeInfo.label})`}
+                          aria-label={`${displayName} (${typeInfo.label})`}
+                          onClick={() => onSelectEntity(entity.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              onSelectEntity(entity.id);
+                            }
+                          }}
+                          onContextMenu={(e) => {
+                            e.preventDefault();
+                            onDuplicateEntity(entity.id);
+                          }}
                         >
                           <span className="entity-type-dot" style={{ background: typeInfo.color }} />
-                          <span className="entity-name">{entity.id}</span>
-                          <button
-                            className={`visibility-toggle ${isHidden ? 'is-hidden' : ''}`}
-                            onClick={(e) => toggleVisibility(e, entity.id)}
-                            title={isHidden ? 'Show entity' : 'Hide entity'}
-                            aria-label={isHidden ? `Show ${entity.id}` : `Hide ${entity.id}`}
-                          >
-                            {isHidden ? <EyeOff size={12} /> : <Eye size={12} />}
-                          </button>
-                        </button>
+                          {editingId === entity.id ? (
+                            <input
+                              className="hierarchy-rename-input"
+                              value={draftName}
+                              autoFocus
+                              onChange={(e) => setDraftName(e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
+                              onBlur={commitRename}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') commitRename();
+                                if (e.key === 'Escape') {
+                                  setEditingId(null);
+                                  setDraftName('');
+                                }
+                              }}
+                            />
+                          ) : (
+                            <span className="entity-name" onDoubleClick={(e) => {
+                              e.stopPropagation();
+                              beginRename(entity);
+                            }}>
+                              {displayName}
+                            </span>
+                          )}
+                          <div className="hierarchy-row-actions">
+                            <button
+                              className="hierarchy-icon-button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onToggleVisibility(entity.id);
+                              }}
+                              title={isVisible ? 'Hide entity' : 'Show entity'}
+                              aria-label={isVisible ? `Hide ${displayName}` : `Show ${displayName}`}
+                            >
+                              {isVisible ? <Eye size={12} /> : <EyeOff size={12} />}
+                            </button>
+                            <button
+                              className="hierarchy-icon-button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onToggleLock(entity.id);
+                              }}
+                              title={isLocked ? 'Unlock entity' : 'Lock entity'}
+                              aria-label={isLocked ? `Unlock ${displayName}` : `Lock ${displayName}`}
+                            >
+                              {isLocked ? <Lock size={12} /> : <Unlock size={12} />}
+                            </button>
+                            <button
+                              className="hierarchy-icon-button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDuplicateEntity(entity.id);
+                              }}
+                              title="Duplicate entity"
+                              aria-label={`Duplicate ${displayName}`}
+                            >
+                              <Copy size={12} />
+                            </button>
+                          </div>
+                        </div>
                       );
                     })}
                   </div>

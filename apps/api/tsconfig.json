@@ -15,6 +15,7 @@
     "composite": true
   },
   "include": ["src/**/*"],
+  "exclude": ["src/test_backup/**", "src/**/*_backup.ts", "src/**/*.ts_backup"],
   "references": [
     { "path": "../../packages/shared" }
   ]

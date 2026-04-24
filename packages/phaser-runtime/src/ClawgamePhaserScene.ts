@@ -1,5 +1,26 @@
 import { Scene, GameObjects } from 'phaser';
-import type { PhaserPreviewBootstrap, PhaserPreviewEntity } from './types';
+import type {
+  PhaserPreviewAsset,
+  PhaserPreviewBootstrap,
+  PhaserPreviewEntity,
+  PhaserRuntimeError,
+  PhaserRuntimeErrorReporter,
+} from './types';
+
+export const consolePhaserRuntimeErrorReporter: PhaserRuntimeErrorReporter = {
+  reportError(phase, error, context) {
+    console.error(`[Clawgame Phaser Runtime] ${phase}`, error, context ?? {});
+  },
+};
+
+export interface ClawgamePhaserSceneOptions {
+  key?: string;
+  reporter?: PhaserRuntimeErrorReporter;
+}
+
+function isSceneOptions(value: unknown): value is ClawgamePhaserSceneOptions {
+  return !!value && typeof value === 'object' && ('reporter' in value || 'key' in value);
+}
 
 /**
  * ClawgamePhaserScene — base preview scene extending Phaser Scene.
@@ -8,24 +29,67 @@ import type { PhaserPreviewBootstrap, PhaserPreviewEntity } from './types';
 export class ClawgamePhaserScene extends Scene {
   protected bootstrap: PhaserPreviewBootstrap | null = null;
   private entitySprites: Map<string, GameObjects.Rectangle | GameObjects.Image> = new Map();
+  private errors: PhaserRuntimeError[] = [];
+  private errorReporter: PhaserRuntimeErrorReporter = consolePhaserRuntimeErrorReporter;
+  private failedAssetKeys = new Set<string>();
   private _initialized = false;
 
-  constructor(config?: string | any) {
-    super(config || 'clawgame-preview');
+  constructor(config?: string | any, reporter?: PhaserRuntimeErrorReporter) {
+    super(isSceneOptions(config) ? config.key || 'clawgame-preview' : config || 'clawgame-preview');
+    this.errorReporter = reporter ?? (isSceneOptions(config) ? config.reporter ?? this.errorReporter : this.errorReporter);
   }
 
-  setBootstrap(bootstrap: PhaserPreviewBootstrap): void {
+  setBootstrap(bootstrap: PhaserPreviewBootstrap, reporter?: PhaserRuntimeErrorReporter): void {
     this.bootstrap = bootstrap;
+    if (reporter) {
+      this.errorReporter = reporter;
+    }
   }
 
   preload(): void {
     if (!this.bootstrap) return;
+    this.failedAssetKeys.clear();
+    this.load?.on?.('loaderror', (file: { key?: string; url?: string; type?: string; src?: string }) => {
+      const key = typeof file?.key === 'string' ? file.key : 'unknown';
+      this.failedAssetKeys.add(key);
+      const asset = this.bootstrap?.assets.find((candidate) => candidate.key === key);
+      this.recordError('asset-load', new Error(`Failed to load asset "${key}"`), {
+        key,
+        url: file?.url ?? file?.src ?? asset?.loadUrl,
+        type: file?.type ?? asset?.kind,
+        assetRef: asset?.assetRef,
+      });
+    });
+
     for (const asset of this.bootstrap.assets) {
-      const g = this.make.graphics({ x: 0, y: 0 }, false);
-      g.fillStyle(0x888888, 1);
-      g.fillRect(0, 0, asset.width, asset.height);
-      g.generateTexture(asset.key, asset.width, asset.height);
-      g.destroy();
+      try {
+        if (asset.atlasMeta) {
+          const loader = this.load as Phaser.Loader.LoaderPlugin & {
+            atlasXML?: (
+              key: string,
+              textureURL?: string | string[],
+              atlasURL?: string,
+            ) => Phaser.Loader.LoaderPlugin;
+          };
+          if (asset.atlasMeta.type === 'xml' && loader.atlasXML) {
+            loader.atlasXML(asset.key, asset.loadUrl, asset.atlasMeta.atlasUrl);
+          } else {
+            loader.atlas(asset.key, asset.loadUrl, asset.atlasMeta.atlasUrl);
+          }
+        } else if (asset.frameData) {
+          this.load.spritesheet(asset.key, asset.loadUrl, asset.frameData);
+        } else {
+          this.load.image(asset.key, asset.loadUrl);
+        }
+      } catch (error) {
+        this.failedAssetKeys.add(asset.key);
+        this.recordError('preload', error, {
+          key: asset.key,
+          assetRef: asset.assetRef,
+          loadUrl: asset.loadUrl,
+          kind: asset.kind,
+        });
+      }
     }
   }
 
@@ -33,13 +97,43 @@ export class ClawgamePhaserScene extends Scene {
     if (!this.bootstrap) return;
     try {
       this.cameras?.main?.setBackgroundColor(this.bootstrap.backgroundColor || '#1a1a2e');
-    } catch {}
+      const camera = this.bootstrap.camera;
+      if (camera?.bounds) {
+        this.cameras?.main?.setBounds(camera.bounds.x, camera.bounds.y, camera.bounds.width, camera.bounds.height);
+      }
+      if (typeof camera?.scrollX === 'number' || typeof camera?.scrollY === 'number') {
+        this.cameras?.main?.setScroll(camera.scrollX ?? 0, camera.scrollY ?? 0);
+      }
+      if (typeof camera?.zoom === 'number') {
+        this.cameras?.main?.setZoom(camera.zoom);
+      }
+    } catch (error) {
+      this.recordError('create', error, { operation: 'camera-config' });
+    }
+
     const bounds = this.bootstrap.bounds || { width: 800, height: 600 };
     try {
-      this.physics?.world?.setBounds(0, 0, bounds.width, bounds.height);
-    } catch {}
+      this.physics?.world?.setBounds(bounds.x ?? 0, bounds.y ?? 0, bounds.width, bounds.height);
+      if (this.bootstrap.physics?.gravity && this.physics?.world?.gravity) {
+        this.physics.world.gravity.x = this.bootstrap.physics.gravity.x;
+        this.physics.world.gravity.y = this.bootstrap.physics.gravity.y;
+      }
+    } catch (error) {
+      this.recordError('create', error, { operation: 'physics-config' });
+    }
+
+    for (const asset of this.bootstrap.assets) {
+      if (this.failedAssetKeys.has(asset.key)) {
+        this.createFallbackTexture(asset);
+      }
+    }
+
     for (const entity of this.bootstrap.entities) {
-      try { this.createEntity(entity); } catch {}
+      try {
+        this.createEntity(entity);
+      } catch (error) {
+        this.recordError('entity-creation', error, { entityId: entity.id, entityType: entity.type });
+      }
     }
     this._initialized = true;
   }
@@ -79,6 +173,27 @@ export class ClawgamePhaserScene extends Scene {
     this.entitySprites.set(entity.id, obj);
   }
 
+  protected recordError(phase: string, error: unknown, context?: Record<string, unknown>): void {
+    const runtimeError: PhaserRuntimeError = { phase, error, ...(context ? { context } : {}) };
+    this.errors.push(runtimeError);
+    this.errorReporter.reportError(phase, error, context);
+  }
+
+  private createFallbackTexture(asset: PhaserPreviewAsset): void {
+    try {
+      if (this.textures?.exists?.(asset.key)) return;
+      const graphics = this.make.graphics({ x: 0, y: 0 }, false);
+      graphics.fillStyle(0x888888, 1);
+      graphics.fillRect(0, 0, asset.width, asset.height);
+      graphics.lineStyle(2, 0xff3366, 1);
+      graphics.strokeRect(0, 0, asset.width, asset.height);
+      graphics.generateTexture(asset.key, asset.width, asset.height);
+      graphics.destroy();
+    } catch (error) {
+      this.recordError('create', error, { operation: 'fallback-texture', key: asset.key });
+    }
+  }
+
   protected getColorForType(type: string): number {
     const colors: Record<string, number> = {
       player: 0x3b82f6, enemy: 0xef4444, collectible: 0xf59e0b,
@@ -90,5 +205,6 @@ export class ClawgamePhaserScene extends Scene {
 
   getEntity(id: string): GameObjects.GameObject | undefined { return this.entitySprites.get(id); }
   getEntities(): Map<string, GameObjects.Rectangle | GameObjects.Image> { return this.entitySprites; }
+  getErrors(): PhaserRuntimeError[] { return [...this.errors]; }
   get isReady(): boolean { return this._initialized; }
 }

@@ -9,8 +9,15 @@ import { CombatLogManager } from '../rpg/combatlog';
 import {
   runPreviewRuntimeSession,
 } from '../runtime/runPreviewRuntimeSession';
+import type { PhaserRuntimeError } from '../../../../packages/phaser-runtime/src';
 
 export type UIPanel = 'none' | 'inventory' | 'quests' | 'spellcraft' | 'saveload' | 'dialogue' | 'combat-log';
+
+interface PreviewRuntimeErrorNotice {
+  id: string;
+  phase: string;
+  message: string;
+}
 
 // ─── Genre controls map ───
 export const GENRE_CONTROLS: Record<string, { description: string; items: Array<{ icon: string; text: string }> }> = {
@@ -43,6 +50,12 @@ const RUNTIME_DESCRIPTORS: Record<string, { label: string; shortLabel: string; d
 
 function getRuntimeDescriptor(kind: string) {
   return RUNTIME_DESCRIPTORS[kind] || RUNTIME_DESCRIPTORS['legacy-canvas'];
+}
+
+function getRuntimeErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  return 'Preview runtime error';
 }
 
 // ─── Main hook ───
@@ -118,6 +131,7 @@ export function useGamePreview(
 
   // Minimap state
   const [minimapData, setMinimapData] = useState<any>(null);
+  const [runtimeErrors, setRuntimeErrors] = useState<PreviewRuntimeErrorNotice[]>([]);
 
   // Refs for manager instances
   const inventoryRef = useRef<any>(null);
@@ -269,6 +283,8 @@ export function useGamePreview(
     if (needsCanvas && !canvasRef.current) return;
     if (needsHost && !runtimeHostRef.current) return;
 
+    let mounted = true;
+    setRuntimeErrors([]);
     const cleanup = runPreviewRuntimeSession(runtimeKind, {
       canvasRef, animationRef, gameStatsRef, highScoreRef, gameLoopState,
       activeScene: activeSceneRef, projectGenre, gameStarted, gamePaused, gameOver, victory,
@@ -279,9 +295,23 @@ export function useGamePreview(
       inventoryRef, questMgrRef, dialogueMgrRef, spellMgrRef, combatLogRef: combatLogManagerRef,
       replayRecorderRef, replayPlayerRef, replayDataRef, pendingReplayStepMsRef,
       syncRPGState, handleSave, runtimeHostRef,
+      onRuntimeError: (runtimeError: PhaserRuntimeError) => {
+        if (!mounted) return;
+        setRuntimeErrors((current) => [
+          ...current,
+          {
+            id: `${Date.now()}-${current.length}`,
+            phase: runtimeError.phase,
+            message: getRuntimeErrorMessage(runtimeError.error),
+          },
+        ]);
+      },
     });
 
-    return cleanup;
+    return () => {
+      mounted = false;
+      cleanup?.();
+    };
   }, [runtimeKind, projectGenre, syncRPGState, handleSave]);
 
   // Return all state and handlers
@@ -344,6 +374,7 @@ export function useGamePreview(
     // Runtime
     previewRuntime,
     runtimeKind,
+    runtimeErrors,
 
     // Controls
     controls,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildPhaserPreviewBootstrap } from './buildPreviewBootstrap';
+import { buildAssetRecord, buildPhaserPreviewBootstrap } from './buildPreviewBootstrap';
 
 describe('buildPhaserPreviewBootstrap', () => {
   it('collects unique sprite assets and preserves scene metadata', () => {
@@ -37,6 +37,7 @@ describe('buildPhaserPreviewBootstrap', () => {
     expect(bootstrap.assets).toHaveLength(1);
     expect(bootstrap.assets[0]).toMatchObject({
       assetRef: 'hero.png',
+      loadUrl: './hero.png',
       width: 48,
       height: 64,
     });
@@ -96,6 +97,98 @@ describe('buildPhaserPreviewBootstrap', () => {
       y: 0,
       width: 32,
       height: 32,
+    });
+  });
+
+  it('uses an asset URL resolver when building asset records', () => {
+    const asset = buildAssetRecord(
+      {
+        id: 'player',
+        type: 'player',
+        components: {
+          sprite: {
+            assetRef: 'sprites/hero.webp',
+            width: 48,
+            height: 64,
+            mimeType: 'image/webp',
+            frameData: { frameWidth: 24, frameHeight: 32, endFrame: 3 },
+          },
+        },
+      },
+      48,
+      64,
+      {
+        assetUrlResolver: (assetRef) => `/project-assets/${assetRef}`,
+      },
+    );
+
+    expect(asset).toMatchObject({
+      kind: 'spritesheet',
+      loadUrl: '/project-assets/sprites/hero.webp',
+      mimeType: 'image/webp',
+      frameData: { frameWidth: 24, frameHeight: 32, endFrame: 3 },
+    });
+  });
+
+  it('normalizes Map-based entities the same way as array-based entities', () => {
+    const player = {
+      id: 'player',
+      type: 'player',
+      transform: { x: 100, y: 120 },
+      components: { sprite: { assetRef: 'hero.png', width: 48, height: 64 } },
+    };
+    const enemy = {
+      id: 'enemy',
+      type: 'enemy',
+      transform: { x: 400, y: 220 },
+      components: { collision: { width: 40, height: 40, type: 'enemy' } },
+    };
+
+    const arrayBootstrap = buildPhaserPreviewBootstrap({ entities: [player, enemy] });
+    const mapBootstrap = buildPhaserPreviewBootstrap({
+      entities: new Map([
+        [player.id, player],
+        [enemy.id, enemy],
+      ]),
+    });
+
+    expect(mapBootstrap).toEqual(arrayBootstrap);
+  });
+
+  it('preserves scene metadata through a JSON round trip', () => {
+    const bootstrap = buildPhaserPreviewBootstrap({
+      name: 'Metadata Arena',
+      background: '#123456',
+      bounds: { x: 10, y: 20, width: 640, height: 360 },
+      spawnPoint: { x: 64, y: 96 },
+      camera: {
+        scrollX: 12,
+        scrollY: 24,
+        zoom: 2,
+        bounds: { x: 0, y: 0, width: 1024, height: 768 },
+      },
+      physics: {
+        gravity: { x: 0, y: 900 },
+        debug: true,
+      },
+      entities: [],
+    });
+
+    expect(JSON.parse(JSON.stringify(bootstrap))).toMatchObject({
+      sceneName: 'Metadata Arena',
+      backgroundColor: '#123456',
+      bounds: { x: 10, y: 20, width: 640, height: 360 },
+      spawnPoint: { x: 64, y: 96 },
+      camera: {
+        scrollX: 12,
+        scrollY: 24,
+        zoom: 2,
+        bounds: { x: 0, y: 0, width: 1024, height: 768 },
+      },
+      physics: {
+        gravity: { x: 0, y: 900 },
+        debug: true,
+      },
     });
   });
 });

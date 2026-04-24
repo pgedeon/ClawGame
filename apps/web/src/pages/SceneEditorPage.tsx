@@ -16,11 +16,12 @@ import { Entity, Scene, Transform, Component, SpriteComponent as Sprite } from '
 import { AssetBrowserPanel } from '../components/scene-editor/AssetBrowserPanel';
 import { SceneCanvas } from '../components/scene-editor/SceneCanvas';
 import { PropertyInspector } from '../components/scene-editor/PropertyInspector';
+import { SceneHierarchyTree } from '../components/scene-editor/SceneHierarchyTree';
 import { SceneEditorAIBar } from '../components/scene-editor/SceneEditorAIBar';
-import { ToolMode, ENTITY_TEMPLATES } from '../components/scene-editor/types';
+import { ToolMode, ENTITY_TEMPLATES, type EntityTemplate } from '../components/scene-editor/types';
 import { useToast } from '../components/Toast';
 import { logger } from '../utils/logger';
-import { createDefaultEditorScene, deserializeEditorScene, getSceneInitialViewport, serializeEditorScene } from '../utils/sceneEditorScene';
+import { createDefaultEditorScene, deserializeEditorScene, getSceneInitialViewport, serializeEditorScene, type EditorScene, type EditorSceneMetadata } from '../utils/sceneEditorScene';
 import '../scene-editor.css';
 import '../scene-editor-ai.css';
 import { 
@@ -64,6 +65,7 @@ function SceneEditorContent() {
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
   const [showGrid, setShowGrid] = useState(true);
   const [snapping, setSnapping] = useState(true);
+  const [showPhysicsDebug, setShowPhysicsDebug] = useState(false);
   const [gridSize] = useState(32);
 
   // Tool mode and template
@@ -73,12 +75,19 @@ function SceneEditorContent() {
   // Template picker dropdown state
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const templatePickerRef = useRef<HTMLDivElement>(null);
+  const leftSidebarRef = useRef<HTMLDivElement>(null);
 
   // Asset cache - map of asset ID to loaded image
   const [assetCache, setAssetCache] = useState<Map<string, HTMLImageElement>>(new Map());
 
   // Helper to convert entities Map to array for components
   const entitiesArray = scene ? Array.from(scene.entities.values()) : [];
+  const templateGroups = ENTITY_TEMPLATES.reduce((groups, template) => {
+    const group = template.category || 'Display';
+    if (!groups.has(group)) groups.set(group, []);
+    groups.get(group)!.push(template);
+    return groups;
+  }, new Map<string, EntityTemplate[]>());
 
   // Close template picker on outside click
   useEffect(() => {
@@ -221,6 +230,33 @@ function SceneEditorContent() {
     setScene({ ...scene, entities: newEntities });
   }, [scene, selectedEntityId]);
 
+  const handleUpdateEntity = useCallback((entityId: string, patch: Partial<Entity>) => {
+    if (!scene) return;
+
+    const entity = scene.entities.get(entityId);
+    if (!entity) return;
+
+    const updatedEntity: Entity = { ...entity, ...patch };
+    const newEntities = new Map(scene.entities);
+    newEntities.set(entityId, updatedEntity);
+    setScene({ ...scene, entities: newEntities });
+  }, [scene]);
+
+  const handleUpdateComponent = useCallback((componentType: string, data: Record<string, any>) => {
+    if (!selectedEntityId || !scene) return;
+
+    const entity = scene.entities.get(selectedEntityId);
+    if (!entity) return;
+
+    const newComponents = new Map(entity.components);
+    newComponents.set(componentType, data as Component);
+
+    const updatedEntity: Entity = { ...entity, components: newComponents };
+    const newEntities = new Map(scene.entities);
+    newEntities.set(selectedEntityId, updatedEntity);
+    setScene({ ...scene, entities: newEntities });
+  }, [scene, selectedEntityId]);
+
   const handleAddComponent = useCallback((componentType: string) => {
     if (!selectedEntityId || !scene) return;
     
@@ -250,6 +286,26 @@ function SceneEditorContent() {
     newEntities.set(selectedEntityId, updatedEntity);
     setScene({ ...scene, entities: newEntities });
   }, [scene, selectedEntityId]);
+
+  const handleToggleVisibility = useCallback((entityId: string) => {
+    if (!scene) return;
+    const entity = scene.entities.get(entityId);
+    if (!entity) return;
+    const updatedEntity: Entity = { ...entity, visible: entity.visible === false };
+    const newEntities = new Map(scene.entities);
+    newEntities.set(entityId, updatedEntity);
+    setScene({ ...scene, entities: newEntities });
+  }, [scene]);
+
+  const handleToggleLock = useCallback((entityId: string) => {
+    if (!scene) return;
+    const entity = scene.entities.get(entityId);
+    if (!entity) return;
+    const updatedEntity: Entity = { ...entity, locked: !entity.locked };
+    const newEntities = new Map(scene.entities);
+    newEntities.set(entityId, updatedEntity);
+    setScene({ ...scene, entities: newEntities });
+  }, [scene]);
 
   // Entity manipulation handlers
   const handleSelectEntity = useCallback((entityId: string | null) => {
@@ -281,11 +337,15 @@ function SceneEditorContent() {
     const newEntity: Entity = {
       ...entity,
       id: newId,
+      name: `${entity.name || entity.id} copy`,
+      components: new Map(entity.components),
       transform: { 
         ...entity.transform, 
         x: entity.transform.x + 32, 
         y: entity.transform.y + 32 
-      }
+      },
+      visible: entity.visible !== false,
+      locked: false,
     };
     
     const newEntities = new Map(scene.entities);
@@ -323,6 +383,7 @@ function SceneEditorContent() {
 
         const updatedEntity: Entity = {
           ...selectedEntity,
+          phaserKind: selectedEntity.phaserKind || 'image',
           components: updatedComponents,
         };
         const newEntities = new Map(scene.entities);
@@ -352,6 +413,9 @@ function SceneEditorContent() {
         id: `entity-${Date.now()}`,
         name: asset.name,
         type: 'custom',
+        phaserKind: 'image',
+        visible: true,
+        locked: false,
         transform,
         components,
       };
@@ -393,7 +457,11 @@ function SceneEditorContent() {
 
       const newEntity: Entity = {
         id: `${templateId}-1`,
+        name: template.name,
         type: template.type,
+        phaserKind: template.phaserKind,
+        visible: true,
+        locked: false,
         transform,
         components
       };
@@ -438,7 +506,11 @@ function SceneEditorContent() {
 
     const newEntity: Entity = {
       id: entityId,
+      name: template.name,
       type: template.type,
+      phaserKind: template.phaserKind,
+      visible: true,
+      locked: false,
       transform,
       components
     };
@@ -468,13 +540,28 @@ function SceneEditorContent() {
       case 'movement':
         return { vx: 0, vy: 0, speed: 200 };
       case 'collision':
-        return { width: 32, height: 32, type: 'wall' };
+        return { width: 32, height: 32, type: 'wall', immovable: true, allowGravity: false, bounce: 0, drag: 0, offsetX: 0, offsetY: 0 };
       case 'ai':
-        return { type: 'patrol' };
+        return { type: 'patrol', patrolSpeed: 50 };
+      case 'text':
+        return { content: 'Hello', fontSize: 16, color: '#ffffff', fontFamily: 'sans-serif' };
+      case 'particles':
+        return { rate: 10, lifespan: 1000, speed: 50, color: '#f97316' };
+      case 'collectible':
+        return { type: 'coin', value: 10, name: 'Coin' };
+      case 'container':
+        return { children: [] };
+      case 'tween':
+        return { duration: 500, ease: 'linear', repeat: 0 };
       default:
         return { x: 0, y: 0 };
     }
   };
+
+  const focusAssetBrowser = useCallback(() => {
+    const input = leftSidebarRef.current?.querySelector<HTMLInputElement>('.asset-search input');
+    input?.focus();
+  }, []);
 
   // Get selected entity type for AI context
   const getSelectedEntityType = (): string => {
@@ -601,6 +688,17 @@ function SceneEditorContent() {
             />
             <span>Snap to Grid</span>
           </label>
+          <label className="option-toggle">
+            <input
+              type="checkbox"
+              checked={showPhysicsDebug}
+              onChange={(e) => {
+                const show = e.target.checked;
+                setShowPhysicsDebug(show);
+              }}
+            />
+            <span>Physics Debug</span>
+          </label>
         </div>
         <div className="entity-actions" ref={templatePickerRef} style={{ position: 'relative' }}>
           <button
@@ -621,18 +719,23 @@ function SceneEditorContent() {
                   <X size={14} />
                 </button>
               </div>
-              {ENTITY_TEMPLATES.map((template) => (
-                <button
-                  key={template.id}
-                  className="template-picker-item"
-                  onClick={() => handleAddEntityFromTemplate(template.id)}
-                  title={`Add ${template.name}`}
-                >
-                  <span className="template-name">{template.name}</span>
-                  <span className="template-meta">
-                    {Array.from(template.components.keys()).join(', ')}
-                  </span>
-                </button>
+              {Array.from(templateGroups.entries()).map(([category, templates]) => (
+                <div key={category} className="template-picker-group">
+                  <div className="template-picker-group-label">{category}</div>
+                  {templates.map((template) => (
+                    <button
+                      key={template.id}
+                      className="template-picker-item"
+                      onClick={() => handleAddEntityFromTemplate(template.id)}
+                      title={`Add ${template.name}`}
+                    >
+                      <span className="template-name">{template.name}</span>
+                      <span className="template-meta">
+                        {template.phaserKind} · {Array.from(template.components.keys()).join(', ')}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               ))}
             </div>
           )}
@@ -649,13 +752,24 @@ function SceneEditorContent() {
 
       {/* Main editor area */}
       <div className="scene-editor-container">
-        <AssetBrowserPanel
-          projectId={projectId || ''}
-          selectedEntityId={selectedEntityId}
-          onAttachAsset={handleAddAsset}
-          assetCache={assetCache}
-          setAssetCache={setAssetCache}
-        />
+        <div className="scene-left-sidebar" ref={leftSidebarRef}>
+          <SceneHierarchyTree
+            entities={entitiesArray}
+            selectedEntityId={selectedEntityId}
+            onSelectEntity={handleSelectEntity}
+            onToggleVisibility={handleToggleVisibility}
+            onToggleLock={handleToggleLock}
+            onRenameEntity={(entityId, name) => handleUpdateEntity(entityId, { name })}
+            onDuplicateEntity={handleDuplicateEntity}
+          />
+          <AssetBrowserPanel
+            projectId={projectId || ''}
+            selectedEntityId={selectedEntityId}
+            onAttachAsset={handleAddAsset}
+            assetCache={assetCache}
+            setAssetCache={setAssetCache}
+          />
+        </div>
 
         <SceneCanvas
           projectId={projectId || ''}
@@ -667,10 +781,13 @@ function SceneEditorContent() {
           selectedTemplate={selectedTemplate}
           viewport={viewport}
           showGrid={showGrid}
+          showPhysicsDebug={showPhysicsDebug}
           snapping={snapping}
           gridSize={gridSize}
           onSelectEntity={handleSelectEntity}
           onUpdateScene={handleUpdateScene}
+          onDeleteEntity={handleDeleteEntity}
+          onDuplicateEntity={handleDuplicateEntity}
           onZoomViewport={handleZoomViewport}
           onPanViewport={handlePanViewport}
         />
@@ -679,8 +796,11 @@ function SceneEditorContent() {
           scene={scene}
           selectedEntityId={selectedEntityId}
           onUpdateProperty={handleUpdateProperty}
+          onUpdateEntity={handleUpdateEntity}
           onAddComponent={handleAddComponent}
           onRemoveComponent={handleRemoveComponent}
+          onUpdateComponent={handleUpdateComponent}
+          onBrowseAssets={focusAssetBrowser}
           onSelectEntity={handleSelectEntity}
           onDeleteEntity={handleDeleteEntity}
           onDuplicateEntity={handleDuplicateEntity}

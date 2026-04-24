@@ -15,8 +15,8 @@ import { saveRoutes } from './routes/saves';
 import { gitRoutes } from './routes/git';
 import { imageProcessingRoutes } from './routes/imageProcessingRoutes';
 import { sfxRoutes } from './routes/sfxRoutes';
-import { imageStylePresetRoutes } from './routes/imageStylePresetRoutes';
 import { spriteSheetRoutes } from './routes/spriteSheetRoutes';
+import { generativeMediaRoutes } from './routes/generativeMediaRoutes';
 
 // Load version from VERSION.json at project root
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -48,10 +48,10 @@ app.register(aiRoutes);
 // Asset management and generation
 app.register(assetRoutes);
 
-// Game export functionality
+// Export functionality
 app.register(exportRoutes);
 
-// Hosted publishing service
+// Hosted game previews
 app.register(hostedRoutes);
 
 // Scene analysis for AI context
@@ -64,8 +64,10 @@ app.register(saveRoutes);
 app.register(gitRoutes);
 app.register(imageProcessingRoutes);
 app.register(sfxRoutes);
-app.register(imageStylePresetRoutes);
 app.register(spriteSheetRoutes);
+
+// M11 Generative Media Forge - AI-powered media generation
+app.register(generativeMediaRoutes);
 
 const start = async () => {
   try {

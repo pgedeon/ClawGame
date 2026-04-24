@@ -16,8 +16,10 @@ export interface CanonicalEntityLike {
 
 export interface CanonicalSceneLike {
   name?: string;
-  entities?: CanonicalEntityLike[];
+  entities?: CanonicalEntityLike[] | Map<string, CanonicalEntityLike>;
   bounds?: {
+    x?: number;
+    y?: number;
     width?: number;
     height?: number;
   };
@@ -26,12 +28,34 @@ export interface CanonicalSceneLike {
     y?: number;
   };
   background?: string;
+  camera?: {
+    scrollX?: number;
+    scrollY?: number;
+    zoom?: number;
+    bounds?: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    };
+  };
+  physics?: {
+    gravity?: {
+      x: number;
+      y: number;
+    };
+    debug?: boolean;
+  };
 }
 
 export interface PhaserPreviewAsset {
   key: string;
   assetRef: string;
-  kind: 'image';
+  kind: 'image' | 'spritesheet' | 'atlas';
+  loadUrl: string;
+  mimeType?: string;
+  frameData?: { frameWidth: number; frameHeight: number; endFrame?: number };
+  atlasMeta?: { atlasUrl: string; type: 'json' | 'xml' };
   width: number;
   height: number;
 }
@@ -63,12 +87,32 @@ export interface PhaserPreviewBootstrap {
   sceneName: string;
   backgroundColor: string;
   bounds: {
+    x?: number;
+    y?: number;
     width: number;
     height: number;
   };
   spawnPoint?: {
     x: number;
     y: number;
+  };
+  camera?: {
+    scrollX?: number;
+    scrollY?: number;
+    zoom?: number;
+    bounds?: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    };
+  };
+  physics?: {
+    gravity?: {
+      x: number;
+      y: number;
+    };
+    debug?: boolean;
   };
   assets: PhaserPreviewAsset[];
   entities: PhaserPreviewEntity[];
@@ -85,4 +129,18 @@ export interface PhaserPreviewBootstrapOptions {
     height: number;
   };
   defaultBackgroundColor?: string;
+  assetBaseUrl?: string;
+  assetUrlResolver?: PhaserPreviewAssetUrlResolver;
+}
+
+export type PhaserPreviewAssetUrlResolver = (assetRef: string, entity: CanonicalEntityLike) => string;
+
+export interface PhaserRuntimeError {
+  phase: string;
+  error: unknown;
+  context?: Record<string, unknown>;
+}
+
+export interface PhaserRuntimeErrorReporter {
+  reportError(phase: string, error: unknown, context?: Record<string, unknown>): void;
 }

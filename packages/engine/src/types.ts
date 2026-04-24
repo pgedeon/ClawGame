@@ -26,6 +26,7 @@ export interface SpriteComponent {
   flipX?: boolean;
   flipY?: boolean;
   opacity?: number;
+  frame?: number;
   offsetX?: number;
   offsetY?: number;
   spriteSheet?: string;
@@ -66,7 +67,14 @@ export interface CollisionComponent {
   solid?: boolean;
   trigger?: boolean;
   layers?: string[];
-  type?: 'solid' | 'trigger' | 'sensor' | 'player' | 'enemy' | 'collectible' | 'wall' | 'projectile';
+  type?: 'solid' | 'trigger' | 'sensor' | 'player' | 'enemy' | 'collectible' | 'wall' | 'projectile' | 'none';
+  shape?: 'rectangle' | 'circle';
+  offsetX?: number;
+  offsetY?: number;
+  immovable?: boolean;
+  bounce?: number;
+  drag?: number;
+  allowGravity?: boolean;
 }
 
 export interface StatsComponent {
@@ -84,9 +92,33 @@ export interface PlayerInputComponent {
 }
 
 export interface CollectibleComponent {
-  type: 'health' | 'coin' | 'powerup' | 'key' | 'weapon' | 'item';
+  type: 'health' | 'coin' | 'powerup' | 'key' | 'weapon' | 'item' | string;
   value?: number;
   name?: string;
+}
+
+export interface TextComponent {
+  content: string;
+  fontSize?: number;
+  color?: string;
+  fontFamily?: string;
+}
+
+export interface ParticlesComponent {
+  rate?: number;
+  lifespan?: number;
+  speed?: number;
+  color?: string;
+}
+
+export interface ContainerComponent {
+  children?: string[];
+}
+
+export interface TweenComponent {
+  duration?: number;
+  ease?: string;
+  repeat?: number;
 }
 
 export interface ProjectileComponent {
@@ -145,27 +177,34 @@ export type Component =
   | StatsComponent
   | PlayerInputComponent
   | CollectibleComponent
+  | TextComponent
+  | ParticlesComponent
+  | ContainerComponent
+  | TweenComponent
   | ProjectileComponent
   | PhysicsComponent
   | TriggerComponent
   | CameraComponent
   | AnimationComponent;
 
-export type EntityType =
-  | 'player'
-  | 'enemy'
-  | 'npc'
-  | 'projectile'
-  | 'collectible'
-  | 'item'
-  | 'health'
-  | 'rune'
-  | 'obstacle'
-  | 'platform'
-  | 'trigger'
-  | 'camera'
-  | 'custom'
-  | 'unknown';
+export const ENTITY_TYPES = [
+  'player',
+  'enemy',
+  'npc',
+  'projectile',
+  'collectible',
+  'item',
+  'health',
+  'rune',
+  'obstacle',
+  'platform',
+  'trigger',
+  'camera',
+  'custom',
+  'unknown',
+] as const;
+
+export type EntityType = typeof ENTITY_TYPES[number];
 
 export interface SerializableEntity {
   id: string;
@@ -173,6 +212,9 @@ export interface SerializableEntity {
   type: EntityType;
   transform: Transform;
   components: Record<string, any>;
+  visible?: boolean;
+  locked?: boolean;
+  phaserKind?: string;
   parent?: string;
   children?: string[];
   tags?: string[];
@@ -192,6 +234,12 @@ export interface Entity {
   type?: EntityType;
   transform: Transform;
   components: Map<string, Component>;
+  visible?: boolean;
+  locked?: boolean;
+  phaserKind?: string;
+  parent?: string;
+  children?: string[];
+  tags?: string[];
 }
 
 export interface Scene {
@@ -214,6 +262,12 @@ export function toRuntimeEntity(se: SerializableEntity): Entity {
     type: se.type,
     transform: { ...se.transform },
     components,
+    visible: se.visible,
+    locked: se.locked,
+    phaserKind: se.phaserKind,
+    parent: se.parent,
+    children: se.children,
+    tags: se.tags,
   };
 }
 
@@ -236,6 +290,12 @@ export function toSerializableEntity(entity: Entity): SerializableEntity {
     type: entity.type ?? 'custom',
     transform: { ...entity.transform },
     components,
+    visible: entity.visible,
+    locked: entity.locked,
+    phaserKind: entity.phaserKind,
+    parent: entity.parent,
+    children: entity.children,
+    tags: entity.tags,
   };
 }
 

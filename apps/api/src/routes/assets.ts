@@ -1,224 +1,317 @@
+/**
+ * Asset Routes (M11 Enhanced)
+ * Full asset CRUD operations with AI-powered generation.
+ */
+
 import { FastifyInstance } from 'fastify';
-import { AssetService } from '../services/assetService';
-import type { AssetType } from '../services/assetService';
-import type { GenerationStatus } from '../services/aiImageGenerationService';
+import { assetService } from '../services/assetService';
+import { 
+  AssetType, 
+  GenerationQuality,
+  GenerationFormat,
+  GenerationAspectRatio 
+} from '../types/index';
+import type { AssetBatchOperation } from '../services/assetService';
 
-// Global reference to asset service (initialized with logger)
-let assetServiceInstance: AssetService | null = null;
+// ── Asset CRUD Operations ──
 
-export async function assetRoutes(app: FastifyInstance) {
-  // Initialize asset service with logger on first use
-  if (!assetServiceInstance) {
-    assetServiceInstance = new AssetService(app.log);
-  }
-
-  // List assets for a project
-  app.get<{
+export async function assetRoutes(fastify: FastifyInstance) {
+  // Get all assets for a project
+  fastify.get<{
     Params: { projectId: string };
-    Querystring: { type?: string; tag?: string; search?: string; limit?: string; offset?: string }
-  }>(
-    '/api/projects/:projectId/assets',
-    async (request) => {
+    Querystring: {
+      type?: AssetType;
+      limit?: number;
+      offset?: number;
+      sortBy?: 'createdAt' | 'name' | 'size';
+      sortOrder?: 'asc' | 'desc';
+    };
+    Reply: { success: boolean; data?: any; error?: string };
+  }>('/api/projects/:projectId/assets', async (request, reply) => {
+    try {
       const { projectId } = request.params;
-      const assets = await assetServiceInstance!.listAssets(projectId);
-      return { assets };
-    }
-  );
-
-  // Get specific asset metadata
-  app.get<{ Params: { projectId: string; assetId: string } }>(
-    '/api/projects/:projectId/assets/:assetId',
-    async (request, reply) => {
-      const { projectId, assetId } = request.params;
-      const asset = await assetServiceInstance!.getAsset(projectId, assetId);
+      const { type, limit = 50, offset = 0, sortBy = 'createdAt', sortOrder = 'desc' } = request.query;
       
-      if (!asset) {
-        reply.code(404);
-        return { error: 'Asset not found' };
-      }
+      const assets = await assetService.getAssets(projectId, { type, limit, offset, sortBy, sortOrder });
       
-      return asset;
-    }
-  );
-
-  // Get asset file content
-  app.get<{ Params: { projectId: string; assetId: string } }>(
-    '/api/projects/:projectId/assets/:assetId/file',
-    async (request, reply) => {
-      const { projectId, assetId } = request.params;
-      
-      try {
-        const { content, mimeType } = await assetServiceInstance!.getAssetFile(projectId, assetId);
-        reply.type(mimeType);
-        return content;
-      } catch (error: any) {
-        reply.code(404);
-        return { error: error.message || 'Asset file not found' };
-      }
-    }
-  );
-
-  // Generate new asset using AI
-  app.post<{
-    Params: { projectId: string };
-    Body: { 
-      type: AssetType; 
-      prompt: string;
-      options?: {
-        style?: 'pixel' | 'vector' | 'hand-drawn' | 'cartoon' | 'realistic';
-        width?: number;
-        height?: number;
-        format?: 'svg' | 'png' | 'webp';
-        backgroundColor?: string;
-      }
-    }
-  }>(
-    '/api/projects/:projectId/assets/generate',
-    async (request, reply) => {
-      const { projectId } = request.params;
-      const { type, prompt, options } = request.body;
-      
-      if (!type || !prompt) {
-        reply.code(400);
-        return { error: 'type and prompt are required' };
-      }
-      
-      try {
-        const { generationId, metadata } = await assetServiceInstance!.generateAsset(
-          projectId, 
-          type, 
-          prompt,
-          options
-        );
-        
-        reply.code(201);
-        return {
-          generationId,
-          metadata,
-          status: metadata.status === 'generated' ? 'completed' : 'pending'
-        };
-      } catch (error: any) {
-        reply.code(500);
-        return { error: error.message || 'Failed to generate asset' };
-      }
-    }
-  );
-
-  // Get generation status
-  app.get<{
-    Params: { projectId: string; generationId: string }
-  }>(
-    '/api/projects/:projectId/assets/generations/:generationId',
-    async (request, reply) => {
-      const { projectId, generationId } = request.params;
-      
-      try {
-        const status = await assetServiceInstance!.getGenerationStatus(projectId, generationId);
-        
-        if (!status) {
-          reply.code(404);
-          return { error: 'Generation not found' };
+      return {
+        success: true,
+        data: assets,
+        pagination: {
+          total: assets.total,
+          limit,
+          offset,
+          hasMore: assets.hasMore
         }
-        
-        return status;
-      } catch (error: any) {
-        reply.code(500);
-        return { error: error.message || 'Failed to get generation status' };
-      }
+      };
+    } catch (error) {
+      fastify.log.error({ err: error }, 'Failed to get assets');
+      return reply.code(500).send({
+        success: false,
+        error: 'Failed to retrieve assets'
+      });
     }
-  );
+  });
 
-  // List all generations for a project
-  app.get<{
-    Params: { projectId: string }
-  }>(
-    '/api/projects/:projectId/assets/generations',
-    async (request, reply) => {
-      const { projectId } = request.params;
-      
-      try {
-        const generations = await assetServiceInstance!.getGenerations(projectId);
-        return { generations };
-      } catch (error: any) {
-        reply.code(500);
-        return { error: error.message || 'Failed to get generations' };
-      }
-    }
-  );
-
-  // Poll for completed generations and create assets
-  app.post<{
-    Params: { projectId: string }
-  }>(
-    '/api/projects/:projectId/assets/generations/poll',
-    async (request, reply) => {
-      const { projectId } = request.params;
-      
-      try {
-        const result = await assetServiceInstance!.pollAndCreateAssets(projectId);
-        reply.code(200);
-        return result;
-      } catch (error: any) {
-        reply.code(500);
-        return { error: error.message || 'Failed to poll generations' };
-      }
-    }
-  );
-
-  // Upload asset file
-  app.post<{ Params: { projectId: string }; Body: { name: string; type: AssetType; content?: string; mimeType?: string } }>(
-    '/api/projects/:projectId/assets/upload',
-    async (request, reply) => {
-      const { projectId } = request.params;
-      const { name, type, content, mimeType } = request.body;
-      
-      if (!name || !type || !content) {
-        reply.code(400);
-        return { error: 'name, type, and content are required' };
-      }
-      
-      try {
-        const buffer = Buffer.from(content, 'base64');
-        const asset = await assetServiceInstance!.uploadAsset(
-          projectId,
-          name,
-          type,
-          buffer,
-          mimeType || 'image/png'
-        );
-        
-        reply.code(201);
-        return asset;
-      } catch (error: any) {
-        reply.code(500);
-        return { error: error.message || 'Failed to upload asset' };
-      }
-    }
-  );
-
-  // Delete asset
-  app.delete<{ Params: { projectId: string; assetId: string } }>(
-    '/api/projects/:projectId/assets/:assetId',
-    async (request, reply) => {
+  // Get a single asset by ID
+  fastify.get<{
+    Params: { projectId: string; assetId: string };
+    Reply: { success: boolean; data?: any; error?: string };
+  }>('/api/projects/:projectId/assets/:assetId', async (request, reply) => {
+    try {
       const { projectId, assetId } = request.params;
-      const deleted = await assetServiceInstance!.deleteAsset(projectId, assetId);
       
-      if (!deleted) {
-        reply.code(404);
-        return { error: 'Asset not found' };
+      const asset = await assetService.getAsset(projectId, assetId);
+      if (!asset) {
+        return reply.code(404).send({
+          success: false,
+          error: 'Asset not found'
+        });
       }
       
-      return { success: true };
+      return {
+        success: true,
+        data: asset
+      };
+    } catch (error) {
+      fastify.log.error({ err: error }, 'Failed to get asset');
+      return reply.code(500).send({
+        success: false,
+        error: 'Failed to retrieve asset'
+      });
     }
-  );
+  });
+
+  // Upload a new asset
+  fastify.post<{
+    Params: { projectId: string };
+    Body: {
+      file: Buffer;
+      filename: string;
+      type?: AssetType;
+    };
+    Reply: { success: boolean; data?: any; error?: string };
+  }>('/api/projects/:projectId/assets/upload', async (request, reply) => {
+    try {
+      const { projectId } = request.params;
+      const { file, filename, type } = request.body;
+      
+      if (!file || !filename) {
+        return reply.code(400).send({
+          success: false,
+          error: 'File and filename are required'
+        });
+      }
+      
+      const asset = await assetService.uploadAsset(projectId, file, filename, type);
+      
+      return {
+        success: true,
+        data: asset
+      };
+    } catch (error) {
+      fastify.log.error({ err: error }, 'Failed to upload asset');
+      return reply.code(500).send({
+        success: false,
+        error: 'Failed to upload asset'
+      });
+    }
+  });
+
+  // Delete an asset
+  fastify.delete<{
+    Params: { projectId: string; assetId: string };
+    Reply: { success: boolean; error?: string };
+  }>('/api/projects/:projectId/assets/:assetId', async (request, reply) => {
+    try {
+      const { projectId, assetId } = request.params;
+      
+      const deleted = await assetService.deleteAsset(projectId, assetId);
+      if (!deleted) {
+        return reply.code(404).send({
+          success: false,
+          error: 'Asset not found'
+        });
+      }
+      
+      return {
+        success: true
+      };
+    } catch (error) {
+      fastify.log.error({ err: error }, 'Failed to delete asset');
+      return reply.code(500).send({
+        success: false,
+        error: 'Failed to delete asset'
+      });
+    }
+  });
+
+  // Process an asset
+  fastify.patch<{
+    Params: { projectId: string; assetId: string };
+    Body: {
+      operation: string;
+      parameters?: Record<string, unknown>;
+    };
+    Reply: { success: boolean; data?: any; error?: string };
+  }>('/api/projects/:projectId/assets/:assetId/process', async (request, reply) => {
+    try {
+      const { projectId, assetId } = request.params;
+      const { operation, parameters } = request.body;
+      
+      const asset = await assetService.processAsset(projectId, assetId, operation, parameters);
+      
+      return {
+        success: true,
+        data: asset
+      };
+    } catch (error) {
+      fastify.log.error({ err: error }, 'Failed to process asset');
+      return reply.code(500).send({
+        success: false,
+        error: 'Failed to process asset'
+      });
+    }
+  });
+
+  // Process assets in batch
+  fastify.post<{
+    Params: { projectId: string };
+    Body: {
+      operations: Array<{
+        operation: AssetBatchOperation['operation'];
+        assets: string[];
+        parameters?: Record<string, unknown>;
+      }>;
+    };
+    Reply: { success: boolean; data?: any; error?: string };
+  }>('/api/projects/:projectId/assets/batch-process', async (request, reply) => {
+    try {
+      const { projectId } = request.params;
+      const { operations } = request.body;
+      
+      const results = await assetService.processAssetsInBatch(projectId, operations);
+      
+      return {
+        success: true,
+        data: results
+      };
+    } catch (error) {
+      fastify.log.error({ err: error }, 'Failed to process assets in batch');
+      return reply.code(500).send({
+        success: false,
+        error: 'Failed to process assets in batch'
+      });
+    }
+  });
+
+  // Search assets
+  fastify.get<{
+    Params: { projectId: string };
+    Querystring: { query: string; limit?: number };
+    Reply: { success: boolean; data?: any; error?: string };
+  }>('/api/projects/:projectId/assets/search', async (request, reply) => {
+    try {
+      const { projectId } = request.params;
+      const { query, limit = 50 } = request.query;
+      
+      if (!query) {
+        return reply.code(400).send({
+          success: false,
+          error: 'Search query is required'
+        });
+      }
+      
+      const results = await assetService.searchAssets(projectId, query);
+      
+      return {
+        success: true,
+        data: results
+      };
+    } catch (error) {
+      fastify.log.error({ err: error }, 'Failed to search assets');
+      return reply.code(500).send({
+        success: false,
+        error: 'Failed to search assets'
+      });
+    }
+  });
+
+  // Export assets
+  fastify.get<{
+    Params: { projectId: string };
+    Querystring: { format: 'json' | 'csv' };
+    Reply: { success: boolean; data?: string; error?: string };
+  }>('/api/projects/:projectId/assets/export', async (request, reply) => {
+    try {
+      const { projectId } = request.params;
+      const { format } = request.query;
+      
+      if (!format || !['json', 'csv'].includes(format)) {
+        return reply.code(400).send({
+          success: false,
+          error: 'Format must be json or csv'
+        });
+      }
+      
+      const data = await assetService.exportAssets(projectId, format);
+      
+      return {
+        success: true,
+        data
+      };
+    } catch (error) {
+      fastify.log.error({ err: error }, 'Failed to export assets');
+      return reply.code(500).send({
+        success: false,
+        error: 'Failed to export assets'
+      });
+    }
+  });
 
   // Get asset statistics
-  app.get<{ Params: { projectId: string } }>(
-    '/api/projects/:projectId/assets/stats',
-    async (request) => {
+  fastify.get<{
+    Params: { projectId: string };
+    Reply: { success: boolean; data?: any; error?: string };
+  }>('/api/projects/:projectId/assets/statistics', async (request, reply) => {
+    try {
       const { projectId } = request.params;
-      const stats = await assetServiceInstance!.getAssetStats(projectId);
-      return stats;
+      
+      const stats = await assetService.getAssetStatistics(projectId);
+      
+      return {
+        success: true,
+        data: stats
+      };
+    } catch (error) {
+      fastify.log.error({ err: error }, 'Failed to get asset statistics');
+      return reply.code(500).send({
+        success: false,
+        error: 'Failed to get asset statistics'
+      });
     }
-  );
+  });
+
+  // Get asset distribution
+  fastify.get<{
+    Params: { projectId: string };
+    Reply: { success: boolean; data?: any; error?: string };
+  }>('/api/projects/:projectId/assets/distribution', async (request, reply) => {
+    try {
+      const { projectId } = request.params;
+      
+      const distribution = await assetService.getAssetDistribution(projectId);
+      
+      return {
+        success: true,
+        data: distribution
+      };
+    } catch (error) {
+      fastify.log.error({ err: error }, 'Failed to get asset distribution');
+      return reply.code(500).send({
+        success: false,
+        error: 'Failed to get asset distribution'
+      });
+    }
+  });
 }

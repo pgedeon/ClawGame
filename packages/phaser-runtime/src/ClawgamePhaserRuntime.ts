@@ -1,7 +1,7 @@
-import { Game, AUTO, Scale } from 'phaser';
+import { Game, AUTO, CANVAS, Scale, WEBGL } from 'phaser';
 import { ClawgamePhaserScene } from './ClawgamePhaserScene';
 import { buildPhaserPreviewBootstrap } from './buildPreviewBootstrap';
-import type { CanonicalSceneLike, PhaserPreviewBootstrap } from './types';
+import type { CanonicalSceneLike, PhaserPreviewBootstrap, PhaserRuntimeErrorReporter } from './types';
 
 export interface PhaserRuntimeDescriptor {
   kind: 'phaser4';
@@ -22,6 +22,57 @@ export const PHASER4_RUNTIME_DESCRIPTOR: PhaserRuntimeDescriptor = {
 };
 
 type SceneFactory = () => ClawgamePhaserScene;
+export type PhaserRuntimeRendererType = 'webgl' | 'auto' | 'canvas';
+
+export interface PhaserRuntimeMountOptions {
+  width?: number;
+  height?: number;
+  rendererType?: PhaserRuntimeRendererType;
+  errorReporter?: PhaserRuntimeErrorReporter;
+}
+
+export type PhaserRuntimeGameConfig = Omit<Phaser.Types.Core.GameConfig, 'parent' | 'scene'>;
+
+function resolveRendererType(rendererType: PhaserRuntimeRendererType = 'webgl'): number {
+  if (rendererType === 'auto') return AUTO;
+  if (rendererType === 'canvas') return CANVAS;
+  return WEBGL;
+}
+
+export function buildPhaserGameConfig(
+  bootstrap: PhaserPreviewBootstrap,
+  opts: PhaserRuntimeMountOptions = {},
+): PhaserRuntimeGameConfig {
+  const width = opts.width ?? bootstrap.bounds?.width ?? 800;
+  const height = opts.height ?? bootstrap.bounds?.height ?? 600;
+  const backgroundColor = bootstrap.backgroundColor ?? '#0f172a';
+
+  return {
+    type: resolveRendererType(opts.rendererType),
+    width,
+    height,
+    backgroundColor,
+    render: {
+      roundPixels: true,
+      smoothPixelArt: false,
+    },
+    physics: {
+      default: 'arcade',
+      arcade: {
+        debug: bootstrap.physics?.debug ?? false,
+        ...(bootstrap.physics?.gravity ? { gravity: { ...bootstrap.physics.gravity } } : {}),
+      },
+    },
+    scale: {
+      width,
+      height,
+      mode: Scale.FIT,
+      autoCenter: Scale.CENTER_BOTH,
+      expandParent: false,
+    },
+    input: { keyboard: true, mouse: true, touch: true },
+  };
+}
 
 export class ClawgamePhaserRuntime {
   readonly kind = PHASER4_RUNTIME_DESCRIPTOR.kind;
@@ -47,36 +98,15 @@ export class ClawgamePhaserRuntime {
   mount(
     parent: HTMLElement,
     bootstrap: PhaserPreviewBootstrap,
-    opts?: { width?: number; height?: number },
+    opts?: PhaserRuntimeMountOptions,
   ): Game | null {
-    const width = opts?.width ?? bootstrap.bounds?.width ?? 800;
-    const height = opts?.height ?? bootstrap.bounds?.height ?? 600;
-
-    const sceneKey = bootstrap.sceneKey ?? 'clawgame-phaser-preview';
     const sceneInstance = this.createScene();
-
-    // Pass bootstrap to the scene before Phaser lifecycle begins.
-    // The scene's init(), preload(), create() all rely on this.bootstrap being set.
-    sceneInstance.setBootstrap(bootstrap);
-
+    sceneInstance.setBootstrap(bootstrap, opts?.errorReporter);
     this.game = new Game({
-      type: AUTO,
-      width,
-      height,
+      ...buildPhaserGameConfig(bootstrap, opts),
       parent,
-      backgroundColor: bootstrap.backgroundColor ?? '#0f172a',
       scene: [sceneInstance],
-      physics: {
-        default: 'arcade',
-        arcade: { debug: false },
-      },
-      scale: {
-        mode: Scale.FIT,
-        autoCenter: Scale.CENTER_BOTH,
-      },
-      input: { keyboard: true, mouse: true, touch: true },
     });
-
     this.scene = sceneInstance;
     return this.game;
   }
@@ -99,5 +129,84 @@ export class ClawgamePhaserRuntime {
       this.game = null;
     }
     this.scene = null;
+  }
+
+  // ─── Asset Pack Loading ───
+
+  /**
+   * Load all entries from a Phaser-compatible asset pack.
+   * Call after mount(), during or before the scene's preload phase.
+   */
+  async loadAssetPack(pack: {
+    version: number;
+    baseUrl: string;
+    entries: Array<{
+      key: string;
+      type: string;
+      url: string;
+      frameConfig?: any;
+      atlasURL?: string;
+      jsonURL?: string;
+    }>;
+  }): Promise<void> {
+    const scene = this.scene;
+    if (!scene || !this.game) {
+      throw new Error('Runtime not mounted. Call mount() first.');
+    }
+
+    const loader = scene.load;
+    if (!loader) {
+      throw new Error('Scene loader not available.');
+    }
+
+    const baseUrl = pack.baseUrl || '';
+    for (const entry of pack.entries) {
+      const url = `${baseUrl}/${entry.url}`.replace(/\/+/g, '/');
+
+      switch (entry.type) {
+        case 'image':
+          loader.image(entry.key, url);
+          break;
+        case 'spritesheet':
+          loader.spritesheet(entry.key, url, entry.frameConfig);
+          break;
+        case 'atlas':
+          loader.atlas(entry.key, url, entry.atlasURL || url.replace(/\.[^.]+$/, '.json'));
+          break;
+        case 'atlasJSON':
+          // atlasJSON handled same as atlas for compatibility
+          loader.atlas(entry.key, url, entry.jsonURL || url.replace(/\.[^.]+$/, '.json'));
+          break;
+        case 'audio':
+          loader.audio(entry.key, url);
+          break;
+        case 'json':
+          loader.json(entry.key, url);
+          break;
+        case 'text':
+          loader.text(entry.key, url);
+          break;
+        case 'tilemapTiledJSON':
+          loader.tilemapTiledJSON(entry.key, url);
+          break;
+        case 'tilemapCSV':
+          loader.tilemapCSV(entry.key, url);
+          break;
+        case 'video':
+          loader.video(entry.key, url);
+          break;
+        case 'binary':
+          loader.binary(entry.key, url);
+          break;
+        default:
+          break;
+      }
+    }
+
+    return new Promise<void>((resolve, reject) => {
+      loader.once('complete', () => resolve());
+      loader.once('loaderror', (_fileObj: any) => reject(new Error('Asset pack load failed')));
+      loader.start();
+    });
   }
 }
