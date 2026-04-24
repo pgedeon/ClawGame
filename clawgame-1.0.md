@@ -383,7 +383,7 @@ Goal: provide robust Arcade Physics editing.
 - [x] Add static/dynamic/sensor body modes.
 - [x] Edit body size and offset visually.
 - [x] Edit gravity, velocity, acceleration, drag, damping, bounce, mass-like custom fields where applicable.
-- [ ] Edit collision categories/layers if retained by engine schema.
+- [x] Edit collision categories/layers if retained by engine schema.
 - [x] Add physics preview mode.
 - [x] Compile physics settings to Phaser 4 code.
 
@@ -473,7 +473,7 @@ Goal: make the application coherent and reliable for real use.
 - [x] Add undo/redo across scene edits.
 - [x] Add autosave indicator.
 - [ ] Add project thumbnail generation from preview.
-- [ ] Add responsive minimum layout behavior for tablets.
+- [x] Add responsive minimum layout behavior for tablets.
 
 Acceptance:
 

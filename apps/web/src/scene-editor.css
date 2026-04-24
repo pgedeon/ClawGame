@@ -1430,3 +1430,33 @@
     min-height: 420px;
   }
 }
+
+/* ─── Responsive (Tablet) ─── */
+@media (max-width: 1024px) {
+  .scene-editor-page {
+    flex-direction: column;
+  }
+  .scene-editor-left-panel,
+  .scene-editor-right-panel {
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .scene-editor-canvas-container {
+    min-height: 400px;
+  }
+}
+
+@media (max-width: 768px) {
+  .scene-editor-toolbar {
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px 8px;
+  }
+  .entity-actions {
+    flex-wrap: wrap;
+  }
+  .hierarchy-group-header {
+    padding: 4px 8px;
+  }
+}
