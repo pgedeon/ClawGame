@@ -26,6 +26,54 @@ export const USER_CODE_MARKERS = {
   CUSTOM_METHODS: 'USER_CUSTOM_METHODS',
 } as const;
 
+export interface CompilerConflict {
+  type: 'overlap' | 'missing_marker';
+  marker: string;
+  description: string;
+  severity: 'warning' | 'error';
+}
+
+export function detectCompilerConflicts(existingCode: string, newCode: string): CompilerConflict[] {
+  const conflicts: CompilerConflict[] = [];
+  const markers = Object.values(USER_CODE_MARKERS);
+
+  // Check that all markers exist in existing code
+  for (const marker of markers) {
+    const beginTag = `<BEGIN ${marker}>`;
+    const endTag = `<END ${marker}>`;
+    if (!existingCode.includes(beginTag)) {
+      // Only warn if user has some custom code but missing markers
+      const hasNonGeneratedCode = existingCode.length > 50;
+      if (hasNonGeneratedCode) {
+        conflicts.push({
+          type: 'missing_marker',
+          marker,
+          description: `Marker ${beginTag} not found in existing code. User edits may be lost on recompile.`,
+          severity: 'warning',
+        });
+      }
+    }
+  }
+
+  // Check if new code would overlap with user regions
+  const regions = extractUserRegions(existingCode);
+  for (const [marker, content] of Object.entries(regions)) {
+    if (!content.trim()) continue;
+    const beginTag = `<BEGIN ${marker}>`;
+    const endTag = `<END ${marker}>`;
+    if (!newCode.includes(beginTag) || !newCode.includes(endTag)) {
+      conflicts.push({
+        type: 'overlap',
+        marker,
+        description: `User code region '${marker}' (${content.length} chars) would be lost in recompiled output.`,
+        severity: 'error',
+      });
+    }
+  }
+
+  return conflicts;
+}
+
 export type UserCodeMarker = (typeof USER_CODE_MARKERS)[keyof typeof USER_CODE_MARKERS];
 
 export function extractUserRegions(code: string): Record<string, string> {
@@ -103,6 +151,13 @@ function generateEntityCreate(entity: Entity, indent: string): string[] {
         if (coll.immovable) lines.push(`${indent}${safeName}.body.setImmovable(true);`);
         if (coll.allowGravity) lines.push(`${indent}${safeName}.body.setAllowGravity(true);`);
         if (coll.sensor) lines.push(`${indent}${safeName}.body.setAllowGravity(false); // sensor`);
+        if (coll.velocityX) lines.push(`${indent}${safeName}.body.setVelocityX(${coll.velocityX});`);
+        if (coll.velocityY) lines.push(`${indent}${safeName}.body.setVelocityY(${coll.velocityY});`);
+        if (coll.accelerationX) lines.push(`${indent}${safeName}.body.setAccelerationX(${coll.accelerationX});`);
+        if (coll.accelerationY) lines.push(`${indent}${safeName}.body.setAccelerationY(${coll.accelerationY});`);
+        if (coll.drag) lines.push(`${indent}${safeName}.body.setDrag(${coll.drag});`);
+        if (coll.maxVelocityX) lines.push(`${indent}${safeName}.body.setMaxVelocityX(${coll.maxVelocityX});`);
+        if (coll.maxVelocityY) lines.push(`${indent}${safeName}.body.setMaxVelocityY(${coll.maxVelocityY});`);
       }
       break;
     }

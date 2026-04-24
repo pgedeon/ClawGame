@@ -83,3 +83,23 @@ describe('e2e: export (animations + tilemap + prefab)', () => {
     expect(code).toContain('Animations');
   });
 });
+
+describe('e2e: physics velocity/acceleration/drag compilation', () => {
+  it('compiles velocity and acceleration into body calls', () => {
+    const entity: Entity = {
+      id: 'e1', type: 'player', name: 'Runner',
+      transform: { x: 0, y: 0 },
+      components: new Map([
+        ['sprite', { assetId: 'hero' }],
+        ['collision', { type: 'dynamic', velocityX: 200, velocityY: -50, accelerationX: 100, drag: 0.1 }],
+      ]),
+    };
+    const scene = makeScene('PhysTest', [entity]);
+    const code = compileScene(scene, { className: 'PhysScene' });
+    expect(code).toContain('setVelocityX(200)');
+    expect(code).toContain('setVelocityY(-50)');
+    expect(code).toContain('setAccelerationX(100)');
+    expect(code).toContain('setDrag(0.1)');
+  });
+});
+

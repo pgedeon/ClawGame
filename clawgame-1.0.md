@@ -357,7 +357,7 @@ Acceptance:
 - [x] Define user-code insertion markers.
 - [x] Preserve user imports.
 - [x] Preserve custom methods.
-- [ ] Detect compiler conflicts.
+- [x] Detect compiler conflicts.
 - [x] Add compile-on-save and manual compile command.
 
 Acceptance:
@@ -381,8 +381,8 @@ Goal: provide robust Arcade Physics editing.
 
 - [x] Add physics debug overlay toggle.
 - [x] Add static/dynamic/sensor body modes.
-- [ ] Edit body size and offset visually.
-- [ ] Edit gravity, velocity, acceleration, drag, damping, bounce, mass-like custom fields where applicable.
+- [x] Edit body size and offset visually.
+- [x] Edit gravity, velocity, acceleration, drag, damping, bounce, mass-like custom fields where applicable.
 - [ ] Edit collision categories/layers if retained by engine schema.
 - [x] Add physics preview mode.
 - [x] Compile physics settings to Phaser 4 code.
@@ -403,7 +403,7 @@ Goal: support sprite animation creation and preview.
 - [x] Add frame rate, delay, repeat, yoyo, time scale fields.
 - [x] Add live animation preview.
 - [x] Save animations JSON.
-- [ ] Load animations in preview.
+- [x] Load animations in preview.
 - [x] Compile animations to Phaser code or asset JSON loading.
 
 Acceptance:

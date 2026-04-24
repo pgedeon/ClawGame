@@ -3,6 +3,7 @@ import type {
   Entity,
   SpriteComponent as Sprite,
   CollisionComponent as Collision,
+  AnimationComponent as Animation,
 } from '@clawgame/engine';
 import {
   calculateDragPosition,
@@ -27,6 +28,7 @@ export interface EditorEntityRender {
   renderKind: EditorRenderKind;
   collisionSignature: string | null;
   locked: boolean;
+  collisionData: any;
 }
 
 export class PhaserSceneEditor extends Phaser.Scene {
@@ -98,6 +100,7 @@ export class PhaserSceneEditor extends Phaser.Scene {
     for (const entity of entities) {
       this.syncEntity(entity);
     }
+    this.drawCollisionOverlays();
   }
 
   private syncEntity(entity: Entity): void {
@@ -433,9 +436,12 @@ export class PhaserSceneEditor extends Phaser.Scene {
       renderKind: parts.renderKind,
       collisionSignature: null,
       locked: parts.locked,
+      collisionData: undefined,
     };
 
+    render.collisionData = parts.collision;
     this.syncPhysicsBody(render, parts.collision);
+    this.playAnimation(render, parts.animation, parts.assetRef);
     this.entityMap.set(entity.id, render);
   }
 
@@ -573,6 +579,7 @@ export class PhaserSceneEditor extends Phaser.Scene {
       collisionSignature: createCollisionSignature(collision),
       visible,
       locked,
+      animation: comps.get('animation') as Animation | undefined,
       opacity: sprite?.opacity ?? 1,
       flipX: Boolean(sprite?.flipX),
       flipY: Boolean(sprite?.flipY),
@@ -581,6 +588,26 @@ export class PhaserSceneEditor extends Phaser.Scene {
       textColor: String(text?.color ?? sprite?.color ?? '#ffffff'),
       fontFamily: String(text?.fontFamily ?? 'sans-serif'),
     };
+  }
+
+  private playAnimation(render: EditorEntityRender, anim: Animation | undefined, assetRef: string | null): void {
+    if (!anim || !anim.frames || anim.frames.length < 2) return;
+    const sprite = render.gameObject as Phaser.GameObjects.Sprite;
+    if (!sprite?.anims) return;
+    const key = `anim-${render.phaserId}`;
+    // Create animation if not exists
+    if (!this.anims.exists(key)) {
+      const frames = anim.frames.map((f) => ({ key: f }));
+      this.anims.create({
+        key,
+        frames: frames.length > 0 ? frames : [{ key: assetRef || '__DEFAULT' }],
+        frameRate: anim.frameRate || 12,
+        repeat: anim.loop ? -1 : 0,
+      });
+    }
+    if (anim.active !== false) {
+      sprite.play(key);
+    }
   }
 
   private resolveRenderKind(phaserKind: unknown, assetRef: string | null): EditorRenderKind {
@@ -625,7 +652,43 @@ export class PhaserSceneEditor extends Phaser.Scene {
     render.body = undefined;
   }
 
-  private ensureAssetTexture(assetRef: string): string | null {
+  /** Draw collision body overlays for all entities with collision components */
+  public drawCollisionOverlays(): void {
+    if (!this.collisionOverlayGraphics) {
+      this.collisionOverlayGraphics = this.add.graphics();
+      this.collisionOverlayGraphics.setDepth(1000);
+    }
+    const gfx = this.collisionOverlayGraphics!;
+    gfx.clear();
+
+    for (const [, render] of this.entityMap) {
+      const coll = render.collisionData;
+      if (!coll || !coll.type || coll.type === 'none') continue;
+
+      const w = coll.width || 32;
+      const h = coll.height || 32;
+      const ox = coll.offsetX || 0;
+      const oy = coll.offsetY || 0;
+      const x = render.container.x + ox - w / 2;
+      const y = render.container.y + oy - h / 2;
+
+      // Draw body rectangle
+      gfx.lineStyle(2, 0x00ff88, 0.6);
+      gfx.strokeRect(x, y, w, h);
+
+      // Draw corner handles for resize indication
+      const handleSize = 4;
+      gfx.fillStyle(0x00ff88, 0.8);
+      gfx.fillRect(x - handleSize/2, y - handleSize/2, handleSize, handleSize);
+      gfx.fillRect(x + w - handleSize/2, y - handleSize/2, handleSize, handleSize);
+      gfx.fillRect(x - handleSize/2, y + h - handleSize/2, handleSize, handleSize);
+      gfx.fillRect(x + w - handleSize/2, y + h - handleSize/2, handleSize, handleSize);
+    }
+  }
+
+  private collisionOverlayGraphics: Phaser.GameObjects.Graphics | null = null;
+
+    private ensureAssetTexture(assetRef: string): string | null {
     const img = this.assetCache.get(assetRef);
     if (!img) return null;
 
