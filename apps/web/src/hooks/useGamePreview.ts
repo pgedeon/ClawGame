@@ -80,6 +80,8 @@ export function useGamePreview(
     : createDefaultPreviewScene();
   const activeSceneRef = useRef<any>(null);
   activeSceneRef.current = activeScene;
+  // Stable key to trigger re-initialization when scene data changes
+  const sceneKey = activeScene ? activeScene.entities?.length ?? 0 : 0;
 
   // Core game state
   const [gameStarted, setGameStarted] = useState(false);
@@ -191,6 +193,17 @@ export function useGamePreview(
     setPlayerHealth(100);
     setPlayerMana(100);
     setPlayerScore(0);
+    // Focus the Phaser canvas so keyboard events reach it
+    requestAnimationFrame(() => {
+      const host = runtimeHostRef.current;
+      if (host) {
+        const canvas = host.querySelector('canvas');
+        if (canvas) {
+          canvas.setAttribute('tabindex', '0');
+          canvas.focus();
+        }
+      }
+    });
   }, []);
 
   const handleRestart = useCallback(() => {
@@ -312,7 +325,7 @@ export function useGamePreview(
       mounted = false;
       cleanup?.();
     };
-  }, [runtimeKind, projectGenre, syncRPGState, handleSave]);
+  }, [runtimeKind, projectGenre, syncRPGState, handleSave, sceneKey]);
 
   // Return all state and handlers
   return {

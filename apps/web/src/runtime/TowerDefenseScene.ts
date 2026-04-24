@@ -47,9 +47,12 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
     super('tower-defense');
   }
 
-  init(opts: { bootstrap: PhaserPreviewBootstrap; waves?: TowerDefenseWave[] }): void {
-    super.setBootstrap(opts.bootstrap);
-    this.tdWaves = opts.waves || [];
+  init(opts?: { bootstrap?: PhaserPreviewBootstrap; waves?: TowerDefenseWave[] }): void {
+    // Phaser calls init() before preload/create; we may receive data from scene.start()
+    // or from the runtime host via setBootstrap. Grab waves from either path.
+    if (opts?.bootstrap) super.setBootstrap(opts.bootstrap);
+    const rawWaves = opts?.waves || (this.bootstrap as any)?._rawSceneData?.waves || [];
+    this.tdWaves = rawWaves;
     this._gameOver = false;
     this._victory = false;
     this.towers = [];

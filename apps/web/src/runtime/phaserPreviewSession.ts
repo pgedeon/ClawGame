@@ -20,6 +20,8 @@ export function preparePhaserPreviewSession(
 ): PhaserPreviewPreparation {
   const sceneData = options.activeScene?.current ?? options.activeScene;
   const bootstrap = buildPhaserPreviewBootstrap(sceneData || { entities: [], name: 'empty' });
+  // Attach raw scene data so genre-specific scenes can read waves/quests/dialogue
+  (bootstrap as any)._rawSceneData = sceneData;
 
   return {
     bootstrap,
