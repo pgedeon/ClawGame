@@ -115,8 +115,8 @@ Acceptance:
 
 - [x] Fix `AssetStudioPage` export mismatch: either add named export or update lazy import to default.
 - [x] Align `AssetStudioPage` props with `FilterPanel`, `AssetGrid`, `GeneratePanel`, `GenerationTracker`, `AssetProcessingToolbar`, and `AssetDetailPanel`.
-- [ ] Replace mock-only generation paths with a feature-flagged mock mode or real API calls.
-- [ ] Ensure generated assets persist through API/project storage, not only local React state.
+- [x] Replace mock-only generation paths with a feature-flagged mock mode or real API calls.
+- [x] Ensure generated assets persist through API/project storage, not only local React state.
 
 Acceptance:
 
@@ -350,7 +350,7 @@ Goal: compile scene data into readable Phaser 4 code.
 Acceptance:
 
 - [x] Saving a scene can generate readable Phaser 4 TypeScript/JavaScript.
-- [ ] Generated code runs without ClawGame-specific runtime loader.
+- [x] Generated code runs without ClawGame-specific runtime loader.
 
 ### 5.2 User Code Integration
 
@@ -452,7 +452,7 @@ Goal: make AI useful without hiding or corrupting project state.
 
 - [x] AI commands must operate on typed project state.
 - [x] AI scene edits must produce previewable diffs before apply.
-- [ ] AI-generated assets must persist in asset pack and project storage.
+- [x] AI-generated assets must persist in asset pack and project storage.
 - [x] AI-generated code must compile.
 - [x] Add rollback for AI-applied changes.
 - [x] Add tests for representative AI commands using mock providers.
@@ -472,7 +472,7 @@ Goal: make the application coherent and reliable for real use.
 - [x] Add keyboard shortcut reference.
 - [x] Add undo/redo across scene edits.
 - [x] Add autosave indicator.
-- [ ] Add project thumbnail generation from preview.
+- [x] Add project thumbnail generation from preview.
 - [x] Add responsive minimum layout behavior for tablets.
 
 Acceptance:

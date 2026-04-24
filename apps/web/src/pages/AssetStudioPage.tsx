@@ -154,7 +154,27 @@ export const AssetStudioPage = () => {
           };
           setActiveGeneration(apiStatus);
           
-          if (status.status === 'completed' || status.status === 'failed') {
+          if (status.status === 'completed') {
+            isPollingRef.current = false;
+            if (pollTimerRef.current) {
+              clearInterval(pollTimerRef.current);
+            }
+            // Persist the generated asset to project storage
+            try {
+              const outputData = (status as any).output || (status as any).result;
+              if (outputData) {
+                await api.uploadAsset(projectId || '', {
+                  name: `ai-${apiStatus.id || Date.now()}`,
+                  type: apiStatus.type || 'sprite',
+                  content: typeof outputData === 'string' ? outputData : JSON.stringify(outputData),
+                  mimeType: 'image/svg+xml',
+                });
+                logger.info('AI-generated asset persisted to project storage');
+              }
+            } catch (persistErr) {
+              logger.warn('Failed to persist AI asset to storage:', persistErr);
+            }
+          } else if (status.status === 'failed') {
             isPollingRef.current = false;
             if (pollTimerRef.current) {
               clearInterval(pollTimerRef.current);

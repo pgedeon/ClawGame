@@ -336,6 +336,27 @@ function SceneEditorContent() {
     }
   }, [scene, selectedEntityId]);
 
+  const handleGenerateThumbnail = useCallback(() => {
+    const canvas = document.querySelector('.scene-editor-canvas-container canvas') as HTMLCanvasElement;
+    if (!canvas) return;
+    const thumbCanvas = document.createElement('canvas');
+    const size = 256;
+    thumbCanvas.width = size;
+    thumbCanvas.height = size;
+    const ctx = thumbCanvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, size, size);
+    const dataUrl = thumbCanvas.toDataURL('image/png');
+    // Store as project metadata
+    try {
+      const key = `project-thumbnail-${projectId}`;
+      localStorage.setItem(key, dataUrl);
+      showToast({ type: 'success', message: 'Thumbnail generated!' });
+    } catch {
+      showToast({ type: 'info', message: 'Thumbnail captured but could not save' });
+    }
+  }, [projectId, showToast]);
+
   const handleInstantiatePrefab = useCallback((prefabKey: string, x: number, y: number) => {
     if (!scene) return;
     const prefab = prefabLibrary.prefabs.find((p) => p.key === prefabKey);
