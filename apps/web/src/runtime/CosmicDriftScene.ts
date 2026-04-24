@@ -24,7 +24,7 @@ export class CosmicDriftScene extends ClawgamePhaserScene {
   private playerHp = 100;
   private score = 0;
   private wave = 0;
-  private waveTimer = 0;
+  private waveTimer = -1;
 
   private bullets: Bullet[] = [];
   private asteroids: Asteroid[] = [];
@@ -79,6 +79,18 @@ export class CosmicDriftScene extends ClawgamePhaserScene {
     this.waveText = this.add.text(this.worldW - 14, 16, 'Wave 0', { fontSize: '14px', color: '#a78bfa', fontFamily: 'monospace' }).setOrigin(1, 0).setDepth(50).setScrollFactor(0);
     this.messageText = this.add.text(this.worldW / 2, this.worldH / 2, '', { fontSize: '20px', color: '#00ffcc', fontFamily: 'monospace', fontStyle: 'bold' }).setOrigin(0.5).setDepth(60).setScrollFactor(0).setVisible(false);
 
+    // Nebula glow blobs for atmosphere
+    const nebulaColors = [0x1a0030, 0x001a30, 0x0a0020, 0x000033];
+    for (let i = 0; i < 6; i++) {
+      const nx = Math.random() * this.worldW;
+      const ny = Math.random() * this.worldH;
+      const nr = 60 + Math.random() * 100;
+      this.add.circle(nx, ny, nr, nebulaColors[i % nebulaColors.length], 0.3).setDepth(0);
+    }
+
+    // Title
+    this.add.text(this.worldW / 2, 30, 'COSMIC DRIFT', { fontSize: '10px', color: '#00ffcc44', fontFamily: 'monospace', letterSpacing: 4 }).setOrigin(0.5).setDepth(1);
+
     this.showMessage('ARROWS/WASD move • SPACE fire', 4000);
   }
 
@@ -118,7 +130,7 @@ export class CosmicDriftScene extends ClawgamePhaserScene {
 
     // ─── Waves ───
     this.waveTimer -= delta;
-    if (this.waveTimer <= 0 && this.asteroids.filter(a => a.alive).length === 0) {
+    if (this.waveTimer < 0 || (this.waveTimer <= 0 && this.asteroids.filter(a => a.alive).length === 0)) {
       this.wave++;
       this.spawnWave(this.wave);
       this.waveTimer = 3000;
@@ -228,7 +240,7 @@ export class CosmicDriftScene extends ClawgamePhaserScene {
     for (let i = 0; i < count; i++) {
       const size = Math.random() < 0.3 ? 30 : 16;
       const x = 40 + Math.random() * (this.worldW - 80);
-      const y = -20 - Math.random() * 200;
+      const y = -20 - Math.random() * 80;
       const colors = [0xef4444, 0xf97316, 0xa855f7, 0xec4899];
       const color = colors[Math.floor(Math.random() * colors.length)];
       const sprite = this.add.rectangle(x, y, size, size, color).setDepth(5);

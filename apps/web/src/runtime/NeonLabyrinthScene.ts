@@ -83,6 +83,14 @@ export class NeonLabyrinthScene extends ClawgamePhaserScene {
     this.orbText = this.add.text(this.worldW - 14, 14, 'Score: 0', { fontSize: '13px', color: '#22c55e', fontFamily: 'monospace' }).setOrigin(1, 0).setDepth(50).setScrollFactor(0);
     this.messageText = this.add.text(this.worldW / 2, this.worldH / 2, '', { fontSize: '18px', color: '#a78bfa', fontFamily: 'monospace', fontStyle: 'bold', backgroundColor: '#0a0a1acc', padding: { x: 16, y: 8 } }).setOrigin(0.5).setDepth(60).setScrollFactor(0).setVisible(false);
 
+    // Title text
+    this.add.text(this.worldW / 2, this.offsetY / 2 - 4, 'NEON LABYRINTH', { fontSize: '10px', color: '#6366f144', fontFamily: 'monospace', letterSpacing: 3 }).setOrigin(0.5).setDepth(50).setScrollFactor(0);
+
+    // Atmospheric corner glows
+    this.add.circle(0, 0, 120, 0x6366f1, 0.04).setDepth(0);
+    this.add.circle(this.worldW, this.worldH, 120, 0xa78bfa, 0.04).setDepth(0);
+    this.add.circle(this.worldW / 2, this.worldH, 160, 0x3b82f6, 0.03).setDepth(0);
+
     this.showMessage('Collect all orbs → reach the exit', 3500);
   }
 
