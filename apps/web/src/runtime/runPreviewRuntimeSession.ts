@@ -8,12 +8,14 @@ import {
   runPhaserPreviewSession,
 } from './phaserPreviewSession';
 import type { PhaserRuntimeError } from '../../../../packages/phaser-runtime/src';
+import type { PhaserSessionHandle } from './phaserPreviewSession';
 
 export type PreviewRuntimeSelection = string;
 
 export interface PreviewRuntimeSessionOptions extends LegacyCanvasPreviewSessionOptions {
   runtimeHostRef: MutableRefObject<HTMLDivElement | null>;
   onRuntimeError?: (error: PhaserRuntimeError) => void;
+  onPhaserSession?: (handle: PhaserSessionHandle) => void;
 }
 
 function combineCleanups(cleanups: Array<(() => void) | void>): (() => void) | void {
@@ -40,6 +42,8 @@ export function runPreviewRuntimeSession(
         options.onRuntimeError,
       );
       cleanups.push(session.destroy);
+      // Notify parent hook so it can wire React UI → Phaser scene
+      options.onPhaserSession?.(session);
     }
   } else {
     cleanups.push(runLegacyCanvasPreviewSession(options));

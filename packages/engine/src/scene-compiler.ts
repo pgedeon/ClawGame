@@ -163,12 +163,12 @@ function generateEntityCreate(entity: Entity, indent: string): string[] {
     }
     case 'text': {
       const text = getComp(entity, 'text');
-      const content = (text && typeof text === 'object' ? String((text as any).content ?? '') : '');
+      const rawContent = (text && typeof text === 'object' ? String((text as any).content ?? '') : '');
       const fontSize = (text && typeof text === 'object' ? String((text as any).fontSize ?? '16px') : '16px');
       const color = (text && typeof text === 'object' ? String((text as any).color ?? '#ffffff') : '#ffffff');
       const font = (text && typeof text === 'object' ? String((text as any).fontFamily ?? '') : '');
       lines.push(`${indent}// ${entity.name || entity.id}`);
-      lines.push(`${indent}this.add.text(${x}, ${y}, '${content}', {`);
+      lines.push(`${indent}this.add.text(${x}, ${y}, ${JSON.stringify(rawContent)}, {`);
       lines.push(`${indent}  fontSize: '${fontSize}',`);
       lines.push(`${indent}  color: '${color}',`);
       if (font) lines.push(`${indent}  fontFamily: '${font}',`);
@@ -190,7 +190,7 @@ function generateEntityCreate(entity: Entity, indent: string): string[] {
       const sprite = getComp(entity, 'sprite');
       const color = (sprite && typeof sprite === 'object' ? String((sprite as any).color ?? '#8b5cf6') : '#8b5cf6');
       lines.push(`${indent}// ${entity.name || entity.id} (rectangle)`);
-      lines.push(`${indent}this.add.rectangle(${x}, ${y}, ${w}, ${h}, '${color}').setOrigin(0.5);`);
+      lines.push(`${indent}this.add.rectangle(${x}, ${y}, ${w}, ${h}, Phaser.Display.Color.HexStringToColor('${color}').color).setOrigin(0.5);`);
       break;
     }
     case 'circle': {
@@ -200,7 +200,7 @@ function generateEntityCreate(entity: Entity, indent: string): string[] {
       const sprite = getComp(entity, 'sprite');
       const color = (sprite && typeof sprite === 'object' ? String((sprite as any).color ?? '#8b5cf6') : '#8b5cf6');
       lines.push(`${indent}// ${entity.name || entity.id} (circle)`);
-      lines.push(`${indent}this.add.circle(${x}, ${y}, ${radius}, '${color}');`);
+      lines.push(`${indent}this.add.circle(${x}, ${y}, ${radius}, Phaser.Display.Color.HexStringToColor('${color}').color);`);
       break;
     }
     case 'container': {
@@ -232,7 +232,7 @@ export function compileScene(scene: Scene, opts: CompilerOptions): string {
   const entities = sortedEntities(scene.entities);
 
   // Imports
-  const imports: string[] = ["import Phaser from 'phaser';"];
+  const imports: string[] = ["import * as Phaser from 'phaser';"];
   if (userRegions[USER_CODE_MARKERS.IMPORTS]) imports.push(userRegions[USER_CODE_MARKERS.IMPORTS]);
 
   // Preload
@@ -342,8 +342,8 @@ export function compileBootstrapHTML(sceneClassName: string, opts: {
 </head>
 <body>
   <script src="https://cdn.jsdelivr.net/npm/phaser@${phaser}/dist/phaser.min.js"></script>
-  <script src="scene.js"></script>
-  <script>
+  <script type="module">
+  import { sceneClass } from "./scene.js";
     const config = {
       type: Phaser.AUTO,
       width: ${w},
@@ -353,7 +353,7 @@ export function compileBootstrapHTML(sceneClassName: string, opts: {
         default: 'arcade',
         arcade: { gravity: { y: 0 }, debug: false }
       },
-      scene: [${sceneClassName}]
+      scene: [sceneClass]
     };
     new Phaser.Game(config);
   </script>

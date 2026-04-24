@@ -5,6 +5,28 @@
 **Target:** ClawGame 1.0, a stable Phaser 4-compatible web game editor and runtime  
 **Last updated:** 2026-04-24
 
+## ⚠️ Plan Reconciliation Note (2026-04-24)
+
+An external review identified mismatches between marked-complete checkboxes and actual implementation.
+The following items were fixed in this pass:
+
+- **[DONE]** Backup files removed from `src/` trees (item 9)
+- **[DONE]** `useAutosave` wired into SceneEditorPage with debounce/interval + visible saving/saved/error states (item 7)
+- **[DONE]** Compile button now opens a modal with the compiled code + Copy/Download/Close buttons (item 3)
+- **[DONE]** Phaser export asset embedding: fixed `dataUri` vs `base64` filter; preload uses embedded data URIs (item 4)
+- **[DONE]** Scene compiler: `import * as Phaser from 'phaser'`, numeric colors, JSON.stringify for text, module-compatible HTML bootstrap (item 5)
+- **[DONE]** Tower Defense Phaser↔React bridge: session exposes scene handle, TD overlay state syncs to React, toolbar tower selection forwards to Phaser scene (item 2)
+- **[DONE]** Asset Pack tab added to Asset Studio with load/save to `assets/asset-pack.json` (item 6)
+- **[DONE]** Placeholder handlers annotated with TODO comments; no-ops that were never user-facing left as-is (item 8)
+
+Known remaining gaps (not addressed in this pass):
+- Browser smoke test not automated (requires manual verification)
+- E2E tests for scene object addition + export not written
+- Full Phaser 4 deprecated API audit incomplete
+- Parent/child hierarchy editing not implemented
+- Full render/compile/export adapter coverage not complete
+- Replay system handlers are TODO stubs
+
 ## Mission
 
 ClawGame 1.0 must be a stable, build-clean, Phaser 4-native game editor where a user can create a project, manage assets, build scenes visually, preview the game in Phaser 4, export the game, and rely on tests/typechecks to catch regressions.

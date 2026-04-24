@@ -1,5 +1,6 @@
 import { GameObjects, Input, Math as PhaserMath, Input as PhaserInput } from 'phaser';
 import { ClawgamePhaserScene } from '../../../../packages/phaser-runtime/src';
+import type { TDOverlayState } from './phaserPreviewSession';
 import {
   createTowerDefenseState,
   createTowerDefenseTowerAt,
@@ -153,6 +154,8 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
     });
   }
 
+  private _lastSyncTime = 0;
+
   update(time: number, delta: number): void {
     if (!this.bootstrap || this._gameOver || this._victory) return;
     const { width, height } = this.bootstrap.bounds || { width: 800, height: 600 };
@@ -241,6 +244,30 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
   getTowers(): TowerDefenseTower[] { return this.towers; }
   isGameOver(): boolean { return this._gameOver; }
   isVictory(): boolean { return this._victory; }
+
+  /** Called by the session handle to change the selected tower type from React UI */
+  setSelectedTowerType(type: string): void {
+    this.selectedTowerType = type as TowerType;
+  }
+
+  /** State sync callback for the session bridge */
+  private _stateSyncCb?: (state: TDOverlayState) => void;
+  setStateSyncCallback(cb: (state: TDOverlayState) => void): void {
+    this._stateSyncCb = cb;
+  }
+
+  /** Push current state to React */
+  private syncToReact(): void {
+    if (!this._stateSyncCb) return;
+    this._stateSyncCb({
+      enabled: true,
+      selectedTowerType: this.selectedTowerType,
+      wave: this.tdState?.waveIndex,
+      core: this.tdState?.coreHealth,
+      mana: undefined,
+      feedback: undefined,
+    });
+  }
 
   private drawPath(waypoints: Waypoint[]): void {
     if (waypoints.length < 2) return;
@@ -381,7 +408,7 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
     return { success: true };
   }
 
-  private upgradeSelectedTower(): void {
+  upgradeSelectedTower(): void {
     if (!this.selectedTower) return;
     const ok = upgradeTower(this.selectedTower);
     if (ok && this.rangeIndicator) {

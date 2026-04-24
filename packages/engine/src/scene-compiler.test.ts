@@ -29,7 +29,7 @@ describe('scene-compiler', () => {
     it('generates valid Phaser Scene TypeScript', () => {
       const scene = mockScene([makeEntity()]);
       const code = compileScene(scene, { className: 'MainScene', language: 'typescript' });
-      expect(code).toContain("import Phaser from 'phaser';");
+      expect(code).toContain("import * as Phaser from 'phaser';");
       expect(code).toContain('export class MainScene extends Phaser.Scene');
       expect(code).toContain('preload()');
       expect(code).toContain('create()');
@@ -134,7 +134,7 @@ export class S extends Phaser.Scene {
     it('generates valid HTML with Phaser CDN', () => {
       const html = compileBootstrapHTML('MainScene', { width: 1024, height: 768 });
       expect(html).toContain('<!DOCTYPE html>');
-      expect(html).toContain('MainScene');
+      expect(html).toContain('sceneClass');
       expect(html).toContain('width: 1024');
       expect(html).toContain('height: 768');
       expect(html).toContain('cdn.jsdelivr.net');

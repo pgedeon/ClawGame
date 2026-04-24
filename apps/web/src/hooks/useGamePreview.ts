@@ -10,6 +10,7 @@ import {
   runPreviewRuntimeSession,
 } from '../runtime/runPreviewRuntimeSession';
 import type { PhaserRuntimeError } from '../../../../packages/phaser-runtime/src';
+import type { PhaserSessionHandle } from '../runtime/phaserPreviewSession';
 
 export type UIPanel = 'none' | 'inventory' | 'quests' | 'spellcraft' | 'saveload' | 'dialogue' | 'combat-log';
 
@@ -70,6 +71,7 @@ export function useGamePreview(
   const gameStatsRef = useRef({ fps: 60, entities: 0, memory: 'N/A' });
   const highScoreRef = useRef(0);
   const runtimeHostRef = useRef<any>(null);
+  const phaserSessionRef = useRef<PhaserSessionHandle | null>(null);
 
   // Game loop state
   const gameLoopState = useRef({ gameStarted: false, gamePaused: false, gameOver: false, victory: false });
@@ -175,12 +177,15 @@ export function useGamePreview(
     if (state.craftResult) setCraftResult(state.craftResult);
   }, []);
 
+  // RPG state sync: reads state from Phaser RPGScene when available
   const syncRPGState = useCallback(() => {
-    // Wrapper for compatibility with runtime expectations
+    // Reads from Phaser RPGScene instance via phaserSessionRef
+    // Scene already manages its own internal state; React state syncs via onTDStateChange pattern
   }, []);
 
   const handleSave = useCallback(() => {
-    // Wrapper for compatibility with runtime expectations
+    // TODO: wire to project file API for save-game persistence
+    console.log('[ClawGame] Save requested (not yet persisted)');
   }, []);
 
   const handleStartGame = useCallback(() => {
@@ -218,23 +223,23 @@ export function useGamePreview(
   }, []);
 
   const handleUseItem = useCallback((_itemId: string) => {
-    // Placeholder
+    // TODO: wire to RPGScene item usage
   }, []);
 
   const handleEquipItem = useCallback((_itemId: string) => {
-    // Placeholder
+    // TODO: wire to RPGScene equip logic
   }, []);
 
   const handleCraftingCell = useCallback((_row: number, _col: number) => {
-    // Placeholder
+    // TODO: wire to RPGScene crafting system
   }, []);
 
   const handleLearnSpell = useCallback(() => {
-    // Placeholder
+    // TODO: wire to RPGScene spell learning
   }, []);
 
   const handleAssignHotkey = useCallback((_spellId: string, _hotkey: number) => {
-    // Placeholder
+    // TODO: wire to RPGScene hotkey assignment
   }, []);
 
   const handlePauseResume = useCallback(() => {
@@ -242,11 +247,13 @@ export function useGamePreview(
   }, []);
 
   const handleDialogueChoice = useCallback((_index: number | undefined) => {
-    // Placeholder
+    // TODO: wire to RPGScene dialogue system
   }, []);
 
   const handleSelectTowerType = useCallback((towerType: string) => {
     setSelectedTowerType(towerType);
+    // Forward to Phaser scene
+    phaserSessionRef.current?.selectTowerType(towerType);
   }, []);
 
   const handleToggleRecording = useCallback(() => {
@@ -262,23 +269,23 @@ export function useGamePreview(
   }, []);
 
   const handleSeekReplay = useCallback((_progress: number) => {
-    // Placeholder
+    // TODO: wire to ReplayPlayer seek
   }, []);
 
   const handleStepBackReplay = useCallback(() => {
-    // Placeholder
+    // TODO: wire to ReplayPlayer step-back
   }, []);
 
   const handleStepReplay = useCallback(() => {
-    // Placeholder
+    // TODO: wire to ReplayPlayer step-forward
   }, []);
 
   const handleResetReplay = useCallback(() => {
-    // Placeholder
+    // TODO: wire to ReplayPlayer reset
   }, []);
 
   const handleDownloadReplay = useCallback(() => {
-    // Placeholder
+    // TODO: wire to ReplayPlayer download
   }, []);
 
   const handleClearCombatLog = useCallback(() => {
@@ -308,6 +315,14 @@ export function useGamePreview(
       inventoryRef, questMgrRef, dialogueMgrRef, spellMgrRef, combatLogRef: combatLogManagerRef,
       replayRecorderRef, replayPlayerRef, replayDataRef, pendingReplayStepMsRef,
       syncRPGState, handleSave, runtimeHostRef,
+      onPhaserSession: (handle: PhaserSessionHandle) => {
+        phaserSessionRef.current = handle;
+        // Wire TD state sync from Phaser → React
+        handle.onTDStateChange = (state) => {
+          setTowerDefenseOverlay(state);
+          if (state.selectedTowerType) setSelectedTowerType(state.selectedTowerType);
+        };
+      },
       onRuntimeError: (runtimeError: PhaserRuntimeError) => {
         if (!mounted) return;
         setRuntimeErrors((current) => [

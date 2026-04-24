@@ -119,7 +119,7 @@ export class ExportService {
     };
   }
 
-  compileSceneToPhaser(className: string, sceneName: string, entities: Record<string, any>, metadata?: any): string {
+  compileSceneToPhaser(className: string, sceneName: string, entities: Record<string, any>, assets?: any[], metadata?: any): string {
     const lines: string[] = [];
     const indent = '    ';
     const assetIds = new Set<string>();
@@ -129,7 +129,15 @@ export class ExportService {
       if (sprite?.assetId) assetIds.add(String(sprite.assetId));
     }
     lines.push(`${indent}preload() {`);
-    for (const id of assetIds) lines.push(`${indent}  this.load.image('${id}', 'assets/${id}.png');`);
+    // Use data URIs for assets if available, otherwise fall back to file paths
+    for (const id of assetIds) {
+      const embedded = assets?.find((a: any) => a.id === id);
+      if (embedded?.dataUri) {
+        lines.push(`${indent}  this.load.image('${id}', ${id.replace(/[^a-zA-Z0-9]/g, '_')});`);
+      } else {
+        lines.push(`${indent}  this.load.image('${id}', 'assets/${id}.png');`);
+      }
+    }
     lines.push(`${indent}}`);
     lines.push('');
     lines.push(`${indent}create() {`);
@@ -172,8 +180,8 @@ export class ExportService {
     const w = metadata?.width || 800;
     const h = metadata?.height || 600;
     const bg = metadata?.backgroundColor || '#1a1a2e';
-    const base64Assets = assets.filter((a: any) => a.base64)
-      .map((a: any) => `  const ${a.id.replace(/[^a-zA-Z0-9]/g, '_')} = 'data:${a.mimeType || 'image/png'};base64,${a.base64}';`).join('\n');
+    const dataUriAssets = assets.filter((a: any) => a.dataUri)
+      .map((a: any) => `  const ${a.id.replace(/[^a-zA-Z0-9]/g, '_')} = '${a.dataUri}';`).join('\n');
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -186,7 +194,7 @@ export class ExportService {
 <body>
   <div id="game-container"></div>
   <script>
-${base64Assets}
+${dataUriAssets}
 class ${className} extends Phaser.Scene {
   constructor() { super('${className}'); }
 ${sceneCode}

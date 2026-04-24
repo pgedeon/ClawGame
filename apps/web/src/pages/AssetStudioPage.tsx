@@ -19,6 +19,8 @@ import { AssetDetailPanel } from '../components/asset-studio/AssetDetailPanel';
 import { AssetSuggestions } from '../components/AssetSuggestions';
 import { AssetProcessingToolbar } from '../components/AssetProcessingToolbar';
 import { MediaForgeToolbar } from '../components/generative-media/MediaForgeToolbar';
+import { AssetPackEditor } from '../components/asset-studio/AssetPackEditor';
+import { createDefaultAssetPack, parseAssetPack, serializeAssetPack, type AssetPack } from '@clawgame/engine';
 import '../asset-processing.css';
 
 const ASSET_TYPES = ['sprite', 'tileset', 'texture', 'icon', 'audio', 'background', 'effect'] as AssetType[];
@@ -34,6 +36,7 @@ const TABS: Tab[] = [
   { id: 'generate', label: 'Generate AI', icon: '🎨' },
   { id: 'media-forge', label: 'Media Forge', icon: '🔮' },
   { id: 'processing', label: 'Processing', icon: '⚙️' },
+  { id: 'asset-pack', label: 'Asset Pack', icon: '📦' },
 ];
 
 export const AssetStudioPage = () => {
@@ -44,6 +47,7 @@ export const AssetStudioPage = () => {
 
   // Tab state
   const [activeTab, setActiveTab] = useState('library');
+  const [assetPack, setAssetPack] = useState<AssetPack | null>(null);
 
   // Asset state
   const [assets, setAssets] = useState<AssetMetadata[]>([]);
@@ -58,6 +62,31 @@ export const AssetStudioPage = () => {
 
   // Upload state
   const [showUploadModal, setShowUploadModal] = useState(false);
+
+  // Load asset pack from project storage
+  useEffect(() => {
+    if (!projectId) return;
+    (async () => {
+      try {
+        const content = await api.readFile(projectId, 'assets/asset-pack.json');
+        const parsed = parseAssetPack(typeof content === 'string' ? content : JSON.stringify(content));
+        setAssetPack(parsed);
+      } catch {
+        setAssetPack(createDefaultAssetPack(projectId));
+      }
+    })();
+  }, [projectId]);
+
+  const handlePackChange = useCallback(async (pack: AssetPack) => {
+    setAssetPack(pack);
+    if (!projectId) return;
+    try {
+      await api.createDirectory(projectId, 'assets');
+      await api.writeFile(projectId, 'assets/asset-pack.json', serializeAssetPack(pack));
+    } catch (err) {
+      showToast({ type: 'error', message: 'Failed to save asset pack' });
+    }
+  }, [projectId, showToast]);
 
   // Stable callbacks to avoid stale closures
   const loadAssets = useCallback(async () => {
@@ -306,6 +335,16 @@ export const AssetStudioPage = () => {
               projectId={projectId || ''}
               selectedAssetPath={selectedAsset?.url || null}
               onProcessed={refreshAssets}
+            />
+          </div>
+        )}
+
+        {activeTab === 'asset-pack' && (
+          <div className="space-y-4">
+            <AssetPackEditor
+              projectId={projectId || ''}
+              pack={assetPack}
+              onPackChange={handlePackChange}
             />
           </div>
         )}

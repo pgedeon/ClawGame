@@ -8,11 +8,21 @@ import {
 } from '../../../../packages/phaser-runtime/src';
 import { TowerDefenseScene } from './TowerDefenseScene';
 import { RPGScene } from './RPGScene';
+import type { ClawgamePhaserScene } from '../../../../packages/phaser-runtime/src';
 
 export interface PhaserPreviewPreparation {
   bootstrap: PhaserPreviewBootstrap;
   genre: string;
   cleanup: () => void;
+}
+
+export interface TDOverlayState {
+  enabled: boolean;
+  selectedTowerType?: string;
+  feedback?: { kind: string; message: string };
+  wave?: number;
+  core?: number;
+  mana?: number;
 }
 
 export function preparePhaserPreviewSession(
@@ -21,7 +31,6 @@ export function preparePhaserPreviewSession(
 ): PhaserPreviewPreparation {
   const sceneData = options.activeScene?.current ?? options.activeScene;
   const bootstrap = buildPhaserPreviewBootstrap(sceneData || { entities: [], name: 'empty' });
-  // Attach raw scene data so genre-specific scenes can read waves/quests/dialogue
   (bootstrap as any)._rawSceneData = sceneData;
 
   return {
@@ -31,12 +40,22 @@ export function preparePhaserPreviewSession(
   };
 }
 
+export interface PhaserSessionHandle {
+  destroy: () => void;
+  getScene: () => ClawgamePhaserScene | null;
+  selectTowerType: (type: string) => void;
+  startNextWave: () => void;
+  upgradeSelectedTower: () => void;
+  sellSelectedTower: () => void;
+  onTDStateChange?: (state: TDOverlayState) => void;
+}
+
 export function runPhaserPreviewSession(
   hostElement: HTMLDivElement,
   bootstrap: PhaserPreviewBootstrap,
   genre?: string,
   onRuntimeError?: (error: PhaserRuntimeError) => void,
-): { destroy: () => void } {
+): PhaserSessionHandle {
   const runtime = new ClawgamePhaserRuntime();
   const errorReporter = {
     reportError(phase: string, error: unknown, context?: Record<string, unknown>) {
@@ -45,14 +64,46 @@ export function runPhaserPreviewSession(
     },
   };
 
-  // Pick the right scene class based on genre
-  // Note: genre values are 'platformer', 'rpg', 'puzzle', 'tower-defense'
+  let sceneInstance: ClawgamePhaserScene | null = null;
+  let tdStateCallback: ((state: TDOverlayState) => void) | undefined;
+
+  const handle: PhaserSessionHandle = {
+    destroy: () => runtime.destroy(),
+    getScene: () => sceneInstance,
+    selectTowerType: (type: string) => {
+      const scene = sceneInstance as TowerDefenseScene | null;
+      if (scene) scene.setSelectedTowerType(type);
+    },
+    startNextWave: () => {
+      const scene = sceneInstance as TowerDefenseScene | null;
+      if (scene) scene.startNextWave();
+    },
+    upgradeSelectedTower: () => {
+      const scene = sceneInstance as TowerDefenseScene | null;
+      if (scene) scene.upgradeSelectedTower();
+    },
+    sellSelectedTower: () => {
+      const scene = sceneInstance as TowerDefenseScene | null;
+      if (scene) scene.sellSelectedTower();
+    },
+    get onTDStateChange() { return tdStateCallback; },
+    set onTDStateChange(cb) { tdStateCallback = cb; },
+  };
+
   if (genre === 'tower-defense') {
-    runtime.setSceneFactory(() => new TowerDefenseScene());
+    const tdScene = new TowerDefenseScene();
+    sceneInstance = tdScene;
+    // Wire up periodic state sync
+    tdScene.setStateSyncCallback((state) => {
+      tdStateCallback?.(state);
+    });
+    runtime.setSceneFactory(() => tdScene);
   } else if (genre === 'rpg') {
-    runtime.setSceneFactory(() => new RPGScene());
+    const rpgScene = new RPGScene();
+    sceneInstance = rpgScene;
+    runtime.setSceneFactory(() => rpgScene);
   }
 
   runtime.mount(hostElement, bootstrap, { errorReporter });
-  return { destroy: () => runtime.destroy() };
+  return handle;
 }

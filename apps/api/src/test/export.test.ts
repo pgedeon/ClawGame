@@ -35,7 +35,7 @@ describe('export service - Phaser export', () => {
         },
       };
 
-      const code = service.compileSceneToPhaser('TestScene', 'Test', entities, { width: 800, height: 600 });
+      const code = service.compileSceneToPhaser('TestScene', 'Test', entities, [], { width: 800, height: 600 });
       expect(code).toContain('preload()');
       expect(code).toContain('create()');
       expect(code).toContain("this.load.image('hero'");

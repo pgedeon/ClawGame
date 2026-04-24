@@ -22,6 +22,7 @@ import { AnimationsPanel } from '../components/scene-editor/AnimationsPanel';
 import { PrefabPanel } from '../components/scene-editor/PrefabPanel';
 import { createDefaultAnimationsConfig, createDefaultPrefabLibrary, instantiatePrefab, compileScene } from '@clawgame/engine';
 import { ToolMode, ENTITY_TEMPLATES, type EntityTemplate } from '../components/scene-editor/types';
+import { useAutosave } from '../components/scene-editor/useAutosave';
 import { useToast } from '../components/Toast';
 import { logger } from '../utils/logger';
 import { createDefaultEditorScene, deserializeEditorScene, getSceneInitialViewport, serializeEditorScene, type EditorScene, type EditorSceneMetadata } from '../utils/sceneEditorScene';
@@ -64,9 +65,21 @@ function SceneEditorContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  // Autosave handled by useAutosave hook (wired below)
   const [showCompiledCode, setShowCompiledCode] = useState(false);
   const [compiledCode, setCompiledCode] = useState<string>('');
+
+  // Autosave: every 30s with 2s debounce after changes
+  const autosave = useAutosave(
+    scene,
+    async (data: unknown) => {
+      if (!projectId || !data) return;
+      await api.createDirectory(projectId as string, 'scenes');
+      await api.writeFile(projectId as string, 'scenes/main-scene.json', JSON.stringify(data, null, 2));
+    },
+    30000,
+    2000,
+  );
 
   // Editor state
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
@@ -199,7 +212,6 @@ function SceneEditorContent() {
       const sceneContent = serializeEditorScene(scene);
       await api.writeFile(projectId, 'scenes/main-scene.json', sceneContent);
       
-      setLastSaved(new Date());
       logger.info('Scene saved successfully');
       showToast({ type: 'success', message: `Scene saved — ${scene.entities.size} entities persisted` });
     } catch (err) {
@@ -685,10 +697,16 @@ function SceneEditorContent() {
             <SaveIcon size={18} />
             <span>{saving ? 'Saving...' : 'Save'}</span>
           </button>
-          {lastSaved && (
+          {autosave.status === 'saving' && (
+            <span className="autosave-indicator" style={{ fontSize: '0.75rem', color: '#fbbf24', whiteSpace: 'nowrap' }}>Saving...</span>
+          )}
+          {autosave.status === 'saved' && autosave.lastSaved && (
             <span className="autosave-indicator" style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>
-              Saved {lastSaved.toLocaleTimeString()}
+              Autosaved {autosave.lastSaved.toLocaleTimeString()}
             </span>
+          )}
+          {autosave.status === 'error' && (
+            <span className="autosave-indicator" style={{ fontSize: '0.75rem', color: '#ef4444', whiteSpace: 'nowrap' }}>Save failed</span>
           )}
           <button
             className="tool-button"
@@ -897,6 +915,48 @@ function SceneEditorContent() {
           onDeleteEntity={handleDeleteEntity}
           onDuplicateEntity={handleDuplicateEntity}
         />
+
+        {/* Compiled Code Modal */}
+        {showCompiledCode && compiledCode && (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', zIndex: 1000,
+          }} onClick={() => setShowCompiledCode(false)}>
+            <div style={{
+              background: '#0f172a', border: '1px solid #334155', borderRadius: 8,
+              width: '80vw', maxHeight: '80vh', display: 'flex', flexDirection: 'column',
+            }} onClick={e => e.stopPropagation()}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #1e293b' }}>
+                <span style={{ color: '#e2e8f0', fontWeight: 600 }}>Compiled Phaser Scene</span>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button style={{ background: '#1e293b', border: '1px solid #334155', color: '#94a3b8', padding: '4px 12px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
+                    onClick={() => { navigator.clipboard.writeText(compiledCode); }}>
+                    Copy
+                  </button>
+                  <button style={{ background: '#1e293b', border: '1px solid #334155', color: '#94a3b8', padding: '4px 12px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
+                    onClick={() => {
+                      const blob = new Blob([compiledCode], { type: 'text/typescript' });
+                      const a = document.createElement('a');
+                      a.href = URL.createObjectURL(blob);
+                      a.download = 'scene.ts';
+                      a.click();
+                      URL.revokeObjectURL(a.href);
+                    }}>
+                    Download
+                  </button>
+                  <button style={{ background: '#1e293b', border: '1px solid #334155', color: '#94a3b8', padding: '4px 12px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
+                    onClick={() => setShowCompiledCode(false)}>
+                    Close
+                  </button>
+                </div>
+              </div>
+              <pre style={{ margin: 0, padding: 16, overflow: 'auto', color: '#e2e8f0', fontSize: 12, fontFamily: 'monospace', flex: 1 }}>
+                {compiledCode}
+              </pre>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
