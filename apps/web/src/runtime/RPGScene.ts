@@ -3,7 +3,7 @@
  * Phaser 4 scene with WASD movement, enemy AI, combat, NPC dialogue,
  * rune collection, items, health/mana, and quest tracking.
  */
-import { Scene, GameObjects, Physics, Input } from 'phaser';
+import { Scene, GameObjects, Physics, Input, Math as PhaserMath, Input as PhaserInput, Tweens } from 'phaser';
 import { ClawgamePhaserScene } from '../../../../packages/phaser-runtime/src';
 import type { PhaserPreviewBootstrap } from '../../../../packages/phaser-runtime/src/types';
 
@@ -73,9 +73,9 @@ export class RPGScene extends ClawgamePhaserScene {
 
   // Entities
   private entities: Map<string, RPGEntity> = new Map();
-  private enemyGroup!: Physics.Arcade.StaticGroup;
+  private enemyGroup!: GameObjects.Group;
   private collectibleGroup!: Phaser.GameObjects.Group;
-  private wallGroup!: Physics.Arcade.StaticGroup;
+  private wallGroup!: GameObjects.Group;
   private npcSprites: Map<string, GameObjects.Rectangle> = new Map();
 
   // Dialogue
@@ -149,7 +149,7 @@ export class RPGScene extends ClawgamePhaserScene {
     }
 
     // Set world bounds
-    this.physics.world.setBounds(0, 0, width, height);
+    this.physics?.world?.setBounds(0, 0, width, height);
 
     // Create groups
     this.enemyGroup = this.physics.add.staticGroup();
@@ -179,12 +179,12 @@ export class RPGScene extends ClawgamePhaserScene {
     }
 
     // Collisions: player vs enemies
-    this.physics.add.overlap(this.playerSprite, this.enemyGroup, (_obj1, _obj2) => {
+    if (this.physics) this.physics.add.overlap(this.playerSprite, this.enemyGroup, (_obj1, _obj2) => {
       this.onPlayerHitEnemy(_obj2 as GameObjects.Rectangle);
     });
 
     // Collisions: player vs walls
-    this.physics.add.collider(this.playerSprite, this.wallGroup);
+    if (this.physics) this.physics.add.collider(this.playerSprite, this.wallGroup);
 
     // Create UI
     this.createUI(width, height);
@@ -225,17 +225,17 @@ export class RPGScene extends ClawgamePhaserScene {
     this.playerBody.setVelocity(vx * this.playerState.speed, vy * this.playerState.speed);
 
     // Attack
-    if (Phaser.Input.Keyboard.JustDown(this.cursors.J)) {
+    if (PhaserInput.Keyboard.JustDown(this.cursors.J)) {
       this.performAttack(time);
     }
 
     // Interact (E key)
-    if (Phaser.Input.Keyboard.JustDown(this.cursors.E)) {
+    if (PhaserInput.Keyboard.JustDown(this.cursors.E)) {
       this.tryInteract();
     }
 
     // Use potion (K key)
-    if (Phaser.Input.Keyboard.JustDown(this.cursors.K)) {
+    if (PhaserInput.Keyboard.JustDown(this.cursors.K)) {
       this.usePotion();
     }
 
@@ -286,7 +286,7 @@ export class RPGScene extends ClawgamePhaserScene {
     if (type === 'player') {
       this.playerSprite = this.add.rectangle(x, y, w, h, color);
       this.playerSprite.setDepth(10);
-      this.physics.add.existing(this.playerSprite);
+      if (this.physics) this.physics.add.existing(this.playerSprite);
       this.playerBody = this.playerSprite.body as Physics.Arcade.Body;
       this.playerBody.setCollideWorldBounds(true);
       this.playerBody.setSize(w, h);
@@ -306,10 +306,10 @@ export class RPGScene extends ClawgamePhaserScene {
     if (type === 'enemy') {
       const sprite = this.add.rectangle(x, y, w, h, color);
       sprite.setDepth(8);
-      this.physics.add.existing(sprite);
-      const body = sprite.body as Physics.Arcade.Body;
-      body.setCollideWorldBounds(true);
-      body.setSize(w, h);
+      if (this.physics) this.physics.add.existing(sprite);
+      const body = sprite.body as Physics.Arcade.Body | undefined;
+      body?.setCollideWorldBounds(true);
+      body?.setSize(w, h);
 
       const aiData = data.components?.ai || {};
       const entity: RPGEntity = {
@@ -383,13 +383,15 @@ export class RPGScene extends ClawgamePhaserScene {
       this.entities.set(data.id, entity);
 
       // Overlap detection with player
-      this.physics.add.existing(sprite);
-      const body = sprite.body as Physics.Arcade.Body;
-      body.setAllowGravity(false);
-      body.setSize(w, h);
-      this.physics.add.overlap(this.playerSprite, sprite, () => {
-        this.onCollectItem(entity, glow);
-      });
+      if (this.physics) {
+        this.physics.add.existing(sprite);
+        const body = sprite.body as Physics.Arcade.Body | undefined;
+        body?.setAllowGravity(false);
+        body?.setSize(w, h);
+        this.physics.add.overlap(this.playerSprite, sprite, () => {
+          this.onCollectItem(entity, glow);
+        });
+      }
       return;
     }
 
@@ -411,19 +413,21 @@ export class RPGScene extends ClawgamePhaserScene {
       };
       this.entities.set(data.id, entity);
 
-      this.physics.add.existing(sprite);
-      const body = sprite.body as Physics.Arcade.Body;
-      body.setAllowGravity(false);
-      this.physics.add.overlap(this.playerSprite, sprite, () => {
-        this.onPickupItem(entity);
-      });
+      if (this.physics) {
+        this.physics.add.existing(sprite);
+        const body = sprite.body as Physics.Arcade.Body | undefined;
+        body?.setAllowGravity(false);
+        this.physics.add.overlap(this.playerSprite, sprite, () => {
+          this.onPickupItem(entity);
+        });
+      }
       return;
     }
 
     if (type === 'obstacle') {
       const sprite = this.add.rectangle(x, y, w, h, color);
       sprite.setDepth(3);
-      this.physics.add.existing(sprite, true); // static
+      if (this.physics) this.physics.add.existing(sprite, true);
       this.wallGroup.add(sprite);
       return;
     }
@@ -446,7 +450,7 @@ export class RPGScene extends ClawgamePhaserScene {
     const attackRange = 48;
     for (const [id, entity] of this.entities) {
       if (entity.type !== 'enemy' || !entity.alive || !entity.sprite) continue;
-      const dist = Phaser.Math.Distance.Between(px, py, entity.sprite.x, entity.sprite.y);
+      const dist = PhaserMath.Distance.Between(px, py, entity.sprite.x, entity.sprite.y);
       if (dist < attackRange) {
         const stats = entity.components.stats || {};
         const enemyHp = stats.hp ?? 30;
@@ -458,7 +462,7 @@ export class RPGScene extends ClawgamePhaserScene {
           stats.hp = newHp;
           this.spawnDamageNumber(entity.sprite.x, entity.sprite.y - 20, this.playerState.damage, '#fbbf24');
           // Knockback
-          const angle = Phaser.Math.Angle.Between(px, py, entity.sprite.x, entity.sprite.y);
+          const angle = PhaserMath.Angle.Between(px, py, entity.sprite.x, entity.sprite.y);
           if (entity.body) {
             entity.body.setVelocity(Math.cos(angle) * 200, Math.sin(angle) * 200);
           }
@@ -529,7 +533,7 @@ export class RPGScene extends ClawgamePhaserScene {
 
     for (const [id, entity] of this.entities) {
       if (entity.type !== 'npc' || !entity.alive) continue;
-      const dist = Phaser.Math.Distance.Between(px, py, entity.x, entity.y);
+      const dist = PhaserMath.Distance.Between(px, py, entity.x, entity.y);
       if (dist < 60) {
         this.openDialogue(entity);
         return;
@@ -559,7 +563,7 @@ export class RPGScene extends ClawgamePhaserScene {
       const ey = entity.sprite.y;
       const px = this.playerSprite.x;
       const py = this.playerSprite.y;
-      const distToPlayer = Phaser.Math.Distance.Between(ex, ey, px, py);
+      const distToPlayer = PhaserMath.Distance.Between(ex, ey, px, py);
 
       const aiType = entity.components.ai?.type || 'patrol';
       const aiSpeed = entity.components.ai?.speed || entity.components.movement?.speed || 80;
@@ -577,11 +581,11 @@ export class RPGScene extends ClawgamePhaserScene {
       switch (entity.aiState) {
         case 'patrol': {
           const target = entity.patrolTarget!;
-          const distToTarget = Phaser.Math.Distance.Between(ex, ey, target.x, target.y);
+          const distToTarget = PhaserMath.Distance.Between(ex, ey, target.x, target.y);
           if (distToTarget < 10) {
             entity.patrolTarget = this.randomPatrolTarget(entity.patrolOrigin!.x, entity.patrolOrigin!.y, 120);
           } else {
-            const angle = Phaser.Math.Angle.Between(ex, ey, target.x, target.y);
+            const angle = PhaserMath.Angle.Between(ex, ey, target.x, target.y);
             entity.body!.setVelocity(Math.cos(angle) * aiSpeed * 0.5, Math.sin(angle) * aiSpeed * 0.5);
           }
           break;
@@ -591,7 +595,7 @@ export class RPGScene extends ClawgamePhaserScene {
           if (distToPlayer < attackRange) {
             entity.aiState = 'attack';
           } else {
-            const angle = Phaser.Math.Angle.Between(ex, ey, px, py);
+            const angle = PhaserMath.Angle.Between(ex, ey, px, py);
             entity.body!.setVelocity(Math.cos(angle) * aiSpeed, Math.sin(angle) * aiSpeed);
           }
           break;
@@ -617,8 +621,8 @@ export class RPGScene extends ClawgamePhaserScene {
       }
 
       // Keep enemies in bounds
-      entity.sprite.x = Phaser.Math.Clamp(entity.sprite.x, 16, (this.bootstrap?.bounds?.width ?? 800) - 16);
-      entity.sprite.y = Phaser.Math.Clamp(entity.sprite.y, 16, (this.bootstrap?.bounds?.height ?? 600) - 16);
+      entity.sprite.x = PhaserMath.Clamp(entity.sprite.x, 16, (this.bootstrap?.bounds?.width ?? 800) - 16);
+      entity.sprite.y = PhaserMath.Clamp(entity.sprite.y, 16, (this.bootstrap?.bounds?.height ?? 600) - 16);
     }
   }
 
@@ -790,14 +794,14 @@ export class RPGScene extends ClawgamePhaserScene {
   private handleDialogueInput(): void {
     for (let i = 0; i < this.dialogue.choices.length; i++) {
       const key = String(i + 1);
-      if (this.input.keyboard && Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(key))) {
+      if (this.input.keyboard && PhaserInput.Keyboard.JustDown(this.input.keyboard.addKey(key))) {
         this.selectDialogueChoice(i);
         return;
       }
     }
     // Space/Enter advances to choice 1 if only one option
     if (this.dialogue.choices.length === 1) {
-      if (Phaser.Input.Keyboard.JustDown(this.cursors.SPACE) || Phaser.Input.Keyboard.JustDown(this.input.keyboard!.addKey('ENTER'))) {
+      if (PhaserInput.Keyboard.JustDown(this.cursors.SPACE) || PhaserInput.Keyboard.JustDown(this.input.keyboard!.addKey('ENTER'))) {
         this.selectDialogueChoice(0);
       }
     }
@@ -973,8 +977,8 @@ export class RPGScene extends ClawgamePhaserScene {
     const w = this.bootstrap?.bounds?.width ?? 800;
     const h = this.bootstrap?.bounds?.height ?? 600;
     return {
-      x: Phaser.Math.Clamp(ox + (Math.random() - 0.5) * range * 2, 20, w - 20),
-      y: Phaser.Math.Clamp(oy + (Math.random() - 0.5) * range * 2, 20, h - 20),
+      x: PhaserMath.Clamp(ox + (Math.random() - 0.5) * range * 2, 20, w - 20),
+      y: PhaserMath.Clamp(oy + (Math.random() - 0.5) * range * 2, 20, h - 20),
     };
   }
 
