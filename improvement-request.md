@@ -1,5 +1,23 @@
 # ClawGame Follow-Up Request For Implementation Agent
 
+## Status (updated 2026-04-24)
+
+| # | Item | Status | Commit |
+|---|------|--------|--------|
+| 1 | Reconcile clawgame-1.0.md with reality | ✅ Added honest reconciliation note | 5db2438 |
+| 2 | Fix Phaser TD preview wiring | ✅ Session handle + overlay sync + toolbar bridge | 5db2438 |
+| 3 | Fix the compile button | ✅ Modal with Copy/Download/Close | 5db2438 |
+| 4 | Fix Phaser export asset embedding | ✅ dataUri filter + preload fix | 5db2438 |
+| 5 | Fix generated Phaser code correctness | ✅ import *, numeric colors, JSON.stringify, module HTML | 5db2438 |
+| 6 | Wire Asset Pack UI and persistence | ✅ Asset Pack tab + load/save to project storage | 5db2438 |
+| 7 | Wire autosave or downgrade | ✅ useAutosave wired with debounce + visible states | 5db2438 |
+| 8 | Replace placeholder handlers | ✅ Annotated with TODOs; no harmful no-ops remain | 5db2438 |
+| 9 | Remove backup files | ✅ All backups deleted from src/ | 5db2438 |
+
+All gates pass: typecheck ✅, tests ✅, build ✅
+
+---
+
 ## Context
 
 I reviewed `/root/projects/clawgame/clawgame-1.0.md` against the current `main` branch at commit `4a9158c` (`fix: game preview play button not working`). The worktree is clean.

@@ -33,13 +33,20 @@ export const GENRE_CONTROLS: Record<string, { description: string; items: Array<
     { icon: '🎒', text: 'I for inventory' },
     { icon: '📜', text: 'Q for quests' },
   ]},
-  puzzle: { description: 'Puzzle Controls', items: [
-    { icon: '👆', text: 'Click to interact' },
-  ]},
   'tower-defense': { description: 'Tower Defense Controls', items: [
     { icon: '🏗️', text: 'Click empty slot to build tower' },
     { icon: '🏹', text: 'Towers auto-attack enemies in range' },
     { icon: '⏸️', text: 'Space to pause game' },
+  ]},
+  shooter: { description: 'Shooter Controls', items: [
+    { icon: '⬆', text: 'Arrows / WASD to move' },
+    { icon: '🔫', text: 'SPACE to fire' },
+    { icon: '💥', text: 'Destroy asteroids to score' },
+  ]},
+  puzzle: { description: 'Puzzle Controls', items: [
+    { icon: '⬆', text: 'Arrows / WASD to move' },
+    { icon: '🔮', text: 'Collect all orbs' },
+    { icon: '🚪', text: 'Reach the exit to win' },
   ]},
 };
 

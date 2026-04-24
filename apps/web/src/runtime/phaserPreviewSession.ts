@@ -8,6 +8,8 @@ import {
 } from '../../../../packages/phaser-runtime/src';
 import { TowerDefenseScene } from './TowerDefenseScene';
 import { RPGScene } from './RPGScene';
+import { CosmicDriftScene } from './CosmicDriftScene';
+import { NeonLabyrinthScene } from './NeonLabyrinthScene';
 import type { ClawgamePhaserScene } from '../../../../packages/phaser-runtime/src';
 
 export interface PhaserPreviewPreparation {
@@ -102,6 +104,14 @@ export function runPhaserPreviewSession(
     const rpgScene = new RPGScene();
     sceneInstance = rpgScene;
     runtime.setSceneFactory(() => rpgScene);
+  } else if (genre === 'shooter') {
+    const driftScene = new CosmicDriftScene();
+    sceneInstance = driftScene;
+    runtime.setSceneFactory(() => driftScene);
+  } else if (genre === 'puzzle') {
+    const mazeScene = new NeonLabyrinthScene();
+    sceneInstance = mazeScene;
+    runtime.setSceneFactory(() => mazeScene);
   }
 
   runtime.mount(hostElement, bootstrap, { errorReporter });
