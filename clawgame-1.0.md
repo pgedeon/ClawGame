@@ -385,12 +385,12 @@ Goal: provide robust Arcade Physics editing.
 - [ ] Edit gravity, velocity, acceleration, drag, damping, bounce, mass-like custom fields where applicable.
 - [ ] Edit collision categories/layers if retained by engine schema.
 - [x] Add physics preview mode.
-- [ ] Compile physics settings to Phaser 4 code.
+- [x] Compile physics settings to Phaser 4 code.
 
 Acceptance:
 
-- [ ] Arcade Physics bodies are visually inspectable and editable.
-- [ ] Generated scene code recreates body settings.
+- [x] Arcade Physics bodies are visually inspectable and editable.
+- [x] Generated scene code recreates body settings.
 
 ## Milestone 7: Animations Editor
 
@@ -400,11 +400,11 @@ Goal: support sprite animation creation and preview.
 - [x] Add animation list.
 - [x] Add create animation from selected frames.
 - [x] Add automatic frame sequence creation.
-- [ ] Add frame rate, delay, repeat, yoyo, time scale fields.
+- [x] Add frame rate, delay, repeat, yoyo, time scale fields.
 - [x] Add live animation preview.
 - [x] Save animations JSON.
 - [ ] Load animations in preview.
-- [ ] Compile animations to Phaser code or asset JSON loading.
+- [x] Compile animations to Phaser code or asset JSON loading.
 
 Acceptance:
 
@@ -440,7 +440,7 @@ Goal: enable reusable objects and behaviors like Phaser Editor.
 - [x] Apply/revert prefab changes.
 - [x] Define user component schema.
 - [x] Attach user components through inspector.
-- [ ] Compile prefabs/components to readable Phaser code.
+- [x] Compile prefabs/components to readable Phaser code.
 
 Acceptance:
 
@@ -455,7 +455,7 @@ Goal: make AI useful without hiding or corrupting project state.
 - [ ] AI-generated assets must persist in asset pack and project storage.
 - [x] AI-generated code must compile.
 - [x] Add rollback for AI-applied changes.
-- [ ] Add tests for representative AI commands using mock providers.
+- [x] Add tests for representative AI commands using mock providers.
 
 Acceptance:
 
@@ -468,10 +468,10 @@ Goal: make the application coherent and reliable for real use.
 - [x] Replace emoji command buttons with icons where appropriate.
 - [x] Remove misleading read-only controls.
 - [x] Add empty states for new projects.
-- [ ] Add loading/error states for all project operations.
+- [x] Add loading/error states for all project operations.
 - [x] Add keyboard shortcut reference.
 - [x] Add undo/redo across scene edits.
-- [ ] Add autosave indicator.
+- [x] Add autosave indicator.
 - [ ] Add project thumbnail generation from preview.
 - [ ] Add responsive minimum layout behavior for tablets.
 
@@ -483,7 +483,7 @@ Acceptance:
 
 Goal: prepare 1.0 for repeatable release.
 
-- [ ] Add CI workflow for install, typecheck, test, build.
+- [x] Add CI workflow for install, typecheck, test, build.
 - [x] Add e2e smoke coverage:
   - [x] Create project
   - [x] Add asset
@@ -493,19 +493,19 @@ Goal: prepare 1.0 for repeatable release.
   - [ ] Export
 - [x] Add migration tests for old scene files.
 - [x] Add changelog for breaking schema changes.
-- [ ] Update README with accurate project structure.
+- [x] Update README with accurate project structure.
 - [x] Update `docs/qa/known_issues.md` to reflect current state.
 - [x] Add 1.0 release checklist.
 
 Acceptance:
 
 - [x] All quality gates pass.
-- [ ] README and docs match actual repo state.
+- [x] README and docs match actual repo state.
 - [ ] No known high-priority bugs remain.
 
 ## Phaser 4 Compatibility Checklist
 
-- [ ] Use standard Phaser 4 APIs for sprites, images, text, tilemaps, graphics, and Arcade Physics.
+- [x] Use standard Phaser 4 APIs for sprites, images, text, tilemaps, graphics, and Arcade Physics.
 - [ ] Do not use removed Phaser 3 APIs:
   - [ ] `setTintFill`
   - [ ] `BitmapMask`
@@ -523,10 +523,10 @@ Acceptance:
 
 ## Known Current Bugs To Track
 
-- [ ] Web typecheck fails due API client/type export drift.
-- [ ] API typecheck fails due backup files, missing routes, service drift, and logger typing.
-- [ ] API tests fail due missing setup file and included backup tests.
-- [ ] `AssetStudioPage` export mismatch breaks route compilation.
+- [x] Web typecheck fails due API client/type export drift.
+- [x] API typecheck fails due backup files, missing routes, service drift, and logger typing.
+- [x] API tests fail due missing setup file and included backup tests.
+- [x] `AssetStudioPage` export mismatch breaks route compilation.
 - [x] Scene editor drag/drop logs only and creates no entity.
 - [x] Phaser scene editor lacks hit testing, drag movement, panning, and zooming.
 - [x] Inspector sprite/collision fields are read-only.
