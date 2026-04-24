@@ -408,7 +408,7 @@ Goal: support sprite animation creation and preview.
 
 Acceptance:
 
-- [ ] User can create and preview sprite animations without writing code.
+- [x] User can create and preview sprite animations without writing code.
 
 ## Milestone 8: Tilemap Editor
 
@@ -444,7 +444,7 @@ Goal: enable reusable objects and behaviors like Phaser Editor.
 
 Acceptance:
 
-- [ ] User can reuse configured objects across scenes.
+- [x] User can reuse configured objects across scenes.
 
 ## Milestone 10: AI-Assisted Editor Workflows
 

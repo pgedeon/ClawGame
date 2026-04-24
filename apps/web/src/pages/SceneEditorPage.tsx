@@ -18,6 +18,9 @@ import { SceneCanvas } from '../components/scene-editor/SceneCanvas';
 import { PropertyInspector } from '../components/scene-editor/PropertyInspector';
 import { SceneHierarchyTree } from '../components/scene-editor/SceneHierarchyTree';
 import { SceneEditorAIBar } from '../components/scene-editor/SceneEditorAIBar';
+import { AnimationsPanel } from '../components/scene-editor/AnimationsPanel';
+import { PrefabPanel } from '../components/scene-editor/PrefabPanel';
+import { createDefaultAnimationsConfig, createDefaultPrefabLibrary, instantiatePrefab } from '@clawgame/engine';
 import { ToolMode, ENTITY_TEMPLATES, type EntityTemplate } from '../components/scene-editor/types';
 import { useToast } from '../components/Toast';
 import { logger } from '../utils/logger';
@@ -66,6 +69,10 @@ function SceneEditorContent() {
   const [showGrid, setShowGrid] = useState(true);
   const [snapping, setSnapping] = useState(true);
   const [showPhysicsDebug, setShowPhysicsDebug] = useState(false);
+  const [showAnimations, setShowAnimations] = useState(false);
+  const [animationsConfig, setAnimationsConfig] = useState(() => createDefaultAnimationsConfig());
+  const [showPrefabs, setShowPrefabs] = useState(false);
+  const [prefabLibrary, setPrefabLibrary] = useState(() => createDefaultPrefabLibrary());
   const [gridSize] = useState(32);
 
   // Tool mode and template
@@ -323,6 +330,17 @@ function SceneEditorContent() {
       setSelectedEntityId(null);
     }
   }, [scene, selectedEntityId]);
+
+  const handleInstantiatePrefab = useCallback((prefabKey: string, x: number, y: number) => {
+    if (!scene) return;
+    const prefab = prefabLibrary.prefabs.find((p) => p.key === prefabKey);
+    if (!prefab) return;
+    const newEntities = instantiatePrefab(prefab, `inst-${Date.now()}`, x, y);
+    const nextEntities = new Map(scene.entities);
+    for (const e of newEntities) nextEntities.set(e.id, e);
+    const updatedScene: Scene = { ...scene, entities: nextEntities };
+    setScene(updatedScene);
+  }, [scene, prefabLibrary]);
 
   const handleDuplicateEntity = useCallback((entityId: string) => {
     if (!scene) return;
@@ -699,6 +717,22 @@ function SceneEditorContent() {
             />
             <span>Physics Debug</span>
           </label>
+          <label className="option-toggle">
+            <input
+              type="checkbox"
+              checked={showAnimations}
+              onChange={(e) => setShowAnimations(e.target.checked)}
+            />
+            <span>Animations</span>
+          </label>
+          <label className="option-toggle">
+            <input
+              type="checkbox"
+              checked={showPrefabs}
+              onChange={(e) => setShowPrefabs(e.target.checked)}
+            />
+            <span>Prefabs</span>
+          </label>
         </div>
         <div className="entity-actions" ref={templatePickerRef} style={{ position: 'relative' }}>
           <button
@@ -792,6 +826,20 @@ function SceneEditorContent() {
           onPanViewport={handlePanViewport}
         />
 
+        {showPrefabs && (
+          <PrefabPanel
+            library={prefabLibrary}
+            onLibraryChange={setPrefabLibrary}
+            sceneEntities={Array.from(scene?.entities.values() || [])}
+            onInstantiatePrefab={handleInstantiatePrefab}
+          />
+        )}
+        {showAnimations && (
+          <AnimationsPanel
+            config={animationsConfig}
+            onConfigChange={setAnimationsConfig}
+          />
+        )}
         <PropertyInspector
           scene={scene}
           selectedEntityId={selectedEntityId}
