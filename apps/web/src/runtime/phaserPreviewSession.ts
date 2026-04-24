@@ -7,6 +7,7 @@ import {
   type PhaserRuntimeError,
 } from '../../../../packages/phaser-runtime/src';
 import { TowerDefenseScene } from './TowerDefenseScene';
+import { RPGScene } from './RPGScene';
 
 export interface PhaserPreviewPreparation {
   bootstrap: PhaserPreviewBootstrap;
@@ -48,6 +49,8 @@ export function runPhaserPreviewSession(
   // Note: genre values are 'platformer', 'rpg', 'puzzle', 'tower-defense'
   if (genre === 'tower-defense') {
     runtime.setSceneFactory(() => new TowerDefenseScene());
+  } else if (genre === 'rpg') {
+    runtime.setSceneFactory(() => new RPGScene());
   }
 
   runtime.mount(hostElement, bootstrap, { errorReporter });

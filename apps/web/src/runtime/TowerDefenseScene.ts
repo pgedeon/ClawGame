@@ -37,6 +37,18 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
   private _gameOver = false;
   private _victory = false;
   private _selectedTowerId: string | null = null;
+  private cursor!: GameObjects.Arc;
+  private cursorLabel!: GameObjects.Text;
+  private cursorSpeed: number = 300;
+  private selectedTowerType: TowerType = 'basic';
+  private wasd!: { W: Input.Keyboard.Key; A: Input.Keyboard.Key; S: Input.Keyboard.Key; D: Input.Keyboard.Key; };
+  private tKey!: Input.Keyboard.Key;
+  private uKey!: Input.Keyboard.Key;
+  private nKey!: Input.Keyboard.Key;
+  private oneKey!: Input.Keyboard.Key;
+  private twoKey!: Input.Keyboard.Key;
+  private threeKey!: Input.Keyboard.Key;
+  private fourKey!: Input.Keyboard.Key;
 
   public onGameOver?: () => void;
   public onVictory?: () => void;
@@ -93,8 +105,39 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
       });
     }
 
+    // ─── Keyboard Input ───
+    if (this.input.keyboard) {
+      this.wasd = {
+        W: this.input.keyboard.addKey('W'),
+        A: this.input.keyboard.addKey('A'),
+        S: this.input.keyboard.addKey('S'),
+        D: this.input.keyboard.addKey('D'),
+      };
+      this.tKey = this.input.keyboard.addKey('T');
+      this.uKey = this.input.keyboard.addKey('U');
+      this.nKey = this.input.keyboard.addKey('N');
+      this.oneKey = this.input.keyboard.addKey('ONE');
+      this.twoKey = this.input.keyboard.addKey('TWO');
+      this.threeKey = this.input.keyboard.addKey('THREE');
+      this.fourKey = this.input.keyboard.addKey('FOUR');
+    }
+
+    // ─── Cursor (player crosshair) ───
+    this.cursor = this.add.circle(width / 2, height * 0.7, 14, 0xffffff, 0.3);
+    this.cursor.setStrokeStyle(2, 0xffffff, 0.8);
+    this.cursor.setDepth(25);
+    this.cursorSpeed = 300;
+    this.selectedTowerType = 'basic';
+
+    // Cursor label
+    this.cursorLabel = this.add.text(width / 2, height * 0.7 + 24, 'T: Place Tower', {
+      fontSize: '10px', color: '#94a3b8', fontFamily: 'monospace',
+    }).setOrigin(0.5).setDepth(25);
+
     this.input.on('pointerdown', (pointer: Input.Pointer) => {
       if (this._gameOver || this._victory) return;
+      // Move cursor to click position
+      this.cursor.setPosition(pointer.worldX, pointer.worldY);
       const clicked = this.findTowerAt(pointer.worldX, pointer.worldY);
       if (clicked) {
         this._selectedTowerId = clicked.id;
@@ -114,6 +157,56 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
     if (!this.bootstrap || this._gameOver || this._victory) return;
     const { width, height } = this.bootstrap.bounds || { width: 800, height: 600 };
 
+    // ─── Cursor movement (WASD) ───
+    if (this.wasd && this.cursor) {
+      let cx = 0, cy = 0;
+      if (this.wasd.A.isDown) cx -= 1;
+      if (this.wasd.D.isDown) cx += 1;
+      if (this.wasd.W.isDown) cy -= 1;
+      if (this.wasd.S.isDown) cy += 1;
+      if (cx !== 0 || cy !== 0) {
+        const len = Math.sqrt(cx * cx + cy * cy);
+        this.cursor.x += (cx / len) * this.cursorSpeed * (delta / 1000);
+        this.cursor.y += (cy / len) * this.cursorSpeed * (delta / 1000);
+      }
+      this.cursor.x = Phaser.Math.Clamp(this.cursor.x, 10, width - 10);
+      this.cursor.y = Phaser.Math.Clamp(this.cursor.y, 10, height - 10);
+      this.cursorLabel.setPosition(this.cursor.x, this.cursor.y + 24);
+    }
+
+    // ─── Keyboard tower placement (T) ───
+    if (this.tKey && Phaser.Input.Keyboard.JustDown(this.tKey)) {
+      const result = this.placeTower(this.cursor.x, this.cursor.y, this.selectedTowerType);
+      if (result.success) {
+        // Show brief feedback
+        this.cursor.setStrokeStyle(2, 0x22c55e, 1);
+        this.time.delayedCall(200, () => this.cursor.setStrokeStyle(2, 0xffffff, 0.8));
+      }
+    }
+
+    // ─── Tower type selection (1-4) ───
+    const towerTypes: TowerType[] = ['basic', 'cannon', 'frost', 'lightning'];
+    if (this.oneKey && Phaser.Input.Keyboard.JustDown(this.oneKey)) this.selectedTowerType = towerTypes[0];
+    if (this.twoKey && Phaser.Input.Keyboard.JustDown(this.twoKey)) this.selectedTowerType = towerTypes[1];
+    if (this.threeKey && Phaser.Input.Keyboard.JustDown(this.threeKey)) this.selectedTowerType = towerTypes[2];
+    if (this.fourKey && Phaser.Input.Keyboard.JustDown(this.fourKey)) this.selectedTowerType = towerTypes[3];
+
+    // Update cursor label
+    if (this.cursorLabel) {
+      const idx = towerTypes.indexOf(this.selectedTowerType);
+      this.cursorLabel.setText(`[${idx + 1}] ${this.selectedTowerType} • T: Place`);
+    }
+
+    // ─── Upgrade selected tower (U) ───
+    if (this.uKey && Phaser.Input.Keyboard.JustDown(this.uKey) && this._selectedTowerId) {
+      this.upgradeSelectedTower();
+    }
+
+    // ─── Next wave (N) ───
+    if (this.nKey && Phaser.Input.Keyboard.JustDown(this.nKey)) {
+      this.startNextWave();
+    }
+
     const result = updateTowerDefenseFrame({
       canvasWidth: width, canvasHeight: height,
       currentTime: time, deltaTime: delta,
@@ -132,22 +225,7 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
     this.onStateUpdate?.(this.tdState, this.towers);
   }
 
-  placeTower(x: number, y: number, type: TowerType): { success: boolean; reason?: string } {
-    if (!this.bootstrap) return { success: false, reason: 'not initialized' };
-    const { width, height } = this.bootstrap.bounds || { width: 800, height: 600 };
-    const core = this.tdEntities.get('core-bean');
-    const corePos = core ? { x: core.transform.x, y: core.transform.y } : null;
-    const v = validateTowerPlacement({ x, y, canvasWidth: width, canvasHeight: height, towers: this.towers, mapLayout: this.tdState.mapLayout, corePosition: corePos });
-    if (!v.valid) return { success: false, reason: v.reason };
-    this.towers.push(createTowerDefenseTowerAt({ x, y }, type, this.time.now));
-    return { success: true };
-  }
 
-  upgradeSelectedTower(): boolean {
-    const t = this.towers.find(t => t.id === this._selectedTowerId);
-    if (!t || t.upgradeLevel >= MAX_UPGRADE_LEVEL) return false;
-    return upgradeTower(t);
-  }
 
   sellSelectedTower(): TowerDefenseTower | null {
     const idx = this.towers.findIndex(t => t.id === this._selectedTowerId);
@@ -157,10 +235,6 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
     this.selectedTower = null;
     this.rangeIndicator.setVisible(false);
     return t;
-  }
-
-  startNextWave(): void {
-    if (this.tdState.waitingForPlayer) this.tdState.waitingForPlayer = false;
   }
 
   getTDState(): TowerDefenseState { return this.tdState; }
@@ -288,4 +362,36 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
   }
 
   private parseColor(hex: string): number { return parseInt(hex.replace('#', ''), 16); }
+
+  private placeTower(x: number, y: number, type: TowerType): { success: boolean; reason?: string } {
+    if (!this.bootstrap || !this.tdState) return { success: false, reason: 'no state' };
+    const { width, height } = this.bootstrap.bounds || { width: 800, height: 600 };
+    const cost = TOWER_CONFIGS[type]?.cost ?? 30;
+    // Tower placement allowed (cost tracked externally)
+    const core = this.tdEntities.get('core-bean');
+    const corePos = core ? { x: core.transform.x, y: core.transform.y } : null;
+    const valid = validateTowerPlacement({
+      x, y, canvasWidth: width, canvasHeight: height,
+      towers: this.towers, mapLayout: this.tdState.mapLayout, corePosition: corePos,
+    });
+    if (!valid.valid) return { success: false, reason: valid.reason || 'invalid' };
+    const tower = createTowerDefenseTowerAt({ x, y }, type, this.time.now);
+    this.towers.push(tower);
+    // Cost tracked externally
+    return { success: true };
+  }
+
+  private upgradeSelectedTower(): void {
+    if (!this.selectedTower) return;
+    const ok = upgradeTower(this.selectedTower);
+    if (ok && this.rangeIndicator) {
+      this.rangeIndicator.setRadius(this.selectedTower.range);
+    }
+  }
+
+  startNextWave(): void {
+    if (!this.tdState) return;
+    if (this.tdState.waitingForPlayer) this.tdState.waitingForPlayer = false;
+    this.tdState.waveTimer = 0;
+  }
 }
