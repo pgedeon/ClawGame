@@ -20,7 +20,7 @@ import { SceneHierarchyTree } from '../components/scene-editor/SceneHierarchyTre
 import { SceneEditorAIBar } from '../components/scene-editor/SceneEditorAIBar';
 import { AnimationsPanel } from '../components/scene-editor/AnimationsPanel';
 import { PrefabPanel } from '../components/scene-editor/PrefabPanel';
-import { createDefaultAnimationsConfig, createDefaultPrefabLibrary, instantiatePrefab } from '@clawgame/engine';
+import { createDefaultAnimationsConfig, createDefaultPrefabLibrary, instantiatePrefab, compileScene } from '@clawgame/engine';
 import { ToolMode, ENTITY_TEMPLATES, type EntityTemplate } from '../components/scene-editor/types';
 import { useToast } from '../components/Toast';
 import { logger } from '../utils/logger';
@@ -29,6 +29,7 @@ import '../scene-editor.css';
 import '../scene-editor-ai.css';
 import { 
   Save as SaveIcon,
+  FileCode2,
   RotateCcw,
   ZoomIn,
   ZoomOut,
@@ -63,6 +64,9 @@ function SceneEditorContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [showCompiledCode, setShowCompiledCode] = useState(false);
+  const [compiledCode, setCompiledCode] = useState<string>('');
 
   // Editor state
   const [viewport, setViewport] = useState({ x: 0, y: 0, zoom: 1 });
@@ -195,6 +199,7 @@ function SceneEditorContent() {
       const sceneContent = serializeEditorScene(scene);
       await api.writeFile(projectId, 'scenes/main-scene.json', sceneContent);
       
+      setLastSaved(new Date());
       logger.info('Scene saved successfully');
       showToast({ type: 'success', message: `Scene saved — ${scene.entities.size} entities persisted` });
     } catch (err) {
@@ -658,6 +663,24 @@ function SceneEditorContent() {
           >
             <SaveIcon size={18} />
             <span>{saving ? 'Saving...' : 'Save'}</span>
+          </button>
+          {lastSaved && (
+            <span className="autosave-indicator" style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>
+              Saved {lastSaved.toLocaleTimeString()}
+            </span>
+          )}
+          <button
+            className="tool-button"
+            onClick={() => {
+              if (!scene) return;
+              const code = compileScene(scene, { className: (scene.name || 'Main').replace(/[^a-zA-Z0-9]/g, '') + 'Scene', language: 'typescript' });
+              setCompiledCode(code);
+              setShowCompiledCode(true);
+            }}
+            title="Compile scene to Phaser 4 code"
+          >
+            <FileCode2 size={14} />
+            <span>Compile</span>
           </button>
 
           <div className="zoom-controls">

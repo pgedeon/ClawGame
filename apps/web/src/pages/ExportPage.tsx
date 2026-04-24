@@ -371,6 +371,22 @@ export function ExportPage() {
             </div>
 
             <div className="option-group">
+              <div className="option-item">
+                <div className="option-info">
+                  <span className="option-name">Export Format</span>
+                  <span className="option-description">Choose HTML (Canvas2D) or Phaser 4 runtime</span>
+                </div>
+                <select
+                  value={exportOptions.format || 'html'}
+                  onChange={(e) => setExportOptions({ ...exportOptions, format: e.target.value as any })}
+                  className="format-select"
+                  style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #334155', background: '#1e293b', color: '#e2e8f0', fontSize: '14px' }}
+                >
+                  <option value="html">HTML (Canvas2D)</option>
+                  <option value="phaser-html">Phaser 4 (WebGL)</option>
+                </select>
+              </div>
+
               <label className="option-item">
                 <input
                   type="checkbox"
