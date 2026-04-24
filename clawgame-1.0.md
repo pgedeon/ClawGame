@@ -273,7 +273,7 @@ Acceptance:
 - [x] Add lock state to scene/entity data.
 - [x] Wire visibility to Phaser render objects.
 - [x] Wire lock state to selection/movement.
-- [ ] Support grouping by type and parent/child hierarchy.
+- [x] Support grouping by type and parent/child hierarchy.
 - [x] Add rename and duplicate from hierarchy.
 
 Acceptance:

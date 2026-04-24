@@ -56,6 +56,23 @@ function groupEntitiesByType(entities: Entity[]): Map<string, Entity[]> {
   return groups;
 }
 
+function buildEntityTree(entities: Entity[]): { roots: Entity[]; childrenMap: Map<string, Entity[]> } {
+  const childrenMap = new Map<string, Entity[]>();
+  const roots: Entity[] = [];
+  const entityMap = new Map(entities.map((e) => [e.id, e]));
+
+  for (const entity of entities) {
+    const parentId = (entity as any).parent;
+    if (parentId && entityMap.has(parentId)) {
+      if (!childrenMap.has(parentId)) childrenMap.set(parentId, []);
+      childrenMap.get(parentId)!.push(entity);
+    } else {
+      roots.push(entity);
+    }
+  }
+  return { roots, childrenMap };
+}
+
 export function SceneHierarchyTree({
   entities,
   selectedEntityId,
@@ -66,6 +83,7 @@ export function SceneHierarchyTree({
   onDuplicateEntity,
 }: SceneHierarchyTreeProps) {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<'grouped' | 'tree'>('grouped');
   const [isFullyExpanded, setIsFullyExpanded] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
@@ -139,6 +157,13 @@ export function SceneHierarchyTree({
           {isFullyExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </button>
         <span className="hierarchy-title">Scene Hierarchy</span>
+        <button
+          className="hierarchy-view-toggle"
+          onClick={() => setViewMode(viewMode === 'grouped' ? 'tree' : 'grouped')}
+          title={viewMode === 'grouped' ? 'Switch to tree view' : 'Switch to grouped view'}
+        >
+          {viewMode === 'grouped' ? '☰ Groups' : '🌳 Tree'}
+        </button>
         <span className="hierarchy-count">{entities.length}</span>
       </div>
 
@@ -147,7 +172,7 @@ export function SceneHierarchyTree({
           <p>No entities in scene</p>
           <p className="hint">Use Add Entity to create objects</p>
         </div>
-      ) : (
+      ) : viewMode === 'grouped' ? (
         <div className="hierarchy-groups">
           {Array.from(groups.entries()).map(([type, groupEntities]) => {
             const typeInfo = ENTITY_ICONS[type] || ENTITY_ICONS.unknown;
@@ -264,6 +289,42 @@ export function SceneHierarchyTree({
               </div>
             );
           })}
+        </div>
+      ) : (
+        <div className="hierarchy-tree">
+          {(() => {
+            const { roots, childrenMap } = buildEntityTree(entities);
+            const renderEntityNode = (entity: Entity, depth: number) => {
+              const isSelected = selectedEntityId === entity.id;
+              const isVisible = entity.visible !== false;
+              const isLocked = Boolean(entity.locked);
+              const children = childrenMap.get(entity.id) || [];
+              const displayName = entity.name || entity.id;
+              const typeInfo = ENTITY_ICONS[entity.type || ''] || ENTITY_ICONS.unknown;
+              return (
+                <div key={entity.id}>
+                  <div
+                    className={`hierarchy-entity ${isSelected ? 'selected' : ''} ${!isVisible ? 'hidden-entity' : ''} ${isLocked ? 'locked-entity' : ''}`}
+                    style={{ paddingLeft: depth * 16 }}
+                    onClick={() => onSelectEntity(entity.id)}
+                  >
+                    <span className="entity-type-dot" style={{ background: typeInfo.color }} />
+                    <span className="entity-name">{displayName}</span>
+                    <div className="hierarchy-row-actions">
+                      <button className="hierarchy-icon-button" onClick={(e) => { e.stopPropagation(); onToggleVisibility(entity.id); }}>
+                        {isVisible ? <Eye size={12} /> : <EyeOff size={12} />}
+                      </button>
+                      <button className="hierarchy-icon-button" onClick={(e) => { e.stopPropagation(); onToggleLock(entity.id); }}>
+                        {isLocked ? <Lock size={12} /> : <Unlock size={12} />}
+                      </button>
+                    </div>
+                  </div>
+                  {children.map((child) => renderEntityNode(child, depth + 1))}
+                </div>
+              );
+            };
+            return roots.map((root) => renderEntityNode(root, 0));
+          })()}
         </div>
       )}
     </div>
