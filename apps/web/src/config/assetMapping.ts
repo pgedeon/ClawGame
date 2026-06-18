@@ -4,6 +4,7 @@
  */
 
 import { spriteManager } from '../utils/spriteLoader';
+import { logger } from '../utils/logger';
 
 // Default asset mapping structure
 interface AssetMapping {
@@ -102,7 +103,7 @@ class AssetMappingManager {
    */
   setProjectMapping(projectId: string, mapping: ProjectAssetMapping): void {
     projectMappings.set(projectId, mapping);
-    console.log(`Asset mapping configured for project: ${projectId}`);
+    logger.info(`Asset mapping configured for project: ${projectId}`);
   }
 
   /**
@@ -118,7 +119,7 @@ class AssetMappingManager {
   configureProjectForGenre(projectId: string, genre: string): void {
     const mapping = DEFAULT_GENRE_MAPPINGS[genre];
     if (!mapping) {
-      console.warn(`No default mapping found for genre: ${genre}`);
+      logger.warn(`No default mapping found for genre: ${genre}`);
       return;
     }
 
@@ -131,7 +132,7 @@ class AssetMappingManager {
     };
 
     this.setProjectMapping(projectId, projectMapping);
-    console.log(`Default asset mapping configured for project ${projectId} with genre ${genre}`);
+    logger.info(`Default asset mapping configured for project ${projectId} with genre ${genre}`);
   }
 
   /**
@@ -194,12 +195,12 @@ class AssetMappingManager {
   addCustomSprite(projectId: string, assetId: string, url: string): void {
     const mapping = this.getProjectMapping(projectId);
     if (!mapping) {
-      console.warn(`No mapping found for project: ${projectId}`);
+      logger.warn(`No mapping found for project: ${projectId}`);
       return;
     }
 
     mapping.customSprites[assetId] = url;
-    console.log(`Custom sprite added to project ${projectId}: ${assetId} -> ${url}`);
+    logger.info(`Custom sprite added to project ${projectId}: ${assetId} -> ${url}`);
   }
 
   /**
@@ -208,12 +209,12 @@ class AssetMappingManager {
   removeCustomSprite(projectId: string, assetId: string): void {
     const mapping = this.getProjectMapping(projectId);
     if (!mapping) {
-      console.warn(`No mapping found for project: ${projectId}`);
+      logger.warn(`No mapping found for project: ${projectId}`);
       return;
     }
 
     delete mapping.customSprites[assetId];
-    console.log(`Custom sprite removed from project ${projectId}: ${assetId}`);
+    logger.info(`Custom sprite removed from project ${projectId}: ${assetId}`);
   }
 
   /**
@@ -254,9 +255,9 @@ class AssetMappingManager {
     try {
       const mapping = JSON.parse(config) as ProjectAssetMapping;
       this.setProjectMapping(projectId, mapping);
-      console.log(`Asset mapping imported for project: ${projectId}`);
+      logger.info(`Asset mapping imported for project: ${projectId}`);
     } catch (error) {
-      console.error('Failed to import asset mapping:', error);
+      logger.error('Failed to import asset mapping:', error);
       throw new Error('Invalid asset mapping configuration');
     }
   }
@@ -266,7 +267,7 @@ class AssetMappingManager {
    */
   clearAllMappings(): void {
     projectMappings.clear();
-    console.log('All project asset mappings cleared');
+    logger.info('All project asset mappings cleared');
   }
 
   /**

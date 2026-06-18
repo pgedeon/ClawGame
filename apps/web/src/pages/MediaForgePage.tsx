@@ -8,6 +8,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Wand2, Download, History, Package, Sparkles, Play, Trash2, Copy, Eye } from 'lucide-react';
 import { useToast } from '../components/Toast';
+import { logger } from '../utils/logger';
 
 // Enhanced interfaces for M11
 interface AssetMetadata {
@@ -352,7 +353,7 @@ export const MediaForgePage: React.FC = () => {
       showToast('Asset generated successfully!', 'success');
     } catch (error) {
       showToast('Generation failed', 'error');
-      console.error('Generation failed:', error);
+      logger.error('Generation failed:', error);
     } finally {
       setIsGenerating(false);
     }
@@ -377,7 +378,7 @@ export const MediaForgePage: React.FC = () => {
       showToast('Asset pack generated successfully!', 'success');
     } catch (error) {
       showToast('Pack generation failed', 'error');
-      console.error('Pack generation failed:', error);
+      logger.error('Pack generation failed:', error);
     } finally {
       setIsGenerating(false);
     }

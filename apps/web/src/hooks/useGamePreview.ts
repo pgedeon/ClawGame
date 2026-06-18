@@ -12,6 +12,7 @@ import {
 } from '../runtime/runPreviewRuntimeSession';
 import type { PhaserRuntimeError } from '../../../../packages/phaser-runtime/src';
 import type { PhaserSessionHandle } from '../runtime/phaserPreviewSession';
+import { logger } from '../utils/logger';
 
 export type UIPanel = 'none' | 'inventory' | 'quests' | 'spellcraft' | 'saveload' | 'dialogue' | 'combat-log';
 
@@ -194,7 +195,7 @@ export function useGamePreview(
   const handleSave = useCallback(() => {
     // Save game state to localStorage via SaveLoadManager
     // Full project file API persistence is a future enhancement
-    console.log('[ClawGame] Save requested — using localStorage save system');
+    logger.info('[ClawGame] Save requested — using localStorage save system');
   }, []);
 
   const handleStartGame = useCallback(() => {

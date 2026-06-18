@@ -7,6 +7,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../api/client';
 import { type PreviewSceneData, normalizePreviewScene, inferEntityType } from '../utils/previewScene';
+import { logger } from '../utils/logger';
 
 export type ProjectScene = PreviewSceneData;
 
@@ -55,7 +56,7 @@ export function useSceneLoader(projectId: string | undefined): SceneLoaderReturn
         setScene(normalizePreviewScene({ entities: [] }));
       }
     } catch (err: any) {
-      console.error('Scene load error:', err);
+      logger.error('Scene load error:', err);
       setError(err.message || 'Failed to load scene');
     } finally {
       setLoading(false);

@@ -8,6 +8,7 @@ import { useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { GitBranch, Plus, Undo2, Send, FileText } from 'lucide-react';
 import '../git-center.css';
+import { logger } from '../utils/logger';
 
 interface GitStatus {
   initialized: boolean;
@@ -56,7 +57,7 @@ export function GitCenterPage() {
       setStatus(s as GitStatus);
       setDiff(d.files);
     } catch (err) {
-      console.error('Git status error:', err);
+      logger.error('Git status error:', err);
     } finally {
       setLoading(false);
     }
@@ -71,7 +72,7 @@ export function GitCenterPage() {
       await api.gitInit(projectId);
       await refresh();
     } catch (err) {
-      console.error('Git init error:', err);
+      logger.error('Git init error:', err);
     } finally {
       setActionLoading(false);
     }
@@ -85,7 +86,7 @@ export function GitCenterPage() {
       setCommitMsg('');
       await refresh();
     } catch (err) {
-      console.error('Git commit error:', err);
+      logger.error('Git commit error:', err);
     } finally {
       setActionLoading(false);
     }
@@ -99,7 +100,7 @@ export function GitCenterPage() {
       setSelectedFile(null);
       await refresh();
     } catch (err) {
-      console.error('Git revert error:', err);
+      logger.error('Git revert error:', err);
     } finally {
       setActionLoading(false);
     }
