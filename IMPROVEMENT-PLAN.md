@@ -71,13 +71,13 @@
 - [x] 0.4 Consolidate task tracking — Pick one file, mark roadmap accurately
 - [x] 0.5 Create `examples/` placeholder
 
-### Phase 1: Type System Unification ⏳ IN PROGRESS
+### Phase 1: Type System Unification ✅ DONE
 *Eliminate the silent drift risk between duplicated type definitions.*
 
-- [ ] 1.1 Make `packages/shared` the single source for shared types
-- [ ] 1.2 Deprecate engine's local types — Import from shared, re-export for backward compat
-- [ ] 1.3 Delete `apps/web/src/api/types.ts` duplications — Import from shared
-- [ ] 1.4 Add lint rule to prevent new type duplications
+- [x] 1.1 Make `packages/shared` the single source for shared types
+- [x] 1.2 Deprecate engine's local types — Import from shared, re-export for backward compat
+- [x] 1.3 Delete `apps/web/src/api/types.ts` duplications — Import from shared
+- [x] 1.4 Add lint rule to prevent new type duplications
 
 ### Phase 2: `any` Reduction & Type Safety
 *Target: cut `any` usage by 60%+ in the most critical paths.*
@@ -87,20 +87,20 @@
 - [ ] 2.3 Replace `any` in `legacyCanvasSession.ts`
 - [ ] 2.4 Add `strict: true` to tsconfigs incrementally
 
-### Phase 3: Split the Mega-Files
+### Phase 3: Split the Mega-Files ✅ DONE
 
-- [ ] 3.1 Split `packages/shared/src/index.ts` → `types.ts`, `math.ts`, `assets.ts`, `templates.ts`, `utils.ts`, `legacy.ts`
-- [ ] 3.2 Split `realAIService.ts` → `ai-provider.ts`, `ai-context.ts`, `ai-service.ts`, `ai-streaming.ts`
-- [ ] 3.3 Split `exportService.ts` → `export-compiler.ts`, `export-storage.ts`, `export-service.ts`
+- [x] 3.1 Split `packages/shared/src/index.ts` → `types.ts`, `math.ts`, `assets.ts`, `templates.ts`, `utils.ts`, `legacy.ts`
+- [x] 3.2 Split `realAIService.ts` → `ai-provider.ts`, `ai-context.ts`, `ai-service.ts`, `ai-streaming.ts`
+- [x] 3.3 Split `exportService.ts` → `export-compiler.ts`, `export-storage.ts`, `export-service.ts`
 
-### Phase 4: Stub Handler Implementation or Honest Removal
+### Phase 4: Stub Handler Implementation ✅ DONE
 *Decide: ship working features or remove the dead buttons.*
 
-- [ ] 4.1 Audit each stub in `useGamePreview.ts`
-- [ ] 4.2 Wire RPG stubs (crafting, spells, hotkeys, dialogue) or remove UI buttons
-- [ ] 4.3 Wire replay stubs or remove replay controls
-- [ ] 4.4 Replace mock `aiService.ts` — Delete or mark dev-only with feature flag
-- [ ] 4.5 Add feature flags for incomplete features
+- [x] 4.1 Audit each stub in `useGamePreview.ts`
+- [x] 4.2 Wire RPG stubs (crafting, spells, hotkeys, dialogue) or remove UI buttons
+- [x] 4.3 Wire replay stubs or remove replay controls
+- [x] 4.4 Replace mock `aiService.ts` — Delete or mark dev-only with feature flag
+- [x] 4.5 Add feature flags for incomplete features
 
 ### Phase 5: CSS Consolidation
 
@@ -122,9 +122,9 @@
 - [ ] 7.2 Extract game logic from `legacyCanvasSession.ts` into engine-level systems
 - [ ] 7.3 Make both runtimes share extracted systems
 
-### Phase 8: Developer Experience
+### Phase 8: Developer Experience ⏳ PARTIAL
 
-- [ ] 8.1 Replace 57 console.* calls with appropriate logger
+- [x] 8.1 Replace 57 console.* calls with appropriate logger
 - [ ] 8.2 Add Husky + lint-staged pre-commit hooks
 - [ ] 8.3 Add `concurrently` to root dev script
 - [ ] 8.4 Update README after Phase 0 changes
