@@ -2,6 +2,12 @@ import type { Dispatch, MutableRefObject, RefObject, SetStateAction } from 'reac
 import type { ProjectScene } from '../hooks/useSceneLoader';
 import type { UIPanel } from '../components/game/RPGPanels';
 import type { TowerDefenseOverlayState, TowerType } from '../utils/previewTowerDefense';
+import type { InventoryManager } from '../rpg/inventory';
+import type { QuestManager } from '../rpg/quests';
+import type { DialogueManager } from '../rpg/dialogue';
+import type { SpellCraftingManager } from '../rpg/spellcrafting';
+import type { CombatLogManager } from '../rpg/combatlog';
+import type { ReplayRecorder, ReplayPlayer, ReplayData } from '../rpg/replay';
 
 export interface PreviewRuntimeGameStats {
   fps: number;
@@ -39,14 +45,14 @@ export interface PreviewRuntimeSessionOptions {
   replayAutoplay: boolean;
   replayStartProgress: number;
   questHUDText: string;
-  inventoryRef: MutableRefObject<any>;
-  questMgrRef: MutableRefObject<any>;
-  dialogueMgrRef: MutableRefObject<any>;
-  spellMgrRef: MutableRefObject<any>;
-  combatLogRef: MutableRefObject<any>;
-  replayRecorderRef: MutableRefObject<any>;
-  replayPlayerRef: MutableRefObject<any>;
-  replayDataRef: MutableRefObject<any>;
+  inventoryRef: MutableRefObject<InventoryManager | null>;
+  questMgrRef: MutableRefObject<QuestManager | null>;
+  dialogueMgrRef: MutableRefObject<DialogueManager | null>;
+  spellMgrRef: MutableRefObject<SpellCraftingManager | null>;
+  combatLogRef: MutableRefObject<CombatLogManager | null>;
+  replayRecorderRef: MutableRefObject<ReplayRecorder | null>;
+  replayPlayerRef: MutableRefObject<ReplayPlayer | null>;
+  replayDataRef: MutableRefObject<ReplayData | null>;
   pendingReplayStepMsRef: MutableRefObject<number>;
   syncRPGState: () => void;
   handleSave: (slotId: number) => void;

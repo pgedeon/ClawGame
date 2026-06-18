@@ -239,7 +239,7 @@ function SpriteSection({
         <div className="inline-controls">
           <input
             type="text"
-            value={String((sprite as any).assetRef ?? '')}
+            value={String(sprite.assetRef ?? '')}
             placeholder="asset key"
             onChange={(e) => update({ assetRef: e.target.value || undefined })}
           />
@@ -284,31 +284,31 @@ function CollisionSection({
       </div>
       <NumberField label="Width" value={collision.width ?? 32} min={1} onCommit={(value) => update({ width: value })} />
       <NumberField label="Height" value={collision.height ?? 32} min={1} onCommit={(value) => update({ height: value })} />
-      <NumberField label="Offset X" value={(collision as any).offsetX ?? 0} onCommit={(value) => update({ offsetX: value })} />
-      <NumberField label="Offset Y" value={(collision as any).offsetY ?? 0} onCommit={(value) => update({ offsetY: value })} />
+      <NumberField label="Offset X" value={collision.offsetX ?? 0} onCommit={(value) => update({ offsetX: value })} />
+      <NumberField label="Offset Y" value={collision.offsetY ?? 0} onCommit={(value) => update({ offsetY: value })} />
       <CheckboxField
         label="Immovable"
-        checked={(collision as any).immovable ?? isStaticDefault}
+        checked={collision.immovable ?? isStaticDefault}
         onChange={(checked) => update({ immovable: checked })}
       />
-      <NumberField label="Bounce" value={(collision as any).bounce ?? 0} min={0} max={1} step={0.05} onCommit={(value) => update({ bounce: value })} />
-      <NumberField label="Drag" value={(collision as any).drag ?? 0} min={0} max={1} step={0.05} onCommit={(value) => update({ drag: value })} />
+      <NumberField label="Bounce" value={collision.bounce ?? 0} min={0} max={1} step={0.05} onCommit={(value) => update({ bounce: value })} />
+      <NumberField label="Drag" value={collision.drag ?? 0} min={0} max={1} step={0.05} onCommit={(value) => update({ drag: value })} />
       <CheckboxField
         label="Allow Gravity"
-        checked={Boolean((collision as any).allowGravity)}
+        checked={Boolean(collision.allowGravity)}
         onChange={(checked) => update({ allowGravity: checked })}
       />
       <CheckboxField
         label="Sensor"
-        checked={Boolean((collision as any).sensor)}
+        checked={Boolean(collision.sensor)}
         onChange={(checked) => update({ sensor: checked })}
       />
-      <NumberField label="Velocity X" value={(collision as any).velocityX ?? 0} onCommit={(value) => update({ velocityX: value })} />
-      <NumberField label="Velocity Y" value={(collision as any).velocityY ?? 0} onCommit={(value) => update({ velocityY: value })} />
-      <NumberField label="Acceleration X" value={(collision as any).accelerationX ?? 0} onCommit={(value) => update({ accelerationX: value })} />
-      <NumberField label="Acceleration Y" value={(collision as any).accelerationY ?? 0} onCommit={(value) => update({ accelerationY: value })} />
-      <NumberField label="Max Velocity" value={(collision as any).maxVelocity ?? 0} min={0} onCommit={(value) => update({ maxVelocity: value })} />
-      <NumberField label="Mass" value={(collision as any).mass ?? 1} min={0.01} step={0.1} onCommit={(value) => update({ mass: value })} />
+      <NumberField label="Velocity X" value={collision.velocityX ?? 0} onCommit={(value) => update({ velocityX: value })} />
+      <NumberField label="Velocity Y" value={collision.velocityY ?? 0} onCommit={(value) => update({ velocityY: value })} />
+      <NumberField label="Acceleration X" value={collision.accelerationX ?? 0} onCommit={(value) => update({ accelerationX: value })} />
+      <NumberField label="Acceleration Y" value={collision.accelerationY ?? 0} onCommit={(value) => update({ accelerationY: value })} />
+      <NumberField label="Max Velocity" value={collision.maxVelocity ?? 0} min={0} onCommit={(value) => update({ maxVelocity: value })} />
+      <NumberField label="Mass" value={collision.mass ?? 1} min={0.01} step={0.1} onCommit={(value) => update({ mass: value })} />
     </div>
   );
 }

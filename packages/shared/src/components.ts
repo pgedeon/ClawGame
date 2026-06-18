@@ -27,6 +27,7 @@ export interface Sprite {
   height: number;
   sourceX?: number;
   sourceY?: number;
+  assetRef?: string; // Reference to project asset
 }
 
 export interface Movement {
@@ -52,6 +53,19 @@ export interface Collision {
   height: number;
   offsetX?: number;
   offsetY?: number;
+  // Physics body properties (used by scene editor PropertyInspector)
+  type?: string;
+  immovable?: boolean;
+  bounce?: number;
+  drag?: number;
+  allowGravity?: boolean;
+  sensor?: boolean;
+  velocityX?: number;
+  velocityY?: number;
+  accelerationX?: number;
+  accelerationY?: number;
+  maxVelocity?: number;
+  mass?: number;
 }
 
 export interface Animation {
@@ -169,6 +183,18 @@ export interface CollisionComponent {
   offsetY?: number;
   isTrigger?: boolean;
   layers?: string[];
+  // Physics body properties (used by scene editor PropertyInspector)
+  immovable?: boolean;
+  bounce?: number;
+  drag?: number;
+  allowGravity?: boolean;
+  sensor?: boolean;
+  velocityX?: number;
+  velocityY?: number;
+  accelerationX?: number;
+  accelerationY?: number;
+  maxVelocity?: number;
+  mass?: number;
 }
 
 export interface InputComponent {

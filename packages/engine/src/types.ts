@@ -87,6 +87,13 @@ export interface CollisionComponent {
   bounce?: number;
   drag?: number;
   allowGravity?: boolean;
+  sensor?: boolean;
+  velocityX?: number;
+  velocityY?: number;
+  accelerationX?: number;
+  accelerationY?: number;
+  maxVelocity?: number;
+  mass?: number;
 }
 
 export interface StatsComponent {

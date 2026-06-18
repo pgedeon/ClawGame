@@ -1,5 +1,6 @@
 import React from 'react';
 import { DungeonMinimap } from './game/DungeonMinimap';
+import type { MinimapEntity } from './game/DungeonMinimap';
 import {
   TOWER_CONFIGS,
   TOWER_DISPLAY,
@@ -11,11 +12,11 @@ import {
 interface PreviewCanvasProps {
   runtimeHostRef: React.RefObject<HTMLDivElement>;
   canvasRef: React.RefObject<HTMLCanvasElement>;
-  towerDefenseOverlay: TowerDefenseOverlayState;
+  towerDefenseOverlay: TowerDefenseOverlayState | null;
   playerMana: number;
   showTowerDefenseUi: boolean;
   onSelectTowerType: (towerType: TowerType) => void;
-  minimapData?: { playerX: number; playerY: number; entities: any[] };
+  minimapData?: { playerX: number; playerY: number; entities: MinimapEntity[] };
   runtimeKind: string;
 }
 

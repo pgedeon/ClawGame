@@ -7,11 +7,17 @@ import {
   type ReplayData,
 } from '../rpg/replay';
 import { CombatLogManager } from '../rpg/combatlog';
+import type { InventoryManager } from '../rpg/inventory';
+import type { DialogueManager } from '../rpg/dialogue';
+import type { SpellCraftingManager } from '../rpg/spellcrafting';
+import type { QuestManager } from '../rpg/quests';
 import {
   runPreviewRuntimeSession,
 } from '../runtime/runPreviewRuntimeSession';
 import type { PhaserRuntimeError } from '../../../../packages/phaser-runtime/src';
 import type { PhaserSessionHandle } from '../runtime/phaserPreviewSession';
+import type { TowerDefenseOverlayState, TowerType } from '../utils/previewTowerDefense';
+import type { MinimapEntity } from '../components/game/DungeonMinimap';
 import { logger } from '../utils/logger';
 
 export type UIPanel = 'none' | 'inventory' | 'quests' | 'spellcraft' | 'saveload' | 'dialogue' | 'combat-log';
@@ -71,7 +77,7 @@ function getRuntimeErrorMessage(error: unknown): string {
 // ─── Main hook ───
 export function useGamePreview(
   _projectId: string,
-  projectScene: any,
+  projectScene: { entities?: unknown[]; width?: number; height?: number; background?: string } | null,
   projectGenre: string = 'platformer',
 ) {
   // Core refs
@@ -79,7 +85,7 @@ export function useGamePreview(
   const animationRef = useRef<number | null>(null);
   const gameStatsRef = useRef({ fps: 60, entities: 0, memory: 'N/A' });
   const highScoreRef = useRef(0);
-  const runtimeHostRef = useRef<any>(null);
+  const runtimeHostRef = useRef<HTMLDivElement>(null);
   const phaserSessionRef = useRef<PhaserSessionHandle | null>(null);
 
   // Game loop state
@@ -89,7 +95,7 @@ export function useGamePreview(
   const activeScene = (projectScene && projectScene.entities && projectScene.entities.length > 0)
     ? projectScene
     : createDefaultPreviewScene();
-  const activeSceneRef = useRef<any>(null);
+  const activeSceneRef = useRef<typeof activeScene | null>(null);
   activeSceneRef.current = activeScene;
   // Stable key to trigger re-initialization when scene data changes
   const sceneKey = activeScene ? activeScene.entities?.length ?? 0 : 0;
@@ -123,13 +129,13 @@ export function useGamePreview(
   const [dialogueText, setDialogueText] = useState<string>('');
   const [dialogueChoices, setDialogueChoices] = useState<any[]>([]);
   const [craftingGrid, setCraftingGrid] = useState(Array(9).fill(null));
-  const [craftResult, setCraftResult] = useState<any>(null);
+  const [craftResult, setCraftResult] = useState<string | null>(null);
   const [learnedSpells, setLearnedSpells] = useState<string[]>([]);
   const [saveSlots, setSaveSlots] = useState<any[]>([]);
   const [combatLogEntries, setCombatLogEntries] = useState<any[]>([]);
 
   // Tower Defense state
-  const [towerDefenseOverlay, setTowerDefenseOverlay] = useState<any>(null);
+  const [towerDefenseOverlay, setTowerDefenseOverlay] = useState<TowerDefenseOverlayState | null>(null);
   const [selectedTowerType, setSelectedTowerType] = useState<string | undefined>();
   const [tdFeedback, setTdFeedback] = useState<string | undefined>();
 
@@ -143,14 +149,14 @@ export function useGamePreview(
   const [recordingTime, setRecordingTime] = useState(0);
 
   // Minimap state
-  const [minimapData, setMinimapData] = useState<any>(null);
+  const [minimapData, setMinimapData] = useState<{ playerX: number; playerY: number; entities: MinimapEntity[] } | undefined>(undefined);
   const [runtimeErrors, setRuntimeErrors] = useState<PreviewRuntimeErrorNotice[]>([]);
 
   // Refs for manager instances
-  const inventoryRef = useRef<any>(null);
-  const questMgrRef = useRef<any>(null);
-  const dialogueMgrRef = useRef<any>(null);
-  const spellMgrRef = useRef<any>(null);
+  const inventoryRef = useRef<InventoryManager | null>(null);
+  const questMgrRef = useRef<QuestManager | null>(null);
+  const dialogueMgrRef = useRef<DialogueManager | null>(null);
+  const spellMgrRef = useRef<SpellCraftingManager | null>(null);
   const combatLogManagerRef = useRef<CombatLogManager | null>(null);
   const replayRecorderRef = useRef<ReplayRecorder | null>(null);
   const replayPlayerRef = useRef<ReplayPlayer | null>(null);
@@ -172,7 +178,16 @@ export function useGamePreview(
   const controls = GENRE_CONTROLS[projectGenre] || GENRE_CONTROLS.platformer;
 
   // RPG managers
-  const syncRPGStateInternal = useCallback((state: any) => {
+  interface RPGSyncState {
+    inventory?: string[];
+    quests?: string[];
+    dialogue?: { speaker: string; portrait: string; text: string; choices: string[] };
+    spells?: string[];
+    craftingGrid?: unknown[];
+    craftResult?: string;
+  }
+
+  const syncRPGStateInternal = useCallback((state: RPGSyncState) => {
     if (state.inventory) setInventoryItems(state.inventory);
     if (state.quests) setQuestList(state.quests);
     if (state.dialogue) {
@@ -246,8 +261,8 @@ export function useGamePreview(
   }, []);
 
   const handleLearnSpell = useCallback(() => {
-    // Spell learning triggered by spellcrafting manager through UI
-    spellMgrRef.current?.learnSpell?.();
+    // Spell learning is handled by the spellcrafting UI panel directly
+    // This hook is a no-op placeholder for the callback interface
   }, []);
 
   const handleAssignHotkey = useCallback((spellId: string, hotkey: number) => {
@@ -324,7 +339,7 @@ export function useGamePreview(
       activeScene: activeSceneRef, projectGenre, gameStarted, gamePaused, gameOver, victory,
       setGameStats, setPlayerScore, setPlayerHealth, setPlayerMana,
       setCollectedRunes, setTimeElapsed,
-      setActivePanel: (p: any) => setActivePanel(p as UIPanel),
+      setActivePanel: (p: UIPanel) => setActivePanel(p),
       setTowerDefenseOverlayState: setTowerDefenseOverlay,
       inventoryRef, questMgrRef, dialogueMgrRef, spellMgrRef, combatLogRef: combatLogManagerRef,
       replayRecorderRef, replayPlayerRef, replayDataRef, pendingReplayStepMsRef,
@@ -333,7 +348,11 @@ export function useGamePreview(
         phaserSessionRef.current = handle;
         // Wire TD state sync from Phaser → React
         handle.onTDStateChange = (state) => {
-          setTowerDefenseOverlay(state);
+          setTowerDefenseOverlay({
+            enabled: state.enabled,
+            selectedTowerType: (state.selectedTowerType as TowerType) ?? 'basic',
+            feedback: (state.feedback as TowerDefenseOverlayState['feedback']) ?? null,
+          });
           if (state.selectedTowerType) setSelectedTowerType(state.selectedTowerType);
         };
       },
