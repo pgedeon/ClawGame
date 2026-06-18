@@ -9,12 +9,12 @@ function getProjectsDir(): string { return process.env.PROJECTS_DIR || './data/p
 let projectServiceInstance: ProjectService | null = null;
 
 // Validate project creation input
-function validateCreateProjectInput(input: any): { valid: boolean; error?: string } {
+export function validateCreateProjectInput(input: unknown): { valid: boolean; error?: string } {
   if (!input || typeof input !== 'object') {
     return { valid: false, error: 'Request body is required' };
   }
 
-  const { name, genre, artStyle } = input;
+  const { name, genre, artStyle } = input as Record<string, unknown>;
 
   // Name is required
   if (!name || typeof name !== 'string' || name.trim().length === 0) {
@@ -46,11 +46,12 @@ function validateCreateProjectInput(input: any): { valid: boolean; error?: strin
   }
 
   // Description is optional but must be a string if provided
-  if (input.description !== undefined && typeof input.description !== 'string') {
+  const desc = (input as Record<string, unknown>).description;
+  if (desc !== undefined && typeof desc !== 'string') {
     return { valid: false, error: 'Description must be a string' };
   }
 
-  if (input.description && input.description.length > 500) {
+  if (desc && desc.length > 500) {
     return { valid: false, error: 'Description must be 500 characters or less' };
   }
 

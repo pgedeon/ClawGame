@@ -23,7 +23,7 @@
     "typescript": "^5.4.0"
   },
   "lint-staged": {
-    "*.{ts,tsx}": "pnpm run typecheck"
+    "*.{ts,tsx}": "bash -c 'pnpm run typecheck'"
   },
   "keywords": [
     "game-engine",

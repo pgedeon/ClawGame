@@ -1,7 +1,7 @@
 import { readFile, writeFile, readdir, stat, mkdir, rm, unlink } from 'node:fs/promises';
 import { join, resolve, relative, extname, basename, dirname } from 'node:path';
 
-const PROJECTS_DIR = join(process.cwd(), 'data', 'projects');
+const PROJECTS_DIR = process.env.PROJECTS_DIR || join(process.cwd(), 'data', 'projects');
 
 // Allowed extensions for safety — prevent reading arbitrary files
 const ALLOWED_EXTENSIONS = new Set([
