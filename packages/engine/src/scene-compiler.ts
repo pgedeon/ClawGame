@@ -106,9 +106,9 @@ function sortedEntities(entities: Map<string, Entity>): Entity[] {
   });
 }
 
-function getComp(entity: Entity, key: string): Record<string, any> | undefined {
+function getComp(entity: Entity, key: string): Record<string, unknown> | undefined {
   if (entity.components instanceof Map) {
-    return entity.components.get(key) as Record<string, any> | undefined;
+    return entity.components.get(key) as Record<string, unknown> | undefined;
   }
   return undefined;
 }
@@ -132,7 +132,7 @@ function generateEntityCreate(entity: Entity, indent: string): string[] {
     case 'projectile':
     case 'custom': {
       const sprite = getComp(entity, 'sprite');
-      const key = (sprite && typeof sprite === 'object' ? (sprite as any).assetId : undefined) || safeName;
+      const key = (sprite && typeof sprite === 'object' ? sprite.assetId : undefined) || safeName;
       lines.push(`${indent}// ${entity.name || entity.id} (${entityType})`);
       lines.push(`${indent}const ${safeName} = this.add.sprite(${x}, ${y}, '${key}');`);
       const rot = entity.transform.rotation;
@@ -163,10 +163,10 @@ function generateEntityCreate(entity: Entity, indent: string): string[] {
     }
     case 'text': {
       const text = getComp(entity, 'text');
-      const rawContent = (text && typeof text === 'object' ? String((text as any).content ?? '') : '');
-      const fontSize = (text && typeof text === 'object' ? String((text as any).fontSize ?? '16px') : '16px');
-      const color = (text && typeof text === 'object' ? String((text as any).color ?? '#ffffff') : '#ffffff');
-      const font = (text && typeof text === 'object' ? String((text as any).fontFamily ?? '') : '');
+      const rawContent = (text && typeof text === 'object' ? String(text.content ?? '') : '');
+      const fontSize = (text && typeof text === 'object' ? String(text.fontSize ?? '16px') : '16px');
+      const color = (text && typeof text === 'object' ? String(text.color ?? '#ffffff') : '#ffffff');
+      const font = (text && typeof text === 'object' ? String(text.fontFamily ?? '') : '');
       lines.push(`${indent}// ${entity.name || entity.id}`);
       lines.push(`${indent}this.add.text(${x}, ${y}, ${JSON.stringify(rawContent)}, {`);
       lines.push(`${indent}  fontSize: '${fontSize}',`);
@@ -178,8 +178,8 @@ function generateEntityCreate(entity: Entity, indent: string): string[] {
     case 'zone':
     case 'trigger': {
       const collision = getComp(entity, 'collision');
-      const w = (collision && typeof collision === 'object' ? Number((collision as any).width) : 0) || 64;
-      const h = (collision && typeof collision === 'object' ? Number((collision as any).height) : 0) || 64;
+      const w = (collision && typeof collision === 'object' ? Number(collision.width) : 0) || 64;
+      const h = (collision && typeof collision === 'object' ? Number(collision.height) : 0) || 64;
       lines.push(`${indent}// ${entity.name || entity.id} (zone)`);
       lines.push(`${indent}this.add.zone(${x}, ${y}, ${w}, ${h});`);
       break;
@@ -188,7 +188,7 @@ function generateEntityCreate(entity: Entity, indent: string): string[] {
       const w = entity.transform.width || 32;
       const h = entity.transform.height || 32;
       const sprite = getComp(entity, 'sprite');
-      const color = (sprite && typeof sprite === 'object' ? String((sprite as any).color ?? '#8b5cf6') : '#8b5cf6');
+      const color = (sprite && typeof sprite === 'object' ? String(sprite.color ?? '#8b5cf6') : '#8b5cf6');
       lines.push(`${indent}// ${entity.name || entity.id} (rectangle)`);
       lines.push(`${indent}this.add.rectangle(${x}, ${y}, ${w}, ${h}, Phaser.Display.Color.HexStringToColor('${color}').color).setOrigin(0.5);`);
       break;
@@ -198,7 +198,7 @@ function generateEntityCreate(entity: Entity, indent: string): string[] {
       const h = entity.transform.height || 32;
       const radius = Math.min(w, h) / 2;
       const sprite = getComp(entity, 'sprite');
-      const color = (sprite && typeof sprite === 'object' ? String((sprite as any).color ?? '#8b5cf6') : '#8b5cf6');
+      const color = (sprite && typeof sprite === 'object' ? String(sprite.color ?? '#8b5cf6') : '#8b5cf6');
       lines.push(`${indent}// ${entity.name || entity.id} (circle)`);
       lines.push(`${indent}this.add.circle(${x}, ${y}, ${radius}, Phaser.Display.Color.HexStringToColor('${color}').color);`);
       break;
@@ -212,7 +212,7 @@ function generateEntityCreate(entity: Entity, indent: string): string[] {
       const w = entity.transform.width || 256;
       const h = entity.transform.height || 256;
       const sprite = getComp(entity, 'sprite');
-      const key = (sprite && typeof sprite === 'object' ? String((sprite as any).assetId ?? safeName) : safeName);
+      const key = (sprite && typeof sprite === 'object' ? String(sprite.assetId ?? safeName) : safeName);
       lines.push(`${indent}// ${entity.name || entity.id} (tilesprite)`);
       lines.push(`${indent}this.add.tileSprite(${x}, ${y}, ${w}, ${h}, '${key}');`);
       break;
@@ -243,7 +243,7 @@ export function compileScene(scene: Scene, opts: CompilerOptions): string {
   const loadedKeys = new Set<string>();
   for (const entity of entities) {
     const sprite = getComp(entity, 'sprite');
-    const key = sprite && typeof sprite === 'object' ? (sprite as any).assetId as string : undefined;
+    const key = sprite && typeof sprite === 'object' ? sprite.assetId as string : undefined;
     if (key && !loadedKeys.has(key)) {
       loadedKeys.add(key);
       preloadLines.push(`${indent}this.load.image('${key}', 'assets/${key}.png');`);
