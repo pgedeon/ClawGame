@@ -1,3 +1,15 @@
+/**
+ * @clawgame/engine - Component Types
+ *
+ * These are RUNTIME component interfaces used by the ECS engine and Phaser runtime.
+ * They differ from @clawgame/shared component interfaces (which are domain/serialization shapes)
+ * because runtime components include engine-specific fields like HTMLImageElement references,
+ * physics state, and Phaser-specific properties.
+ *
+ * Do NOT merge these with shared types — they serve different layers.
+ * Use the conversion functions below to map between serializable (shared) and runtime (engine) shapes.
+ */
+
 export interface AnimationComponent {
   frames: string[];
   frameRate: number;

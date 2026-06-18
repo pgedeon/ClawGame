@@ -74,3 +74,13 @@ apps/api/data/projects/
 # Generated runtime data
 apps/api/data/assets/
 apps/api/data/exports/
+
+# Compiled JS/map artifacts alongside TS source
+*.js.map
+*.d.ts.map
+apps/web/src/utils/*.js
+apps/web/src/utils/*.d.ts
+
+# One-off scripts
+debug_test.js
+apply-*.js

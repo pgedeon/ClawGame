@@ -1,164 +1,89 @@
 # ClawGame Roadmap
 
-## Current Status: Milestone 8 — Recovery & Feature Expansion 🚧
-
-**Goal:** Restore repository trust, validate core flows, then expand AI-first features.
-
-**Started:** 2026-04-08
-
-
+**Current Status:** Post-M10 — Codebase Improvement Phase 🚧
+**Goal:** Clean up technical debt, unify types, improve test coverage, then resume feature work.
+**Started:** 2026-06-18
 
 ---
 
 ## Completed Milestones
 
-### Milestone 1: Foundation ✅
-- Monorepo scaffold (pnpm workspaces)
-- React + Vite frontend, Fastify backend
-- Project CRUD API
-- Design system tokens
+### M0-M5: Foundation → AI-Native UX ✅
+- Monorepo scaffold, React + Vite frontend, Fastify backend
+- Project CRUD, file API, CodeMirror editor
+- 2D game engine, scene editor, live preview
+- Command palette, floating AI assistant, error boundaries, onboarding
+- OpenRouter AI integration, asset studio UI
 
-### Milestone 2: Code Workspace ✅
-- File workspace with tree, editor, search
-- Backend file API
-- CodeMirror 6 integration
-- AI command panel scaffold
+### M6: Backend Quality ✅
+- Pino logger migration, Vitest setup, build fixes
 
-### Milestone 3: 2D Runtime + Preview ✅
-- 2D game engine with delta time, game loop
-- Keyboard input (WASD + arrows)
-- Entity rendering, player movement, AI patrol
-- Game preview page with canvas, FPS counter, debug panel
+### M6.5: RPG Engine Systems ✅
+- Save/load, dialogue, quests, inventory, spell crafting, RPG HUD
+- Zustand state store, GamePreviewPage integration
 
-### Milestone 4: Visual Scene Editor ✅
-- Canvas-based visual editor with zoom/pan
-- Entity templates (Player, Enemy, Coin, Wall)
-- Property inspector (Transform, Components)
-- Scene save/load as JSON
-- Keyboard shortcuts, grid, snapping
+### M7: Git Integration ✅
+- Git Center UI (init, status, diff, commit, revert)
 
-### Milestone 4.1: Quality Fixes ✅
-- Code editor visibility fixed
-- Dark mode contrast (WCAG AA)
-- AI Command honest preview mode
-- Fullscreen preview toggle
-- Focus indicators for accessibility
+### M8: Feature Expansion ✅
+- AI UI overhaul (markdown, diff, confidence)
+- GamePreviewPage decomposition (1058→203 lines)
+- Critical bug fixes, recovery sprint
 
-### Milestone 4.5: AI-Native UX Foundation ✅ (v0.5.0)
-- Command Palette (Ctrl+K)
-- Floating AI assistant (FAB)
-- Toast notification system
-- Code-splitting (lazy pages, vendor chunks)
-- Sidebar command search bar
-
-### Milestone 5: AI-Native UX + Real AI + Asset Pipeline ✅ (v0.5.0 → v0.6.1)
-
-| Task | Status | Version |
-|------|--------|---------|
-| AI backend integration | ✅ Done | v0.5.2 — OpenRouter API connected |
-| Toast integration in editors | ✅ Done | v0.5.1 — FileWorkspace wired |
-| Asset generation workflow | ✅ Done | v0.6.0 — Placeholder SVGs, real AI to follow |
-| Asset Studio UI | ✅ Done | v0.6.0 — Three-panel, CRUD, filtering |
-| Command Palette | ✅ Done | v0.5.0 — Ctrl+K, keyboard nav |
-| Floating AI Assistant | ✅ Done | v0.5.0 — FAB on all project pages |
-| Error Boundaries | ✅ Done | v0.5.3 — Graceful failure |
-| Onboarding Tour | ✅ Done | v0.5.3 — 4-step AI-first intro |
-| Logger utility (frontend) | ✅ Done | v0.6.1 — Silent in prod, verbose in dev |
-| 404 Page | ✅ Done | v0.6.1 — Styled not-found page |
-| Documentation cleanup | ✅ Done | v0.6.1 — Memory, README, CHANGELOG aligned |
-
-### Milestone 6 Phase 1: Backend Quality ✅ (v0.7.0)
-
-| Task | Status | Version |
-|------|--------|---------|
-| Backend logger migration (console → pino) | ✅ Done | v0.7.0 — All 8 console.* calls replaced |
-| Vitest test framework setup | ✅ Done | v0.7.0 — 9 API smoke tests passing |
-| Build fix (TS export conflict) | ✅ Done | v0.7.0 — RealAIService logger migration |
-| M5 docs officially closed | ✅ Done | v0.7.0 — Roadmap, sprint, memory aligned |
+### M9-M10: Asset Factory ✅
+- Sprite analyzer, sheet slicer, pixel pipeline, tileset forge, batch utilities
+- Full API + UI integration
 
 ---
 
-## Current Phase: Milestone 6 — Phase 2+ (In Progress)
+## Current Phase: Codebase Improvement (2026-06-18)
 
-| Task | Status | Notes |
-|------|--------|-------|
-| Real AI asset generation (ComfyUI) | ⏳ Not Started | #1 differentiator — flagship feature |
-| Scene editor ↔ Asset pipeline integration | ⏳ Not Started | Drag assets from library into scenes |
-| Export/packaging pipeline | ⏳ Not Started | Let users ship games |
-| Visual scripting foundation | ⏳ Not Started | Node-based event system |
+See `IMPROVEMENT-PLAN.md` for detailed phases.
 
----
-
-
-### Milestone 6.5: RPG Engine Systems ✅ (v0.12.0-rc.1)
-
-Built for Eclipse of Runes, reusable across all ClawGame projects.
-
-| Task | Status | Notes |
-|------|--------|-------|
-| Save/Load System (API + UI) | ✅ Done | LocalStorage, 10 slots, quick save F5 |
-| Dialogue System (branching, choices, effects) | ✅ Done | Typewriter text, conditional lines, NPC portraits |
-| Quest System (tracking, objectives, rewards) | ✅ Done | Kill/collect/talk/explore, auto-progress, toasts |
-| Inventory System (grid, items, equip) | ✅ Done | 20 slots, stackable, 7 item types, drag-drop |
-| Spell Crafting System (3x3 rune grid) | ✅ Done | 6 recipes, 7 elements, hotkeys 1-8 |
-| RPG HUD (health, MP, gold, spells, quest) | ✅ Done | Canvas-based overlay |
-| RPG State Store (Zustand) | ✅ Done | Central state management |
-| GamePreviewPage RPG integration | ✅ Done | All systems wired into game loop |
-| End-to-end testing | ⏳ In Progress | Code compiles, manual browser test pending |
-
-## Future Milestones
-
-### Milestone 7: Git + OpenClaw Operations ✅ (v0.13.0)
-
-| Task | Status | Notes |
-|------|--------|-------|
-| Git integration UI | ✅ Done | Git Center page in web dashboard |
-| Auto-commit on save | ⏳ Not Started | Auto-commit code changes |
-| Branch management | ⏳ Not Started | Create/switch branches |
-
-### Milestone 8: Feature Expansion 🚧 (v0.13.0 → current)
-
-| Task | Status | Notes |
-|------|--------|-------|
-| AI UI overhaul (markdown, diff, confidence) | ✅ Done | v0.13.3 — Rich AI responses |
-| GamePreviewPage decomposition | ✅ Done | v0.13.4 — 1058→203 lines |
-| Critical bug fixes (AI context, preview, editor) | ✅ Done | v0.13.5 |
-| Recovery sprint (build/test/lint green) | ✅ Done | v0.13.5 |
-| AI status indicator accuracy | ⏳ In Progress | Distinguish real/mock/fallback |
-| Playwright browser testing | ⏳ Not Started | Automated smoke tests |
-| Visual scripting foundation | ⏳ Not Started | Node-based event system |
+| Phase | Description | Status |
+|-------|-------------|--------|
+| 0 | Ground truth cleanup (versions, backups, docs) | ✅ Done |
+| 1 | Type system unification | ⏳ Next |
+| 2 | `any` reduction & type safety | Pending |
+| 3 | Split mega-files | Pending |
+| 4 | Stub handler resolution | Pending |
+| 5 | CSS consolidation | Pending |
+| 6 | Test coverage expansion | Pending |
+| 7 | Runtime strategy decision | Pending |
+| 8 | Developer experience | Pending |
 
 ---
 
-## MVP Acceptance Criteria
+## Future Feature Milestones
 
-| Criteria | Status | Notes |
-|----------|--------|-------|
-| ✅ User can create a project from browser | Complete | Dashboard → Create Project flow |
-| ✅ User can inspect file changes in editor | Complete | CodeMirror with syntax highlighting |
-| ✅ User can run game in browser preview | Complete | 2D canvas with FPS/debug |
-| ✅ User can visually edit a 2D scene | Complete | Scene editor with drag-drop |
-| ✅ User can describe feature and AI implements | Complete | OpenRouter API connected |
-| 🚧 User can generate an asset via AI | In Progress | Placeholder SVGs, ComfyUI next |
-| ✅ User can play an RPG with saves, quests, dialogue, inventory, spells | Complete | v0.12.0-rc.1, Eclipse of Runes demo |
-| ⏳ User can init and commit to Git | Future | M7 Git + OpenClaw |
+### Next Feature Work (after improvement phases)
+
+| Task | Priority | Notes |
+|------|----------|-------|
+| Real AI asset generation (ComfyUI) | High | Flagship differentiator |
+| Scene editor ↔ Asset pipeline | High | Two powerful features in isolation |
+| Export/packaging pipeline | Medium | Let users ship games |
+| Visual scripting foundation | Medium | Node-based event system |
+| Playwright browser testing | Medium | Automated smoke tests |
+| Auto-commit on save | Low | Git workflow automation |
 
 ---
 
-## Known Issues & Technical Debt
+## Known Technical Debt
 
-1. **Asset generation is placeholder** — SVG rectangles, not real AI art. ComfyUI integration is M6 flagship.
-2. **Scene editor ↔ Asset gap** — Two powerful features working in isolation.
-3. **No Sprite Image Loading** — Scene editor uses color placeholders only.
-4. **No Undo/Redo** — Scene editor and editor pages lack undo history.
+1. **Duplicated types** — `packages/shared` and `packages/engine` define same components differently
+2. **192 `any` usages** — 112 `as any` casts across 70 files
+3. **Mock AI service** — `aiService.ts` is placeholder; `realAIService.ts` falls back to mock
+4. **14 stub handlers** — RPG crafting/spells/dialogue/replay exposed in UI but not wired
+5. **Legacy canvas runtime** — Feature-complete but deprecated; Phaser 4 runtime incomplete
+6. **17K lines CSS** — 40+ globally-scoped files
 
 ---
 
 See also:
+- [Improvement Plan](../../IMPROVEMENT-PLAN.md)
 - [Current Sprint](../tasks/current_sprint.md)
 - [Backlog](../tasks/backlog.md)
-- [PM Feedback](../ai/pm_feedback.md)
-- [UI/UX Feedback](../ai/uiux_feedback.md)
-- [Game Dev Feedback](../ai/game_dev_feedback.md)
+- [Known Issues](../qa/known_issues.md)
 
-## Last Updated: 2026-04-09
+**Last Updated:** 2026-06-18

@@ -1,46 +1,56 @@
 /**
- * @clawgame/web - API Client Types (M11 Enhanced)
- * Extended types for multi-model image generation and style presets.
+ * @clawgame/web - API Client Types
+ *
+ * Web-specific types for API communication.
+ *
+ * Where types overlap with @clawgame/shared, we import and re-export from shared.
+ * Web-only types (API request/response shapes, UI state) are defined here.
+ *
+ * Migration status: AssetType union kept for API serialization compat.
+ * AssetMetadata and GenerationResult are web-specific API response shapes
+ * that correspond to but may differ from shared domain types.
  */
 
-// M11: Extended asset types with full support
+// ── Web-specific AssetType union ──
+// Shared package has an enum version. This union is for API JSON serialization.
+// The values are identical, so they're structurally compatible.
 export type AssetType =
   | 'sprite' | 'tileset' | 'texture' | 'icon' | 'audio' | 'background' | 'effect'
   | 'character' | 'enemy' | 'npc' | 'prop' | 'chest' | 'ui' | 'video'
   | 'game-entity' | 'visual-asset' | 'sfx' | 'speech' | 'music';
 
-// M11 Enhanced style types with comprehensive game asset categories
-export type ExtendedStyleValue = 
-  // Basic styles (backward compatible)
+// ── Web-specific style types ──
+export type ExtendedStyleValue =
   | 'pixel' | 'vector' | 'hand-drawn' | 'cartoon' | 'realistic'
-  // Character-specific styles
   | 'character-pixel' | 'character-vector' | 'character-3d' | 'character-stylized'
-  // Enemy-specific styles  
   | 'enemy-fantasy' | 'enemy-sci-fi' | 'enemy-horror' | 'enemy-robot'
-  // Prop-specific styles
   | 'prop-fantasy' | 'prop-modern' | 'prop-ancient' | 'prop-futuristic'
-  // UI-specific styles
   | 'ui-flat' | 'ui-neumorphic' | 'ui-glassmorphic' | 'ui-retro'
-  // Background-specific styles
   | 'background-fantasy' | 'background-sci-fi' | 'background-nature' | 'background-abstract';
 
-// M11 Enhanced GenerateAssetRequest with multi-model support
+export type StyleValue = ExtendedStyleValue;
+
+// ── Generation types (web-specific API shapes) ──
+
+export type GenerationQuality = 'draft' | 'standard' | 'high' | 'ultra';
+export type GenerationFormat = 'svg' | 'png' | 'webp' | 'jpg';
+export type GenerationAspectRatio = '1:1' | '2:3' | '3:2' | '16:9' | '21:9' | 'square' | 'portrait' | 'landscape' | 'wide' | 'cinematic';
+
 export interface GenerateAssetRequest {
   type: AssetType;
   prompt: string;
   options?: {
     width?: number;
     height?: number;
-    style?: ExtendedStyleValue; // M11: Extended style values
+    style?: ExtendedStyleValue;
     format?: 'png' | 'svg' | 'webp';
     backgroundColor?: string;
-    model?: 'zai' | 'openai' | 'stability' | 'local'; // M11: Multi-model support
-    quality?: 'draft' | 'standard' | 'high' | 'ultra'; // M11: Quality presets
-    aspectRatio?: '1:1' | '4:3' | '16:9' | '3:4' | '9:16'; // M11: Aspect ratios
+    model?: 'zai' | 'openai' | 'stability' | 'local';
+    quality?: GenerationQuality;
+    aspectRatio?: GenerationAspectRatio;
   };
 }
 
-// M11 Enhanced GenerationStatus with detailed model and quality information
 export interface GenerationStatus {
   id: string;
   projectId: string;
@@ -56,19 +66,19 @@ export interface GenerationStatus {
     error?: string;
     generatedAt: string;
     generationTime: number;
-    model: string; // M11: Track which model generated this
-    quality?: string; // M11: Track quality setting
-    confidence?: number; // M11: Confidence score
+    model: string;
+    quality?: string;
+    confidence?: number;
   };
   error?: string;
   createdAt: string;
   updatedAt: string;
-  model?: string; // M11: Track the model used
-  quality?: string; // M11: Track the quality setting
-  style?: string; // M11: Track the style used
+  model?: string;
+  quality?: string;
+  style?: string;
 }
 
-// M11: Asset metadata with generation information
+// AssetMetadata: web API response shape (corresponds to shared.AssetMetadata)
 export interface AssetMetadata {
   id: string;
   projectId: string;
@@ -86,18 +96,17 @@ export interface AssetMetadata {
     model: string;
     confidence: number;
     parameters?: Record<string, unknown>;
-    quality?: string; // M11: Include quality data
+    quality?: string;
   };
   aiGeneration?: {
     model: string;
     style: string;
     prompt: string;
     duration: number;
-    quality?: string; // M11: Include quality data
+    quality?: string;
   };
 }
 
-// M11: Asset service types
 export interface AssetStats {
   total: number;
   byType: Record<string, number>;
@@ -107,7 +116,6 @@ export interface AssetStats {
   uploaded: number;
 }
 
-// M11: Scene analysis types
 export interface SceneAnalysis {
   totalAssets: number;
   sceneAssets: number;
@@ -129,19 +137,12 @@ export interface SceneSuggestion {
   priority: 'high' | 'medium' | 'low';
 }
 
-// M11: Generation health types
 export interface GenerationHealth {
   status: string;
   models: Record<string, { status: string; lastUsed?: string }>;
   features: string[];
   lastUpdated: string;
 }
-
-// Legacy types for backward compatibility
-export type StyleValue = ExtendedStyleValue; // Alias for backward compatibility
-export type GenerationQuality = 'draft' | 'standard' | 'high' | 'ultra';
-export type GenerationFormat = 'svg' | 'png' | 'webp' | 'jpg';
-export type GenerationAspectRatio = '1:1' | '2:3' | '3:2' | '16:9' | '21:9' | 'square' | 'portrait' | 'landscape' | 'wide' | 'cinematic';
 
 export interface GenerationResult {
   content: string;
@@ -160,7 +161,6 @@ export interface GenerationResult {
   };
 }
 
-// M11: Asset upload types
 export interface UploadAssetRequest {
   name: string;
   type: AssetType;
@@ -168,7 +168,8 @@ export interface UploadAssetRequest {
   mimeType?: string;
 }
 
-// M11: AI Command types (unchanged from existing)
+// ── AI Command types (web-specific API shapes) ──
+
 export interface AICommandRequest {
   projectId?: string;
   command: string;
@@ -248,6 +249,8 @@ export interface AICommandStreamOptions extends AICommandRequestOptions {
   onChunk?: (chunk: string) => void;
 }
 
+// ── Project types (web-specific API shapes) ──
+
 export interface CreateProjectInput {
   name: string;
   description?: string;
@@ -291,6 +294,8 @@ export interface ProjectDetail extends ProjectListItem {
   };
 }
 
+// ── File types (web-specific) ──
+
 export interface FileNode {
   name: string;
   path: string;
@@ -315,6 +320,8 @@ export interface FileWriteResult {
   created: boolean;
 }
 
+// ── Export types (web-specific) ──
+
 export interface ExportOptions {
   includeAssets?: boolean;
   minify?: boolean;
@@ -334,6 +341,8 @@ export interface ExportResult {
   includesAssets: boolean;
   assetCount: number;
 }
+
+// ── Hosted export types (web-specific) ──
 
 export interface HostedOptions {
   title?: string;

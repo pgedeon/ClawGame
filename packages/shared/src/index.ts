@@ -373,6 +373,7 @@ export interface AssetMetadata {
     model: string;
     confidence: number;
     parameters?: Record<string, unknown>;
+    quality?: string;
   };
   aiGeneration?: {
     model: string;
