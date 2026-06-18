@@ -562,9 +562,9 @@ export class PhaserSceneEditor extends Phaser.Scene {
     const width = sprite?.width || collision?.width || entity.transform.width || 32;
     const height = sprite?.height || collision?.height || entity.transform.height || 32;
     const color = this.parseColor(sprite?.color, entity.type);
-    const assetRefValue = (sprite as any)?.assetRef;
+    const assetRefValue = sprite?.assetRef;
     const assetRef = assetRefValue ? String(assetRefValue) : null;
-    const phaserKind = (entity as any).phaserKind;
+    const phaserKind = entity.phaserKind;
     const renderKind = this.resolveRenderKind(phaserKind, assetRef);
     const visible = entity.visible !== false;
     const locked = Boolean(entity.locked);
@@ -636,11 +636,11 @@ export class PhaserSceneEditor extends Phaser.Scene {
     if (!body) return;
 
     body.setSize(collision.width || render.width, collision.height || render.height);
-    body.setOffset((collision as any).offsetX || 0, (collision as any).offsetY || 0);
-    body.setAllowGravity(Boolean((collision as any).allowGravity));
-    body.setImmovable((collision as any).immovable ?? isStatic);
-    body.setBounce((collision as any).bounce ?? 0);
-    body.setDrag((collision as any).drag ?? 0);
+    body.setOffset(collision.offsetX || 0, collision.offsetY || 0);
+    body.setAllowGravity(Boolean(collision.allowGravity));
+    body.setImmovable(collision.immovable ?? isStatic);
+    body.setBounce(collision.bounce ?? 0);
+    body.setDrag(collision.drag ?? 0);
     render.body = body;
   }
 
