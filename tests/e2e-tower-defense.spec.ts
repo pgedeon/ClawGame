@@ -9,7 +9,7 @@ async function waitForAppReady(page: Page) {
 async function createTowerDefenseProject(request: any): Promise<string> {
   const response = await request.post('http://localhost:3000/api/projects', {
     data: {
-      name: `E2E Tower Defense ${Date.now()}`,
+      name: 'Coffee Run Defense E2E',
       genre: 'strategy',
       artStyle: 'pixel',
       description: 'Playwright E2E test tower defense game',
@@ -140,7 +140,7 @@ test.describe('ClawGame E2E — Tower Defense Game', () => {
     await waitForAppReady(page);
     await page.waitForTimeout(2000);
     // Project should be listed
-    await page.waitForSelector('text=E2E Tower Defense', { timeout: 5000 }).catch(() => null);
+    await page.waitForSelector('text=Coffee Run Defense', { timeout: 5000 }).catch(() => null);
     expect(true).toBeTruthy();
   });
 
@@ -148,7 +148,7 @@ test.describe('ClawGame E2E — Tower Defense Game', () => {
     const resp = await request.get(`http://localhost:3000/api/projects/${projectId}`);
     expect(resp.ok()).toBeTruthy();
     const body = await resp.json();
-    expect(body.name).toContain('E2E Tower Defense');
+    expect(body.name).toContain('Coffee Run Defense');
     expect(body.id).toBe(projectId);
     expect(body.genre).toBe('strategy');
   });
