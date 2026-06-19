@@ -13,16 +13,19 @@ export {
   resolvePreviewRuntimeSelection,
   setRequestedPreviewRuntimeKind,
 } from './previewRuntimeConfig';
-export { LEGACY_CANVAS_RUNTIME_DESCRIPTOR } from './legacyCanvasRuntime';
-export {
-  runLegacyCanvasPreviewSession,
-  type LegacyCanvasPreviewSessionOptions,
-} from './legacyCanvasSession';
+export type {
+  PreviewRuntimeSessionOptions,
+  PreviewRuntimeGameStats,
+  PreviewRuntimeGameLoopController,
+  StateSetter,
+} from './sessionTypes';
 export {
   preparePhaserPreviewSession,
   type PhaserPreviewPreparation,
+  type PhaserSessionHandle,
+  type TDOverlayState,
 } from './phaserPreviewSession';
 export {
   runPreviewRuntimeSession,
-  type PreviewRuntimeSessionOptions,
+  type PreviewRuntimeSessionCallbacks,
 } from './runPreviewRuntimeSession';

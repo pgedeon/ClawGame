@@ -1,7 +1,6 @@
-import { LEGACY_CANVAS_RUNTIME_DESCRIPTOR } from './legacyCanvasRuntime';
 import type {
-  PreviewRuntimeKind,
   PreviewRuntimeDescriptor,
+  PreviewRuntimeKind,
   PreviewRuntimeSelection,
 } from './PreviewRuntime';
 
@@ -23,7 +22,6 @@ export const PHASER4_RUNTIME_DESCRIPTOR: PreviewRuntimeDescriptor = {
 };
 
 const PREVIEW_RUNTIME_DESCRIPTORS: Record<PreviewRuntimeKind, PreviewRuntimeDescriptor> = {
-  'legacy-canvas': LEGACY_CANVAS_RUNTIME_DESCRIPTOR,
   phaser4: PHASER4_RUNTIME_DESCRIPTOR,
 };
 
@@ -35,7 +33,7 @@ function getDefaultStorage(): StorageLike | undefined {
 }
 
 function normalizePreviewRuntimeKind(value: string | null | undefined): PreviewRuntimeKind | null {
-  if (value === 'legacy-canvas' || value === 'phaser4') return value;
+  if (value === 'phaser4') return value;
   return null;
 }
 
@@ -63,11 +61,5 @@ export function setRequestedPreviewRuntimeKind(kind: PreviewRuntimeKind, storage
 export function resolvePreviewRuntimeSelection(storage?: StorageLike): PreviewRuntimeSelection {
   const requestedKind = getRequestedPreviewRuntimeKind(storage);
   const requested = PREVIEW_RUNTIME_DESCRIPTORS[requestedKind];
-
-  if (requested.available) {
-    return { requested, active: requested, fellBack: false };
-  }
-
-  const fallback = LEGACY_CANVAS_RUNTIME_DESCRIPTOR;
-  return { requested, active: fallback, fellBack: true, reason: `${requested.shortLabel} not available` };
+  return { requested, active: requested, fellBack: false };
 }

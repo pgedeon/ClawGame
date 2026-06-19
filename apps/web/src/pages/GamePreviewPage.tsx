@@ -45,7 +45,7 @@ const GamePreviewContent: React.FC = () => {
   const {
     previewRuntime,
     runtimeHostRef,
-    canvasRef, gameStats, gameStarted, gamePaused, gameOver, victory,
+    gameStats, gameStarted, gamePaused, gameOver, victory,
     playerScore, highScore, playerHealth, playerMana, collectedRunes, timeElapsed,
     towerDefenseOverlay,
     activePanel, notifications, inventoryItems, questList,
@@ -61,7 +61,6 @@ const GamePreviewContent: React.FC = () => {
     handleSelectTowerType,
     handleToggleRecording, handlePlayReplay, handlePauseReplay, handleSeekReplay, handleStepBackReplay, handleStepReplay, handleResetReplay, handleDownloadReplay,
     minimapData,
-    runtimeKind,
     runtimeErrors,
   } = useGamePreview(projectId ?? '', projectScene, projectGenre);
 
@@ -149,13 +148,11 @@ const GamePreviewContent: React.FC = () => {
           <div className="gp-canvas-fill">
             <PreviewCanvas
               runtimeHostRef={runtimeHostRef}
-              canvasRef={canvasRef}
               towerDefenseOverlay={towerDefenseOverlay}
               playerMana={playerMana}
               showTowerDefenseUi={gameStarted && !gameOver && !victory}
               onSelectTowerType={handleSelectTowerType}
               minimapData={minimapData}
-              runtimeKind={runtimeKind}
             />
           </div>
         ) : (
@@ -167,13 +164,11 @@ const GamePreviewContent: React.FC = () => {
               <div className="gp-device-screen">
                 <PreviewCanvas
                   runtimeHostRef={runtimeHostRef}
-                  canvasRef={canvasRef}
-                  towerDefenseOverlay={towerDefenseOverlay}
+                      towerDefenseOverlay={towerDefenseOverlay}
                   playerMana={playerMana}
                   showTowerDefenseUi={gameStarted && !gameOver && !victory}
                   onSelectTowerType={handleSelectTowerType}
-                  runtimeKind={runtimeKind}
-                />
+                    />
               </div>
             </div>
             <div className="gp-device-info">

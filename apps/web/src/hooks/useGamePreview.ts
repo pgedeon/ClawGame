@@ -13,7 +13,13 @@ import type { SpellCraftingManager } from '../rpg/spellcrafting';
 import type { QuestManager } from '../rpg/quests';
 import {
   runPreviewRuntimeSession,
+  type PreviewRuntimeSessionCallbacks,
 } from '../runtime/runPreviewRuntimeSession';
+import {
+  PHASER4_RUNTIME_DESCRIPTOR,
+  listPreviewRuntimeDescriptors,
+  setRequestedPreviewRuntimeKind,
+} from '../runtime/previewRuntimeConfig';
 import type { PhaserRuntimeError } from '../../../../packages/phaser-runtime/src';
 import type { PhaserSessionHandle } from '../runtime/phaserPreviewSession';
 import type { TowerDefenseOverlayState, TowerType } from '../utils/previewTowerDefense';
@@ -58,16 +64,6 @@ export const GENRE_CONTROLS: Record<string, { description: string; items: Array<
   ]},
 };
 
-// ─── Runtime descriptor helpers ───
-const RUNTIME_DESCRIPTORS: Record<string, { label: string; shortLabel: string; description: string }> = {
-  'legacy-canvas': { label: 'Canvas Runtime', shortLabel: 'Canvas', description: 'Legacy HTML5 Canvas runtime' },
-  'phaser4': { label: 'Phaser 4 Runtime', shortLabel: 'Phaser 4', description: 'Phaser 4 physics-enabled runtime' },
-};
-
-function getRuntimeDescriptor(kind: string) {
-  return RUNTIME_DESCRIPTORS[kind] || RUNTIME_DESCRIPTORS['legacy-canvas'];
-}
-
 function getRuntimeErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (typeof error === 'string') return error;
@@ -81,7 +77,6 @@ export function useGamePreview(
   projectGenre: string = 'platformer',
 ) {
   // Core refs
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
   const gameStatsRef = useRef({ fps: 60, entities: 0, memory: 'N/A' });
   const highScoreRef = useRef(0);
@@ -163,13 +158,13 @@ export function useGamePreview(
   const replayDataRef = useRef<ReplayData | null>(null);
   const pendingReplayStepMsRef = useRef(0);
 
-  // Runtime kind from localStorage
-  const runtimeKind = localStorage.getItem('clawgame-preview-runtime') || 'phaser4';
+  // Runtime — always Phaser 4 (legacy canvas removed in Phase 7)
+  const runtimeKind = 'phaser4';
   const previewRuntime = {
-    active: getRuntimeDescriptor(runtimeKind),
-    kinds: RUNTIME_DESCRIPTORS,
+    active: PHASER4_RUNTIME_DESCRIPTOR,
+    kinds: Object.fromEntries(listPreviewRuntimeDescriptors().map(d => [d.kind, d])),
     select: (kind: string) => {
-      localStorage.setItem('clawgame-preview-runtime', kind);
+      setRequestedPreviewRuntimeKind(kind as 'phaser4');
       window.location.reload();
     },
   };
@@ -325,28 +320,13 @@ export function useGamePreview(
 
   // Initialize preview runtime session
   useEffect(() => {
-    // Check the right ref based on runtime kind
-    const needsCanvas = runtimeKind === 'legacy-canvas';
-    const needsHost = runtimeKind === 'phaser4';
-
-    if (needsCanvas && !canvasRef.current) return;
-    if (needsHost && !runtimeHostRef.current) return;
+    if (!runtimeHostRef.current) return;
 
     let mounted = true;
     setRuntimeErrors([]);
-    const cleanup = runPreviewRuntimeSession(runtimeKind, {
-      canvasRef, animationRef, gameStatsRef, highScoreRef, gameLoopState,
-      activeScene: activeSceneRef, projectGenre, gameStarted, gamePaused, gameOver, victory,
-      setGameStats, setPlayerScore, setPlayerHealth, setPlayerMana,
-      setCollectedRunes, setTimeElapsed,
-      setActivePanel: (p: UIPanel) => setActivePanel(p),
-      setTowerDefenseOverlayState: setTowerDefenseOverlay,
-      inventoryRef, questMgrRef, dialogueMgrRef, spellMgrRef, combatLogRef: combatLogManagerRef,
-      replayRecorderRef, replayPlayerRef, replayDataRef, pendingReplayStepMsRef,
-      syncRPGState, handleSave, runtimeHostRef,
+    const sessionCallbacks: PreviewRuntimeSessionCallbacks = {
       onPhaserSession: (handle: PhaserSessionHandle) => {
         phaserSessionRef.current = handle;
-        // Wire TD state sync from Phaser → React
         handle.onTDStateChange = (state) => {
           setTowerDefenseOverlay({
             enabled: state.enabled,
@@ -367,17 +347,33 @@ export function useGamePreview(
           },
         ]);
       },
-    });
+    };
+    const cleanup = runPreviewRuntimeSession(runtimeKind, {
+      activeScene: activeSceneRef as any, projectGenre, gameStarted, gamePaused, gameOver, victory,
+      setGameStats, setPlayerScore, setPlayerHealth, setPlayerMana,
+      setCollectedRunes, setTimeElapsed,
+      setActivePanel: (p: UIPanel) => setActivePanel(p),
+      setTowerDefenseOverlayState: setTowerDefenseOverlay,
+      inventoryRef, questMgrRef, dialogueMgrRef, spellMgrRef, combatLogRef: combatLogManagerRef,
+      replayRecorderRef, replayPlayerRef, replayDataRef, pendingReplayStepMsRef,
+      syncRPGState, handleSave, runtimeHostRef,
+      canvasRef: { current: null } as React.RefObject<HTMLCanvasElement>,
+      animationRef, gameStatsRef, highScoreRef, gameLoopState: gameLoopState as any,
+      isRecording: false, replaySessionKey: 0, replayAutoplay: false,
+      replayStartProgress: 0, questHUDText: '',
+      setGameOver, setVictory, setPlaybackTime, setPlaybackProgress, setIsPlayingBack,
+      setGamePaused,
+      setDialogueSpeaker, setDialoguePortrait, setDialogueText, setDialogueChoices,
+    }, sessionCallbacks);
 
     return () => {
       mounted = false;
       cleanup?.();
     };
-  }, [runtimeKind, projectGenre, syncRPGState, handleSave, sceneKey]);
+  }, [projectGenre, syncRPGState, handleSave, sceneKey]);
 
   // Return all state and handlers
   return {
-    canvasRef,
     animationRef,
     gameStatsRef,
     highScoreRef,

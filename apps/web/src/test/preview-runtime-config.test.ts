@@ -24,14 +24,13 @@ describe('preview runtime config', () => {
     expect(selection.fellBack).toBe(false);
   });
 
-  it('keeps the legacy canvas runtime active when explicitly requested', () => {
+  it('falls back to phaser4 when legacy-canvas is requested (legacy removed)', () => {
     const storage = { getItem: vi.fn(() => 'legacy-canvas'), setItem: vi.fn() };
 
     const selection = resolvePreviewRuntimeSelection(storage);
 
-    expect(selection.requested.kind).toBe('legacy-canvas');
-    expect(selection.active.kind).toBe('legacy-canvas');
-    expect(selection.fellBack).toBe(false);
+    // Legacy canvas was removed in Phase 7 — always resolves to phaser4
+    expect(selection.active.kind).toBe('phaser4');
   });
 
   it('persists the requested runtime kind to storage', () => {
@@ -42,9 +41,9 @@ describe('preview runtime config', () => {
     expect(storage.setItem).toHaveBeenCalledWith('clawgame-preview-runtime', 'phaser4');
   });
 
-  it('lists both known preview runtime descriptors', () => {
+  it('lists phaser4 as the only preview runtime descriptor', () => {
     const descriptors = listPreviewRuntimeDescriptors();
 
-    expect(descriptors.map((descriptor) => descriptor.kind)).toEqual(['legacy-canvas', 'phaser4']);
+    expect(descriptors.map((descriptor) => descriptor.kind)).toEqual(['phaser4']);
   });
 });

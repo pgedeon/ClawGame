@@ -1,4 +1,4 @@
-import type { LegacyCanvasPreviewSessionOptions } from './legacyCanvasSession';
+import type { PreviewRuntimeSessionOptions } from './sessionTypes';
 import {
   ClawgamePhaserRuntime,
   buildPhaserPreviewBootstrap,
@@ -29,9 +29,10 @@ export interface TDOverlayState {
 
 export function preparePhaserPreviewSession(
   _selection: string,
-  options: LegacyCanvasPreviewSessionOptions,
+  options: PreviewRuntimeSessionOptions,
 ): PhaserPreviewPreparation {
-  const sceneData = options.activeScene?.current ?? options.activeScene;
+  const sceneRef = options.activeScene as any;
+  const sceneData = sceneRef?.current ?? sceneRef;
   const bootstrap = buildPhaserPreviewBootstrap(sceneData || { entities: [], name: 'empty' });
   (bootstrap as any)._rawSceneData = sceneData;
 
@@ -95,7 +96,6 @@ export function runPhaserPreviewSession(
   if (genre === 'tower-defense') {
     const tdScene = new TowerDefenseScene();
     sceneInstance = tdScene;
-    // Wire up periodic state sync
     tdScene.setStateSyncCallback((state) => {
       tdStateCallback?.(state);
     });

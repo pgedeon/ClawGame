@@ -1,4 +1,4 @@
-export type PreviewRuntimeKind = 'legacy-canvas' | 'phaser4';
+export type PreviewRuntimeKind = 'phaser4';
 
 export interface PreviewRuntimeDescriptor {
   kind: PreviewRuntimeKind;

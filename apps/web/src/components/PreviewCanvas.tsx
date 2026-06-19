@@ -11,32 +11,23 @@ import {
 
 interface PreviewCanvasProps {
   runtimeHostRef: React.RefObject<HTMLDivElement>;
-  canvasRef: React.RefObject<HTMLCanvasElement>;
   towerDefenseOverlay: TowerDefenseOverlayState | null;
   playerMana: number;
   showTowerDefenseUi: boolean;
   onSelectTowerType: (towerType: TowerType) => void;
   minimapData?: { playerX: number; playerY: number; entities: MinimapEntity[] };
-  runtimeKind: string;
 }
 
 export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
   runtimeHostRef,
-  canvasRef,
   towerDefenseOverlay,
   playerMana,
   showTowerDefenseUi,
   onSelectTowerType,
   minimapData,
-  runtimeKind,
 }) => {
   return (
     <div ref={runtimeHostRef} className="game-preview-runtime-host">
-      {/* Legacy canvas runtime needs explicit canvas element */}
-      {runtimeKind === 'legacy-canvas' && (
-        <canvas ref={canvasRef} className="game-preview-canvas" />
-      )}
-
       {minimapData && minimapData.playerX !== 0 && (
         <DungeonMinimap
           playerX={minimapData.playerX}

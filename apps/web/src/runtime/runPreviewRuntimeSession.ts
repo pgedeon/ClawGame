@@ -1,19 +1,15 @@
 import type { MutableRefObject } from 'react';
 import {
-  runLegacyCanvasPreviewSession,
-  type LegacyCanvasPreviewSessionOptions,
-} from './legacyCanvasSession';
-import {
   preparePhaserPreviewSession,
   runPhaserPreviewSession,
 } from './phaserPreviewSession';
 import type { PhaserRuntimeError } from '../../../../packages/phaser-runtime/src';
 import type { PhaserSessionHandle } from './phaserPreviewSession';
+import type { PreviewRuntimeSessionOptions } from './sessionTypes';
 
 export type PreviewRuntimeSelection = string;
 
-export interface PreviewRuntimeSessionOptions extends LegacyCanvasPreviewSessionOptions {
-  runtimeHostRef: MutableRefObject<HTMLDivElement | null>;
+export interface PreviewRuntimeSessionCallbacks {
   onRuntimeError?: (error: PhaserRuntimeError) => void;
   onPhaserSession?: (handle: PhaserSessionHandle) => void;
 }
@@ -27,6 +23,7 @@ function combineCleanups(cleanups: Array<(() => void) | void>): (() => void) | v
 export function runPreviewRuntimeSession(
   selection: PreviewRuntimeSelection,
   options: PreviewRuntimeSessionOptions,
+  callbacks?: PreviewRuntimeSessionCallbacks,
 ): (() => void) | void {
   const cleanups: Array<(() => void) | void> = [];
 
@@ -39,17 +36,12 @@ export function runPreviewRuntimeSession(
         hostEl,
         preparation.bootstrap,
         preparation.genre,
-        options.onRuntimeError,
+        callbacks?.onRuntimeError,
       );
       cleanups.push(session.destroy);
-      // Notify parent hook so it can wire React UI → Phaser scene
-      options.onPhaserSession?.(session);
+      callbacks?.onPhaserSession?.(session);
     }
-  } else {
-    cleanups.push(runLegacyCanvasPreviewSession(options));
   }
 
   return combineCleanups(cleanups);
 }
-
-export type { PreviewRuntimeDescriptor } from './previewRuntimeConfig';

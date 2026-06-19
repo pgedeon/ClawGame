@@ -34,7 +34,7 @@ export interface PreviewRuntimeSessionOptions {
   gameStatsRef: MutableRefObject<PreviewRuntimeGameStats>;
   highScoreRef: MutableRefObject<number>;
   gameLoopState: MutableRefObject<PreviewRuntimeGameLoopController | null>;
-  activeScene: ProjectScene;
+  activeScene: MutableRefObject<ProjectScene | null>;
   projectGenre: string;
   gameStarted: boolean;
   gamePaused: boolean;
@@ -67,11 +67,11 @@ export interface PreviewRuntimeSessionOptions {
   setPlayerMana: StateSetter<number>;
   setTimeElapsed: StateSetter<number>;
   setGamePaused: StateSetter<boolean>;
-  setActivePanel: StateSetter<UIPanel>;
+  setActivePanel: (panel: UIPanel) => void;
   setDialogueSpeaker: StateSetter<string>;
   setDialoguePortrait: StateSetter<string>;
   setDialogueText: StateSetter<string>;
   setDialogueChoices: StateSetter<{ text: string; index: number }[]>;
   setGameStats: StateSetter<PreviewRuntimeGameStats>;
-  setTowerDefenseOverlayState: StateSetter<TowerDefenseOverlayState>;
+  setTowerDefenseOverlayState: StateSetter<TowerDefenseOverlayState | null>;
 }

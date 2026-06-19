@@ -193,7 +193,7 @@ export function getMapWaypoints(layout: MapLayout, w: number, h: number): Waypoi
       { x: w - 60,   y: 60 },        // go up to top
     ];
   }
-  // These waypoints MUST match the rendered dirt-road path in legacyCanvasSession.ts
+  // These waypoints MUST match the rendered dirt-road path in TowerDefenseScene.ts
   return [
     { x: 100, y: h + 20 },        // spawn below (off-screen)
     { x: 100, y: 460 },            // turn right
