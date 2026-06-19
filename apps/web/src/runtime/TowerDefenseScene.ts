@@ -38,6 +38,15 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
   private _gameOver = false;
   private _victory = false;
   private _selectedTowerId: string | null = null;
+  private hudWave!: GameObjects.Text;
+  private hudCore!: GameObjects.Text;
+  private hudScore!: GameObjects.Text;
+  private hudMana!: GameObjects.Text;
+  private coreHealthBar!: GameObjects.Rectangle;
+  private coreHealthBarBg!: GameObjects.Rectangle;
+  private _score = 0;
+  private _mana = 100;
+  private _maxMana = 100;
   private cursor!: GameObjects.Arc;
   private cursorLabel!: GameObjects.Text;
   private cursorSpeed: number = 300;
@@ -89,8 +98,69 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
     this.tdState = createTowerDefenseState(100, mapLayout, width, height);
     this.tdWaves = getTowerDefenseWaves({ name: this.bootstrap.sceneName } as any);
 
+    // ─── Background ───
+    const bg = this.add.rectangle(width / 2, height / 2, width, height, 0x1a1a2e);
+    bg.setDepth(-10);
+
+    // Subtle grid pattern
+    const gridGfx = this.add.graphics();
+    gridGfx.setDepth(-9);
+    gridGfx.lineStyle(1, 0x2a2a4e, 0.3);
+    for (let gx = 0; gx <= width; gx += 40) {
+      gridGfx.moveTo(gx, 0); gridGfx.lineTo(gx, height);
+    }
+    for (let gy = 0; gy <= height; gy += 40) {
+      gridGfx.moveTo(0, gy); gridGfx.lineTo(width, gy);
+    }
+    gridGfx.strokePath();
+
+    // ─── Path ───
     this.pathGraphics = this.add.graphics();
     this.drawPath(waypoints);
+
+    // ─── Core visual ───
+    const coreEntity = this.bootstrap.entities.find(e => e.type === 'player' || e.type === 'core');
+    if (coreEntity) {
+      // Pulsing glow around core
+      const coreGlow = this.add.circle(coreEntity.x, coreEntity.y, 40, 0x8b4513, 0.15);
+      coreGlow.setDepth(1);
+      this.tweens.add({
+        targets: coreGlow,
+        scale: { from: 1, to: 1.3 },
+        alpha: { from: 0.15, to: 0.05 },
+        duration: 1500,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.inOut',
+      });
+      // Core label
+      this.add.text(coreEntity.x, coreEntity.y - 35, '☕ CORE', {
+        fontSize: '11px', color: '#fbbf24', fontFamily: 'monospace', fontStyle: 'bold',
+      }).setOrigin(0.5).setDepth(15);
+    }
+
+    // ─── HUD ───
+    this.hudWave = this.add.text(12, 12, 'Wave: 0', {
+      fontSize: '14px', color: '#e2e8f0', fontFamily: 'monospace', fontStyle: 'bold',
+    }).setDepth(30);
+
+    this.hudCore = this.add.text(12, 32, 'Core: 100', {
+      fontSize: '14px', color: '#22c55e', fontFamily: 'monospace', fontStyle: 'bold',
+    }).setDepth(30);
+
+    this.hudScore = this.add.text(width - 12, 12, 'Score: 0', {
+      fontSize: '14px', color: '#fbbf24', fontFamily: 'monospace', fontStyle: 'bold',
+    }).setOrigin(1, 0).setDepth(30);
+
+    this.hudMana = this.add.text(width - 12, 32, 'Mana: 100', {
+      fontSize: '14px', color: '#60a5fa', fontFamily: 'monospace', fontStyle: 'bold',
+    }).setOrigin(1, 0).setDepth(30);
+
+    // Core health bar background
+    this.coreHealthBarBg = this.add.rectangle(width / 2, 8, 200, 8, 0x1e293b);
+    this.coreHealthBarBg.setDepth(31);
+    this.coreHealthBar = this.add.rectangle(width / 2 - 100, 8, 200, 6, 0x22c55e);
+    this.coreHealthBar.setOrigin(0, 0.5).setDepth(32);
 
     this.rangeIndicator = this.add.circle(0, 0, 100, 0xffffff, 0.1);
     this.rangeIndicator.setStrokeStyle(1, 0xffffff, 0.3);
@@ -210,6 +280,9 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
       this.startNextWave();
     }
 
+    // ─── Update HUD ───
+    this.updateHUD();
+
     const result = updateTowerDefenseFrame({
       canvasWidth: width, canvasHeight: height,
       currentTime: time, deltaTime: delta,
@@ -222,10 +295,45 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
     if (result.gameOver && !this._gameOver) { this._gameOver = true; this.onGameOver?.(); }
     if (result.victory && !this._victory) { this._victory = true; this.onVictory?.(); }
 
+    // Score tracking
+    if (result.enemiesDefeated) {
+      this._score += result.enemiesDefeated * 10;
+      this._mana = Math.min(this._maxMana, this._mana + 5);
+    }
+    // Screen shake on core damage
+    if (result.coreDamaged) {
+      this.cameras.main.shake(100, 0.005);
+    }
+
     this.syncEntities();
     this.syncProjectiles();
     this.syncTowers();
+    this.drawHealthBars();
     this.onStateUpdate?.(this.tdState, this.towers);
+  }
+
+  private healthBarGfx?: GameObjects.Graphics;
+
+  private drawHealthBars(): void {
+    if (!this.healthBarGfx) {
+      this.healthBarGfx = this.add.graphics();
+      this.healthBarGfx.setDepth(12);
+    }
+    this.healthBarGfx.clear();
+    for (const [, r] of this.renderEntityMap) {
+      const pct = (r as any).hpPct as number | undefined;
+      const barW = (r as any).barWidth as number | undefined;
+      const barY = (r as any).barY as number | undefined;
+      if (pct === undefined || barW === undefined || barY === undefined) continue;
+      const x = r.x - barW / 2;
+      // Background
+      this.healthBarGfx.fillStyle(0x000000, 0.5);
+      this.healthBarGfx.fillRect(x - 1, barY - 1, barW + 2, 5);
+      // Health
+      const color = pct > 0.6 ? 0x22c55e : pct > 0.3 ? 0xfbbf24 : 0xef4444;
+      this.healthBarGfx.fillStyle(color, 1);
+      this.healthBarGfx.fillRect(x, barY, barW * pct, 3);
+    }
   }
 
 
@@ -269,18 +377,65 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
     });
   }
 
+  private updateHUD(): void {
+    if (!this.tdState) return;
+    const wave = this.tdState.waveIndex || 0;
+    const core = this.tdState.coreHealth || 0;
+    const maxCore = this.tdState.maxCoreHealth || 100;
+
+    this.hudWave?.setText(`Wave: ${wave}`);
+    this.hudCore?.setText(`Core: ${core}`);
+    this.hudScore?.setText(`Score: ${this._score}`);
+    this.hudMana?.setText(`Mana: ${this._mana}`);
+
+    // Core health color
+    const corePct = core / maxCore;
+    const coreColor = corePct > 0.6 ? '#22c55e' : corePct > 0.3 ? '#fbbf24' : '#ef4444';
+    this.hudCore?.setColor(coreColor);
+
+    // Core health bar
+    if (this.coreHealthBar) {
+      this.coreHealthBar.width = Math.max(0, 200 * corePct);
+      this.coreHealthBar.setFillStyle(corePct > 0.6 ? 0x22c55e : corePct > 0.3 ? 0xfbbf24 : 0xef4444);
+    }
+  }
+
   private drawPath(waypoints: Waypoint[]): void {
     if (waypoints.length < 2) return;
-    this.pathGraphics.lineStyle(24, 0x6b5b3a, 0.3);
+    // Outer dark border
+    this.pathGraphics.lineStyle(28, 0x3d2b1f, 0.5);
     this.pathGraphics.beginPath();
     this.pathGraphics.moveTo(waypoints[0].x, waypoints[0].y);
     for (let i = 1; i < waypoints.length; i++) this.pathGraphics.lineTo(waypoints[i].x, waypoints[i].y);
     this.pathGraphics.strokePath();
-    this.pathGraphics.lineStyle(20, 0x8b7355, 0.6);
+    // Coffee-colored path
+    this.pathGraphics.lineStyle(22, 0x6b4226, 0.7);
     this.pathGraphics.beginPath();
     this.pathGraphics.moveTo(waypoints[0].x, waypoints[0].y);
     for (let i = 1; i < waypoints.length; i++) this.pathGraphics.lineTo(waypoints[i].x, waypoints[i].y);
     this.pathGraphics.strokePath();
+    // Inner highlight
+    this.pathGraphics.lineStyle(16, 0x8b6342, 0.4);
+    this.pathGraphics.beginPath();
+    this.pathGraphics.moveTo(waypoints[0].x, waypoints[0].y);
+    for (let i = 1; i < waypoints.length; i++) this.pathGraphics.lineTo(waypoints[i].x, waypoints[i].y);
+    this.pathGraphics.strokePath();
+    // Dashed center line
+    this.pathGraphics.lineStyle(2, 0xc4a67a, 0.3);
+    for (let i = 0; i < waypoints.length - 1; i++) {
+      const dx = waypoints[i + 1].x - waypoints[i].x;
+      const dy = waypoints[i + 1].y - waypoints[i].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const steps = Math.floor(dist / 20);
+      for (let s = 0; s < steps; s += 2) {
+        const t1 = s / steps;
+        const t2 = Math.min((s + 1) / steps, 1);
+        this.pathGraphics.beginPath();
+        this.pathGraphics.moveTo(waypoints[i].x + dx * t1, waypoints[i].y + dy * t1);
+        this.pathGraphics.lineTo(waypoints[i].x + dx * t2, waypoints[i].y + dy * t2);
+        this.pathGraphics.strokePath();
+      }
+    }
   }
 
   private syncEntities(): void {
@@ -310,6 +465,14 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
         this.renderEntityMap.set(id, r);
       }
       r.setPosition(entity.transform.x, entity.transform.y);
+      // Health bar above enemy
+      const hpPct = entity.health / entity.maxHealth;
+      const barWidth = Math.max(20, (entity.width || 24));
+      const barY = r.y - r.radius - 8;
+      // We'll draw health bars using the graphics object approach — store on the circle
+      (r as any).hpPct = hpPct;
+      (r as any).barWidth = barWidth;
+      (r as any).barY = barY;
     }
     for (const [id] of this.renderEntityMap) {
       if (!active.has(id)) this.removeRenderEntity(id);
@@ -357,9 +520,14 @@ export class TowerDefenseScene extends ClawgamePhaserScene {
         const cfg = TOWER_CONFIGS[tower.towerType];
         const base = this.add.rectangle(0, 0, 28, 28, this.parseColor(cfg.color));
         base.setOrigin(0.5, 0.5);
+        base.setStrokeStyle(2, 0x000000, 0.3);
         const range = this.add.circle(0, 0, tower.range, 0xffffff, 0.03);
         range.setStrokeStyle(0.5, 0xffffff, 0.1);
-        c.add([range, base]);
+        // Tower level indicator (stars)
+        const levelText = this.add.text(0, -2, '★'.repeat(tower.upgradeLevel || 0), {
+          fontSize: '8px', color: '#fbbf24', fontFamily: 'monospace',
+        }).setOrigin(0.5);
+        c.add([range, base, levelText]);
         this.towerContainers.set(tower.id, c);
         this.towerGroup.add(c);
       }

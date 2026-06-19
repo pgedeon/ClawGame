@@ -149,6 +149,8 @@ export interface UpdateTowerDefenseFrameOptions {
 export interface TowerDefenseUpdateResult {
   gameOver: boolean;
   victory: boolean;
+  enemiesDefeated?: number;
+  coreDamaged?: boolean;
 }
 
 export const DEFAULT_TOWER_DEFENSE_WAVES: TowerDefenseWave[] = [
@@ -489,6 +491,7 @@ function applyTowerDefenseProjectileDamage(
   if ((enemy.health || 0) <= 0) {
     const manaReward = getTowerDefenseEnemyManaBounty(enemy);
     registerTowerDefenseEnemyDefeat(state);
+    (state as any)._lastDefeatedCount = ((state as any)._lastDefeatedCount || 0) + 1;
     if (onEnemyDefeated) {
       onEnemyDefeated(enemy, manaReward);
     }
@@ -622,6 +625,7 @@ export function updateTowerDefenseFrame({
 
     if (target && waypointIdx >= pathWaypoints.length && pathWaypoints.length > 0) {
       state.coreHealth -= entity.damage || 5;
+      (state as any)._coreWasDamaged = true;
       registerTowerDefenseEnemyDefeat(state);
       entities.delete(entity.id);
       if (state.coreHealth < 0) state.coreHealth = 0;
@@ -860,8 +864,16 @@ export function updateTowerDefenseFrame({
     state.gamePhase = 'victory';
   }
 
+  // Track stats for this frame
+  const enemiesDefeated = (state as any)._lastDefeatedCount || 0;
+  (state as any)._lastDefeatedCount = 0;
+  const coreDamaged = (state as any)._coreWasDamaged || false;
+  (state as any)._coreWasDamaged = false;
+
   return {
     gameOver: state.coreHealth <= 0,
     victory: state.allWavesDone && state.enemiesAlive <= 0 && state.spawnQueue.length === 0,
+    enemiesDefeated,
+    coreDamaged,
   };
 }
