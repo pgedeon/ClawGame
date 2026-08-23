@@ -12,6 +12,17 @@ Append one dated section per work session (newest at top). Format:
 **Blockers:** <or "none">
 ```
 
+## 2026-08-23 21:25 — session-7 (feat/export-convergence-1)
+**Task:** Convergence step 1 per docs/export-parity.md gap summary items 1+2 — asset field mismatch + data URIs never loaded (gap 2); normalization missing on export path (gap 1).
+**Done:** Branch `feat/export-convergence-1` off main `1a57a9c`, two commits:
+1. `49c9e00` feat(api): export loads editor assets — `compileSceneToPhaser` reads `sprite.assetRef` with legacy `sprite.assetId` read-only fallback (preload collection + create() texture key); `exportToPhaserHTML` embeds project assets BEFORE compiling and passes the map through, so preload emits `this.load.image(ref, <dataUriConst>)` instead of a dead `assets/<id>.png` path. Parity probe flipped to narrowed divergence (both pipelines load referenced art; remaining sliver = key naming `asset:<ref>` vs raw `<ref>` + spritesheet/atlas kinds); legacy-fallback probe added.
+2. `2d7892b` feat(api): normalize before export — `normalizePreviewScene`/`inferEntityType` moved verbatim to `packages/engine/src/preview-scene.ts` (web `utils/previewScene.ts` now a re-export shim) so api shares it without cross-app relative imports; exported `prepareExportEntities()` normalizes scene JSON while preserving editor shape types (`text|zone|circle|rectangle`, outside engine EntityType union) for their render branches; `exportToPhaserHTML` feeds it into `compileSceneToPhaser`. Parity test mirrors production prep; new pins: typed entities no longer fall back to `'custom'` (player/enemy/collectible/obstacle spot checks + all-template no-custom sweep), shape types survive and hit add.text/add.zone branches. Body-delta baseline unchanged (+4/+2/+7 — inference introduces no zone/trigger types for shipped templates). Doc updates in both commits per regression-guard convention. Support: apps/api `@clawgame/engine` devDep→dep; api tsconfig +DOM lib + engine project reference.
+**Gates:** typecheck PASS all projects · api 68 passed (65 baseline + 3 new) · web 223 passed (untouched-green via shim) · engine 219 passed/3 skipped · phaser-runtime 10 passed.
+**Manual verify:** headless dual-path execution in parity test (real `compileSceneToPhaser` vs real `buildPhaserPreviewBootstrap` over normalized scenes); generated-code string assertions cover preload/create emission; no browser flow needed.
+**Incident:** remote `main` was fast-forwarded `1a57a9c`→`49c9e00` by another actor between my two pushes (verified via `git ls-remote` + fetch graph: plain ff, no merge commit). My pushes were explicit `git push origin feat/export-convergence-1` only; repo config has no push refspec/mirror overrides. Left main untouched per "no main merge" instruction — flagging for CEO awareness.
+**Next:** convergence step 2 candidates: body semantics (gap 3 trigger/sensor collapse), physics/world config passthrough (gap 4), canvas html-format normalization (gap 5).
+**Blockers:** none.
+
 ## 2026-08-23 19:45 — session-6 (chore/ai-provider-seam, AI-provider lane B)
 **Task:** P1 milestone 1 — opencode research + provider seam extraction (docs/ai-provider-spec.md).
 **Done:** Branch `chore/ai-provider-seam` off main `eef6d28`. Two commits:
