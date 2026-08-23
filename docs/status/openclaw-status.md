@@ -12,6 +12,14 @@ Append one dated section per work session (newest at top). Format:
 **Blockers:** <or "none">
 ```
 
+## 2026-08-23 23:10 — session-8 (plan/roadmap-retro-1, strategy lane)
+**Task:** Roadmap retro (retry after upstream LLM outage) — audit `docs/product/roadmap-2026H2.md` against status-log sessions 1–7 + git history through origin/main `e740925`; propose next-48h builder lanes.
+**Done:** Read-only audit; writes confined to `docs/product/roadmap-2026H2.md` + this entry on branch `plan/roadmap-retro-1` (stale pointer `49c9e00` ff'd to `e740925` first; branch had zero unique commits, verified no foreign history; shared worktree left on `feat/opencode-adapter`, edits done in a linked worktree). Roadmap: 10 items marked `[x]` with commit evidence (P0: audit pass, dead-code deletions, template integration tests, bug fix-or-file; P1: opencode research, provider seam + mock behind interface, openai-compat adapter + legacy-key migration, registry/fallback/breaker, `/api/ai/*` routes, fixture/gated contract tests). Stale framings annotated: P0 "one pipeline" partly superseded by the normalize-and-share convergence route (`2d7892b`); opencode "zero-config default" undefined since Zen requires a per-user key. Added dated "CEO decision requested" section: 4 rulings (parity-first re-scope, zero-config UX definition, anthropic-after-Settings-UI sequencing, core-eight deferral) + 6 ranked 48h lanes weighted by market-research takeaways (export ownership > deterministic edits > BYO-key).
+**Gates:** docs-only — no build/typecheck/test run; no source files touched.
+**Manual verify:** every checkbox claim cross-checked against `git log origin/main`, status entries, `docs/engine-audit.md`, `docs/export-parity.md` gap list, `docs/qa/known_issues.md`; mock-behind-interface claim verified by reading `apps/api/src/services/ai/registry.ts` ('mock' is a registry-resolved provider id).
+**Next:** CEO rulings on the 4 requested decisions; then dispatch lanes 1–3 (export body semantics, physics/world config passthrough, Settings → AI Providers UI).
+**Blockers:** none.
+
 ## 2026-08-23 21:25 — session-7 (feat/export-convergence-1)
 **Task:** Convergence step 1 per docs/export-parity.md gap summary items 1+2 — asset field mismatch + data URIs never loaded (gap 2); normalization missing on export path (gap 1).
 **Done:** Branch `feat/export-convergence-1` off main `1a57a9c`, two commits:
