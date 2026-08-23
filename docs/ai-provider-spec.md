@@ -88,3 +88,54 @@ Plus specifically:
 - OAuth flows for provider accounts. API keys only.
 - Server-side key sharing between users / multi-tenant.
 - Image/SFX generation providers (separate services already exist; leave them).
+
+---
+
+## Appendix: opencode research (P1 milestone 1, 2026-08-23)
+
+Sources: https://opencode.ai/docs/zen/ (official docs, fetched 2026-08-23), https://opencode.ai/zen (landing). Note: "opencode" is two things — the open-source terminal coding agent (`sst/opencode`) and **OpenCode Zen**, the team's hosted AI gateway. ClawGame's zero-config target is **Zen**, specifically its free-tier models.
+
+### Base URLs & endpoints
+
+Gateway root: `https://opencode.ai/zen/v1`
+
+Zen is **multi-protocol** — the URL path selects the wire protocol (official endpoint table maps each model to an AI SDK package):
+
+| Path | Protocol | Official SDK mapping |
+|---|---|---|
+| `/v1/chat/completions` | OpenAI Chat Completions compatible | `@ai-sdk/openai-compatible` |
+| `/v1/messages` | Anthropic Messages compatible | `@ai-sdk/anthropic` |
+| `/v1/responses` | OpenAI Responses API | `@ai-sdk/openai` |
+| `/v1/models/{model}` | Google Generative Language style | `@ai-sdk/google` |
+| `GET /v1/models` | full model catalog metadata | — |
+
+**Adapter decision: build the default `opencode` provider on our `openai-compat` adapter** — `POST https://opencode.ai/zen/v1/chat/completions`, Bearer key, SSE `choices[0].delta.content`. Every currently-free model is served on the chat/completions path, and this is byte-for-byte the wire format our existing z.ai/OpenRouter path already speaks. Claude-family models remain reachable later via the Anthropic-compatible `/v1/messages`, matching our planned native `anthropic` adapter.
+
+### Auth
+
+API key issued at https://opencode.ai/auth (sign in → billing → copy key). Sent as `Authorization: Bearer <key>` — inferred from the official `@ai-sdk/openai-compatible` mapping (that SDK always emits Bearer). **UNCONFIRMED:** no official curl example publishes the header explicitly.
+
+### Models
+
+Catalog: `GET https://opencode.ai/zen/v1/models` (official).
+
+Free models ($0 input/output/cached): `big-pickle`, `x-preview-f-free` (Ox Alpha Free), `mimo-v2.5-free`, `hy3-free`, `nemotron-3-ultra-free`, `nemotron-3.5-lightning-free` — all on `/chat/completions`; plus `muse-spark-1.2-contributor-free` on `/responses`. All free tiers are **limited-time** and can end without notice. Default first-run model should be picked from `/v1/models` at activation time, not hardcoded.
+
+### Request/response schemas
+
+- `/chat/completions`: standard OpenAI schema — `{model, messages[], temperature?, max_tokens?, stream?}` → `{choices[0].message.content}`; streaming = SSE `data:` lines carrying `choices[0].delta.content`, terminated by `data: [DONE]`.
+- `/messages`: standard Anthropic Messages schema — top-level `system`, content blocks, SSE `content_block_delta`.
+
+### Rate limits
+
+**UNCONFIRMED** — no published numbers. Expect standard HTTP 429 semantics; route through existing `rate_limited` handling.
+
+### Pricing / license / usage terms
+
+- Pay-as-you-go credits, optional auto-reload, workspace monthly spend caps; teams beta currently free.
+- Privacy: US-hosted; providers generally zero-retention / no training. Exceptions: Big Pickle, MiMo-V2.5 Free, Hy3 Free may train on submitted data during their free period; Nemotron free endpoints run under NVIDIA trial terms (logged, no confidential data); Muse Spark Contributor Free trades steep discount for training rights; OpenAI/Anthropic upstream retain requests 30 days.
+- Product implication: Settings copy must surface the free-model training caveat before users send project code through a free stealth model.
+
+### Confidence summary
+
+Confirmed via official docs: base URL, multi-protocol paths, model IDs, free-tier existence, pricing, privacy terms, `/v1/models` catalog. UNCONFIRMED: exact auth header example, rate-limit numbers, long-term availability of any specific free model ID.
