@@ -12,6 +12,17 @@ Append one dated section per work session (newest at top). Format:
 **Blockers:** <or "none">
 ```
 
+## 2026-08-23 19:45 — session-6 (chore/ai-provider-seam, AI-provider lane B)
+**Task:** P1 milestone 1 — opencode research + provider seam extraction (docs/ai-provider-spec.md).
+**Done:** Branch `chore/ai-provider-seam` off main `eef6d28`. Two commits:
+1. `4867e1c` docs(ai): opencode Zen research appendix in `docs/ai-provider-spec.md` — base URL `https://opencode.ai/zen/v1`, multi-protocol paths (`/chat/completions` OpenAI-compat, `/messages` Anthropic-compat, `/responses`, `/models/{model}`), auth Bearer key from opencode.ai/auth (header form UNCONFIRMED), model catalog `GET /zen/v1/models`, free models (`big-pickle`, `x-preview-f-free`, `mimo-v2.5-free`, `hy3-free`, `nemotron-3-ultra-free`, `nemotron-3.5-lightning-free`) all limited-time, rate limits UNCONFIRMED, privacy/training caveats for free tiers. Adapter decision: default `opencode` provider builds on the openai-compat adapter (all current free models live on `/chat/completions`).
+2. `a00ad6b` refactor(api): extract provider seam without behavior change — new `apps/api/src/services/ai/types.ts` (AIProvider interface per spec draft: id/listModels/complete/stream/healthCheck) + `services/ai/providers/openai-compat.ts` (OpenAI Chat Completions adapter; fetch/stream/error-classification helpers moved verbatim from realAIService.ts). realAIService.ts (848→625 lines) delegates `callWithRetry`/`streamApiCall` wire calls via `getProvider()` (fresh OpenAICompatProvider per call so .env dashboard edits apply without restart); circuit breaker, retry policy, fallback chain, mock path untouched; routes unchanged; USE_REAL_AI=false still answers via mock.
+**Gates:** api typecheck PASS · root `pnpm typecheck` PASS (5 projects) · root `pnpm test` PASS — api **61 passed** (42 baseline + 19 new), engine 219 passed/3 skipped, web 223 passed, phaser-runtime 10 passed · lint-staged typecheck PASS on both commits.
+**Manual verify:** targeted `npx vitest run src/services/ai/ai-provider.test.ts` 19/19 before full suite; no browser flow touched (service-layer only; routes byte-identical).
+**Incident:** parallel lane checked out `feat/export-parity-probe` mid-session; UNIT 2 commit briefly landed there. Recovered: cherry-picked onto `chore/ai-provider-seam` (→ `a00ad6b`), reset `feat/export-parity-probe` to its original `eef6d28` (verified no foreign commits), pushed. Remote tip verified via `git ls-remote`.
+**Next:** P1 milestone 2 — registry.ts + opencode adapter on the openai-compat base, anthropic native adapter, envConfig extension with legacy key migration.
+**Blockers:** none.
+
 ## 2026-08-23 17:00 — session-5 (test/template-integration)
 **Task:** Roadmap P0 item 4 — template integration tests via headless Engine tick harness.
 **Done:** Branch `test/template-integration` off main `9e9b549`. Three commits:
