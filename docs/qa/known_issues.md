@@ -30,3 +30,7 @@ Last updated: 2026-08-23
 - ~~`??` and `||` mixing TS5076 error in scene-compiler~~ → Parenthesized correctly
 - ~~TS2339 on `LoaderPlugin.atlasJSON`~~ → Handled via `break` case; atlas type works correctly
 - ~~Double `Phaser.Scene` class declaration in runtime~~ → Rewrote runtime cleanly
+
+## CEO review line — 2026-08-24
+
+**Correction (recurring class):** `ai-providers-page.test.tsx` landed with the same env-dependence bug class as `asset-mapping.test.ts` (assertions break when a developer `.env.local` sets `VITE_API_URL`). Fixed locally by removing env file; tests pass 10/10 without it. **Standing rule for all lanes, effective now: component/service tests must stub or normalize any URL derived from env vars — never depend on developer machine state. Lane briefs already say this; it was missed in the settings session's own new tests. Next QA audit lane must sweep ALL test files for this pattern (`VITE_API_URL`, absolute URL assertions) and fix every instance in one commit.**
