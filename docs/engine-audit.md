@@ -3,6 +3,7 @@
 **Date:** 2026-08-23 · **Branch:** `audit/engine-integrity` (from `origin/main` @ `68ff872`)
 **Scope:** every `.ts` file in `packages/engine/src/systems/`, `packages/phaser-runtime/src/`, plus `packages/engine/src/behavior/` if present.
 **Method:** read-only. Import graph grepped across the whole monorepo (`apps/web`, `apps/api`, `packages/*`, tests included, `dist/` and `node_modules` excluded). Runtime reachability traced from production entry points (`GamePreviewPage.tsx`, `SceneEditorPage.tsx`, API routes).
+**Verification (session-2, 2026-08-23 ~12:10):** every major claim below independently re-derived by a second session: `new Engine(` zero-hit reconfirmed; import graph re-grepped; both suites executed — `@clawgame/engine` 214 passed / 3 skipped (17 files), `@clawgame/phaser-runtime` 10 passed (3 files). Net-new findings appended in §5.
 **Worktree note:** analysis reflects the working tree at branch point, which carries pre-existing uncommitted local changes to `useGamePreview.ts`, `phaserPreviewSession.ts`, `TowerDefenseScene.ts`, `previewTowerDefense.ts` (additive TD wave/speed/level-select features). None of them change the wiring verdicts below.
 
 ## Verdict definitions
@@ -112,3 +113,26 @@ Consequence for the P0 thesis ("editor and export identical"): there are current
 - Gaps: `AISystem`, `CollisionSystem`, `ProjectileSystem`, `EnhancedRenderSystem` (integration-only), `RenderSystem` (skipped), `Engine.gameLoop` (nothing constructs `Engine`), `loadAssetPack`.
 
 *Audit is read-only; no source files were modified. Findings feed roadmap item "Delete dead systems identified by TASK.md + audit".*
+
+---
+
+## 5. Addendum — session-2 verification + net-new findings (2026-08-23 ~12:10)
+
+Independent second pass over the same scope. All §1–§4 verdicts reproduced unchanged (same grep evidence, same call paths). Additions:
+
+### 5.1 Test execution evidence (this session)
+
+- `pnpm --filter @clawgame/engine test` → **17 files, 214 passed / 3 skipped** (skips = the `describe.skip('RenderSystem')` DOM block).
+- `pnpm --filter @clawgame/phaser-runtime test` → **3 files, 10 passed**.
+
+### 5.2 Net-new deletion candidate: `apps/web/src/engine-stubs/` + `utils/engine-stubs.ts`
+
+`apps/web/src/engine-stubs/{GameLoopCoordinator,PreviewHUD,index}.ts` and `apps/web/src/utils/engine-stubs.ts` have **zero importers anywhere** (verified: no file imports `GameLoopCoordinator`, `PreviewHUD`, `SimpleEventBus`, or any `engine-stubs` path). They were created as compatibility shims in `83c7ef5` and never consumed. Delete as a trivial-risk batch **before** items 1–6 in §4 (they are web-side, so they also don't interact with the Engine-core decision). Note: `engine-stubs/GameLoopCoordinator.ts` imports types from `@clawgame/engine`, so deletion slightly shrinks the engine type-consumer surface too.
+
+### 5.3 Confirmation of the three-codegen picture with test counts
+
+The "three independent renderers" consequence in §3 was re-derived from scratch: editor canvas (`SceneEditorRuntime` → own `Phaser.Game`), live preview (`ClawgamePhaserRuntime` + genre scenes, gameplay in `apps/web/src/utils/previewTowerDefense.ts` + ~3,600 lines of scene subclasses), API export (`exportService.compileSceneToPhaser` + self-contained `export-templates.ts`, 614 L, zero imports). Compiled output drives none of the three; export embeds no genre gameplay, so exported HTML ≠ preview behavior for every shipped genre today.
+
+### 5.4 Priority tweak to §4 wiring list
+
+Before the single-compiler refactor (§4 W1), do the dependency-hygiene fix: declare `"@clawgame/phaser-runtime": "workspace:*"` in `apps/web/package.json` and replace the relative `'../../../../packages/phaser-runtime/src'` imports (7 import sites across `apps/web/src/runtime/*` and `useGamePreview.ts`). Trivial risk, removes the boundary violation that hides the package's true fan-in from tooling.
