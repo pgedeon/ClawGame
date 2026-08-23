@@ -125,9 +125,13 @@ describe('Asset Mapping Configuration', () => {
       // Remove it
       assetMappingManager.removeCustomSprite(projectId, 'character');
       
-      // Verify it was removed (should fallback to standard URL)
+      // Verify it was removed (should fallback to standard URL).
+      // Normalize: spriteManager prefixes VITE_API_URL when a developer env file
+      // (e.g. .env.development.local) sets it — strip any absolute origin so the
+      // assertion is env-independent.
       url = assetMappingManager.getAssetUrl(projectId, 'character');
-      expect(url).toBe(`/api/projects/test-custom-remove/assets/character/file`);
+      const path = url.replace(/^https?:\/\/[^/]+/, '');
+      expect(path).toBe(`/api/projects/test-custom-remove/assets/character/file`);
     });
 
     it('should handle custom sprite overrides', () => {
