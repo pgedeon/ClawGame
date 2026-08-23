@@ -15,6 +15,8 @@ import { AssetService } from './assetService';
 import { generateGameHTML } from './export-templates';
 
 interface ExportComponent {
+  assetRef?: string;
+  /** @legacy field written by very old editors; kept only as a read fallback */
   assetId?: string;
   color?: string;
   content?: string;
@@ -149,10 +151,12 @@ export class ExportService {
     }
 
     const className = (sceneData.name || 'Main').replace(/[^a-zA-Z0-9]/g, '') + 'Scene';
-    const sceneCode = this.compileSceneToPhaser(className, sceneData.name || 'Main Scene', entityMap, undefined, sceneData.metadata);
 
     let assetData: ExportAsset[] = [];
     if (options.includeAssets !== false) assetData = await this.embedAssets(projectId);
+
+    // Assets must be resolved before compiling so preload can reference embedded data URIs.
+    const sceneCode = this.compileSceneToPhaser(className, sceneData.name || 'Main Scene', entityMap, assetData, sceneData.metadata);
 
     const html = this.generatePhaserHTML(project, className, sceneCode, assetData, sceneData.metadata);
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -182,7 +186,8 @@ export class ExportService {
     for (const entity of Object.values(entities)) {
       const comps = entity.components instanceof Map ? entity.components : new Map(Object.entries(entity.components || {}));
       const sprite = comps.get('sprite');
-      if (sprite?.assetId) assetIds.add(String(sprite.assetId));
+      const assetRef = sprite?.assetRef ?? sprite?.assetId;
+      if (assetRef) assetIds.add(String(assetRef));
     }
     lines.push(`${indent}preload() {`);
     // Use data URIs for assets if available, otherwise fall back to file paths
@@ -218,7 +223,7 @@ export class ExportService {
       } else if (type === 'rectangle') {
         lines.push(`${indent}  this.add.rectangle(${x}, ${y}, ${e.transform?.width || 32}, ${e.transform?.height || 32}, '${sprite?.color || '#8b5cf6'}');`);
       } else {
-        const key = sprite?.assetId || safeName;
+        const key = (sprite?.assetRef ?? sprite?.assetId) || safeName;
         lines.push(`${indent}  const ${safeName} = this.add.sprite(${x}, ${y}, '${key}');`);
         if (e.transform?.rotation) lines.push(`${indent}  ${safeName}.setRotation(${e.transform.rotation});`);
         if ((e.transform?.scaleX ?? 1) !== 1 || (e.transform?.scaleY ?? 1) !== 1) lines.push(`${indent}  ${safeName}.setScale(${e.transform?.scaleX ?? 1}, ${e.transform?.scaleY ?? 1});`);

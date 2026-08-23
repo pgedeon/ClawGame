@@ -118,17 +118,31 @@ describe('export/preview parity smoke (docs/export-parity.md)', () => {
     });
   }
 
-  it('synthetic sprite.assetRef probe: preview loads asset, export does not (field-name gap)', () => {
+  it('synthetic sprite.assetRef probe: both pipelines load the referenced asset (field-name gap closed)', () => {
     const template = JSON.parse(JSON.stringify(templateScenes.platformer)) as TemplateScene;
     (template.entities[0].components as any).sprite.assetRef = 'hero.png';
 
     const bootstrap = buildPhaserPreviewBootstrap(normalizePreviewScene(template as any));
     expect(bootstrap.assets.map((a) => a.key)).toEqual(['asset:hero.png']);
 
-    const sceneCode = svc.compileSceneToPhaser('MainScene', template.name, toExportEntityMap(template));
-    expect(extractLoadImageKeys(sceneCode)).toEqual(new Set());
-    // Export textures the player by entity name instead of the asset key
-    expect(sceneCode).toContain("this.add.sprite(100, 350, 'player_1')");
-    expect(sceneCode).not.toContain('asset:hero.png');
+    // Production path embeds project assets and passes them through to the compiler.
+    const sceneCode = svc.compileSceneToPhaser('MainScene', template.name, toExportEntityMap(template), [
+      { id: 'hero.png', dataUri: 'data:image/png;base64,AAAA' },
+    ]);
+    // Remaining divergence is key naming only: preview prefixes `asset:`, export uses the raw ref.
+    expect(extractLoadImageKeys(sceneCode)).toEqual(new Set(['hero.png']));
+    expect(sceneCode).toContain("this.load.image('hero.png', hero_png)");
+    expect(sceneCode).toContain("this.add.sprite(100, 350, 'hero.png')");
+  });
+
+  it('legacy sprite.assetId field still resolves (read-only fallback)', () => {
+    const template = JSON.parse(JSON.stringify(templateScenes.platformer)) as TemplateScene;
+    (template.entities[0].components as any).sprite.assetId = 'hero.png';
+
+    const sceneCode = svc.compileSceneToPhaser('MainScene', template.name, toExportEntityMap(template), [
+      { id: 'hero.png', dataUri: 'data:image/png;base64,AAAA' },
+    ]);
+    expect(extractLoadImageKeys(sceneCode)).toEqual(new Set(['hero.png']));
+    expect(sceneCode).toContain("this.add.sprite(100, 350, 'hero.png')");
   });
 });
