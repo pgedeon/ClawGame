@@ -31,6 +31,7 @@ import type {
 } from './ai-types';
 
 import { generateFallbackResponse } from './ai-fallbacks';
+import { OpenAICompatProvider } from './ai/providers/openai-compat';
 
 // Re-export types for backward compatibility
 export type {
@@ -51,9 +52,7 @@ function getAIConfig() {
   };
 }
 
-const REQUEST_TIMEOUT_MS = 30_000;
-const STREAM_IDLE_TIMEOUT_MS = 20_000;
-const STREAM_MAX_DURATION_MS = 90_000;
+// Wire-level timeouts (request / idle / max-duration) live in the provider adapter now.
 const MAX_RETRIES = 2;
 const RETRY_BASE_DELAY_MS = 1_000;
 const CIRCUIT_BREAKER_THRESHOLD = 5;  // after 5 consecutive failures, use fallback
@@ -171,66 +170,32 @@ export class RealAIService {
     }
   }
 
-  // ── API calling with retry + abort ──
+  // ── Provider seam ──
+
+  /**
+   * Live provider for the current env config. Constructed per call so dashboard
+   * settings (.env write-through) take effect without a service restart.
+   * Wire format and behavior are identical to the previous inline implementation.
+   */
+  private getProvider(): OpenAICompatProvider {
+    const cfg = getAIConfig();
+    return new OpenAICompatProvider(
+      { baseUrl: cfg.apiUrl, apiKey: cfg.apiKey, model: cfg.model },
+      this.logger,
+    );
+  }
+
+  // ── API calling with retry ──
 
   private async callWithRetry(systemPrompt: string, userPrompt: string): Promise<AICallResult> {
     let lastError: AIProviderErrorDetails | undefined;
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
       try {
         this.logger.info({ attempt: attempt + 1, model: getAIConfig().model }, 'AI API call starting');
 
-        const response = await fetch(getAIConfig().apiUrl, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${getAIConfig().apiKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': 'https://github.com/pgedeon/ClawGame',
-            'X-Title': 'ClawGame AI-Powered Game Engine',
-          },
-          body: JSON.stringify({
-            model: getAIConfig().model,
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt },
-            ],
-            temperature: 0.7,
-            max_tokens: 4096,
-          }),
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          throw await this.createResponseError(response);
-        }
-
-        const data = await response.json() as any;
-        const providerMessage = this.extractProviderMessage(data);
-        const providerCode = this.extractProviderCode(data);
-        if (response.status === 429 || providerCode === '1302' || this.isRateLimitText(providerMessage)) {
-          throw new AIProviderError({
-            kind: 'rate_limited',
-            message: providerMessage || 'z.ai is currently rate limiting requests.',
-            statusCode: response.status || 429,
-            providerCode,
-            retryAfterSeconds: this.parseRetryAfter(response.headers.get('retry-after')),
-            retriable: false,
-          });
-        }
-
-        if (!data.choices?.[0]?.message?.content) {
-          throw new AIProviderError({
-            kind: 'bad_response',
-            message: 'Malformed AI response: missing choices[0].message.content.',
-            retriable: false,
-          });
-        }
-
-        this.logger.info({ attempt: attempt + 1, chars: data.choices[0].message.content.length }, 'AI API call succeeded');
-        return { content: data.choices[0].message.content };
+        const result = await this.getProvider().complete({ system: systemPrompt, user: userPrompt });
+        return { content: result.content };
 
       } catch (err: any) {
         lastError = this.normalizeProviderError(err);
@@ -252,8 +217,6 @@ export class RealAIService {
           this.logger.info({ delay }, 'Retrying after delay');
           await new Promise(r => setTimeout(r, delay));
         }
-      } finally {
-        clearTimeout(timer);
       }
     }
 
@@ -266,110 +229,7 @@ export class RealAIService {
     userPrompt: string,
     onChunk: (text: string) => void,
   ): Promise<string> {
-    const controller = new AbortController();
-    let timeoutReason: string = 'idle';
-    let idleTimer: NodeJS.Timeout | null = null;
-    const resetIdleTimer = () => {
-      if (idleTimer) {
-        clearTimeout(idleTimer);
-      }
-      idleTimer = setTimeout(() => {
-        timeoutReason = 'idle';
-        controller.abort();
-      }, STREAM_IDLE_TIMEOUT_MS);
-    };
-    const maxTimer = setTimeout(() => {
-      timeoutReason = 'max';
-      controller.abort();
-    }, STREAM_MAX_DURATION_MS);
-
-    try {
-      resetIdleTimer();
-
-      const response = await fetch(getAIConfig().apiUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${getAIConfig().apiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://github.com/pgedeon/ClawGame',
-          'X-Title': 'ClawGame AI-Powered Game Engine',
-        },
-        body: JSON.stringify({
-          model: getAIConfig().model,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt },
-          ],
-          temperature: 0.7,
-          max_tokens: 4096,
-          stream: true,
-        }),
-        signal: controller.signal,
-      });
-
-      if (!response.ok) {
-        throw await this.createResponseError(response);
-      }
-
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new AIProviderError({
-          kind: 'bad_response',
-          message: 'AI provider did not return a readable stream.',
-          retriable: false,
-        });
-      }
-
-      const decoder = new TextDecoder();
-      let fullText = '';
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        resetIdleTimer();
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || trimmed === 'data: [DONE]') continue;
-          if (!trimmed.startsWith('data: ')) continue;
-
-          try {
-            const parsed = JSON.parse(trimmed.slice(6));
-            const delta = parsed.choices?.[0]?.delta?.content;
-            if (delta) {
-              fullText += delta;
-              onChunk(delta);
-            }
-          } catch {
-            // Skip malformed SSE lines
-          }
-        }
-      }
-
-      return fullText;
-    } catch (err: any) {
-      if (err?.name === 'AbortError') {
-        throw new AIProviderError({
-          kind: 'timeout',
-          message: timeoutReason === 'max'
-            ? 'Live AI response took too long to complete.'
-            : 'Live AI response stalled before completing.',
-          retriable: false,
-        });
-      }
-      throw err;
-    } finally {
-      if (idleTimer) {
-        clearTimeout(idleTimer);
-      }
-      clearTimeout(maxTimer);
-    }
+    return this.getProvider().stream({ system: systemPrompt, user: userPrompt }, onChunk);
   }
 
   // ── Circuit breaker ──
@@ -489,89 +349,6 @@ export class RealAIService {
       message: message || 'Live AI request failed unexpectedly.',
       retriable: true,
     };
-  }
-
-  private async createResponseError(response: Response): Promise<AIProviderError> {
-    const rawBody = await response.text().catch(() => '');
-    const parsedBody = this.safeJsonParse(rawBody);
-    const providerCode = this.extractProviderCode(parsedBody) || this.extractProviderCode(rawBody);
-    const providerMessage = this.extractProviderMessage(parsedBody) || rawBody.slice(0, 300) || `API returned ${response.status}`;
-    const retryAfterSeconds = this.parseRetryAfter(response.headers.get('retry-after'));
-    const isRateLimited = response.status === 429 || providerCode === '1302' || this.isRateLimitText(providerMessage);
-
-    return new AIProviderError({
-      kind: isRateLimited ? 'rate_limited' : (response.status >= 500 ? 'http_error' : 'bad_response'),
-      message: providerMessage,
-      statusCode: response.status,
-      providerCode,
-      retryAfterSeconds,
-      retriable: response.status >= 500 && response.status < 600,
-    });
-  }
-
-  private safeJsonParse(value: string): any {
-    if (!value) {
-      return null;
-    }
-
-    try {
-      return JSON.parse(value);
-    } catch {
-      return null;
-    }
-  }
-
-  private extractProviderCode(value: any): string | undefined {
-    if (!value) {
-      return undefined;
-    }
-
-    if (typeof value === 'string') {
-      const match = value.match(/\b1302\b/);
-      return match ? match[0] : undefined;
-    }
-
-    const candidates = [
-      value.code,
-      value.error?.code,
-      value.error_code,
-      value.error?.error_code,
-    ];
-    const found = candidates.find(candidate => candidate !== undefined && candidate !== null);
-    return found !== undefined && found !== null ? String(found) : undefined;
-  }
-
-  private extractProviderMessage(value: any): string | undefined {
-    if (!value) {
-      return undefined;
-    }
-
-    if (typeof value === 'string') {
-      return value;
-    }
-
-    return value.error?.message || value.message || value.error?.details;
-  }
-
-  private parseRetryAfter(value: string | null): number | undefined {
-    if (!value) {
-      return undefined;
-    }
-
-    const retryAfterSeconds = Number(value);
-    return Number.isFinite(retryAfterSeconds) ? retryAfterSeconds : undefined;
-  }
-
-  private isRateLimitText(message?: string): boolean {
-    if (!message) {
-      return false;
-    }
-
-    const normalized = message.toLowerCase();
-    return normalized.includes('rate limit')
-      || normalized.includes('too many requests')
-      || normalized.includes('frequency')
-      || normalized.includes('访问频率');
   }
 
   // ── Project context with metadata ──
