@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@clawgame/engine": "workspace:^",
     "@clawgame/shared": "workspace:^",
     "@fastify/cors": "^9.0.0",
     "axios": "^1.14.0",
@@ -21,7 +22,6 @@
     "sharp": "^0.34.5"
   },
   "devDependencies": {
-    "@clawgame/engine": "workspace:^",
     "@clawgame/phaser-runtime": "workspace:^",
     "@types/axios": "^0.14.4",
     "@types/node": "^20.11.0",

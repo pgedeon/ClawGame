@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022"],
+    "lib": ["ES2022", "DOM"],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "strict": true,
@@ -17,6 +17,7 @@
   "include": ["src/**/*"],
   "exclude": ["src/test_backup/**", "src/**/*_backup.ts", "src/**/*.ts_backup", "src/test/export-parity.test.ts"],
   "references": [
-    { "path": "../../packages/shared" }
+    { "path": "../../packages/shared" },
+    { "path": "../../packages/engine" }
   ]
 }

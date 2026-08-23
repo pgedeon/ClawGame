@@ -4,7 +4,8 @@
  * Compares the two shipped Phaser code paths for each template scene:
  * - Preview: normalizePreviewScene (production input path) → buildPhaserPreviewBootstrap
  * - Export:  ExportService.compileSceneToPhaser string output (fed exactly like
- *            exportToPhaserHTML feeds it: raw template JSON, components as Map)
+ *            exportToPhaserHTML feeds it: prepareExportEntities normalization,
+ *            components as Map)
  *
  * Asserts the divergence baseline documented in docs/export-parity.md:
  * - entity sets must match
@@ -18,22 +19,22 @@
  * vitest transpiles and runs this file regardless.
  */
 import { describe, it, expect } from 'vitest';
-import { ExportService } from '../services/exportService';
+import { ExportService, prepareExportEntities } from '../services/exportService';
 import { buildPhaserPreviewBootstrap } from '@clawgame/phaser-runtime/buildPreviewBootstrap';
-import { normalizePreviewScene } from '../../../web/src/utils/previewScene';
+import { normalizePreviewScene } from '@clawgame/engine';
 import { templateScenes } from '../../../web/src/templates/templateScenes';
 import type { TemplateScene } from '../../../web/src/templates/templateScenes';
 
 const fakeLogger = {} as ConstructorParameters<typeof ExportService>[0];
 const svc = new ExportService(fakeLogger);
 
-/** Mirror exportToPhaserHTML entityMap construction (exportService.ts:141-148). */
-function toExportEntityMap(template: TemplateScene): Record<string, any> {
+/** Mirror exportToPhaserHTML entityMap construction (normalize + Map wrap). */
+function toExportEntityMap(template: TemplateScene | { name?: string; entities: unknown[] }): Record<string, any> {
   const entityMap: Record<string, any> = {};
-  for (const e of template.entities) {
+  for (const e of prepareExportEntities(template as any)) {
     entityMap[e.id] = {
       ...e,
-      components: new Map(Object.entries(e.components || {})),
+      components: e.components instanceof Map ? e.components : new Map(Object.entries(e.components || {})),
     };
   }
   return entityMap;
@@ -68,7 +69,7 @@ function computeParity(template: TemplateScene): ParityDiff {
     'MainScene',
     template.name,
     toExportEntityMap(template),
-    undefined,
+    [],
     undefined,
   );
 
@@ -144,5 +145,38 @@ describe('export/preview parity smoke (docs/export-parity.md)', () => {
     ]);
     expect(extractLoadImageKeys(sceneCode)).toEqual(new Set(['hero.png']));
     expect(sceneCode).toContain("this.add.sprite(100, 350, 'hero.png')");
+  });
+
+  it('normalization feeds export: typed entities no longer fall back to custom (gap 1)', () => {
+    const prepared = prepareExportEntities(templateScenes.platformer as any);
+    const typeById = new Map(prepared.map((e) => [e.id, e.type]));
+    expect(typeById.get('player-1')).toBe('player');
+    expect(typeById.get('enemy-1')).toBe('enemy');
+    expect(typeById.get('coin-1')).toBe('collectible');
+    expect(typeById.get('platform-ground')).toBe('obstacle');
+    expect(typeById.get('goal-flag')).toBe('obstacle');
+
+    // No shipped-template entity degrades to the old 'custom' fallback anymore.
+    for (const [, template] of Object.entries(templateScenes)) {
+      for (const e of prepareExportEntities(template as any)) {
+        expect(e.type, `${e.id} fell back to custom`).not.toBe('custom');
+      }
+    }
+  });
+
+  it('editor shape types survive normalization and hit their render branches', () => {
+    const scene = {
+      name: 'Shapes',
+      entities: [
+        { id: 't1', type: 'text', name: 't1', transform: { x: 10, y: 20 }, components: { text: { content: 'Hi', fontSize: 20, color: '#ffffff' } } },
+        { id: 'z1', type: 'zone', name: 'z1', transform: { x: 0, y: 0 }, components: {} },
+      ],
+    };
+    const prepared = prepareExportEntities(scene as any);
+    expect(prepared.map((e) => e.type)).toEqual(['text', 'zone']);
+
+    const code = svc.compileSceneToPhaser('MainScene', 'Shapes', toExportEntityMap(scene), [], undefined);
+    expect(code).toContain('this.add.text(10, 20');
+    expect(code).toContain('this.add.zone(0, 0');
   });
 });

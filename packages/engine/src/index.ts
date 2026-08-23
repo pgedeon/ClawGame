@@ -3,6 +3,7 @@
  */
 
 export * from './types';
+export * from './preview-scene';
 export * from './asset-pack';
 export * from './scene-compiler';
 

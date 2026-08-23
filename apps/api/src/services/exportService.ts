@@ -13,6 +13,7 @@ import { FastifyLoggerInstance } from 'fastify';
 import { ProjectService } from './projectService';
 import { AssetService } from './assetService';
 import { generateGameHTML } from './export-templates';
+import { normalizePreviewScene, type SerializableEntity } from '@clawgame/engine';
 
 interface ExportComponent {
   assetRef?: string;
@@ -70,6 +71,31 @@ interface SceneData {
   name?: string;
   entities?: ExportEntity[] | Record<string, ExportEntity>;
   metadata?: SceneMetadata;
+}
+
+/** Editor shape primitives rendered by dedicated compile branches but outside the engine EntityType union. */
+const EXPORT_SHAPE_TYPES = new Set(['text', 'zone', 'circle', 'rectangle']);
+
+export type PreparedExportEntity = Omit<SerializableEntity, 'type'> & { type?: string };
+
+/**
+ * Normalize raw project/template JSON through the shared preview normalizer so
+ * per-entity runtime types are inferred on export exactly like in the web
+ * preview (docs/export-parity.md gap 1). Export-only shape types ('text',
+ * 'zone', 'circle', 'rectangle') are preserved verbatim instead of being
+ * collapsed by inference.
+ */
+export function prepareExportEntities(sceneData: SceneData): PreparedExportEntity[] {
+  const normalized = normalizePreviewScene(sceneData);
+  const rawEntities = Array.isArray(sceneData.entities)
+    ? sceneData.entities
+    : Object.values(sceneData.entities || {});
+  return normalized.entities.map((entity, i) => {
+    const rawType = (rawEntities[i] as { type?: unknown } | undefined)?.type;
+    return typeof rawType === 'string' && EXPORT_SHAPE_TYPES.has(rawType)
+      ? { ...entity, type: rawType }
+      : entity;
+  });
 }
 export interface ExportOptions {
   includeAssets?: boolean;
@@ -139,9 +165,10 @@ export class ExportService {
     } catch { sceneData = { name: 'Main Scene', entities: [] }; }
     if (!sceneData) sceneData = { name: 'Main Scene', entities: [] };
 
-    const entities = Array.isArray(sceneData.entities) ? sceneData.entities : Object.values(sceneData.entities || {});
+    // Parity gap 1: run raw project/template JSON through the same normalizer as
+    // the web preview so inferred runtime types drive per-type behavior branches.
     const entityMap: Record<string, any> = {};
-    for (const e of entities) {
+    for (const e of prepareExportEntities(sceneData)) {
       entityMap[e.id || `e-${Object.keys(entityMap).length}`] = {
         ...e,
         components: e.components instanceof Map

@@ -7,11 +7,11 @@
 
 **Game Preview:** `main-scene.json` → `normalizePreviewScene` (infers runtime `type` per entity from components — `apps/web/src/utils/previewScene.ts:158-194,206`) → `buildPhaserPreviewBootstrap` (`packages/phaser-runtime/src/buildPreviewBootstrap.ts:161`) → `ClawgamePhaserScene` / genre subclass (`apps/web/src/runtime/phaserPreviewSession.ts:96-113`).
 
-**Export (phaser-html):** raw `main-scene.json` read directly, **no normalization/type inference** (`apps/api/src/services/exportService.ts:134-152`) → `compileSceneToPhaser` string generator (`exportService.ts:178-232`) → inline HTML with CDN Phaser 4 (`exportService.ts:248`).
+**Export (phaser-html):** `main-scene.json` → `prepareExportEntities` (shared `normalizePreviewScene` + shape-type preservation, `apps/api/src/services/exportService.ts`) → `compileSceneToPhaser` string generator → inline HTML with CDN Phaser 4.
 
 A third runtime exists (`format:'html'`, default in ExportPage — `apps/web/src/pages/ExportPage.tsx:74,386`): the hand-written canvas engine in `export-templates.ts`. It is also fed raw type-less JSON and degrades the same way (`export-templates.ts:199` `e.type || 'unknown'`), so per-entity behavior branches (enemy AI at `:309`, collectible rotation at `:342`) never fire for shipped templates. It is out of the matrix below but shares the root cause.
 
-**Root structural gap:** preview normalizes + infers entity types before rendering; neither export generator does. Shipped templates intentionally store entities **without** a `type` field (`apps/web/src/templates/templateScenes.ts:11-13`).
+**Root structural gap:** preview normalizes + infers entity types before rendering; the legacy export generators did not. Shipped templates intentionally store entities **without** a `type` field (`apps/web/src/templates/templateScenes.ts:11-13`). Narrowed on `feat/export-convergence-1`: phaser-html now runs the shared `normalizePreviewScene` (implementation moved to `packages/engine/src/preview-scene.ts`; web module re-exports it); the canvas `format:'html'` generator still does not.
 
 ## Parity matrix — all three shipped templates
 
@@ -19,8 +19,8 @@ Template genres after creation: platformer → `'action'`, topdown → `'action'
 
 | Dimension | Game Preview (base scene) | Export phaser-html today | Gap |
 |---|---|---|---|
-| Entity typing | Types inferred (`playerInput`→player, `ai`→enemy, `npc`→npc, collision-type fallbacks; `previewScene.ts:158-194`) | `type = e.type \|\| 'custom'` for every entity (`exportService.ts:206`); text/zone/circle/rectangle branches (`:212-219`) unreachable for template JSON | All-template |
-| Entity representation | Color-only entities → typed-color rectangles via `getColorForType` (`ClawgamePhaserScene.ts:147-157`); asset entities → image + `setDisplaySize` (`:153-155`) | Every entity → `this.add.sprite(x,y,key)` with `key = sprite.assetId \|\| sanitizedName` (`exportService.ts:220-222`); templates have no assetId → texture key is the entity name | All-template |
+| Entity typing | Types inferred (`playerInput`→player, `ai`→enemy, `npc`→npc, collision-type fallbacks; `previewScene.ts:158-194`) | Same inference via shared `normalizePreviewScene` (`prepareExportEntities`); editor shape types (`text\|zone\|circle\|rectangle`) preserved verbatim for their render branches | Closed — both sides infer identically |
+| Entity representation | Color-only entities → typed-color rectangles via `getColorForType` (`ClawgamePhaserScene.ts:147-157`); asset entities → image + `setDisplaySize` (`:153-155`) | Every entity → `this.add.sprite(x,y,key)` with `key = sprite.assetRef ?? sprite.assetId \|\| sanitizedName` (`exportService.ts`); templates have no assetRef → texture key is the entity name | All-template |
 | Transform | rotation/scale always applied, origin 0.5 (`ClawgamePhaserScene.ts:160-162`) | rotation/scale applied only when non-default (`exportService.ts:223-225`); equivalent for templates | — |
 | Physics bodies | Per-body kind from collision flags/type/entity type: solid→static, trigger/sensor→sensor, player/enemy/projectile→dynamic, else none (`buildPreviewBootstrap.ts:33-58`); body sized via `setSize` (`ClawgamePhaserScene.ts:167`), dynamic→`setCollideWorldBounds` (`:168`), sensor→immovable+no-gravity (`:169`) | Any `collision.type !== 'none'` → body; only `wall\|solid` are static, everything else dynamic (`exportService.ts:226-227`); no sensors/triggers, no body sizing, no world-bounds collision | Coins/goals/powerups/treasure/NPC/signs/doors/items become **dynamic bodies** in export but **no body** in preview (platformer +4, topdown +2, dialogue +7 bodies) |
 | Physics config | Arcade gravity passthrough from scene.physics (`ClawgamePhaserRuntime.ts:47-48`); world bounds from bootstrap.bounds, default 1280×720 (`buildPreviewBootstrap.ts:12`, `ClawgamePhaserScene.ts:116`); debug flag passthrough (`ClawgamePhaserRuntime.ts:47`) | Hardcoded `{ default:'arcade', arcade:{ debug:false } }`, no gravity, no world bounds (`exportService.ts:258`); game size = metadata.width/height default 800×600 (`:241-242`) | Templates ship no physics/bounds metadata → preview gets 1280×720 world, export gets bare 800×600 viewport |
@@ -43,7 +43,7 @@ Entity sets and asset-key sets currently match (templates are asset-free); the a
 
 ## Gap summary (ranked)
 
-1. **No normalization on export path** — every per-type behavior downstream is dead for real project JSON (`exportService.ts:206` vs `previewScene.ts:158-194`).
+1. ~~**No normalization on export path**~~ **CLOSED 2026-08-23 (`feat/export-convergence-1`)** — phaser-html feeds project JSON through the shared `normalizePreviewScene` (`prepareExportEntities`); inferred runtime types drive per-type branches while shape primitives keep theirs. Canvas `format:'html'` still unnormalized (see gap 5).
 2. ~~**Asset field mismatch `assetId` vs `assetRef`** + assets arg never passed~~ **CLOSED 2026-08-23 (`feat/export-convergence-1`)** — export reads `sprite.assetRef` (legacy `assetId` fallback), embeds and passes project assets, loads data URIs in preload. Remaining sliver: texture-key naming (`asset:` prefix) and spritesheet/atlas kinds.
 3. **Body semantics divergence** — trigger/sensor collapsed to dynamic; collectibles/signs/NPCs get unwanted dynamic bodies (`exportService.ts:226-227` vs `buildPreviewBootstrap.ts:33-58`).
 4. **Physics/world config divergence** — no gravity passthrough, no world bounds, no body sizing (`exportService.ts:258`).
@@ -52,4 +52,4 @@ Entity sets and asset-key sets currently match (templates are asset-free); the a
 
 ## Regression guard
 
-`apps/api/src/test/export-parity.test.ts` runs `compileSceneToPhaser` against `buildPhaserPreviewBootstrap(normalizePreviewScene(template))` for all three templates and asserts the exact divergence baseline above (entity sets equal, asset keys equal, body-count deltas pinned). New divergences fail the test; when a gap is deliberately closed, update the pinned baseline in the same commit.
+`apps/api/src/test/export-parity.test.ts` runs `compileSceneToPhaser` against `buildPhaserPreviewBootstrap(normalizePreviewScene(template))` for all three templates and asserts the exact divergence baseline above (entity sets equal, asset keys equal, body-count deltas pinned). The export side is fed through `prepareExportEntities` — the same production prep `exportToPhaserHTML` uses — with dedicated probes for asset loading (gap 2), inferred typing (gap 1), and shape-type preservation. New divergences fail the test; when a gap is deliberately closed, update the pinned baseline in the same commit.
