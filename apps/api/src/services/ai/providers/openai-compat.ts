@@ -15,6 +15,7 @@ import {
 } from '../../ai-types';
 import type {
   AIProvider,
+  AIProviderId,
   CompletionRequest,
   CompletionResponse,
   OpenAICompatConfig,
@@ -26,12 +27,16 @@ const REQUEST_TIMEOUT_MS = 30_000;
 const STREAM_IDLE_TIMEOUT_MS = 20_000;
 const STREAM_MAX_DURATION_MS = 90_000;
 
+/** Injectable transport so tests can replay recorded HTTP fixtures (no live calls). */
+export type FetchLike = typeof fetch;
+
 export class OpenAICompatProvider implements AIProvider {
-  readonly id = 'openai-compat' as const;
+  readonly id: AIProviderId = 'openai-compat';
 
   constructor(
-    private config: OpenAICompatConfig,
+    protected config: OpenAICompatConfig,
     private logger?: { info: (o: any, m: string) => void; warn: (o: any, m: string) => void },
+    private fetcher: FetchLike = fetch,
   ) {}
 
   /** Full chat-completions endpoint this provider calls (exposed for health/diagnostics). */
@@ -53,7 +58,7 @@ export class OpenAICompatProvider implements AIProvider {
     try {
       this.logger?.info({ model: this.config.model }, 'AI API call starting');
 
-      const response = await fetch(this.config.baseUrl, {
+      const response = await this.fetcher(this.config.baseUrl, {
         method: 'POST',
         headers: this.buildHeaders(),
         body: JSON.stringify({
@@ -102,7 +107,7 @@ export class OpenAICompatProvider implements AIProvider {
     try {
       resetIdleTimer();
 
-      const response = await fetch(this.config.baseUrl, {
+      const response = await this.fetcher(this.config.baseUrl, {
         method: 'POST',
         headers: this.buildHeaders(),
         body: JSON.stringify({
@@ -187,7 +192,7 @@ export class OpenAICompatProvider implements AIProvider {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
       try {
-        const response = await fetch(this.config.baseUrl, {
+        const response = await this.fetcher(this.config.baseUrl, {
           method: 'POST',
           headers: this.buildHeaders(),
           body: JSON.stringify({
