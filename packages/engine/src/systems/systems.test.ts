@@ -3,7 +3,6 @@
  */
 
 import { MovementSystem } from './MovementSystem';
-import { DamageSystem } from './DamageSystem';
 import { RenderSystem } from './RenderSystem';
 import { InputSystem } from './InputSystem';
 import { PhysicsSystem } from './PhysicsSystem';
@@ -106,41 +105,6 @@ describe('PhysicsSystem', () => {
 
     expect(entity.transform.x).toBeLessThanOrEqual(800 - 32);
     expect(entity.transform.y).toBeLessThanOrEqual(600 - 32);
-  });
-});
-
-// ─── DamageSystem ───
-
-describe('DamageSystem', () => {
-  it('applies damage to entities on projectile hit', () => {
-    const eventBus = new EventBus();
-    const sys = new DamageSystem();
-    sys.attach(eventBus);
-
-    const enemy = makeEntity({
-      id: 'enemy1',
-      type: 'enemy',
-      transform: { x: 100, y: 100 },
-      components: {
-        stats: { health: 100, maxHealth: 100 },
-        collision: { width: 32, height: 32, type: 'enemy' },
-      },
-    });
-
-    const scene = makeScene([enemy]);
-
-    // Emit projectile:hit event (simulating CollisionSystem detecting a hit)
-    eventBus.emit('projectile:hit', {
-      targetId: 'enemy1',
-      damage: 25,
-      projectileId: 'bullet1',
-    });
-
-    // Process the pending damage
-    sys.update(scene, 0.1);
-
-    // Enemy should take damage
-    expect(enemy.components.get('stats').health).toBeLessThan(100);
   });
 });
 

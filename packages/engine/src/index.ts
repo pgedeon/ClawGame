@@ -19,7 +19,6 @@ export { PhysicsSystem } from './systems/PhysicsSystem';
 export { CollisionSystem } from './systems/CollisionSystem';
 export { ProjectileSystem } from './systems/ProjectileSystem';
 export { AnimationSystem } from './systems/AnimationSystem';
-export { DamageSystem } from './systems/DamageSystem';
 
 export { SceneLoader } from './SceneLoader';
 export type { AssetResolver, SceneLoaderOptions, SceneLoadResult } from './SceneLoader';export * from './animations';

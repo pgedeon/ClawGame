@@ -15,7 +15,6 @@ import { ProjectileSystem } from './systems/ProjectileSystem';
 import { CollisionSystem } from './systems/CollisionSystem';
 import { AnimationSystem } from './systems/AnimationSystem';
 import { RenderSystem } from './systems/RenderSystem';
-import { DamageSystem } from './systems/DamageSystem';
 
 export type EngineOptions = {
   canvas?: HTMLCanvasElement;
@@ -41,7 +40,6 @@ export class Engine {
   public collisionSystem: CollisionSystem;
   public animationSystem: AnimationSystem;
   public renderSystem: RenderSystem;
-  public damageSystem: DamageSystem;
 
   // Scene management
   public scene: Scene | null = null;
@@ -69,11 +67,9 @@ export class Engine {
     this.collisionSystem = new CollisionSystem();
     this.animationSystem = new AnimationSystem();
     this.renderSystem = new RenderSystem();
-    this.damageSystem = new DamageSystem();
 
     // Connect systems to event bus
     this.projectileSystem.attach(this.eventBus);
-    this.damageSystem.attach(this.eventBus);
 
     // Setup debug logging
     if (this.debug) {
@@ -86,7 +82,6 @@ export class Engine {
         collision: this.collisionSystem,
         animation: this.animationSystem,
         render: this.renderSystem,
-        damage: this.damageSystem,
       });
     }
   }
@@ -249,7 +244,7 @@ export class Engine {
     if (this.collisionSystem.detach) this.collisionSystem.detach();
     if (this.animationSystem.detach) this.animationSystem.detach();
     if (this.renderSystem.detach) this.renderSystem.detach();
-    if (this.damageSystem.detach) this.damageSystem.detach();
+
 
     if (this.debug) {
       console.log('Engine destroyed');
