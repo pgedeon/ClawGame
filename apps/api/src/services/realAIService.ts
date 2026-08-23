@@ -32,6 +32,10 @@ import type {
 
 import { generateFallbackResponse } from './ai-fallbacks';
 import { OpenAICompatProvider } from './ai/providers/openai-compat';
+import { OPENCODE_DEFAULT_MODEL } from './ai/providers/opencode';
+import { createProvider, isProviderConfigured, resolveProviderChain } from './ai/registry';
+import { readAIConfig, detectProvider } from '../utils/envConfig';
+import type { AIProviderId } from './ai/types';
 
 // Re-export types for backward compatibility
 export type {
@@ -43,14 +47,6 @@ export type {
   AICallResult,
 } from './ai-types';
 export { AIProviderError } from './ai-types';
-
-function getAIConfig() {
-  return {
-    apiUrl: process.env.AI_API_URL || 'https://api.z.ai/api/coding/paas/v4/chat/completions',
-    apiKey: process.env.AI_API_KEY || '',
-    model: process.env.AI_MODEL || 'glm-4.5-flash',
-  };
-}
 
 // Wire-level timeouts (request / idle / max-duration) live in the provider adapter now.
 const MAX_RETRIES = 2;
@@ -74,9 +70,34 @@ export class RealAIService {
 
   constructor(logger: FastifyLoggerInstance) {
     this.logger = logger;
-    this.lastProviderStatus = getAIConfig().apiKey
+    this.lastProviderStatus = this.hasLiveProvider()
       ? this.buildProviderStatus('ready', 'Live AI is ready to respond.')
       : this.buildProviderStatus('mock', 'Live AI is not configured. Local fallback mode is active.');
+  }
+
+  // ── Multi-provider resolution (docs/ai-provider-spec.md) ──
+
+  /** True when at least one live provider in the chain is configured. */
+  private hasLiveProvider(): boolean {
+    return resolveProviderChain().length > 0;
+  }
+
+  /** Human label of the active provider for status payloads. */
+  private activeProviderLabel(): AIProviderStatus['provider'] {
+    const cfg = readAIConfig();
+    switch (cfg.activeProvider) {
+      case 'opencode': return 'opencode';
+      case 'anthropic': return 'anthropic';
+      case 'openai-compat': return detectProvider(cfg.apiUrl) === 'openrouter' ? 'openrouter' : 'z.ai';
+      default: return undefined;
+    }
+  }
+
+  /** Model shown in health/status for the active provider. */
+  private activeModel(): string {
+    const cfg = readAIConfig();
+    if (cfg.activeProvider === 'opencode') return cfg.opencode.model || OPENCODE_DEFAULT_MODEL;
+    return cfg.model;
   }
 
   // ── Main entry point ──
@@ -89,7 +110,7 @@ export class RealAIService {
     const userPrompt = await this.buildUserPrompt(command, projectContext, context);
     let fallbackStatus = this.buildProviderStatus('mock', 'Live AI is not configured. Local fallback mode is active.');
 
-    if (getAIConfig().apiKey && !this.isCircuitOpen()) {
+    if (this.hasLiveProvider() && !this.isCircuitOpen()) {
       const result = await this.callWithRetry(systemPrompt, userPrompt);
       if (result.content) {
         this.onApiSuccess();
@@ -130,8 +151,8 @@ export class RealAIService {
     const systemPrompt = this.buildSystemPrompt(projectContext);
     const userPrompt = await this.buildUserPrompt(command, projectContext, context);
 
-    if (!getAIConfig().apiKey || this.isCircuitOpen()) {
-      const fallbackStatus = !getAIConfig().apiKey
+    if (!this.hasLiveProvider() || this.isCircuitOpen()) {
+      const fallbackStatus = !this.hasLiveProvider()
         ? this.buildProviderStatus('mock', 'Live AI is not configured. Local fallback mode is active.')
         : this.buildCircuitOpenStatus();
       this.lastProviderStatus = fallbackStatus;
@@ -173,16 +194,26 @@ export class RealAIService {
   // ── Provider seam ──
 
   /**
-   * Live provider for the current env config. Constructed per call so dashboard
-   * settings (.env write-through) take effect without a service restart.
-   * Wire format and behavior are identical to the previous inline implementation.
+   * Live adapter for the active env-configured provider. Constructed per call so
+   * dashboard settings (.env write-through) take effect without a service restart.
+   * Returns null when nothing usable is configured (mock path answers instead).
    */
-  private getProvider(): OpenAICompatProvider {
-    const cfg = getAIConfig();
-    return new OpenAICompatProvider(
-      { baseUrl: cfg.apiUrl, apiKey: cfg.apiKey, model: cfg.model },
-      this.logger,
-    );
+  private getProvider(): OpenAICompatProvider | null {
+    const cfg = readAIConfig();
+    if (cfg.activeProvider === 'openai-compat') {
+      if (!isProviderConfigured('openai-compat', cfg)) return null;
+      return new OpenAICompatProvider(
+        {
+          baseUrl: cfg.openaiCompat.baseUrl,
+          apiKey: cfg.openaiCompat.apiKey,
+          model: cfg.openaiCompat.model,
+        },
+        this.logger,
+      );
+    }
+    // opencode (and anthropic once its adapter lands) come from the registry.
+    const provider = createProvider(cfg.activeProvider, this.logger, cfg);
+    return provider instanceof OpenAICompatProvider ? provider : null;
   }
 
   // ── API calling with retry ──
@@ -190,34 +221,51 @@ export class RealAIService {
   private async callWithRetry(systemPrompt: string, userPrompt: string): Promise<AICallResult> {
     let lastError: AIProviderErrorDetails | undefined;
 
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      try {
-        this.logger.info({ attempt: attempt + 1, model: getAIConfig().model }, 'AI API call starting');
+    // Fallback policy: active provider first, then remaining configured chain
+    // entries; mock/local fallback answers when every live hop is exhausted.
+    const chain = resolveProviderChain();
+    for (let chainIdx = 0; chainIdx < chain.length; chainIdx++) {
+      const provider = createProvider(chain[chainIdx], this.logger);
+      if (!provider) continue;
 
-        const result = await this.getProvider().complete({ system: systemPrompt, user: userPrompt });
-        return { content: result.content };
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        try {
+          this.logger.info({ attempt: attempt + 1, provider: chain[chainIdx], model: this.activeModel() }, 'AI API call starting');
 
-      } catch (err: any) {
-        lastError = this.normalizeProviderError(err);
-        this.logger.warn({
-          attempt: attempt + 1,
-          kind: lastError!.kind,
-          statusCode: lastError!.statusCode,
-          providerCode: lastError!.providerCode,
-          retriable: lastError!.retriable,
-          err: lastError!.message,
-        }, 'AI API call failed');
+          const result = await provider.complete({ system: systemPrompt, user: userPrompt });
+          return { content: result.content };
 
-        if (!lastError!.retriable) {
-          break;
-        }
+        } catch (err: any) {
+          lastError = this.normalizeProviderError(err);
+          this.logger.warn({
+            attempt: attempt + 1,
+            provider: chain[chainIdx],
+            kind: lastError!.kind,
+            statusCode: lastError!.statusCode,
+            providerCode: lastError!.providerCode,
+            retriable: lastError!.retriable,
+            err: lastError!.message,
+          }, 'AI API call failed');
 
-        if (attempt < MAX_RETRIES - 1) {
-          const delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt);
-          this.logger.info({ delay }, 'Retrying after delay');
-          await new Promise(r => setTimeout(r, delay));
+          if (!lastError!.retriable) {
+            break;
+          }
+
+          if (attempt < MAX_RETRIES - 1) {
+            const delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt);
+            this.logger.info({ delay }, 'Retrying after delay');
+            await new Promise(r => setTimeout(r, delay));
+          }
         }
       }
+
+      const nextProvider = chain[chainIdx + 1];
+      this.logger.warn(
+        nextProvider
+          ? { failedProvider: chain[chainIdx], nextProvider }
+          : { failedProvider: chain[chainIdx] },
+        'AI provider exhausted retries — failing over to next provider',
+      );
     }
 
     this.logger.error({ err: lastError?.message, kind: lastError?.kind }, 'AI API call exhausted fallback path');
@@ -229,7 +277,14 @@ export class RealAIService {
     userPrompt: string,
     onChunk: (text: string) => void,
   ): Promise<string> {
-    return this.getProvider().stream({ system: systemPrompt, user: userPrompt }, onChunk);
+    // Streaming failover only before the first chunk would be safe mid-flight;
+    // until then the active provider streams and the existing local fallback
+    // catches failures (unchanged behavior).
+    const provider = this.getProvider();
+    if (!provider) {
+      throw new AIProviderError({ kind: 'bad_response', message: 'No live AI provider configured.', retriable: false });
+    }
+    return provider.stream({ system: systemPrompt, user: userPrompt }, onChunk);
   }
 
   // ── Circuit breaker ──
@@ -271,7 +326,7 @@ export class RealAIService {
     return {
       state,
       message,
-      provider: getAIConfig().apiKey ? 'z.ai' : undefined,
+      provider: this.hasLiveProvider() ? this.activeProviderLabel() : undefined,
       providerCode: details?.providerCode,
       retryAfterSeconds: details?.retryAfterSeconds,
       circuitOpenUntil: details?.circuitOpenUntil,
@@ -295,7 +350,7 @@ export class RealAIService {
     if (error.kind === 'rate_limited') {
       return this.buildProviderStatus(
         'rate_limited',
-        'z.ai rate limit reached. Using local fallback so the request still completes quickly.',
+        `${this.activeProviderLabel() ?? 'Live AI provider'} rate limit reached. Using local fallback so the request still completes quickly.`,
         { providerCode: error.providerCode, retryAfterSeconds: error.retryAfterSeconds },
       );
     }
@@ -606,7 +661,7 @@ Help developers build games faster by generating code, explaining systems, and p
     circuitOpen: boolean;
     providerStatus: AIProviderStatus;
   }> {
-    const configured = Boolean(getAIConfig().apiKey);
+    const configured = this.hasLiveProvider();
     const providerStatus = !configured
       ? this.buildProviderStatus('mock', 'Live AI is not configured. Local fallback mode is active.')
       : (this.isCircuitOpen() ? this.buildCircuitOpenStatus() : this.lastProviderStatus);
@@ -614,7 +669,7 @@ Help developers build games faster by generating code, explaining systems, and p
     return {
       status: configured ? 'connected' : 'mock',
       service: configured ? 'clawgame-ai' : 'mock-ai-preview',
-      model: getAIConfig().model,
+      model: this.activeModel(),
       features: configured ? ['real-ai', 'code-generation', 'context-aware', 'streaming', 'local-fallback'] : ['mock-mode', 'local-fallback'],
       circuitOpen: this.isCircuitOpen(),
       providerStatus,

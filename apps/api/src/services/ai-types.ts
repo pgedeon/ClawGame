@@ -48,7 +48,7 @@ export interface AICommandHistory {
 export interface AIProviderStatus {
   state: 'ready' | 'rate_limited' | 'timed_out' | 'degraded' | 'circuit_open' | 'mock';
   message: string;
-  provider?: 'z.ai';
+  provider?: 'z.ai' | 'openrouter' | 'opencode' | 'anthropic' | 'openai-compat';
   providerCode?: string;
   retryAfterSeconds?: number;
   updatedAt: string;
