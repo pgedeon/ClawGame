@@ -5,12 +5,12 @@ import {
   consolePhaserRuntimeErrorReporter,
   type PhaserPreviewBootstrap,
   type PhaserRuntimeError,
-} from '../../../../packages/phaser-runtime/src';
+} from '@clawgame/phaser-runtime';
 import { TowerDefenseScene } from './TowerDefenseScene';
 import { RPGScene } from './RPGScene';
 import { CosmicDriftScene } from './CosmicDriftScene';
 import { NeonLabyrinthScene } from './NeonLabyrinthScene';
-import type { ClawgamePhaserScene } from '../../../../packages/phaser-runtime/src';
+import type { ClawgamePhaserScene } from '@clawgame/phaser-runtime';
 
 export interface PhaserPreviewPreparation {
   bootstrap: PhaserPreviewBootstrap;

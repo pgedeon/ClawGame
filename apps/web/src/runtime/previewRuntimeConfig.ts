@@ -3,7 +3,7 @@ import type {
   PreviewRuntimeKind,
   PreviewRuntimeSelection,
 } from './PreviewRuntime';
-import { PHASER4_RUNTIME_DESCRIPTOR } from '../../../../packages/phaser-runtime/src/runtimeDescriptor';
+import { PHASER4_RUNTIME_DESCRIPTOR } from '@clawgame/phaser-runtime/runtimeDescriptor';
 
 // Single source of truth for the Phaser 4 runtime descriptor lives in
 // @clawgame/phaser-runtime (see docs/engine-audit.md §4 item 5); re-exported

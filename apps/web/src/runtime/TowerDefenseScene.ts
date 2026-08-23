@@ -1,5 +1,5 @@
 import { GameObjects, Input, Math as PhaserMath, Input as PhaserInput } from 'phaser';
-import { ClawgamePhaserScene } from '../../../../packages/phaser-runtime/src';
+import { ClawgamePhaserScene } from '@clawgame/phaser-runtime';
 import type { TDOverlayState } from './phaserPreviewSession';
 import {
   createTowerDefenseState,
@@ -19,7 +19,7 @@ import {
   type TowerType,
   type Waypoint,
 } from '../utils/previewTowerDefense';
-import type { PhaserPreviewBootstrap } from '../../../../packages/phaser-runtime/src/types';
+import type { PhaserPreviewBootstrap } from '@clawgame/phaser-runtime/types';
 
 export class TowerDefenseScene extends ClawgamePhaserScene {
   private tdState!: TowerDefenseState;

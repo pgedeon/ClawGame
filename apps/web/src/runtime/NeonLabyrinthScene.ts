@@ -4,8 +4,8 @@
  * Procedural maze, levels, enemies, power-ups, minimap
  */
 import { GameObjects, Math as PhaserMath, Input as PhaserInput } from 'phaser';
-import { ClawgamePhaserScene } from '../../../../packages/phaser-runtime/src';
-import type { PhaserPreviewBootstrap } from '../../../../packages/phaser-runtime/src/types';
+import { ClawgamePhaserScene } from '@clawgame/phaser-runtime';
+import type { PhaserPreviewBootstrap } from '@clawgame/phaser-runtime/types';
 
 // ─── Types ───
 type Cell = { x: number; y: number; walls: { top: boolean; right: boolean; bottom: boolean; left: boolean }; visited: boolean };

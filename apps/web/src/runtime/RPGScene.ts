@@ -5,8 +5,8 @@
  * Works WITHOUT Arcade Physics (manual velocity/collision management).
  */
 import { Scene, GameObjects } from 'phaser';
-import { ClawgamePhaserScene } from '../../../../packages/phaser-runtime/src';
-import type { PhaserPreviewBootstrap } from '../../../../packages/phaser-runtime/src/types';
+import { ClawgamePhaserScene } from '@clawgame/phaser-runtime';
+import type { PhaserPreviewBootstrap } from '@clawgame/phaser-runtime/types';
 import { Math as PhaserMath, Input as PhaserInput } from 'phaser';
 
 interface RPGEntity {

@@ -4,8 +4,8 @@
  * Waves of asteroids, power-ups, bosses, weapon upgrades
  */
 import { GameObjects, Math as PhaserMath, Input as PhaserInput } from 'phaser';
-import { ClawgamePhaserScene } from '../../../../packages/phaser-runtime/src';
-import type { PhaserPreviewBootstrap } from '../../../../packages/phaser-runtime/src/types';
+import { ClawgamePhaserScene } from '@clawgame/phaser-runtime';
+import type { PhaserPreviewBootstrap } from '@clawgame/phaser-runtime/types';
 
 // ─── Types ───
 interface Bullet { sprite: GameObjects.Rectangle; vx: number; vy: number; alive: boolean; isEnemy?: boolean; }

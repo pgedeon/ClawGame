@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@clawgame/engine": "workspace:*",
+    "@clawgame/phaser-runtime": "workspace:*",
     "@clawgame/shared": "workspace:*",
     "@codemirror/autocomplete": "^6.20.1",
     "@codemirror/commands": "^6.10.3",

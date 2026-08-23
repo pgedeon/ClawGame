@@ -3,7 +3,7 @@ import {
   preparePhaserPreviewSession,
   runPhaserPreviewSession,
 } from './phaserPreviewSession';
-import type { PhaserRuntimeError } from '../../../../packages/phaser-runtime/src';
+import type { PhaserRuntimeError } from '@clawgame/phaser-runtime';
 import type { PhaserSessionHandle } from './phaserPreviewSession';
 import type { PreviewRuntimeSessionOptions } from './sessionTypes';
 
