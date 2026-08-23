@@ -12,6 +12,19 @@ Append one dated section per work session (newest at top). Format:
 **Blockers:** <or "none">
 ```
 
+## 2026-08-23 15:35 — session-4 (fix/preview-mount-race)
+**Task:** Fix both High bugs from `docs/qa/known_issues.md` (preview mount race + syncPhysicsBody Phaser-3 API misuse), delete DamageSystem (CEO approved), dependency-hygiene unit (audit §4 item 5 follow-up).
+**Done:** Branch `fix/preview-mount-race` off origin/main `e213b0d`. Pre-existing WIP found on the worktree (partial mount-race attempt + unrelated TD level-select edits) stashed; untracked TD level-select files quarantined outside the repo (preserved, not deleted). Four commits:
+1. `5953df5` fix(preview): re-arm runtime session mount when host element attaches — fixes known_issues High #1 (effect now retries once the host ref populates post-loading)
+2. `8aa9965` fix(editor): capability-check physics body setters in `syncPhysicsBody` — fixes known_issues High #2 (Phaser-4-safe setter calls)
+3. `81c6e9e` refactor(engine): delete never-ticked DamageSystem (audit §4 item 3, CEO-approved)
+4. `c1e9cda` refactor(web): declare `@clawgame/phaser-runtime` as explicit `workspace:*` dep of apps/web + add `./types` / `./runtimeDescriptor` export subpaths; light imports no longer pull the phaser barrel into jsdom graphs (this was crashing `preview-runtime-config.test.ts` on null `canvas.getContext` during phaser ESM init)
+**Gates:** typecheck PASS (apps/api + apps/web) · full `pnpm test` exit 0: web 223 passed (18 files) · engine 199 passed/3 skipped (15 files) · api 42 passed (5 files) · phaser-runtime 10 passed (3 files) · husky pre-commit lint-staged + typecheck PASS on hygiene commit (session-3's HUSKY=0 workaround no longer needed).
+**Manual verify:** (pre-timeout, on this branch) `pnpm dev` → created project from Platformer template → Game Preview now mounts the Phaser runtime: `.game-preview-runtime-host` populates, canvas renders, no empty-host state. Scene Editor console: zero `body.setAllowGravity is not a function` errors across obstacle entities. Both prior High-bug repros clear.
+**Interruption:** first full-suite run was killed by a session timeout mid-execution; resumed session re-ran typecheck + full suite from scratch — all green (counts above). No partial state trusted.
+**Next:** push branch (done inline with docs commit); PR + merge decision is CEO's. Resume quarantined TD level-select WIP afterwards.
+**Blockers:** none.
+
 ## 2026-08-23 14:35 — session-3 (dead-code-batch-1)
 **Task:** Roadmap P0 item 2 — low-risk deletion batches only (audit §4 items 1/2/4/5 + §5.2). DamageSystem and Engine core eight explicitly out of scope (CEO decision pending).
 **Done:** Branch `chore/dead-code-batch-1` off main `7ff35a8`, one commit per batch, zero-importer grep evidence re-run before each deletion (evidence in commit bodies):
