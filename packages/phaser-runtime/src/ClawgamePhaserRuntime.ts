@@ -1,25 +1,10 @@
 import { Game, AUTO, CANVAS, Scale, WEBGL } from 'phaser';
 import { ClawgamePhaserScene } from './ClawgamePhaserScene';
 import { buildPhaserPreviewBootstrap } from './buildPreviewBootstrap';
+import { PHASER4_RUNTIME_DESCRIPTOR, type PhaserRuntimeDescriptor } from './runtimeDescriptor';
 import type { CanonicalSceneLike, PhaserPreviewBootstrap, PhaserRuntimeErrorReporter } from './types';
 
-export interface PhaserRuntimeDescriptor {
-  kind: 'phaser4';
-  label: string;
-  shortLabel: string;
-  description: string;
-  experimental: boolean;
-  available: boolean;
-}
-
-export const PHASER4_RUNTIME_DESCRIPTOR: PhaserRuntimeDescriptor = {
-  kind: 'phaser4',
-  label: 'Phaser 4 Runtime',
-  shortLabel: 'Phaser 4',
-  description: 'Phaser 4 runtime backend for game preview and export.',
-  experimental: false,
-  available: true,
-};
+export { PHASER4_RUNTIME_DESCRIPTOR, type PhaserRuntimeDescriptor } from './runtimeDescriptor';
 
 type SceneFactory = () => ClawgamePhaserScene;
 export type PhaserRuntimeRendererType = 'webgl' | 'auto' | 'canvas';

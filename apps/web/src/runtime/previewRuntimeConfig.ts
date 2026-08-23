@@ -3,23 +3,14 @@ import type {
   PreviewRuntimeKind,
   PreviewRuntimeSelection,
 } from './PreviewRuntime';
+import { PHASER4_RUNTIME_DESCRIPTOR } from '../../../../packages/phaser-runtime/src/runtimeDescriptor';
 
-export type {
-  PreviewRuntimeDescriptor,
-  PreviewRuntimeKind,
-  PreviewRuntimeSelection,
-} from './PreviewRuntime';
+// Single source of truth for the Phaser 4 runtime descriptor lives in
+// @clawgame/phaser-runtime (see docs/engine-audit.md §4 item 5); re-exported
+// here for the web-side runtime config API.
+export { PHASER4_RUNTIME_DESCRIPTOR };
 
 export const DEFAULT_PREVIEW_RUNTIME_KIND: PreviewRuntimeKind = 'phaser4';
-
-export const PHASER4_RUNTIME_DESCRIPTOR: PreviewRuntimeDescriptor = {
-  kind: 'phaser4',
-  label: 'Phaser 4 Runtime',
-  shortLabel: 'Phaser 4',
-  description: 'Phaser 4 runtime with Arcade physics, scene bootstrap, and entity rendering.',
-  experimental: false,
-  available: true,
-};
 
 const PREVIEW_RUNTIME_DESCRIPTORS: Record<PreviewRuntimeKind, PreviewRuntimeDescriptor> = {
   phaser4: PHASER4_RUNTIME_DESCRIPTOR,
