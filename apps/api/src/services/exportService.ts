@@ -61,10 +61,32 @@ interface ExportAsset {
   tags?: string[];
 }
 
+interface ScenePhysicsConfig {
+  gravity?: { x?: number; y?: number };
+  debug?: boolean;
+}
+
 interface SceneMetadata {
-  width?: number;
-  height?: number;
   backgroundColor?: string;
+}
+
+/**
+ * Bootstrap-equivalent world configuration resolved from raw scene JSON
+ * (docs/export-parity.md gap 4). Mirrors what buildPhaserPreviewBootstrap /
+ * buildPhaserGameConfig derive from `scene.bounds` + `scene.physics`.
+ */
+export interface ExportWorldConfig {
+  bounds: { x: number; y: number; width: number; height: number };
+  gravity?: { x: number; y: number };
+  debug?: boolean;
+}
+
+interface SceneData {
+  name?: string;
+  entities?: ExportEntity[] | Record<string, ExportEntity>;
+  metadata?: SceneMetadata;
+  bounds?: { x?: number; y?: number; width?: number; height?: number };
+  physics?: ScenePhysicsConfig;
 }
 
 /** Body kinds emitted by compileSceneToPhaser — mirrors PhaserPreviewBodyConfig semantics. */
@@ -84,6 +106,37 @@ interface SceneData {
 
 /** Editor shape primitives rendered by dedicated compile branches but outside the engine EntityType union. */
 const EXPORT_SHAPE_TYPES = new Set(['text', 'zone', 'circle', 'rectangle']);
+
+/** Mirror of buildPreviewBootstrap DEFAULT_BOUNDS — preview game/world size default. */
+const PREVIEW_DEFAULT_BOUNDS = { width: 1280, height: 720 };
+
+/**
+ * Bootstrap-equivalent world resolution (docs/export-parity.md gap 4):
+ * game dimensions + physics world bounds come from `scene.bounds` exactly like
+ * buildPhaserPreviewBootstrap (default 1280×720), arcade gravity/debug come from
+ * `scene.physics` exactly like buildPhaserGameConfig.
+ */
+export function resolveExportWorld(scene: SceneData): ExportWorldConfig {
+  const b = scene.bounds;
+  const gravityIn = scene.physics?.gravity;
+  return {
+    bounds: {
+      x: typeof b?.x === 'number' ? b.x : 0,
+      y: typeof b?.y === 'number' ? b.y : 0,
+      width: typeof b?.width === 'number' ? b.width : PREVIEW_DEFAULT_BOUNDS.width,
+      height: typeof b?.height === 'number' ? b.height : PREVIEW_DEFAULT_BOUNDS.height,
+    },
+    ...(gravityIn && (typeof gravityIn.x === 'number' || typeof gravityIn.y === 'number')
+      ? {
+          gravity: {
+            x: typeof gravityIn.x === 'number' ? gravityIn.x : 0,
+            y: typeof gravityIn.y === 'number' ? gravityIn.y : 0,
+          },
+        }
+      : {}),
+    debug: scene.physics?.debug === true,
+  };
+}
 
 export type PreparedExportEntity = Omit<SerializableEntity, 'type'> & { type?: string };
 
@@ -241,9 +294,11 @@ export class ExportService {
     if (options.includeAssets !== false) assetData = await this.embedAssets(projectId);
 
     // Assets must be resolved before compiling so preload can reference embedded data URIs.
-    const sceneCode = this.compileSceneToPhaser(className, sceneData.name || 'Main Scene', entityMap, assetData, sceneData.metadata);
+    // World config is resolved from the same scene fields the preview bootstrap reads (gap 4).
+    const world = resolveExportWorld(sceneData);
+    const sceneCode = this.compileSceneToPhaser(className, sceneData.name || 'Main Scene', entityMap, assetData, sceneData.metadata, world);
 
-    const html = this.generatePhaserHTML(project, className, sceneCode, assetData, sceneData.metadata);
+    const html = this.generatePhaserHTML(project, className, sceneCode, assetData, sceneData.metadata, world);
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const safeName = project.name.replace(/[^a-zA-Z0-9-]/g, '-');
     const filename = `${projectId}-${safeName}-phaser-${timestamp}.html`;
@@ -264,7 +319,7 @@ export class ExportService {
     };
   }
 
-  compileSceneToPhaser(className: string, sceneName: string, entities: Record<string, ExportEntity>, assets?: ExportAsset[], metadata?: SceneMetadata): string {
+  compileSceneToPhaser(className: string, sceneName: string, entities: Record<string, ExportEntity>, assets?: ExportAsset[], metadata?: SceneMetadata, world?: ExportWorldConfig): string {
     const lines: string[] = [];
     const indent = '    ';
     const assetIds = new Set<string>();
@@ -287,6 +342,12 @@ export class ExportService {
     lines.push(`${indent}}`);
     lines.push('');
     lines.push(`${indent}create() {`);
+    // Physics world bounds mirror ClawgamePhaserScene.create: setBounds from bootstrap
+    // bounds (x/y default 0) before entities are created.
+    if (world) {
+      lines.push(`${indent}  this.physics.world.setBounds(${world.bounds.x}, ${world.bounds.y}, ${world.bounds.width}, ${world.bounds.height});`);
+    }
+    lines.push(`${indent}  // Entities`);
     for (const [id, entity] of Object.entries(entities)) {
       const e = entity;
       const x = e.transform?.x ?? 0;
@@ -331,9 +392,13 @@ export class ExportService {
     return lines.join('\n');
   }
 
-  generatePhaserHTML(project: { name: string; version?: string }, className: string, sceneCode: string, assets: ExportAsset[], metadata?: SceneMetadata): string {
-    const w = metadata?.width || 800;
-    const h = metadata?.height || 600;
+  generatePhaserHTML(project: { name: string; version?: string }, className: string, sceneCode: string, assets: ExportAsset[], metadata?: SceneMetadata, world?: ExportWorldConfig): string {
+    // Game dimensions + arcade config mirror buildPhaserGameConfig fed by the preview
+    // bootstrap: bounds-derived size (default 1280×720), scene.physics gravity/debug passthrough.
+    const w = world?.bounds.width ?? PREVIEW_DEFAULT_BOUNDS.width;
+    const h = world?.bounds.height ?? PREVIEW_DEFAULT_BOUNDS.height;
+    const gravityPart = world?.gravity ? `, gravity: { x: ${world.gravity.x}, y: ${world.gravity.y} }` : '';
+    const debugFlag = world?.debug === true;
     const bg = metadata?.backgroundColor || '#1a1a2e';
     const dataUriAssets = assets.filter((a) => a.dataUri)
       .map((a) => `  const ${a.id.replace(/[^a-zA-Z0-9]/g, '_')} = '${a.dataUri}';`).join('\n');
@@ -354,7 +419,7 @@ class ${className} extends Phaser.Scene {
   constructor() { super('${className}'); }
 ${sceneCode}
 }
-const config = { type: Phaser.AUTO, width: ${w}, height: ${h}, backgroundColor: '${bg}', physics: { default: 'arcade', arcade: { debug: false } }, scene: [${className}], parent: 'game-container' };
+const config = { type: Phaser.AUTO, width: ${w}, height: ${h}, backgroundColor: '${bg}', physics: { default: 'arcade', arcade: { debug: ${debugFlag}${gravityPart} } }, scene: [${className}], parent: 'game-container' };
 new Phaser.Game(config);
   <\/script>
 </body>

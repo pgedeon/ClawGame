@@ -12,7 +12,19 @@ Append one dated section per work session (newest at top). Format:
 **Blockers:** <or "none">
 ```
 
-## 2026-08-23 23:45 — session-8 (feat/export-convergence-2)
+## 2026-08-24 02:00 — session-9 (feat/export-convergence-3) unit 1
+
+**Task:** Convergence step 4 per docs/export-parity.md gap summary item 4 — physics/world config passthrough.
+
+**Done:** Branch `feat/export-convergence-3` off main `baf6a78`. `resolveExportWorld` in `exportService.ts` reads raw scene JSON exactly like the preview bootstrap: game dimensions + emitted `this.physics.world.setBounds(x, y, w, h)` from `scene.bounds` (x/y default 0, size default 1280×720 = `buildPreviewBootstrap.DEFAULT_BOUNDS`), arcade `gravity`/`debug` passthrough from `scene.physics` into the exported config (`arcade: { debug: <bool>, gravity: { x, y } }`, parts omitted when absent — mirrors `buildPhaserGameConfig`). Legacy `metadata.width/height` no longer consulted; `SceneMetadata` reduced to `backgroundColor`. `compileSceneToPhaser`/`generatePhaserHTML` take optional trailing `world?: ExportWorldConfig`; setBounds emitted first line of `create()` mirroring `ClawgamePhaserScene.create`. Parity probes: passthrough scene (2048×1152, gravity 0/900, debug true) + default scene (1280×720, debug false, no gravity); legacy metadata-dims fixtures migrated to world param. Doc matrix row Physics config → Closed; gap item 4 struck.
+
+**Gates:** typecheck PASS all projects · api suite 94 passed | 2 skipped (92 baseline + 2 net new).
+
+**Manual verify:** headless generated-code assertions in parity test (setBounds line, config width/height/gravity/debug strings); no browser flow needed.
+
+**Next:** unit 2 same branch — texture-key naming unification (`asset:` prefix both paths) + spritesheet/atlas kinds in export preload.
+
+**Blockers:** none.
 **Task:** Convergence step 3 per docs/export-parity.md gap summary item 3 — body semantics divergence.
 **Done:** Branch `feat/export-convergence-2` off main `e740925`, one commit:
 1. feat(api): export body semantics mirror preview bootstrap — `resolveExportBody` in `exportService.ts` mirrors `buildPreviewBootstrap.buildBodyConfig`: boolean flags override (`solid===true`→static, `trigger===true`→sensor) → `collision.type` (`solid`→static, `trigger|sensor`→sensor) → normalized entity type (`player|enemy|projectile`→dynamic), else no body. All bodies sized via `setSize(sprite/collision/transform dims)`; dynamic adds `setCollideWorldBounds(true)`; sensor adds `setImmovable(true)+setAllowGravity(false)`; emission order matches `ClawgamePhaserScene.createEntity`. Reads normalized `entity.type` directly (entities pre-normalized via `prepareExportEntities` since session-7) instead of re-inferring from components — engine normalizer stays single source of truth. Parity baselines pinned to zero delta (platformer/topdown/dialogue all +0); new probe covers solid/trigger-flag/player/collectible emissions; `export-extended` wall fixture updated (`collision.type='wall'` on obstacle emits NO body — parity with preview bootstrap which only matches `'solid'`) + explicit no-body pin for legacy `'wall'`.

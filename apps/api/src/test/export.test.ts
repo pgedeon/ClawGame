@@ -35,7 +35,7 @@ describe('export service - Phaser export', () => {
         },
       };
 
-      const code = service.compileSceneToPhaser('TestScene', 'Test', entities, [], { width: 800, height: 600 });
+      const code = service.compileSceneToPhaser('TestScene', 'Test', entities, []);
       expect(code).toContain('preload()');
       expect(code).toContain('create()');
       expect(code).toContain("this.load.image('hero'");
@@ -55,7 +55,8 @@ describe('export service - Phaser export', () => {
         'GameScene',
         '    preload() {}\n    create() {}',
         [],
-        { width: 800, height: 600, backgroundColor: '#1a1a2e' },
+        { backgroundColor: '#1a1a2e' },
+        { bounds: { x: 0, y: 0, width: 800, height: 600 } },
       );
       expect(html).toContain('<!DOCTYPE html>');
       expect(html).toContain('phaser@4.0.0');

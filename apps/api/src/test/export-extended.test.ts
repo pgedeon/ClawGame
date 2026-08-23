@@ -14,7 +14,7 @@ describe('ExportService — compileSceneToPhaser', () => {
   const service = new ExportService(mockLogger);
 
   it('handles empty entity list', () => {
-    const code = service.compileSceneToPhaser('EmptyScene', 'Empty', {}, [], { width: 800, height: 600 });
+    const code = service.compileSceneToPhaser('EmptyScene', 'Empty', {}, []);
     expect(code).toContain('preload()');
     expect(code).toContain('create()');
   });
@@ -27,7 +27,7 @@ describe('ExportService — compileSceneToPhaser', () => {
         components: new Map([['sprite', { assetId: 'hero' }], ['collision', { type: 'dynamic' }]]),
       },
     };
-    const code = service.compileSceneToPhaser('TestScene', 'Test', entities, [], { width: 800, height: 600 });
+    const code = service.compileSceneToPhaser('TestScene', 'Test', entities, []);
     expect(code).toContain("this.load.image('hero'");
     expect(code).toContain("this.add.sprite(100, 200, 'hero')");
   });
@@ -40,7 +40,7 @@ describe('ExportService — compileSceneToPhaser', () => {
         components: new Map([['text', { content: 'Score: 0', fontSize: '24px' }]]),
       },
     };
-    const code = service.compileSceneToPhaser('TestScene', 'Test', entities, [], { width: 800, height: 600 });
+    const code = service.compileSceneToPhaser('TestScene', 'Test', entities, []);
     expect(code).toContain("this.add.text(10, 10, 'Score: 0'");
   });
 
@@ -52,7 +52,7 @@ describe('ExportService — compileSceneToPhaser', () => {
         components: new Map([['collision', { width: 32, height: 64 }]]),
       },
     };
-    const code = service.compileSceneToPhaser('TestScene', 'Test', entities, [], { width: 800, height: 600 });
+    const code = service.compileSceneToPhaser('TestScene', 'Test', entities, []);
     expect(code).toContain('this.add.zone(750, 300');
   });
 
@@ -64,7 +64,7 @@ describe('ExportService — compileSceneToPhaser', () => {
         components: new Map([['sprite', { color: '#22c55e' }]]),
       },
     };
-    const code = service.compileSceneToPhaser('TestScene', 'Test', entities, [], { width: 800, height: 600 });
+    const code = service.compileSceneToPhaser('TestScene', 'Test', entities, []);
     expect(code).toContain('this.add.circle(200, 150');
   });
 
@@ -76,7 +76,7 @@ describe('ExportService — compileSceneToPhaser', () => {
         components: new Map([['sprite', { assetId: 'brick' }], ['collision', { type: 'solid', immovable: true }]]),
       },
     };
-    const code = service.compileSceneToPhaser('TestScene', 'Test', entities, [], { width: 800, height: 600 });
+    const code = service.compileSceneToPhaser('TestScene', 'Test', entities, []);
     // Gap 3 semantics: solid → static body, sized via setSize (mirrors preview bootstrap).
     expect(code).toContain('this.physics.add.existing(Wall, true)');
     expect(code).toContain('Wall.body.setSize(32, 32)');
@@ -90,7 +90,7 @@ describe('ExportService — compileSceneToPhaser', () => {
         components: new Map([['sprite', { assetId: 'brick' }], ['collision', { type: 'wall', immovable: true }]]),
       },
     };
-    const code = service.compileSceneToPhaser('TestScene', 'Test', entities, [], { width: 800, height: 600 });
+    const code = service.compileSceneToPhaser('TestScene', 'Test', entities, []);
     // Preview bootstrap emits no body for collision.type='wall' on a non-dynamic entity.
     expect(code).not.toContain('physics.add.existing');
   });
@@ -108,7 +108,7 @@ describe('ExportService — compileSceneToPhaser', () => {
         components: new Map([['sprite', { assetId: 'hero2' }]]),
       },
     };
-    const code = service.compileSceneToPhaser('TestScene', 'Test', entities, [], { width: 800, height: 600 });
+    const code = service.compileSceneToPhaser('TestScene', 'Test', entities, []);
     expect(code).toContain("this.add.sprite(100, 200, 'hero')");
     expect(code).toContain("this.add.sprite(200, 300, 'hero2')");
   });
@@ -123,7 +123,7 @@ describe('ExportService — generatePhaserHTML', () => {
       'GameScene',
       '    preload() {}\n    create() {}',
       [],
-      { width: 800, height: 600, backgroundColor: '#1a1a2e' },
+      { backgroundColor: '#1a1a2e' },
     );
     expect(html).toContain('<!DOCTYPE html>');
     expect(html).toContain('</html>');
@@ -134,7 +134,8 @@ describe('ExportService — generatePhaserHTML', () => {
 
   it('includes Phaser CDN', () => {
     const html = service.generatePhaserHTML(
-      { name: 'Test', version: '1.0.0' }, 'GameScene', '', [], { width: 800, height: 600 },
+      { name: 'Test', version: '1.0.0' }, 'GameScene', '', [], undefined,
+      { bounds: { x: 0, y: 0, width: 800, height: 600 } },
     );
     expect(html).toContain('phaser@4');
     expect(html).toContain('<script');
@@ -142,7 +143,8 @@ describe('ExportService — generatePhaserHTML', () => {
 
   it('includes game configuration', () => {
     const html = service.generatePhaserHTML(
-      { name: 'Test', version: '1.0.0' }, 'GameScene', '', [], { width: 1024, height: 768 },
+      { name: 'Test', version: '1.0.0' }, 'GameScene', '', [], undefined,
+      { bounds: { x: 0, y: 0, width: 1024, height: 768 } },
     );
     expect(html).toContain('width: 1024');
     expect(html).toContain('height: 768');
@@ -154,7 +156,6 @@ describe('ExportService — generatePhaserHTML', () => {
       'MyAwesomeScene',
       '    preload() { this.load.image("test", "test.png"); }',
       [],
-      { width: 800, height: 600 },
     );
     expect(html).toContain('class MyAwesomeScene');
     expect(html).toContain('this.load.image("test"');
@@ -164,7 +165,7 @@ describe('ExportService — generatePhaserHTML', () => {
     const html = service.generatePhaserHTML(
       { name: 'Test', version: '1.0.0' }, 'GameScene',
       '    preload() { this.load.image("bg", "assets/bg.png"); }',
-      [], { width: 800, height: 600 },
+      [],
     );
     expect(html).toContain('class GameScene');
     expect(html).toContain('assets/bg.png');

@@ -19,7 +19,7 @@
  * vitest transpiles and runs this file regardless.
  */
 import { describe, it, expect } from 'vitest';
-import { ExportService, prepareExportEntities } from '../services/exportService';
+import { ExportService, prepareExportEntities, resolveExportWorld } from '../services/exportService';
 import { buildPhaserPreviewBootstrap } from '@clawgame/phaser-runtime/buildPreviewBootstrap';
 import { normalizePreviewScene } from '@clawgame/engine';
 import { templateScenes } from '../../../web/src/templates/templateScenes';
@@ -189,6 +189,52 @@ describe('export/preview parity smoke (docs/export-parity.md)', () => {
     expect(code).toContain('hero_1.body.setCollideWorldBounds(true)');
     // collectible → no body at all
     expect(code).not.toMatch(/coin_1\.body/);
+  });
+
+  it('physics/world config passthrough mirrors preview bootstrap (gap 4 closed)', () => {
+    const scene = {
+      name: 'World',
+      bounds: { x: 0, y: 0, width: 2048, height: 1152 },
+      physics: { gravity: { x: 0, y: 900 }, debug: true },
+      entities: [],
+    };
+    const code = svc.compileSceneToPhaser('MainScene', 'World', toExportEntityMap(scene), [], undefined, resolveExportWorld(scene));
+
+    // World bounds emitted in create() exactly like ClawgamePhaserScene.create.
+    expect(code).toContain('this.physics.world.setBounds(0, 0, 2048, 1152);');
+
+    const html = svc.generatePhaserHTML(
+      { name: 'World' },
+      'MainScene',
+      code,
+      [],
+      undefined,
+      resolveExportWorld(scene),
+    );
+    // Game dimensions from scene.bounds (bootstrap-equivalent), not legacy metadata bag.
+    expect(html).toContain('width: 2048');
+    expect(html).toContain('height: 1152');
+    // Arcade gravity + debug passthrough from scene.physics.
+    expect(html).toContain("arcade: { debug: true, gravity: { x: 0, y: 900 } }");
+  });
+
+  it('world defaults match preview bootstrap when scene ships no bounds/physics (gap 4)', () => {
+    const scene = { name: 'Default', entities: [] };
+    const code = svc.compileSceneToPhaser('MainScene', 'Default', toExportEntityMap(scene), [], undefined, resolveExportWorld(scene));
+    expect(code).toContain('this.physics.world.setBounds(0, 0, 1280, 720);');
+
+    const html = svc.generatePhaserHTML(
+      { name: 'Default' },
+      'MainScene',
+      code,
+      [],
+      undefined,
+      resolveExportWorld(scene),
+    );
+    expect(html).toContain('width: 1280');
+    expect(html).toContain('height: 720');
+    expect(html).toContain('arcade: { debug: false }');
+    expect(html).not.toContain('gravity:');
   });
 
   it('editor shape types survive normalization and hit their render branches', () => {
