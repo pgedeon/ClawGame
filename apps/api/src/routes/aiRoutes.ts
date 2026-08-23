@@ -23,21 +23,33 @@ export async function aiRoutes(app: FastifyInstance) {
 
   // ── Config endpoints ──
 
-  // Get current AI config (masked API key)
+  // Get current AI config (masked API keys) — legacy fields kept for backward compat
   app.get('/api/ai/config', async () => {
     const config = readAIConfig();
     return {
+      // legacy shape
       provider: config.provider,
       apiUrl: config.apiUrl,
       model: config.model,
       apiKey: maskApiKey(config.apiKey),
       useRealAI: config.useRealAI,
+      // multi-provider shape (docs/ai-provider-spec.md)
+      activeProvider: config.activeProvider,
+      fallbackChain: config.fallbackChain,
+      opencode: { apiKey: maskApiKey(config.opencode.apiKey), model: config.opencode.model },
+      anthropic: { apiKey: maskApiKey(config.anthropic.apiKey), model: config.anthropic.model },
+      openaiCompat: {
+        baseUrl: config.openaiCompat.baseUrl,
+        apiKey: maskApiKey(config.openaiCompat.apiKey),
+        model: config.openaiCompat.model,
+      },
     };
   });
 
-  // Update AI config (writes to .env + process.env)
-  app.put<{ Body: Partial<{ provider: string; apiUrl: string; model: string; apiKey: string; useRealAI: boolean }> }>('/api/ai/config', async (request, reply) => {
-    const body = request.body;
+  // Update AI config (writes to .env + process.env). Accepts the legacy flat
+  // shape AND the multi-provider shape (activeProvider/fallbackChain/per-provider).
+  app.put<{ Body: any }>('/api/ai/config', async (request, reply) => {
+    const body = request.body as any;
     if (!body || typeof body !== 'object') {
       reply.code(400);
       return { error: 'Invalid request body' };
@@ -55,6 +67,45 @@ export async function aiRoutes(app: FastifyInstance) {
     if (body.useRealAI !== undefined) updates.useRealAI = body.useRealAI;
     if (body.provider !== undefined) updates.provider = body.provider;
 
+    // Multi-provider shape — validated lightly, unknown ids rejected.
+    const VALID_IDS = ['opencode', 'anthropic', 'openai-compat', 'mock'];
+    if (body.activeProvider !== undefined) {
+      if (!VALID_IDS.includes(body.activeProvider)) {
+        reply.code(400);
+        return { error: `Unknown activeProvider '${body.activeProvider}'. Valid ids: ${VALID_IDS.join(', ')}` };
+      }
+      updates.activeProvider = body.activeProvider;
+    }
+    if (body.fallbackChain !== undefined) {
+      if (!Array.isArray(body.fallbackChain) || body.fallbackChain.some((id: any) => !VALID_IDS.includes(id))) {
+        reply.code(400);
+        return { error: `fallbackChain must be an array of provider ids from: ${VALID_IDS.join(', ')}` };
+      }
+      updates.fallbackChain = body.fallbackChain;
+    }
+    for (const key of ['opencode', 'anthropic'] as const) {
+      const section = body[key];
+      if (section === undefined) continue;
+      if (typeof section !== 'object') {
+        reply.code(400);
+        return { error: `'${key}' must be an object` };
+      }
+      updates[key] = {};
+      if (section.apiKey !== undefined) updates[key].apiKey = String(section.apiKey);
+      if (section.model !== undefined) updates[key].model = String(section.model);
+    }
+    if (body.openaiCompat !== undefined) {
+      const section = body.openaiCompat;
+      if (typeof section !== 'object') {
+        reply.code(400);
+        return { error: "'openaiCompat' must be an object" };
+      }
+      updates.openaiCompat = {};
+      if (section.baseUrl !== undefined) updates.openaiCompat.baseUrl = String(section.baseUrl);
+      if (section.apiKey !== undefined) updates.openaiCompat.apiKey = String(section.apiKey);
+      if (section.model !== undefined) updates.openaiCompat.model = String(section.model);
+    }
+
     const config = writeAIConfig(updates);
 
     // Re-initialize real AI service if needed
@@ -63,11 +114,22 @@ export async function aiRoutes(app: FastifyInstance) {
     }
 
     return {
+      // legacy shape
       provider: config.provider,
       apiUrl: config.apiUrl,
       model: config.model,
       apiKey: maskApiKey(config.apiKey),
       useRealAI: config.useRealAI,
+      // multi-provider shape
+      activeProvider: config.activeProvider,
+      fallbackChain: config.fallbackChain,
+      opencode: { apiKey: maskApiKey(config.opencode.apiKey), model: config.opencode.model },
+      anthropic: { apiKey: maskApiKey(config.anthropic.apiKey), model: config.anthropic.model },
+      openaiCompat: {
+        baseUrl: config.openaiCompat.baseUrl,
+        apiKey: maskApiKey(config.openaiCompat.apiKey),
+        model: config.openaiCompat.model,
+      },
     };
   });
 
@@ -145,6 +207,48 @@ export async function aiRoutes(app: FastifyInstance) {
         reply.code(502);
         return { error: `Failed to fetch opencode catalog: ${err.message}` };
       }
+    }
+
+    if (provider === 'anthropic') {
+      // Native Anthropic adapter is a later milestone; catalog is a placeholder.
+      return {
+        models: [{ id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6' }],
+        note: 'native Anthropic adapter pending — catalog is placeholder',
+      };
+    }
+
+    if (provider === 'openai-compat') {
+      const config = readAIConfig();
+      if (!config.openaiCompat.apiKey) {
+        reply.code(400);
+        return { error: 'OpenAI-compatible provider not configured. Save its API key first.' };
+      }
+      try {
+        const root = config.openaiCompat.baseUrl.replace(/\/chat\/completions\/?$/, '');
+        const res = await fetch(`${root}/models`, {
+          headers: { Authorization: `Bearer ${config.openaiCompat.apiKey}` },
+        });
+        if (!res.ok) throw new Error(`endpoint returned ${res.status}`);
+        const data: any = await res.json();
+        const models = (data.data || data.models || []).map((m: any) => ({
+          id: m.id || m.name,
+          name: m.name || m.id,
+          context_length: m.context_length,
+        })).filter((m: any) => Boolean(m.id));
+        if (models.length === 0) throw new Error('empty catalog');
+        return { models };
+      } catch (err: any) {
+        return {
+          models: [
+            { id: config.openaiCompat.model || 'gpt-4o-mini', name: `${config.openaiCompat.model || 'gpt-4o-mini'} (current)` },
+          ],
+          note: `live catalog unavailable (${err.message}) — showing current model`,
+        };
+      }
+    }
+
+    if (provider === 'mock') {
+      return { models: [{ id: 'mock', name: 'Mock AI (local, no key)' }] };
     }
 
     if (provider === 'openrouter') {

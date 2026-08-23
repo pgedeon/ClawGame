@@ -36,6 +36,7 @@ const GamePreviewPage = lazy(() => import('./pages/GamePreviewPage').then(m => (
 const ExportPage = lazy(() => import('./pages/ExportPage').then(m => ({ default: m.ExportPage })));
 const GitCenterPage = lazy(() => import('./pages/GitCenterPage').then(m => ({ default: m.GitCenterPage })));
 const AISettingsPage = lazy(() => import('./pages/AISettingsPage').then(m => ({ default: m.AISettingsPage })));
+const AIProvidersPage = lazy(() => import('./pages/AIProvidersPage').then(m => ({ default: m.AIProvidersPage })));
 const BehaviorGraphPage = lazy(() => import('./pages/BehaviorGraphPage').then(m => ({ default: m.BehaviorGraphPage })));
 const NavigationPage = lazy(() => import('./pages/NavigationPage').then(m => ({ default: m.NavigationPage })));
 const MediaForgePage = lazy(() => import('./pages/MediaForgePage').then(m => ({ default: m.MediaForgePage })));
@@ -93,6 +94,7 @@ function App() {
             <Route path="open-project" element={<OpenProjectPage />} />
             <Route path="examples" element={<ExamplesPage />} />
             <Route path="settings" element={<SettingsPage />} />
+          <Route path="settings/ai-providers" element={<Suspense fallback={<PageLoader />}><AIProvidersPage /></Suspense>} />
             {/* Project routes — nested under ProjectPage so Outlet works */}
             <Route path="project/:projectId" element={<LazyProjectPage />}>
               {/* Standard routes */}

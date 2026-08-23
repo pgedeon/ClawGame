@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Moon, Sun, Monitor, Keyboard, Cpu, Info, ChevronRight, Server, Palette } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Moon, Sun, Monitor, Keyboard, Cpu, Info, ChevronRight, Server, Palette, Plug } from 'lucide-react';
 import {
   getRequestedPreviewRuntimeKind,
   listPreviewRuntimeDescriptors,
@@ -38,6 +39,7 @@ const AI_MODELS = [
 const PREVIEW_RUNTIMES = listPreviewRuntimeDescriptors();
 
 export function SettingsPage() {
+  const navigate = useNavigate();
   const [theme, setTheme] = useState<Theme>(() => {
     return (localStorage.getItem('clawgame-theme') as Theme) || 'system';
   });
@@ -268,6 +270,19 @@ export function SettingsPage() {
             <h2>AI</h2>
           </div>
           <div className="settings-card">
+            <div className="setting-row">
+              <div className="setting-info">
+                <span className="setting-label">AI Providers</span>
+                <span className="setting-desc">Configure API keys, models, active provider and fallback order</span>
+              </div>
+              <button
+                className="setting-select"
+                style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                onClick={() => navigate('/settings/ai-providers')}
+              >
+                <Plug size={14} /> Manage <ChevronRight size={14} />
+              </button>
+            </div>
             <div className="setting-row">
               <div className="setting-info">
                 <span className="setting-label">Default AI Model</span>
