@@ -83,6 +83,13 @@ export function useGamePreview(
   const runtimeHostRef = useRef<HTMLDivElement>(null);
   const phaserSessionRef = useRef<PhaserSessionHandle | null>(null);
 
+  // Host element lifecycle: increments each time the runtime host div attaches.
+  // The session-mount effect depends on this so a host that renders after the
+  // first effect pass (e.g. while the scene loader shows its spinner branch)
+  // still triggers exactly one mount per attach.
+  const [hostEpoch, setHostEpoch] = useState(0);
+  const handleHostReady = useCallback(() => setHostEpoch((epoch) => epoch + 1), []);
+
   // Game loop state
   const gameLoopState = useRef({ gameStarted: false, gamePaused: false, gameOver: false, victory: false });
 
@@ -370,7 +377,7 @@ export function useGamePreview(
       mounted = false;
       cleanup?.();
     };
-  }, [projectGenre, syncRPGState, handleSave, sceneKey]);
+  }, [projectGenre, syncRPGState, handleSave, sceneKey, hostEpoch]);
 
   // Return all state and handlers
   return {
@@ -432,6 +439,7 @@ export function useGamePreview(
     previewRuntime,
     runtimeKind,
     runtimeErrors,
+    handleHostReady,
 
     // Controls
     controls,

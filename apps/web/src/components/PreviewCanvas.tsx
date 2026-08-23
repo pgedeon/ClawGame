@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { DungeonMinimap } from './game/DungeonMinimap';
 import type { MinimapEntity } from './game/DungeonMinimap';
 import {
@@ -11,6 +11,8 @@ import {
 
 interface PreviewCanvasProps {
   runtimeHostRef: React.RefObject<HTMLDivElement>;
+  /** Invoked whenever the runtime host div attaches to the DOM. */
+  onHostReady?: () => void;
   towerDefenseOverlay: TowerDefenseOverlayState | null;
   playerMana: number;
   showTowerDefenseUi: boolean;
@@ -20,14 +22,22 @@ interface PreviewCanvasProps {
 
 export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
   runtimeHostRef,
+  onHostReady,
   towerDefenseOverlay,
   playerMana,
   showTowerDefenseUi,
   onSelectTowerType,
   minimapData,
 }) => {
+  const attachHost = useCallback(
+    (node: HTMLDivElement | null) => {
+      (runtimeHostRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+      if (node) onHostReady?.();
+    },
+    [runtimeHostRef, onHostReady],
+  );
   return (
-    <div ref={runtimeHostRef} className="game-preview-runtime-host">
+    <div ref={attachHost} className="game-preview-runtime-host">
       {minimapData && minimapData.playerX !== 0 && (
         <DungeonMinimap
           playerX={minimapData.playerX}

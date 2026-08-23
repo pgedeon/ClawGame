@@ -62,6 +62,7 @@ const GamePreviewContent: React.FC = () => {
     handleToggleRecording, handlePlayReplay, handlePauseReplay, handleSeekReplay, handleStepBackReplay, handleStepReplay, handleResetReplay, handleDownloadReplay,
     minimapData,
     runtimeErrors,
+    handleHostReady,
   } = useGamePreview(projectId ?? '', projectScene, projectGenre);
 
   if (loading) {
@@ -148,6 +149,7 @@ const GamePreviewContent: React.FC = () => {
           <div className="gp-canvas-fill">
             <PreviewCanvas
               runtimeHostRef={runtimeHostRef}
+              onHostReady={handleHostReady}
               towerDefenseOverlay={towerDefenseOverlay}
               playerMana={playerMana}
               showTowerDefenseUi={gameStarted && !gameOver && !victory}
@@ -164,6 +166,7 @@ const GamePreviewContent: React.FC = () => {
               <div className="gp-device-screen">
                 <PreviewCanvas
                   runtimeHostRef={runtimeHostRef}
+                  onHostReady={handleHostReady}
                       towerDefenseOverlay={towerDefenseOverlay}
                   playerMana={playerMana}
                   showTowerDefenseUi={gameStarted && !gameOver && !victory}
