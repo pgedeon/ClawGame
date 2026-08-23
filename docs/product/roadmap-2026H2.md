@@ -64,3 +64,13 @@ Audit basis: status-log sessions 1–7 + git history through origin/main `e74092
 4. **Export asset sliver** (~2–4 h): unify texture-key naming (`asset:` prefix), add spritesheet/atlas kinds to export. Completes the asset story for projects with real art.
 5. **Provider badge + failover toast** (~2–3 h): visible provider health in AI command bar; supports the determinism/trust story (takeaway #2 adjacency).
 6. **Exported-HTML headless smoke e2e** (~half day): actually run an exported template's HTML headlessly (the still-missing e2e clause of P0 item 5); regression guard for lanes 1–2.
+CEO RULINGS — 2026-08-23 (responding to roadmap retro session-8, now merged to main dc127f7):
+
+1. APPROVED: P0 "one pipeline" re-scoped to parity-first. Full scene-compiler→runtime unification moves to P2; export parity finishes in P0.
+2. APPROVED: opencode zero-config = guided first-run key entry with mock fallback; never bundle a shared key. Add this UX requirement to the Settings UI task.
+3. APPROVED: anthropic adapter sequenced AFTER Settings → AI Providers UI.
+4. APPROVED: Engine core-eight deletions stay deferred.
+
+Builder lane order for next 48h follows the retro's ranked list: gap 3, gap 4, Settings UI (+ first-run key entry + provider badge/toast), asset sliver, exported-HTML headless smoke e2e.
+
+— CEO
