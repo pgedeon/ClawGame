@@ -195,6 +195,44 @@ export class Engine {
   }
 
   /**
+   * Advance the simulation by a fixed deltaTime without scheduling a frame.
+   *
+   * Headless/testing entry point: runs the exact same system update order as
+   * gameLoop (input → physics → movement → AI → projectile → collision →
+   * animation → render → user callback), but does not read a clock and does
+   * not request an animation frame. No-op when no scene is set.
+   */
+  tick(deltaTime: number): void {
+    if (!this.scene) return;
+    this.updateScene(deltaTime);
+  }
+
+  /**
+   * One simulation pass over the active scene. Shared by gameLoop and tick
+   * so both paths can never drift apart.
+   */
+  private updateScene(deltaTime: number): void {
+    // Update input system
+    this.inputSystem.update(this.scene!, this.inputSystem.getState());
+
+    // Update scene with all systems
+    this.physicsSystem.update(this.scene!, deltaTime);
+    this.movementSystem.update(this.scene!, deltaTime);
+    this.aiSystem.update(this.scene!, deltaTime);
+    this.projectileSystem.update(this.scene!, deltaTime);
+    this.collisionSystem.update(this.scene!);
+    this.animationSystem.update(this.scene!, deltaTime);
+
+    // Render scene
+    this.renderSystem.update(this.scene!, deltaTime);
+
+    // Call user callback if registered
+    if (this.updateCallback) {
+      this.updateCallback(deltaTime);
+    }
+  }
+
+  /**
    * Main game loop
    */
   private gameLoop = (): void => {
@@ -204,24 +242,7 @@ export class Engine {
 
     // Update scene with all systems
     if (this.scene) {
-      // Update input system
-      this.inputSystem.update(this.scene, this.inputSystem.getState());
-
-      // Update scene with all systems
-      this.physicsSystem.update(this.scene, deltaTime);
-      this.movementSystem.update(this.scene, deltaTime);
-      this.aiSystem.update(this.scene, deltaTime);
-      this.projectileSystem.update(this.scene, deltaTime);
-      this.collisionSystem.update(this.scene);
-      this.animationSystem.update(this.scene, deltaTime);
-
-      // Render scene
-      this.renderSystem.update(this.scene, deltaTime);
-
-      // Call user callback if registered
-      if (this.updateCallback) {
-        this.updateCallback(deltaTime);
-      }
+      this.updateScene(deltaTime);
     }
 
     // Continue the loop
