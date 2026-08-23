@@ -637,10 +637,23 @@ export class PhaserSceneEditor extends Phaser.Scene {
 
     body.setSize(collision.width || render.width, collision.height || render.height);
     body.setOffset(collision.offsetX || 0, collision.offsetY || 0);
-    body.setAllowGravity(Boolean(collision.allowGravity));
-    body.setImmovable(collision.immovable ?? isStatic);
-    body.setBounce(collision.bounce ?? 0);
-    body.setDrag(collision.drag ?? 0);
+    // Phaser 4 keeps Arcade Body's chainable setters but StaticBody (created for
+    // wall/solid entities via `physics.add.existing(_, true)`) only exposes the
+    // raw properties — calling e.g. `setAllowGravity` on a StaticBody throws
+    // TypeError. Capability-check each setter and fall back to the property.
+    const extensibleBody = body as unknown as Record<string, unknown>;
+    const applyBodyValue = (method: string, property: string, value: unknown): void => {
+      const setter = extensibleBody[method];
+      if (typeof setter === 'function') {
+        (setter as (v: unknown) => void).call(body, value);
+      } else {
+        extensibleBody[property] = value;
+      }
+    };
+    applyBodyValue('setAllowGravity', 'allowGravity', Boolean(collision.allowGravity));
+    applyBodyValue('setImmovable', 'immovable', collision.immovable ?? isStatic);
+    applyBodyValue('setBounce', 'bounce', collision.bounce ?? 0);
+    applyBodyValue('setDrag', 'drag', collision.drag ?? 0);
     render.body = body;
   }
 
