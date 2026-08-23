@@ -94,11 +94,11 @@ function computeParity(template: TemplateScene): ParityDiff {
   };
 }
 
-/** Pinned baseline — see docs/export-parity.md matrix. */
+/** Pinned baseline — see docs/export-parity.md matrix. Gap 3 closed: body kinds match. */
 const EXPECTED_BODY_DELTA: Record<string, number> = {
-  platformer: 4, // coin-1..3 + goal-flag become dynamic bodies in export
-  topdown: 2, // powerup-1 + treasure-chest
-  dialogue: 7, // npc×3 + sign×2 + locked-door + key-golden
+  platformer: 0,
+  topdown: 0,
+  dialogue: 0,
 };
 
 describe('export/preview parity smoke (docs/export-parity.md)', () => {
@@ -162,6 +162,33 @@ describe('export/preview parity smoke (docs/export-parity.md)', () => {
         expect(e.type, `${e.id} fell back to custom`).not.toBe('custom');
       }
     }
+  });
+
+  it('body semantics mirror preview bootstrap (gap 3 closed)', () => {
+    const scene = {
+      name: 'Bodies',
+      entities: [
+        { id: 'wall-1', transform: { x: 0, y: 0 }, components: { collision: { width: 100, height: 20, type: 'solid' }, sprite: { width: 100, height: 20 } } },
+        { id: 'trigger-1', transform: { x: 50, y: 50 }, components: { collision: { width: 30, height: 30, trigger: true }, sprite: { width: 30, height: 30 } } },
+        { id: 'hero-1', type: 'player', transform: { x: 10, y: 10 }, components: { playerInput: true, collision: { width: 32, height: 48, type: 'player' }, sprite: { width: 32, height: 48 } } },
+        { id: 'coin-1', transform: { x: 20, y: 20 }, components: { collectible: { type: 'coin', value: 1 }, collision: { width: 20, height: 20, type: 'collectible' }, sprite: { width: 20, height: 20 } } },
+      ],
+    };
+    const code = svc.compileSceneToPhaser('MainScene', 'Bodies', toExportEntityMap(scene), [], undefined);
+
+    // solid → static + sized
+    expect(code).toContain('this.physics.add.existing(wall_1, true)');
+    expect(code).toContain('wall_1.body.setSize(100, 20)');
+    // boolean trigger flag → sensor: immovable, no gravity, no world bounds
+    expect(code).toContain('this.physics.add.existing(trigger_1, false)');
+    expect(code).toContain('trigger_1.body.setSize(30, 30)');
+    expect(code).toContain('trigger_1.body.setImmovable(true)');
+    expect(code).toContain('trigger_1.body.setAllowGravity(false)');
+    expect(code).not.toContain('trigger_1.body.setCollideWorldBounds');
+    // player → dynamic + world bounds
+    expect(code).toContain('hero_1.body.setCollideWorldBounds(true)');
+    // collectible → no body at all
+    expect(code).not.toMatch(/coin_1\.body/);
   });
 
   it('editor shape types survive normalization and hit their render branches', () => {

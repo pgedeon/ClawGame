@@ -73,11 +73,26 @@ describe('ExportService — compileSceneToPhaser', () => {
       'e1': {
         id: 'e1', name: 'Wall', type: 'obstacle',
         transform: { x: 400, y: 300 },
+        components: new Map([['sprite', { assetId: 'brick' }], ['collision', { type: 'solid', immovable: true }]]),
+      },
+    };
+    const code = service.compileSceneToPhaser('TestScene', 'Test', entities, [], { width: 800, height: 600 });
+    // Gap 3 semantics: solid → static body, sized via setSize (mirrors preview bootstrap).
+    expect(code).toContain('this.physics.add.existing(Wall, true)');
+    expect(code).toContain('Wall.body.setSize(32, 32)');
+  });
+
+  it('omits bodies for non-solid obstacles (parity with preview)', () => {
+    const entities = {
+      'e1': {
+        id: 'e1', name: 'Wall', type: 'obstacle',
+        transform: { x: 400, y: 300 },
         components: new Map([['sprite', { assetId: 'brick' }], ['collision', { type: 'wall', immovable: true }]]),
       },
     };
     const code = service.compileSceneToPhaser('TestScene', 'Test', entities, [], { width: 800, height: 600 });
-    expect(code).toContain('physics.add.existing');
+    // Preview bootstrap emits no body for collision.type='wall' on a non-dynamic entity.
+    expect(code).not.toContain('physics.add.existing');
   });
 
   it('handles multiple entities', () => {

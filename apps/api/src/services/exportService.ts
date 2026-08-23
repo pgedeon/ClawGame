@@ -67,6 +67,15 @@ interface SceneMetadata {
   backgroundColor?: string;
 }
 
+/** Body kinds emitted by compileSceneToPhaser — mirrors PhaserPreviewBodyConfig semantics. */
+type ExportBodyKind = 'static' | 'dynamic' | 'sensor' | 'none';
+
+interface ResolvedBody {
+  kind: ExportBodyKind;
+  width: number;
+  height: number;
+}
+
 interface SceneData {
   name?: string;
   entities?: ExportEntity[] | Record<string, ExportEntity>;
@@ -128,6 +137,55 @@ interface ExportMetadata {
 }
 
 const EXPORTS_DIR = process.env.EXPORTS_DIR || './data/exports';
+
+/**
+ * Body sizing mirror of buildPreviewBootstrap getEntityDimensions.
+ * Entities arrive pre-normalized via prepareExportEntities (shared engine
+ * normalizer), so `entity.type` is already the runtime-inferred type — read
+ * it directly instead of re-inferring from components (single source of truth).
+ */
+function getExportEntityDimensions(
+  sprite: ExportComponent | undefined,
+  collision: ExportComponent | undefined,
+  transform: ExportEntity['transform'],
+): { width: number; height: number } {
+  const width = sprite?.width ?? collision?.width ?? transform?.width ?? 32;
+  const height = sprite?.height ?? collision?.height ?? transform?.height ?? 32;
+  return {
+    width: typeof width === 'number' ? width : 32,
+    height: typeof height === 'number' ? height : 32,
+  };
+}
+
+/**
+ * Body-kind resolution mirroring buildPreviewBootstrap buildBodyConfig:
+ * boolean flags override, then collision.type, then normalized entity type.
+ * solid→static, trigger/sensor→sensor, player/enemy/projectile→dynamic, else none.
+ */
+function resolveExportBody(entity: ExportEntity, components: Map<string, ExportComponent>): ResolvedBody {
+  const sprite = components.get('sprite');
+  const collision = components.get('collision');
+  const { width, height } = getExportEntityDimensions(sprite, collision, entity.transform);
+
+  if (!collision || typeof collision !== 'object') {
+    return { kind: 'none', width, height };
+  }
+
+  // Respect boolean flags as overrides
+  if (collision.solid === true) return { kind: 'static', width, height };
+  if (collision.trigger === true) return { kind: 'sensor', width, height };
+
+  const colType = collision.type;
+  if (colType === 'solid') return { kind: 'static', width, height };
+  if (colType === 'trigger' || colType === 'sensor') return { kind: 'sensor', width, height };
+
+  const entityType = typeof entity.type === 'string' ? entity.type : 'unknown';
+  if (entityType === 'player' || entityType === 'enemy' || entityType === 'projectile') {
+    return { kind: 'dynamic', width, height };
+  }
+
+  return { kind: 'none', width, height };
+}
 
 export class ExportService {
   private logger: FastifyLoggerInstance;
@@ -254,9 +312,18 @@ export class ExportService {
         lines.push(`${indent}  const ${safeName} = this.add.sprite(${x}, ${y}, '${key}');`);
         if (e.transform?.rotation) lines.push(`${indent}  ${safeName}.setRotation(${e.transform.rotation});`);
         if ((e.transform?.scaleX ?? 1) !== 1 || (e.transform?.scaleY ?? 1) !== 1) lines.push(`${indent}  ${safeName}.setScale(${e.transform?.scaleX ?? 1}, ${e.transform?.scaleY ?? 1});`);
-        if (collision?.type && collision.type !== 'none') {
-          const isStatic = collision.type === 'wall' || collision.type === 'solid';
-          lines.push(`${indent}  this.physics.add.existing(${safeName}, ${isStatic});`);
+        // Body emission mirrors buildPhaserPreviewBootstrap + ClawgamePhaserScene.createEntity:
+        // static/dynamic/sensor kinds, body sizing, world-bounds for dynamic only,
+        // immovable + no-gravity sensors. No body for collectibles/signs/NPCs/etc.
+        const body = resolveExportBody(e, comps);
+        if (body.kind !== 'none') {
+          lines.push(`${indent}  this.physics.add.existing(${safeName}, ${body.kind === 'static'});`);
+          lines.push(`${indent}  ${safeName}.body.setSize(${body.width}, ${body.height});`);
+          if (body.kind === 'dynamic') lines.push(`${indent}  ${safeName}.body.setCollideWorldBounds(true);`);
+          if (body.kind === 'sensor') {
+            lines.push(`${indent}  ${safeName}.body.setImmovable(true);`);
+            lines.push(`${indent}  ${safeName}.body.setAllowGravity(false);`);
+          }
         }
       }
     }
