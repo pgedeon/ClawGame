@@ -12,6 +12,22 @@ Append one dated section per work session (newest at top). Format:
 **Blockers:** <or "none">
 ```
 
+## 2026-08-23 17:00 — session-5 (test/template-integration)
+**Task:** Roadmap P0 item 4 — template integration tests via headless Engine tick harness.
+**Done:** Branch `test/template-integration` off main `9e9b549`. Three commits:
+1. `a9056b8` refactor(web): extract the three shipped template `defaultScene` objects verbatim from `CreateProjectPage.tsx` into `apps/web/src/templates/templateScenes.ts` (single canonical source shared by project creation and engine tests; no data changes).
+2. `71c6c44` feat(engine): add `Engine.tick(deltaTime)` headless entry point. Per-frame system sequence extracted into private `updateScene()` called by BOTH `gameLoop` and `tick`, so rAF loop and fixed-dt harness cannot drift. No behavior change (same order, same 0.1s cap, same callback timing).
+3. `docs commit` (this one): `packages/engine/src/template-integration.test.ts` + this status entry.
+**Harness design:** Engine constructed WITHOUT canvas → RenderSystem no-ops (null ctx) and InputSystem never binds DOM = the injectable null-renderer seam; fixed dt=1/60 × 120 frames via `tick()`. Each template (platformer 12 / topdown 14 / dialogue 8 entities) loaded through `SceneLoader.loadIntoEngine` (canonical path), asserted: load counts + no missing assets, 120 ticks throw-free, entity count stable, transforms/velocities finite, dynamic bodies in world bounds, zero-input determinism.
+**Findings (documented as assertions, NOT patched):**
+- Platformer: template stores gravity on `movement.gravity` but `PhysicsSystem` only reads `physics.gravity` → engine-side gravity inert; game scripts implement gravity themselves.
+- Topdown: chase enemies ship `ai` without `movement` component → AISystem patrol/chase writes through MovementComponent and is inert under pure engine loop; scripts drive enemies instead.
+- Static scenery may legitimately sit outside world bounds (goal-flag ships at x=870 on an 800-wide world); clamps only apply to dynamic bodies.
+**Gates:** typecheck PASS (all 5 workspace projects, exit 0) · engine 219 passed/3 skipped incl. 20 new · api 42 passed · phaser-runtime 10 passed · web 222 passed / **1 pre-existing failure** (`asset-mapping.test.ts` "should remove custom sprites": absolute `http://localhost:3100` vs relative URL) — reproduced identically on pristine main `9e9b549` via detached-head rerun, environment-dependent, unrelated to this diff.
+**Manual verify:** targeted `npx vitest run src/template-integration.test.ts` 20/20 green before full suite; full root `pnpm test` + `pnpm typecheck` run once at end per process rules.
+**Next:** CEO review of branch (not merged per instructions); decide whether the two template/engine component gaps (gravity location, AI movement dependency) become roadmap items.
+**Blockers:** none.
+
 ## 2026-08-23 15:35 — session-4 (fix/preview-mount-race)
 **Task:** Fix both High bugs from `docs/qa/known_issues.md` (preview mount race + syncPhysicsBody Phaser-3 API misuse), delete DamageSystem (CEO approved), dependency-hygiene unit (audit §4 item 5 follow-up).
 **Done:** Branch `fix/preview-mount-race` off origin/main `e213b0d`. Pre-existing WIP found on the worktree (partial mount-race attempt + unrelated TD level-select edits) stashed; untracked TD level-select files quarantined outside the repo (preserved, not deleted). Four commits:
