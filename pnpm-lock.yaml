@@ -52,6 +52,12 @@ importers:
         specifier: ^0.34.5
         version: 0.34.5
     devDependencies:
+      '@clawgame/engine':
+        specifier: workspace:^
+        version: link:../../packages/engine
+      '@clawgame/phaser-runtime':
+        specifier: workspace:^
+        version: link:../../packages/phaser-runtime
       '@types/axios':
         specifier: ^0.14.4
         version: 0.14.4

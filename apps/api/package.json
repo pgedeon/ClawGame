@@ -21,6 +21,8 @@
     "sharp": "^0.34.5"
   },
   "devDependencies": {
+    "@clawgame/engine": "workspace:^",
+    "@clawgame/phaser-runtime": "workspace:^",
     "@types/axios": "^0.14.4",
     "@types/node": "^20.11.0",
     "@types/sharp": "^0.32.0",

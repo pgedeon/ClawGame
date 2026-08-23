@@ -15,7 +15,7 @@
     "composite": true
   },
   "include": ["src/**/*"],
-  "exclude": ["src/test_backup/**", "src/**/*_backup.ts", "src/**/*.ts_backup"],
+  "exclude": ["src/test_backup/**", "src/**/*_backup.ts", "src/**/*.ts_backup", "src/test/export-parity.test.ts"],
   "references": [
     { "path": "../../packages/shared" }
   ]
