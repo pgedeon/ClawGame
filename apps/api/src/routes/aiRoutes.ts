@@ -2,6 +2,9 @@ import { FastifyInstance } from 'fastify';
 import * as mockAiService from '../services/aiService';
 import { RealAIService } from '../services/realAIService';
 import { readAIConfig, writeAIConfig, maskApiKey, getApiKeyForProvider } from '../utils/envConfig';
+import { ALL_PROVIDER_IDS, createProvider, isProviderConfigured } from '../services/ai/registry';
+import { OpenCodeProvider } from '../services/ai/providers/opencode';
+import type { AIProviderId } from '../services/ai/types';
 
 // Global reference to real AI service (initialized with logger)
 let realAIServiceInstance: RealAIService | null = null;
@@ -68,9 +71,81 @@ export async function aiRoutes(app: FastifyInstance) {
     };
   });
 
+  // ── Provider discovery & connectivity (docs/ai-provider-spec.md §API surface) ──
+
+  /** Health probe with a short ceiling so the listing endpoint stays snappy. */
+  async function probeHealth(provider: AIProviderId): Promise<{ ok: boolean; latencyMs?: number; error?: string }> {
+    const instance = createProvider(provider);
+    if (!instance) return { ok: false, error: 'not configured' };
+    const timeout = new Promise<{ ok: boolean; error: string }>(resolve =>
+      setTimeout(() => resolve({ ok: false, error: 'health check timed out' }), 6_000),
+    );
+    return Promise.race([instance.healthCheck(), timeout]);
+  }
+
+  // Available providers + which are configured + health (live probes for configured ones)
+  app.get('/api/ai/providers', async () => {
+    const config = readAIConfig();
+    const entries = await Promise.all(ALL_PROVIDER_IDS.map(async (id) => {
+      const configured = isProviderConfigured(id, config);
+      const available = id === 'opencode' || id === 'openai-compat' || id === 'mock';
+      return {
+        id,
+        available,
+        configured,
+        health: configured && available ? await probeHealth(id) : null,
+        note: id === 'anthropic' && !available ? 'native Anthropic adapter pending — key can be stored now' : undefined,
+      };
+    }));
+    return { activeProvider: config.activeProvider, fallbackChain: config.fallbackChain, useRealAI: config.useRealAI, providers: entries };
+  });
+
+  // One-shot connectivity test used by Settings UI "Test connection"
+  app.post<{ Body: { provider?: string } }>('/api/ai/test', async (request, reply) => {
+    const requested = request.body?.provider;
+    if (!requested || !(ALL_PROVIDER_IDS as string[]).includes(requested)) {
+      reply.code(400);
+      return { error: `Unknown provider '${requested ?? ''}'. Valid ids: ${ALL_PROVIDER_IDS.join(', ')}` };
+    }
+    const provider = requested as AIProviderId;
+    if (provider === 'mock') {
+      return { provider, ok: true, latencyMs: 0, note: 'Mock mode always answers locally.' };
+    }
+    if (!isProviderConfigured(provider)) {
+      reply.code(400);
+      return { provider, ok: false, error: `${provider} is not configured — save its API key first.` };
+    }
+    const instance = createProvider(provider);
+    if (!instance) {
+      reply.code(400);
+      return { provider, ok: false, error: 'native Anthropic adapter not implemented yet' };
+    }
+    const health = await instance.healthCheck();
+    return { provider, ...health };
+  });
+
   // List available models for a provider
   app.get<{ Querystring: { provider?: string } }>('/api/ai/models', async (request, reply) => {
     const provider = request.query.provider || 'zai';
+
+    if (provider === 'opencode') {
+      const config = readAIConfig();
+      if (!config.opencode.apiKey) {
+        reply.code(400);
+        return { error: 'OpenCode API key not configured. Save an OpenCode API key first.' };
+      }
+      try {
+        const opencode = new OpenCodeProvider(
+          { apiKey: config.opencode.apiKey, model: config.opencode.model || undefined },
+          app.log,
+        );
+        const models = await opencode.listModels();
+        return { models };
+      } catch (err: any) {
+        reply.code(502);
+        return { error: `Failed to fetch opencode catalog: ${err.message}` };
+      }
+    }
 
     if (provider === 'openrouter') {
       const apiKey = getApiKeyForProvider('openrouter');
