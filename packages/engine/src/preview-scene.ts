@@ -71,6 +71,8 @@ export interface Waypoint {
 
 export interface PreviewSceneData extends SerializableScene {
   description?: string;
+  /** Scene-level physics (world gravity/debug) consumed by the Phaser preview bootstrap + phaser-html export. */
+  physics?: { gravity?: { x: number; y: number }; debug?: boolean };
   dialogueTrees?: DialogueTree[];
   platforms?: Platform[];
   collectibles?: CollectibleData[];
@@ -131,6 +133,22 @@ function normalizeBounds(bounds: unknown): SerializableScene['bounds'] | undefin
   }
 
   return undefined;
+}
+
+function normalizePhysics(physics: unknown): PreviewSceneData['physics'] | undefined {
+  if (!isRecord(physics)) return undefined;
+  const gravity = isRecord(physics.gravity) ? physics.gravity : null;
+  return {
+    ...(gravity
+      ? {
+          gravity: {
+            x: typeof gravity.x === 'number' ? gravity.x : 0,
+            y: typeof gravity.y === 'number' ? gravity.y : 0,
+          },
+        }
+      : {}),
+    ...(typeof physics.debug === 'boolean' ? { debug: physics.debug } : {}),
+  };
 }
 
 function normalizeSpawnPoint(spawnPoint: unknown): SerializableScene['spawnPoint'] | undefined {
@@ -238,6 +256,7 @@ export function normalizePreviewScene(data: unknown): PreviewSceneData {
     bounds: normalizeBounds(scene.bounds),
     spawnPoint: normalizeSpawnPoint(scene.spawnPoint),
     background: typeof scene.background === 'string' ? scene.background : undefined,
+    physics: normalizePhysics(scene.physics),
     dialogueTrees: asArray<DialogueTree>(scene.dialogueTrees),
     platforms: asArray<Platform>(scene.platforms),
     collectibles: asArray<CollectibleData>(scene.collectibles),

@@ -19,21 +19,32 @@ export interface TemplateSceneEntity {
 export interface TemplateScene {
   name: string;
   entities: TemplateSceneEntity[];
+  /**
+   * Scene-level physics passed through to the Phaser preview bootstrap
+   * (world gravity/debug). Entity-level `physics` components remain the
+   * engine PhysicsSystem contract; this scene-level block is what the
+   * Phaser preview and the phaser-html export read.
+   */
+  physics?: { gravity?: { x: number; y: number }; debug?: boolean };
 }
 
 /** Keyed by CreateProjectPage template id. */
 export const templateScenes: Record<'platformer' | 'topdown' | 'dialogue', TemplateScene> = {
   platformer: {
   name: 'Main Scene',
+  // World gravity for the Phaser preview + phaser-html export (arcade world).
+  // The per-entity gravity contract for the engine PhysicsSystem lives on the
+  // player's `physics` component below — same value, two consumers.
+  physics: { gravity: { x: 0, y: 900 } },
   entities: [
     {
       id: 'player-1',
       transform: { x: 100, y: 350, scaleX: 1, scaleY: 1, rotation: 0 },
       components: {
         playerInput: true,
-        movement: { vx: 0, vy: 0, speed: 200, jumpSpeed: 450, gravity: 900 },
+        movement: { vx: 0, vy: 0, speed: 200, jumpSpeed: 450 },
         sprite: { width: 32, height: 48, color: '#3b82f6' },
-        physics: { type: 'dynamic', friction: 0.1, restitution: 0 },
+        physics: { type: 'dynamic', gravity: 900, friction: 0.1, restitution: 0 },
         collision: { width: 32, height: 48, type: 'player' }
       }
     },
@@ -208,7 +219,8 @@ export const templateScenes: Record<'platformer' | 'topdown' | 'dialogue', Templ
       id: 'enemy-1',
       transform: { x: 600, y: 200, scaleX: 1, scaleY: 1, rotation: 0 },
       components: {
-        ai: { type: 'chase', speed: 100, detectionRange: 250 },
+        ai: { type: 'chase', speed: 100, detectionRange: 250, targetEntity: 'player-1' },
+        movement: { vx: 0, vy: 0, speed: 100 },
         sprite: { width: 28, height: 28, color: '#ef4444' },
         collision: { width: 28, height: 28, type: 'enemy' }
       }
@@ -217,7 +229,8 @@ export const templateScenes: Record<'platformer' | 'topdown' | 'dialogue', Templ
       id: 'enemy-2',
       transform: { x: 200, y: 450, scaleX: 1, scaleY: 1, rotation: 0 },
       components: {
-        ai: { type: 'chase', speed: 90, detectionRange: 200 },
+        ai: { type: 'chase', speed: 90, detectionRange: 200, targetEntity: 'player-1' },
+        movement: { vx: 0, vy: 0, speed: 90 },
         sprite: { width: 28, height: 28, color: '#ef4444' },
         collision: { width: 28, height: 28, type: 'enemy' }
       }
@@ -226,7 +239,8 @@ export const templateScenes: Record<'platformer' | 'topdown' | 'dialogue', Templ
       id: 'enemy-3',
       transform: { x: 650, y: 480, scaleX: 1, scaleY: 1, rotation: 0 },
       components: {
-        ai: { type: 'chase', speed: 110, detectionRange: 280 },
+        ai: { type: 'chase', speed: 110, detectionRange: 280, targetEntity: 'player-1' },
+        movement: { vx: 0, vy: 0, speed: 110 },
         sprite: { width: 28, height: 28, color: '#dc2626' },
         collision: { width: 28, height: 28, type: 'enemy' }
       }
@@ -235,7 +249,8 @@ export const templateScenes: Record<'platformer' | 'topdown' | 'dialogue', Templ
       id: 'enemy-4',
       transform: { x: 150, y: 150, scaleX: 1, scaleY: 1, rotation: 0 },
       components: {
-        ai: { type: 'chase', speed: 70, detectionRange: 180 },
+        ai: { type: 'chase', speed: 70, detectionRange: 180, targetEntity: 'player-1' },
+        movement: { vx: 0, vy: 0, speed: 70 },
         sprite: { width: 28, height: 28, color: '#b91c1c' },
         collision: { width: 28, height: 28, type: 'enemy' }
       }

@@ -164,14 +164,30 @@ describe('template integration: platformer (headless Engine tick harness)', () =
     expectDynamicBodiesWithinWorldBounds(h.scene);
   });
 
-  // DOCUMENTED FINDING (not forced): the platformer template stores gravity on
-  // the MOVEMENT component (movement.gravity: 900), but engine PhysicsSystem
-  // only applies gravity from the PHYSICS component (physics.gravity). Under
-  // the pure engine loop the player therefore does not fall — shipped game
-  // scripts implement gravity themselves. Aligning the two is a product
-  // decision, deliberately not patched here.
+  // TEMPLATE AUDIT FIX (session-5 finding, fixed in feat/onboarding-slice-2):
+  // the platformer template now stores gravity on the PHYSICS component
+  // (physics.gravity: 900), which engine PhysicsSystem consumes. The player
+  // keeps its shipped spawn position at end-of-tick because MovementSystem's
+  // player-input branch owns player integration (scripts consume physics
+  // gravity for real gameplay); the physics-phase velocity kick is asserted
+  // directly below.
 
-  it('leaves the idle player exactly at spawn (documents that template gravity sits on movement.gravity, which engine PhysicsSystem ignores)', async () => {
+  it('applies gravity from the physics component during the physics phase (protects the movement.gravity → physics.gravity data contract)', async () => {
+    const h = await loadTemplate('platformer');
+    const player = h.scene.entities.get('player-1');
+    expect(player).toBeDefined();
+    const movement = player!.components.get('movement') as { vx: number; vy: number } | undefined;
+    const physics = player!.components.get('physics') as { gravity?: number } | undefined;
+    expect(physics?.gravity).toBe(900);
+    expect(movement?.vy).toBe(0);
+
+    h.engine.physicsSystem.update(h.scene!, FIXED_DT);
+    expect(movement!.vy).toBeCloseTo(900 * FIXED_DT, 6); // 15 px/s after one tick
+    const grounded = player!.components.get('physics') as { grounded?: boolean };
+    expect(grounded.grounded).toBe(false);
+  });
+
+  it('leaves the idle player exactly at spawn under the full tick loop (player integration stays script-owned)', async () => {
     const h = await loadTemplate('platformer');
     tickFrames(h.engine, TICK_FRAMES);
     expect(getPosition(h.scene, 'player-1')).toEqual({ x: 100, y: 350 });
@@ -221,18 +237,33 @@ describe('template integration: topdown (headless Engine tick harness)', () => {
     expect(getPosition(h.scene, 'player-1')).toEqual({ x: 400, y: 350 });
   });
 
-  // DOCUMENTED FINDING (not forced): template chase enemies carry `ai` but NO
-  // `movement` component, so AISystem patrol/chase (which writes through a
-  // MovementComponent) is inert under the pure engine loop. In the shipped game
-  // the per-template script drives enemy movement instead. If engine-side chase
-  // is ever desired, templates need movement components on enemies — a product
-  // decision, deliberately not patched here.
+  // TEMPLATE AUDIT FIX (session-5 finding, fixed in feat/onboarding-slice-2):
+  // chase enemies now ship `movement` components + ai.targetEntity, so
+  // AISystem.updateChase drives them toward the player under the pure engine
+  // loop instead of silently returning.
 
-  it('leaves chase enemies stationary (documents that AISystem requires a movement component the template does not ship)', async () => {
+  it('drives chase enemies toward the player via AISystem (protects the ai+movement data contract)', async () => {
     const h = await loadTemplate('topdown');
+    const start = getPosition(h.scene, 'enemy-1');
+    const target = getPosition(h.scene, 'player-1');
+    const startDist = Math.hypot(target.x - start.x, target.y - start.y);
+
     tickFrames(h.engine, TICK_FRAMES);
-    expect(getPosition(h.scene, 'enemy-1')).toEqual({ x: 600, y: 200 });
-    expect(getPosition(h.scene, 'enemy-4')).toEqual({ x: 150, y: 150 });
+
+    const end = getPosition(h.scene, 'enemy-1');
+    const endDist = Math.hypot(target.x - end.x, target.y - end.y);
+    expect(endDist).toBeLessThan(startDist);
+    // Enemy actually left its shipped spawn position.
+    expect(end).not.toEqual(start);
+  });
+
+  it('moves every chase enemy off its shipped spawn (all four enemies carry drivable movement components)', async () => {
+    const h = await loadTemplate('topdown');
+    const before = ['enemy-1', 'enemy-2', 'enemy-3', 'enemy-4'].map((id) => getPosition(h.scene, id));
+    tickFrames(h.engine, TICK_FRAMES);
+    ['enemy-1', 'enemy-2', 'enemy-3', 'enemy-4'].forEach((id, i) => {
+      expect(getPosition(h.scene, id)).not.toEqual(before[i]);
+    });
   });
 });
 
