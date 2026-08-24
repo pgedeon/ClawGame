@@ -1,6 +1,6 @@
 /**
  * ClawGame E2E Smoke Tests
- * Validates core user flows: dashboard, project creation, navigation
+ * Validates core user flows: landing, dashboard, project creation, navigation
  */
 import { test, expect } from '@playwright/test';
 
@@ -8,8 +8,17 @@ const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
 
 test.describe('ClawGame Smoke Tests', () => {
 
-  test('dashboard loads with hero section', async ({ page }) => {
+  test('landing shows template gallery and prompt bar', async ({ page }) => {
     await page.goto(BASE_URL);
+    // `/` is the no-auth onboarding landing (slice 1): gallery + prompt bar.
+    await expect(page.locator('.landing-prompt-bar')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.landing-template-card').first()).toBeVisible({ timeout: 5000 });
+    // No welcome/tour modal may interrupt the activation path (US-1 AC 3).
+    await expect(page.locator('.onboarding-overlay')).toHaveCount(0);
+  });
+
+  test('dashboard reachable at /dashboard with hero section', async ({ page }) => {
+    await page.goto(`${BASE_URL}/dashboard`);
     await expect(page.locator('h1, h2').first()).toBeVisible({ timeout: 10000 });
     // Should show "Build Games with AI" or similar hero text
     const hero = page.locator('text=Build Games');

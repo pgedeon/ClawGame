@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { api, type CreateProjectInput } from '../api/client';
+import type { CreateProjectInput } from '../api/client';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import { logger } from '../utils/logger';
 import './create-project.css';
 import { templates, type GameTemplate } from '../templates/templateCatalog';
+import { createProjectWithTemplate } from '../templates/templateLaunch';
+import { recordRecentProject } from '../utils/recentProjects';
 
 
 export function CreateProjectPage() {
@@ -34,54 +36,17 @@ export function CreateProjectPage() {
     setError(null);
     
     try {
-      // Set genre from template if not already set
-      const projectInput = {
-        ...formData,
-        genre: formData.genre || selectedTemplate.genre
-      };
+      // Shared create + template file-writing path (also used by LandingPage)
+      const { id: projectId } = await createProjectWithTemplate(formData, selectedTemplate);
 
-      const response = await api.createProject(projectInput);
-      
-      // Add template-specific files
-      try {
-        // Default game script from template
-        if (selectedTemplate.defaultScript) {
-          await api.writeFile(response.id, 'scripts/game.ts', selectedTemplate.defaultScript);
-        }
+      recordRecentProject({
+        id: projectId,
+        name: formData.name || 'Untitled project',
+        templateId: selectedTemplate.id,
+        createdAt: new Date().toISOString(),
+      });
 
-        // Default player script
-        await api.writeFile(response.id, 'scripts/player.ts', `// Player controls for ${formData.name}
-export function update(deltaTime: number) {
-  const speed = 200;
-  
-  if (keys['ArrowLeft'] || keys['a']) entity.vx = -speed;
-  else if (keys['ArrowRight'] || keys['d']) entity.vx = speed;
-  else entity.vx *= 0.8;
-  
-  if (keys['ArrowUp'] || keys['w']) entity.vy = -speed;
-  else if (keys['ArrowDown'] || keys['s']) entity.vy = speed;
-  else entity.vy *= 0.8;
-}
-
-export function render(ctx: CanvasRenderingContext2D) {
-  ctx.fillStyle = entity.color || '#3b82f6';
-  ctx.fillRect(-16, -16, 32, 32);
-  ctx.strokeStyle = '#60a5fa';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(-16, -16, 32, 32);
-}`);
-
-        // Default scene from template
-        await api.createDirectory(response.id, 'scenes');
-        await api.writeFile(response.id, 'scenes/main-scene.json', JSON.stringify(selectedTemplate.defaultScene, null, 2));
-        
-        logger.info('Template files added to project', response.id);
-      } catch (err) {
-        logger.error('Template creation failed:', err);
-        // Don't block project creation
-      }
-      
-      navigate(`/project/${response.id}`);
+      navigate(`/project/${projectId}`);
     } catch (err) {
       logger.error('Error creating project:', err);
       setError(err instanceof Error ? err.message : 'Failed to create project');
@@ -124,7 +89,7 @@ export function render(ctx: CanvasRenderingContext2D) {
   return (
     <div className="create-project-page">
       <header className="page-header">
-        <Link to="/" className="back-link">
+        <Link to="/dashboard" className="back-link">
           <ArrowLeft size={16} className="icon" />
           Back to Dashboard
         </Link>
@@ -238,7 +203,7 @@ export function render(ctx: CanvasRenderingContext2D) {
         </div>
 
         <div className="form-actions">
-          <Link to="/" className="secondary-button">
+          <Link to="/dashboard" className="secondary-button">
             Cancel
           </Link>
           <button type="submit" className="primary-button" disabled={isSubmitting}>

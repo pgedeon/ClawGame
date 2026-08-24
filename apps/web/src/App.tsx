@@ -7,8 +7,8 @@ import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppLayout } from './components/AppLayout';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { OnboardingTour } from './components/OnboardingTour';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { LandingPage } from './pages/LandingPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { CreateProjectPage } from './pages/CreateProjectPage';
 import { OpenProjectPage } from './pages/OpenProjectPage';
@@ -17,7 +17,6 @@ import { SettingsPage } from './pages/SettingsPage';
 
 // Import CSS files
 import './error-boundary.css';
-import './onboarding.css';
 import './game-hub.css';
 import './game-preview.css';
 import './welcome-modal.css';
@@ -85,11 +84,11 @@ function LazyMediaForgePage() {
 function App() {
   return (
     <ErrorBoundary>
-      <OnboardingTour />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<AppLayout />}>
-            <Route index element={<DashboardPage />} />
+            <Route index element={<LandingPage />} />
+            <Route path="dashboard" element={<DashboardPage />} />
             <Route path="create-project" element={<CreateProjectPage />} />
             <Route path="open-project" element={<OpenProjectPage />} />
             <Route path="examples" element={<ExamplesPage />} />

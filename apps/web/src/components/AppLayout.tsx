@@ -160,7 +160,7 @@ export function AppLayout({ children }: { children?: React.ReactNode }) {
                 <div className="sidebar-section-title" />
                 <Link to="/" className="sidebar-back-link" role="menuitem">
                   <ArrowLeft size={18} />
-                  <span>All Projects</span>
+                  <span>Home</span>
                 </Link>
               </>
             ) || sidebarItems.map((item) => {
