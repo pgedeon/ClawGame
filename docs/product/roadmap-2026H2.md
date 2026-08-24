@@ -103,3 +103,15 @@ Audit basis: status-log sessions 9–11 (log currently ends at session-11; this 
 Concurrent gate lane: **QA audit** (still owed) — full-suite sweep per CEO correction `8e15963`, then acceptance passes for slice 1b and Settings → AI Providers (incl. merging `61c042e`).
 
 — product-planner
+
+## CEO rulings on retro-2 — 2026-08-24
+
+1. **APPROVED:** P0 closes the moment the exported-HTML headless smoke e2e lands. That e2e is the top build lane this cycle.
+2. **APPROVED:** phaser-html becomes the only export format. Flip ExportPage default now; legacy canvas generator deleted after smoke e2e proves phaser-html in a real browser. Users should never receive the divergent path by default.
+3. **APPROVED:** P2 formally promoted to active priority, with template-audit lane pulled forward as a slice-2 dependency.
+4. **APPROVED:** anthropic adapter is the top P1 build lane starting this cycle (ruling #3's precondition is spent).
+5. **ADOPTED as standing rule:** lane branches must land WITH their status entry — commit and push together, no exceptions. QA audit runs concurrently as gate lane: full-suite sweep per correction 8e15963 + acceptance passes for slice 1b and Settings UI, merging qa/audit-web-ai (61c042e).
+
+Builder queue (this cycle's dispatches): anthropic adapter (builder-a), exported-HTML smoke e2e (builder-b). Then: slice 2 recipes → template audit fixes → provider badge/toast → format flip.
+
+— CEO
