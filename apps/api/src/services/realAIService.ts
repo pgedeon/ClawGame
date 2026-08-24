@@ -83,8 +83,13 @@ export class RealAIService {
 
   /** Human label of the active provider for status payloads. */
   private activeProviderLabel(): AIProviderStatus['provider'] {
+    return this.providerLabelForId(readAIConfig().activeProvider);
+  }
+
+  /** Label for a specific registry id ('mock' → undefined; openai-compat splits z.ai/openrouter). */
+  private providerLabelForId(id: AIProviderId): AIProviderStatus['provider'] {
     const cfg = readAIConfig();
-    switch (cfg.activeProvider) {
+    switch (id) {
       case 'opencode': return 'opencode';
       case 'anthropic': return 'anthropic';
       case 'openai-compat': return detectProvider(cfg.apiUrl) === 'openrouter' ? 'openrouter' : 'z.ai';
@@ -113,9 +118,14 @@ export class RealAIService {
       const result = await this.callWithRetry(systemPrompt, userPrompt);
       if (result.content) {
         this.onApiSuccess();
+        // Report the provider that ACTUALLY served the response so the UI can
+        // badge it and toast demotions (docs/ai-provider-spec.md §Frontend).
+        const status = this.buildProviderStatus('ready', 'Live AI response received.');
         const structured = this.attachProviderStatus(
           this.parseAIResponse(command, result.content),
-          this.buildProviderStatus('ready', 'Live AI response received.'),
+          result.servedBy
+            ? { ...status, provider: this.providerLabelForId(result.servedBy as AIProviderId), failedOver: result.failedOver }
+            : status,
         );
         this.storeHistory(projectId, command, structured, 'completed');
         return structured;
@@ -220,7 +230,9 @@ export class RealAIService {
           this.logger.info({ attempt: attempt + 1, provider: chain[chainIdx], model: this.activeModel() }, 'AI API call starting');
 
           const result = await provider.complete({ system: systemPrompt, user: userPrompt });
-          return { content: result.content };
+          // Demotion = earlier chain entries exhausted their retries before this
+          // hop answered. Mirrors the failover warn logs below.
+          return { content: result.content, servedBy: chain[chainIdx], failedOver: chainIdx > 0 };
 
         } catch (err: any) {
           lastError = this.normalizeProviderError(err);

@@ -49,6 +49,8 @@ export interface AIProviderStatus {
   state: 'ready' | 'rate_limited' | 'timed_out' | 'degraded' | 'circuit_open' | 'mock';
   message: string;
   provider?: 'z.ai' | 'openrouter' | 'opencode' | 'anthropic' | 'openai-compat';
+  /** True when a fallback-chain hop (not the configured active provider) served the response. */
+  failedOver?: boolean;
   providerCode?: string;
   retryAfterSeconds?: number;
   updatedAt: string;
@@ -67,6 +69,10 @@ export interface AIProviderErrorDetails {
 export interface AICallResult {
   content?: string;
   error?: AIProviderErrorDetails;
+  /** Registry id of the chain entry that actually served the response. */
+  servedBy?: string;
+  /** True when chain entries before servedBy were exhausted (demotion happened). */
+  failedOver?: boolean;
 }
 
 export class AIProviderError extends Error {

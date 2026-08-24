@@ -233,11 +233,15 @@ export interface AIHealthResponse {
 }
 
 export interface AIProviderStatus {
-  state: 'ok' | 'rate_limited' | 'timed_out' | 'circuit_open' | 'degraded' | 'mock';
+  state: 'ok' | 'ready' | 'rate_limited' | 'timed_out' | 'circuit_open' | 'degraded' | 'mock';
   message?: string;
   retryAfterSeconds?: number;
   updatedAt: string;
   providerCode?: string;
+  /** Human label of the provider that served the response ('opencode' | 'anthropic' | 'z.ai' | 'openrouter'). */
+  provider?: string;
+  /** True when a fallback-chain hop (not the configured active provider) served the response. */
+  failedOver?: boolean;
 }
 
 export interface AICommandRequestOptions {

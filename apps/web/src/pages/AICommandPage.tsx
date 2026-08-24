@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { Sparkles, Send, RefreshCw, X, CheckCircle2, AlertTriangle, XCircle, WifiOff, Zap } from 'lucide-react';
+import { Sparkles, Send, RefreshCw, X, CheckCircle2, AlertTriangle, XCircle, WifiOff, Zap, Cpu } from 'lucide-react';
 import { api, type AICommandRequest, type AICommandResponse, type AICommandHistory, type AIHealthResponse } from '../api/client';
 import { useToast } from '../components/Toast';
 import { MarkdownRenderer } from '../components/MarkdownRenderer';
@@ -235,6 +235,14 @@ export function AICommandPage() {
 
   const statusInfo = aiHealth ? getAIStatusMessage(aiHealth) : null;
 
+  // Active-provider badge label (spec §Frontend): real label from health when
+  // live, 'mock' in preview mode, null while health is unknown.
+  const providerLabel = aiHealth
+    ? (aiHealth.service === 'mock-ai-preview'
+        ? 'mock'
+        : aiHealth.providerStatus?.provider ?? 'live')
+    : null;
+
   const handleSubmit = async (e: React.FormEvent, overrideText?: string) => {
     if (e) e.preventDefault();
     if (!projectId) return;
@@ -261,7 +269,7 @@ export function AICommandPage() {
 
       const finalContent = result.response.content || result.response.title || 'AI completed your request.';
       const isFallback = result.response.fromFallback === true;
-      
+
       setMessages(prev => {
         const updated = [...prev];
         const streamingMsg = updated[streamMsgIdx];
@@ -276,7 +284,13 @@ export function AICommandPage() {
         return updated;
       });
 
-      if (isFallback) {
+      // Failover demotion (docs/ai-provider-spec.md §Frontend): the fallback
+      // chain demoted providers mid-request — surface which provider served.
+      // Non-blocking toast; local-template demotion keeps its own notice.
+      const ps = result.response.providerStatus;
+      if (ps?.failedOver && ps.provider) {
+        showToast({ type: 'warning', message: `Switched to fallback provider ${ps.provider}` });
+      } else if (isFallback) {
         showToast({ type: 'warning', message: 'AI service unavailable — using local templates' });
         setLastFailedPrompt(text);
       }
@@ -320,6 +334,11 @@ export function AICommandPage() {
           <div className="ai-command-title">
             <Sparkles size={24} className="ai-icon" />
             <h2>AI Command</h2>
+            {providerLabel && (
+              <span className="model-badge" title="Active AI provider" data-testid="ai-provider-badge">
+                <Cpu size={12} /> {providerLabel}
+              </span>
+            )}
             {statusInfo && (
               <div className={`ai-status-badge ${statusInfo.isWorking ? 'working' : 'limited'}`}>
                 {statusInfo.isWorking ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
