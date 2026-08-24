@@ -71,7 +71,8 @@ export function ExportPage() {
     includeAssets: true,
     minify: false,
     compress: false,
-    format: 'html',
+    // retro-2 ruling #2: phaser-html is THE single shipped export format.
+    format: 'phaser-html',
   });
 
   // Load project and export data
@@ -377,9 +378,10 @@ export function ExportPage() {
                   <span className="option-description">Choose HTML (Canvas2D) or Phaser 4 runtime</span>
                 </div>
                 <select
-                  value={exportOptions.format || 'html'}
+                  value={exportOptions.format || 'phaser-html'}
                   onChange={(e) => setExportOptions({ ...exportOptions, format: e.target.value as any })}
                   className="format-select"
+                  aria-label="Export Format"
                   style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #334155', background: '#1e293b', color: '#e2e8f0', fontSize: '14px' }}
                 >
                   <option value="html">HTML (Canvas2D)</option>
