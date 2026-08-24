@@ -28,8 +28,8 @@ describe('ExportService — compileSceneToPhaser', () => {
       },
     };
     const code = service.compileSceneToPhaser('TestScene', 'Test', entities, []);
-    expect(code).toContain("this.load.image('hero'");
-    expect(code).toContain("this.add.sprite(100, 200, 'hero')");
+    expect(code).toContain("this.load.image('asset:hero'");
+    expect(code).toContain("this.add.sprite(100, 200, 'asset:hero')");
   });
 
   it('generates text entities', () => {
@@ -109,8 +109,8 @@ describe('ExportService — compileSceneToPhaser', () => {
       },
     };
     const code = service.compileSceneToPhaser('TestScene', 'Test', entities, []);
-    expect(code).toContain("this.add.sprite(100, 200, 'hero')");
-    expect(code).toContain("this.add.sprite(200, 300, 'hero2')");
+    expect(code).toContain("this.add.sprite(100, 200, 'asset:hero')");
+    expect(code).toContain("this.add.sprite(200, 300, 'asset:hero2')");
   });
 });
 

@@ -252,6 +252,21 @@ function resolveExportBody(entity: ExportEntity, components: Map<string, ExportC
   return { kind: 'none', width, height };
 }
 
+/**
+ * Typed colors for color-only entities — mirrors ClawgamePhaserScene.getColorForType
+ * (entity representation parity, docs/export-parity.md matrix row 2).
+ */
+const EXPORT_TYPE_COLORS: Record<string, string> = {
+  player: '#3b82f6',
+  enemy: '#ef4444',
+  collectible: '#f59e0b',
+  obstacle: '#64748b',
+  npc: '#22c55e',
+  tower: '#d2691e',
+  projectile: '#ffff00',
+  core: '#22c55e',
+};
+
 function safeIdentifier(id: string): string {
   return id.replace(/[^a-zA-Z0-9]/g, '_');
 }
@@ -473,8 +488,19 @@ export class ExportService {
         lines.push(`${indent}  this.add.rectangle(${x}, ${y}, ${e.transform?.width || 32}, ${e.transform?.height || 32}, '${sprite?.color || '#8b5cf6'}');`);
       } else {
         const assetRef = sprite?.assetRef ?? sprite?.assetId;
-        const key = assetRef ? exportTextureKey(String(assetRef)) : safeName;
-        lines.push(`${indent}  const ${safeName} = this.add.sprite(${x}, ${y}, '${key}');`);
+        const dims = getExportEntityDimensions(sprite, collision, e.transform);
+        if (assetRef) {
+          // Asset entities render as textured sprites sized like preview
+          // (ClawgamePhaserScene.createEntity: image + setDisplaySize).
+          const key = exportTextureKey(String(assetRef));
+          lines.push(`${indent}  const ${safeName} = this.add.sprite(${x}, ${y}, '${key}');`);
+          lines.push(`${indent}  ${safeName}.setDisplaySize(${dims.width}, ${dims.height});`);
+        } else {
+          // Color-only entities render as typed-color rectangles like preview
+          // (getColorForType) instead of missing-texture sprites.
+          const color = EXPORT_TYPE_COLORS[type] || '#8b5cf6';
+          lines.push(`${indent}  const ${safeName} = this.add.rectangle(${x}, ${y}, ${dims.width}, ${dims.height}, '${color}');`);
+        }
         if (e.transform?.rotation) lines.push(`${indent}  ${safeName}.setRotation(${e.transform.rotation});`);
         if ((e.transform?.scaleX ?? 1) !== 1 || (e.transform?.scaleY ?? 1) !== 1) lines.push(`${indent}  ${safeName}.setScale(${e.transform?.scaleX ?? 1}, ${e.transform?.scaleY ?? 1});`);
         // Body emission mirrors buildPhaserPreviewBootstrap + ClawgamePhaserScene.createEntity:

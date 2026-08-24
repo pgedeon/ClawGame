@@ -41,7 +41,9 @@ function toExportEntityMap(template: TemplateScene | { name?: string; entities: 
 }
 
 function extractSpriteNames(sceneCode: string): Set<string> {
-  const re = /const\s+([A-Za-z0-9_]+)\s*=\s*this\.add\.sprite\(/g;
+  // Color-only entities emit as typed-color rectangles (representation parity with
+  // preview), so count both sprite and rectangle declarations as entity handles.
+  const re = /const\s+([A-Za-z0-9_]+)\s*=\s*this\.add\.(?:sprite|rectangle)\(/g;
   return new Set([...sceneCode.matchAll(re)].map((m) => m[1]));
 }
 
@@ -55,7 +57,7 @@ function extractPhysicsBodyCount(sceneCode: string): number {
 }
 
 interface ParityDiff {
-  missingEntitiesExport: string[]; // preview ids with no add.sprite in export
+  missingEntitiesExport: string[]; // preview ids with no add.sprite/add.rectangle handle in export
   extraEntitiesExport: string[]; // export sprites with no preview entity
   assetKeysOnlyInPreview: string[];
   assetKeysOnlyInExport: string[];
@@ -193,6 +195,25 @@ describe('export/preview parity smoke (docs/export-parity.md)', () => {
     ]);
     expect(fallbackCode).toContain("this.load.image('asset:hero.png', hero_png)");
     expect(fallbackCode).not.toContain('load.spritesheet');
+  });
+
+  it('color-only entities render as typed-color rectangles; asset sprites get setDisplaySize (representation parity)', () => {
+    const template = JSON.parse(JSON.stringify(templateScenes.platformer)) as TemplateScene;
+    // Templates are asset-free: every entity is color-only → typed-color rectangles.
+    const sceneCode = svc.compileSceneToPhaser('MainScene', template.name, toExportEntityMap(template), []);
+    expect(sceneCode).toContain("const player_1 = this.add.rectangle(");
+    expect(sceneCode).toContain("'#3b82f6')"); // player blue, mirrors getColorForType
+    expect(sceneCode).not.toContain('this.add.sprite(');
+
+    // Asset entities: sprite + setDisplaySize with preview dimension precedence
+    // (sprite.width/height ?? collision ?? transform ?? 32).
+    const withAsset = JSON.parse(JSON.stringify(templateScenes.platformer)) as TemplateScene;
+    (withAsset.entities[0].components as any).sprite.assetRef = 'hero.png';
+    const assetCode = svc.compileSceneToPhaser('MainScene', withAsset.name, toExportEntityMap(withAsset), [
+      { id: 'hero.png', dataUri: 'data:image/png;base64,AAAA' },
+    ]);
+    expect(assetCode).toContain("this.add.sprite(100, 350, 'asset:hero.png')");
+    expect(assetCode).toMatch(/player_1\.setDisplaySize\(\d+, \d+\)/);
   });
 
   it('legacy sprite.assetId field still resolves (read-only fallback)', () => {

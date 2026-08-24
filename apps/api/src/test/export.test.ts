@@ -38,8 +38,8 @@ describe('export service - Phaser export', () => {
       const code = service.compileSceneToPhaser('TestScene', 'Test', entities, []);
       expect(code).toContain('preload()');
       expect(code).toContain('create()');
-      expect(code).toContain("this.load.image('hero'");
-      expect(code).toContain("this.add.sprite(100, 200, 'hero')");
+      expect(code).toContain("this.load.image('asset:hero'");
+      expect(code).toContain("this.add.sprite(100, 200, 'asset:hero')");
       expect(code).toContain('physics.add.existing');
       expect(code).toContain("this.add.text(10, 10, 'Score: 0'");
       expect(code).toContain("this.add.zone(750, 300, 32, 64)");

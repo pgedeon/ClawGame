@@ -12,6 +12,24 @@ Append one dated section per work session (newest at top). Format:
 **Blockers:** <or "none">
 ```
 
+## 2026-08-24 03:45 — session-10 (feat/export-convergence-4) unit 2
+
+**Task:** Convergence step 5 per docs/export-parity.md gap 2 sliver — texture-key naming unification + spritesheet/atlas kinds in export preload; doc driven to zero-open-gaps end state.
+
+**Done:** Branch `feat/export-convergence-4` off origin/main `2e606f5`, two commits:
+1. `0d96999` feat(api): texture keys unify on `asset:` prefix + spritesheet/atlas preload kinds. `exportTextureKey` emits `asset:${ref}` in both preload and create() — preview's `buildAssetKey` convention adopted everywhere (rationale documented: exported games are standalone single-file HTML where every texture is an embedded data URI registered under our chosen key, so the prefix costs nothing and editor/export stay interchangeable). `collectExportLoads` mirrors `buildAssetRecord` validation/precedence exactly: `atlasMeta` (atlasUrl string + json\|xml) → `load.atlas`/`load.atlasXML`, valid `frameData` (frameWidth+frameHeight numbers, optional endFrame) → `load.spritesheet` with inline frame config, else `load.image`. `resolveExportAtlasSource` resolves the atlas document to an embedded data URI const when it matches an embedded asset by url or id (`embedAssets` now carries the server-relative source url); data:/remote URLs pass through verbatim like the preview loader.
+2. Entity representation parity (matrix row was still pinned "All-template" and blocked the mandated zero-open-gap end state): color-only runtime-typed entities now emit typed-color rectangles via `EXPORT_TYPE_COLORS` (mirror of `ClawgamePhaserScene.getColorForType`) instead of missing-texture sprites; asset entities emit sprite + `setDisplaySize` with identical dimension precedence (shared `getExportEntityDimensions`). docs/export-parity.md: matrix rows Entity representation + Asset loading → Closed; gap summary ends **Open gaps: 0** for phaser-html — sole exceptions are out-of-scope legacy canvas `format:'html'` (item 5) and latent camera/input machinery reclassified as non-gap (item 6, no shipped template exercises it); regression-guard section lists new probes.
+
+Parity test updates same-commit per regression-guard convention: `extractLoadTextureKeys` covers image\|spritesheet\|atlas\|atlasXML; entity handles match `add.sprite\|add.rectangle`; new probes pin spritesheet frame config, atlas json/xml loader choice, embedded-atlas resolution, invalid-frameData image fallback, and representation parity.
+
+**Gates:** typecheck PASS all projects · api suite 98 passed \| 2 skipped (94 baseline + 4 net new probes).
+
+**Manual verify:** headless generated-code assertions in `apps/api/src/test/export-parity.test.ts` (unified keys in preload+create, loader-kind strings, rectangle/sprite emission); no browser flow needed.
+
+**Next:** lane A units complete — awaiting CEO assignment. Candidate follow-up only if projects start shipping camera configs: port camera bounds/scroll/zoom passthrough (currently latent non-gap).
+
+**Blockers:** none. Note for CEO: `docs/status/openclaw-status.md` carries leftover git conflict markers (`<<<<<<<`/`>>>>>>>`) around the session-8 section from the research/market-onboarding merge — untouched here (outside unit scope).
+
 ## 2026-08-24 02:00 — session-9 (feat/export-convergence-3) unit 1
 
 **Task:** Convergence step 4 per docs/export-parity.md gap summary item 4 — physics/world config passthrough.
