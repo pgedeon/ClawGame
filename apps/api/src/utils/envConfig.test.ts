@@ -125,8 +125,28 @@ describe('resolveAIConfigFromMap — activeProvider & fallbackChain', () => {
       ANTHROPIC_API_KEY: 'sk-ant',
     }));
     expect(config.anthropic).toEqual({ apiKey: 'sk-ant', model: 'claude-sonnet-4-6' });
-    // anthropic has no live adapter yet → not auto-selected, not in default chain
-    expect(config.activeProvider).toBe('mock');
+    // native adapter landed (session-13) → a stored key auto-selects anthropic
+    expect(config.activeProvider).toBe('anthropic');
     expect(config.fallbackChain).toEqual([]);
+  });
+
+  it('anthropic joins the default chain behind opencode when both are configured', () => {
+    const config = resolveAIConfigFromMap(envMap({
+      OPENCODE_API_KEY: 'zen-secret',
+      ANTHROPIC_API_KEY: 'sk-ant',
+      OPENAI_COMPAT_API_KEY: 'compat-secret',
+    }));
+    expect(config.activeProvider).toBe('opencode');
+    expect(config.fallbackChain).toEqual(['anthropic', 'openai-compat']);
+  });
+
+  it('explicit AI_ACTIVE_PROVIDER=anthropic wins over auto-detection', () => {
+    const config = resolveAIConfigFromMap(envMap({
+      OPENCODE_API_KEY: 'zen-secret',
+      ANTHROPIC_API_KEY: 'sk-ant',
+      AI_ACTIVE_PROVIDER: 'anthropic',
+    }));
+    expect(config.activeProvider).toBe('anthropic');
+    expect(config.fallbackChain).toEqual(['opencode']);
   });
 });

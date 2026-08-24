@@ -31,11 +31,10 @@ import type {
 } from './ai-types';
 
 import { generateFallbackResponse } from './ai-fallbacks';
-import { OpenAICompatProvider } from './ai/providers/openai-compat';
+import { createProvider, resolveProviderChain } from './ai/registry';
 import { OPENCODE_DEFAULT_MODEL } from './ai/providers/opencode';
-import { createProvider, isProviderConfigured, resolveProviderChain } from './ai/registry';
 import { readAIConfig, detectProvider } from '../utils/envConfig';
-import type { AIProviderId } from './ai/types';
+import type { AIProvider, AIProviderId } from './ai/types';
 
 // Re-export types for backward compatibility
 export type {
@@ -197,23 +196,11 @@ export class RealAIService {
    * Live adapter for the active env-configured provider. Constructed per call so
    * dashboard settings (.env write-through) take effect without a service restart.
    * Returns null when nothing usable is configured (mock path answers instead).
+   * All ids — openai-compat, opencode, anthropic — resolve through the registry.
    */
-  private getProvider(): OpenAICompatProvider | null {
+  private getProvider(): AIProvider | null {
     const cfg = readAIConfig();
-    if (cfg.activeProvider === 'openai-compat') {
-      if (!isProviderConfigured('openai-compat', cfg)) return null;
-      return new OpenAICompatProvider(
-        {
-          baseUrl: cfg.openaiCompat.baseUrl,
-          apiKey: cfg.openaiCompat.apiKey,
-          model: cfg.openaiCompat.model,
-        },
-        this.logger,
-      );
-    }
-    // opencode (and anthropic once its adapter lands) come from the registry.
-    const provider = createProvider(cfg.activeProvider, this.logger, cfg);
-    return provider instanceof OpenAICompatProvider ? provider : null;
+    return createProvider(cfg.activeProvider, this.logger, cfg);
   }
 
   // ── API calling with retry ──

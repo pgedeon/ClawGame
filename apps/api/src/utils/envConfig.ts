@@ -140,6 +140,8 @@ export function resolveAIConfigFromMap(map: Map<string, string>): AIConfig {
     activeProvider = explicit as AIProviderIdValue;
   } else if (opencode.apiKey) {
     activeProvider = 'opencode';
+  } else if (anthropic.apiKey) {
+    activeProvider = 'anthropic';
   } else if (openaiCompat.apiKey) {
     activeProvider = 'openai-compat';
   }
@@ -156,6 +158,7 @@ export function resolveAIConfigFromMap(map: Map<string, string>): AIConfig {
   } else {
     const configured: AIProviderIdValue[] = [];
     if (opencode.apiKey) configured.push('opencode');
+    if (anthropic.apiKey) configured.push('anthropic');
     if (openaiCompat.apiKey) configured.push('openai-compat');
     fallbackChain = configured.filter(id => id !== activeProvider);
   }

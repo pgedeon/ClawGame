@@ -3,8 +3,7 @@
  *
  * Minimal seam for P1 milestone 2: the orchestrator and the /api/ai routes both
  * resolve adapters through here so .env write-through settings apply without a
- * restart. The native Anthropic adapter is a later milestone; `anthropic` is
- * listed but not constructible yet.
+ * restart. The native Anthropic Messages adapter landed in session-13.
  */
 
 import { readAIConfig } from '../../utils/envConfig';
@@ -12,6 +11,7 @@ import type { AIConfig } from '../../utils/envConfig';
 import type { AIProvider, AIProviderId } from './types';
 import { OpenAICompatProvider } from './providers/openai-compat';
 import { OpenCodeProvider } from './providers/opencode';
+import { AnthropicProvider } from './providers/anthropic';
 
 export const ALL_PROVIDER_IDS: AIProviderId[] = ['opencode', 'anthropic', 'openai-compat', 'mock'];
 
@@ -21,7 +21,7 @@ export function isProviderConfigured(id: AIProviderId, config: AIConfig = readAI
     case 'opencode':
       return Boolean(config.opencode.apiKey);
     case 'anthropic':
-      return Boolean(config.anthropic.apiKey); // key stored now; adapter lands later
+      return Boolean(config.anthropic.apiKey);
     case 'openai-compat':
       return Boolean(config.openaiCompat.apiKey);
     case 'mock':
@@ -31,8 +31,8 @@ export function isProviderConfigured(id: AIProviderId, config: AIConfig = readAI
 
 /**
  * Construct the adapter for an id. Returns null for 'mock' (handled before the
- * provider seam), for unconfigured providers, and for 'anthropic' until its
- * native adapter exists. Throws only on unknown ids (caller validation bug).
+ * provider seam) and for unconfigured providers. Throws only on unknown ids
+ * (caller validation bug).
  */
 export function createProvider(
   id: AIProviderId,
@@ -47,7 +47,10 @@ export function createProvider(
         logger,
       );
     case 'anthropic':
-      return null; // native Messages adapter = later milestone (docs/ai-provider-spec.md)
+      return new AnthropicProvider(
+        { apiKey: config.anthropic.apiKey, model: config.anthropic.model || undefined },
+        logger,
+      );
     case 'openai-compat':
       return new OpenAICompatProvider(
         {
