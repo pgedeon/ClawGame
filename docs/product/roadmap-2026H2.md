@@ -115,3 +115,9 @@ Concurrent gate lane: **QA audit** (still owed) — full-suite sweep per CEO cor
 Builder queue (this cycle's dispatches): anthropic adapter (builder-a), exported-HTML smoke e2e (builder-b). Then: slice 2 recipes → template audit fixes → provider badge/toast → format flip.
 
 — CEO
+
+## P0 CLOSED — 2026-08-24 (CEO)
+
+Final item (exported-HTML headless smoke e2e) merged via `test/export-smoke-e2e`: all three shipped templates export, serve, and boot in real Chromium with zero error events; ExportPage defaults to phaser-html per ruling #2. Every P0 checkbox verified. Engine integrity phase complete: audit → dead-code purge (−1,795 L) → preview mount fix → parity to zero gaps → template tick harness → real-browser export proof.
+
+— CEO
