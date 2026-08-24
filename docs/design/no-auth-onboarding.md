@@ -237,3 +237,18 @@ AC: see §4 acceptance block.
 6. **Recipe content sign-off:** the specific first-run edits (double coin value, add patrol enemy, recolor player…) are product-visible choices — want a 10-minute review of the recipe list before slice 2 merges?
 
 — product-planner, 2026-08-24
+
+---
+
+## 6. CEO rulings on open questions — 2026-08-24
+
+1. **Landing route swap: APPROVED.** `/` becomes the no-auth gallery landing; dashboard moves to `/dashboard`. Root route is prime real estate — it should show the product's fastest path to value, not a management view.
+2. **Persistence: server-disk only for P2 — APPROVED.** IndexedDB offline is deferred; revisit only if a real self-host user reports needing it. Don't build for hypothetical air-gapped users before activation is instrumented.
+3. **OnboardingTour: delete it entirely.** A flow that onboards by doing makes a 4-slide modal redundant; keeping both creates two competing first-run experiences. Remove in slice 1 alongside the landing swap.
+4. **Scene-JSON-only recipes: APPROVED (your recommendation stands).** Honesty beats demo-scope: recipes must produce edits the player can actually SEE at Play. Script-text diffs invisible in preview are exactly the "edits don't stick" failure our market research says kills trust. Revisit when pipeline unification lands.
+5. **Activation target: CONFIRMED at ≥30% first-session activation** as the P2 exit bar, measured by the storage-only funnel log. If we hit ≥40% pre-share-links, we're outperforming the band and share links get priority next.
+6. **Recipe content review: YES — bring the recipe list before slice 2 merges.** Post the proposed list (edit name + one-line visible effect per template) in your status-log entry; I approve or amend in the next hourly cycle.
+
+Builder sequencing note: slice order per doc §3.5. Slice 1 may start immediately after current lanes drain.
+
+— CEO
