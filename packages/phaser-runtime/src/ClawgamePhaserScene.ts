@@ -1,4 +1,4 @@
-import { Scene, GameObjects } from 'phaser';
+import { Scene, GameObjects, Input } from 'phaser';
 import type {
   PhaserPreviewAsset,
   PhaserPreviewBootstrap,
@@ -16,10 +16,38 @@ export const consolePhaserRuntimeErrorReporter: PhaserRuntimeErrorReporter = {
 export interface ClawgamePhaserSceneOptions {
   key?: string;
   reporter?: PhaserRuntimeErrorReporter;
+  /**
+   * Enable generic gameplay wiring: arcade colliders between static and dynamic
+   * bodies, keyboard control for playerInput entities (platformer run+jump when
+   * `movement.jumpSpeed` is present, 4-directional otherwise), and a chase
+   * driver for entities with `ai.targetEntity` + speed. Off by default so the
+   * dedicated genre scenes keep their hand-tuned behavior.
+   */
+  gameplay?: boolean;
 }
 
 function isSceneOptions(value: unknown): value is ClawgamePhaserSceneOptions {
-  return !!value && typeof value === 'object' && ('reporter' in value || 'key' in value);
+  return !!value && typeof value === 'object' && ('reporter' in value || 'key' in value || 'gameplay' in value);
+}
+
+/** Minimal structural key type — real Phaser Key objects only expose isDown here. */
+interface KeyLike {
+  isDown: boolean;
+}
+
+interface CursorKeysLike {
+  left: KeyLike;
+  right: KeyLike;
+  up: KeyLike;
+  down: KeyLike;
+}
+
+interface ArcadeBodyLike {
+  setVelocity?: (x: number, y: number) => unknown;
+  setVelocityX?: (x: number) => unknown;
+  setVelocityY?: (y: number) => unknown;
+  onFloor?: () => boolean;
+  blocked?: { down?: boolean };
 }
 
 /**
@@ -33,10 +61,17 @@ export class ClawgamePhaserScene extends Scene {
   private errorReporter: PhaserRuntimeErrorReporter = consolePhaserRuntimeErrorReporter;
   private failedAssetKeys = new Set<string>();
   private _initialized = false;
+  private gameplayEnabled = false;
+  protected gameplayCursors: CursorKeysLike | null = null;
+  protected gameplayKeys: Partial<Record<'w' | 'a' | 's' | 'd' | 'space', KeyLike>> = {};
+  protected gameplayPlayerEntityId: string | null = null;
 
   constructor(config?: string | any, reporter?: PhaserRuntimeErrorReporter) {
     super(isSceneOptions(config) ? config.key || 'clawgame-preview' : config || 'clawgame-preview');
     this.errorReporter = reporter ?? (isSceneOptions(config) ? config.reporter ?? this.errorReporter : this.errorReporter);
+    if (isSceneOptions(config) && config.gameplay === true) {
+      this.gameplayEnabled = true;
+    }
   }
 
   setBootstrap(bootstrap: PhaserPreviewBootstrap, reporter?: PhaserRuntimeErrorReporter): void {
@@ -136,6 +171,9 @@ export class ClawgamePhaserScene extends Scene {
       }
     }
     this._initialized = true;
+    if (this.gameplayEnabled) {
+      this.setupGameplay();
+    }
   }
 
   init(_data?: any): void {
@@ -143,7 +181,123 @@ export class ClawgamePhaserScene extends Scene {
   }
 
   update(_time: number, _delta: number): void {
-    // Override in subclasses for game logic
+    if (!this.gameplayEnabled || !this.bootstrap || !this._initialized) return;
+    try {
+      this.updatePlayerControl();
+      this.updateChaseDrivers();
+    } catch (error) {
+      // Fail safe: a broken gameplay loop must not spam errors every frame.
+      // Disable it and surface one visible error instead.
+      this.gameplayEnabled = false;
+      this.recordError('gameplay-update', error, {});
+    }
+  }
+
+  /**
+   * Generic gameplay wiring for bootstrap-driven scenes without a dedicated
+   * genre implementation. Static platforms/walls collide with dynamic bodies
+   * (player, chase enemies); arrow keys/WASD drive playerInput entities;
+   * entities with ai.targetEntity chase their target at ai.speed.
+   */
+  protected setupGameplay(): void {
+    try {
+      const staticObjects: GameObjects.GameObject[] = [];
+      const dynamicObjects: GameObjects.GameObject[] = [];
+      for (const entity of this.bootstrap?.entities ?? []) {
+        const sprite = this.entitySprites.get(entity.id);
+        if (!sprite) continue;
+        if (entity.body.kind === 'static') staticObjects.push(sprite);
+        else if (entity.body.kind === 'dynamic') dynamicObjects.push(sprite);
+      }
+      if (staticObjects.length > 0 && dynamicObjects.length > 0 && this.physics?.add?.collider) {
+        this.physics.add.collider(staticObjects, dynamicObjects);
+      }
+
+      const keyboard = this.input?.keyboard;
+      if (keyboard) {
+        this.gameplayCursors = keyboard.createCursorKeys() as unknown as CursorKeysLike;
+        const keyCodes = Input.Keyboard.KeyCodes;
+        this.gameplayKeys = {
+          w: keyboard.addKey(keyCodes.W) as unknown as KeyLike,
+          a: keyboard.addKey(keyCodes.A) as unknown as KeyLike,
+          s: keyboard.addKey(keyCodes.S) as unknown as KeyLike,
+          d: keyboard.addKey(keyCodes.D) as unknown as KeyLike,
+          space: keyboard.addKey(keyCodes.SPACE) as unknown as KeyLike,
+        };
+      }
+
+      const entities = this.bootstrap?.entities ?? [];
+      this.gameplayPlayerEntityId = (
+        entities.find((entity) => entity.playerInput)
+        ?? entities.find((entity) => entity.type === 'player')
+        ?? null
+      )?.id ?? null;
+    } catch (error) {
+      this.gameplayEnabled = false;
+      this.recordError('gameplay-setup', error, {});
+    }
+  }
+
+  private getBody(entityId: string | null): { sprite: GameObjects.Rectangle | GameObjects.Image; body: ArcadeBodyLike } | null {
+    if (!entityId) return null;
+    const sprite = this.entitySprites.get(entityId);
+    const body = sprite ? ((sprite as unknown as { body?: ArcadeBodyLike }).body ?? null) : null;
+    if (!sprite || !body || typeof body.setVelocity !== 'function') return null;
+    return { sprite, body };
+  }
+
+  private updatePlayerControl(): void {
+    const controlled = this.getBody(this.gameplayPlayerEntityId);
+    if (!controlled) return;
+    const entity = this.bootstrap?.entities.find((candidate) => candidate.id === this.gameplayPlayerEntityId);
+    if (!entity) return;
+
+    const left = this.gameplayCursors?.left?.isDown === true || this.gameplayKeys.a?.isDown === true;
+    const right = this.gameplayCursors?.right?.isDown === true || this.gameplayKeys.d?.isDown === true;
+    const up = this.gameplayCursors?.up?.isDown === true || this.gameplayKeys.w?.isDown === true;
+    const down = this.gameplayCursors?.down?.isDown === true || this.gameplayKeys.s?.isDown === true;
+    const jumpSpeed = entity.movement?.jumpSpeed;
+    const speed = typeof entity.movement?.speed === 'number' ? entity.movement.speed : 200;
+
+    if (typeof jumpSpeed === 'number') {
+      // Platformer-style: horizontal run + floor-relative jump ("Space to jump").
+      const direction = (right ? 1 : 0) - (left ? 1 : 0);
+      controlled.body.setVelocityX?.(direction * speed);
+      const jumpHeld = this.gameplayKeys.space?.isDown === true || up || this.gameplayKeys.w?.isDown === true;
+      const grounded = typeof controlled.body.onFloor === 'function'
+        ? controlled.body.onFloor()
+        : controlled.body.blocked?.down === true;
+      if (jumpHeld && grounded) {
+        controlled.body.setVelocityY?.(-jumpSpeed);
+      }
+    } else {
+      // Top-down style: direct 4-directional velocity, normalized diagonals.
+      let vx = (right ? 1 : 0) - (left ? 1 : 0);
+      let vy = (down ? 1 : 0) - (up ? 1 : 0);
+      if (vx !== 0 && vy !== 0) {
+        vx *= Math.SQRT1_2;
+        vy *= Math.SQRT1_2;
+      }
+      controlled.body.setVelocity?.(vx * speed, vy * speed);
+    }
+  }
+
+  private updateChaseDrivers(): void {
+    for (const entity of this.bootstrap?.entities ?? []) {
+      const targetEntityId = entity.ai?.targetEntity;
+      if (!targetEntityId || entity.id === this.gameplayPlayerEntityId) continue;
+      const chaser = this.getBody(entity.id);
+      const target = this.getBody(targetEntityId);
+      if (!chaser || !target) continue;
+
+      const dx = target.sprite.x - chaser.sprite.x;
+      const dy = target.sprite.y - chaser.sprite.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance < 1) continue; // Already on top of the target.
+
+      const speed = entity.ai?.speed ?? entity.movement?.speed ?? 80;
+      chaser.body.setVelocity?.((dx / distance) * speed, (dy / distance) * speed);
+    }
   }
 
   protected createEntity(entity: PhaserPreviewEntity): void {

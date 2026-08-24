@@ -1,6 +1,7 @@
 import type { PreviewRuntimeSessionOptions } from './sessionTypes';
 import {
   ClawgamePhaserRuntime,
+  ClawgamePhaserScene,
   buildPhaserPreviewBootstrap,
   consolePhaserRuntimeErrorReporter,
   type PhaserPreviewBootstrap,
@@ -10,7 +11,6 @@ import { TowerDefenseScene } from './TowerDefenseScene';
 import { RPGScene } from './RPGScene';
 import { CosmicDriftScene } from './CosmicDriftScene';
 import { NeonLabyrinthScene } from './NeonLabyrinthScene';
-import type { ClawgamePhaserScene } from '@clawgame/phaser-runtime';
 
 export interface PhaserPreviewPreparation {
   bootstrap: PhaserPreviewBootstrap;
@@ -112,6 +112,13 @@ export function runPhaserPreviewSession(
     const mazeScene = new NeonLabyrinthScene();
     sceneInstance = mazeScene;
     runtime.setSceneFactory(() => mazeScene);
+  } else {
+    // No dedicated genre scene (action/adventure/platformer/topdown/default…):
+    // run the generic bootstrap-driven scene with gameplay wiring enabled
+    // (arcade colliders + keyboard control + chase AI).
+    const baseScene = new ClawgamePhaserScene({ gameplay: true });
+    sceneInstance = baseScene;
+    runtime.setSceneFactory(() => baseScene);
   }
 
   runtime.mount(hostElement, bootstrap, { errorReporter });

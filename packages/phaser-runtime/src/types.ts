@@ -66,6 +66,18 @@ export interface PhaserPreviewBodyConfig {
   height: number;
 }
 
+export interface PhaserPreviewMovementConfig {
+  speed?: number;
+  jumpSpeed?: number;
+}
+
+export interface PhaserPreviewAiConfig {
+  type?: string;
+  speed?: number;
+  targetEntity?: string;
+  detectionRange?: number;
+}
+
 export interface PhaserPreviewEntity {
   id: string;
   type: string;
@@ -80,6 +92,12 @@ export interface PhaserPreviewEntity {
   assetRef?: string;
   tint?: string;
   body: PhaserPreviewBodyConfig;
+  /** True when the source entity carries a truthy `playerInput` component. */
+  playerInput?: boolean;
+  /** Normalized `movement` component subset consumed by generic gameplay control. */
+  movement?: PhaserPreviewMovementConfig;
+  /** Normalized `ai` component subset consumed by the generic chase driver. */
+  ai?: PhaserPreviewAiConfig;
 }
 
 export interface PhaserPreviewBootstrap {

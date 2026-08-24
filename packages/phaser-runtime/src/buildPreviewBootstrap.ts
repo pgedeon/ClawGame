@@ -3,10 +3,12 @@ import type {
   CanonicalSceneLike,
   PhaserPreviewAsset,
   PhaserPreviewAssetUrlResolver,
+  PhaserPreviewAiConfig,
   PhaserPreviewBodyConfig,
   PhaserPreviewBootstrap,
   PhaserPreviewBootstrapOptions,
   PhaserPreviewEntity,
+  PhaserPreviewMovementConfig,
 } from './types';
 
 const DEFAULT_BOUNDS = { width: 1280, height: 720 };
@@ -32,30 +34,36 @@ function buildBodyConfig(entity: CanonicalEntityLike, width: number, height: num
     return { kind: 'none', width, height };
   }
 
+  // The collision component is the authoritative physics footprint (same
+  // contract as the engine PhysicsSystem and the scene editor's
+  // syncPhysicsBody): fall back to visual dimensions only when absent.
+  const bodyWidth = typeof collision.width === 'number' ? collision.width : width;
+  const bodyHeight = typeof collision.height === 'number' ? collision.height : height;
+
   // Respect boolean flags as overrides
   if (collision.solid === true) {
-    return { kind: 'static', width, height };
+    return { kind: 'static', width: bodyWidth, height: bodyHeight };
   }
   if (collision.trigger === true) {
-    return { kind: 'sensor', width, height };
+    return { kind: 'sensor', width: bodyWidth, height: bodyHeight };
   }
 
   // Read collision.type directly
   const colType = collision.type;
   if (colType === 'solid') {
-    return { kind: 'static', width, height };
+    return { kind: 'static', width: bodyWidth, height: bodyHeight };
   }
   if (colType === 'trigger' || colType === 'sensor') {
-    return { kind: 'sensor', width, height };
+    return { kind: 'sensor', width: bodyWidth, height: bodyHeight };
   }
 
   // Fallback to entity type for dynamic bodies
   const entityType = entity.type;
   if (entityType === 'player' || entityType === 'enemy' || entityType === 'projectile') {
-    return { kind: 'dynamic', width, height };
+    return { kind: 'dynamic', width: bodyWidth, height: bodyHeight };
   }
 
-  return { kind: 'none', width, height };
+  return { kind: 'none', width: bodyWidth, height: bodyHeight };
 }
 
 function buildAssetKey(assetRef: string): string {
@@ -131,11 +139,36 @@ export function buildAssetRecord(
   };
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function buildMovementConfig(movement: unknown): PhaserPreviewMovementConfig | undefined {
+  if (!isRecord(movement)) return undefined;
+  const config: PhaserPreviewMovementConfig = {};
+  if (typeof movement.speed === 'number') config.speed = movement.speed;
+  if (typeof movement.jumpSpeed === 'number') config.jumpSpeed = movement.jumpSpeed;
+  return Object.keys(config).length > 0 ? config : undefined;
+}
+
+function buildAiConfig(ai: unknown): PhaserPreviewAiConfig | undefined {
+  if (!isRecord(ai)) return undefined;
+  const config: PhaserPreviewAiConfig = {};
+  if (typeof ai.type === 'string') config.type = ai.type;
+  if (typeof ai.speed === 'number') config.speed = ai.speed;
+  if (typeof ai.targetEntity === 'string') config.targetEntity = ai.targetEntity;
+  if (typeof ai.detectionRange === 'number') config.detectionRange = ai.detectionRange;
+  return Object.keys(config).length > 0 ? config : undefined;
+}
+
 function buildEntityRecord(entity: CanonicalEntityLike): PhaserPreviewEntity {
   const transform = entity.transform ?? {};
   const sprite = entity.components?.sprite;
   const { width, height } = getEntityDimensions(entity);
   const assetRef = typeof sprite?.assetRef === 'string' ? sprite.assetRef : undefined;
+
+  const movementConfig = buildMovementConfig(entity.components?.movement);
+  const aiConfig = buildAiConfig(entity.components?.ai);
 
   return {
     id: entity.id,
@@ -150,6 +183,9 @@ function buildEntityRecord(entity: CanonicalEntityLike): PhaserPreviewEntity {
     ...(assetRef ? { assetKey: buildAssetKey(assetRef), assetRef } : {}),
     ...(typeof sprite?.color === 'string' ? { tint: sprite.color } : {}),
     body: buildBodyConfig(entity, width, height),
+    ...(entity.components?.playerInput === true ? { playerInput: true } : {}),
+    ...(movementConfig ? { movement: movementConfig } : {}),
+    ...(aiConfig ? { ai: aiConfig } : {}),
   };
 }
 
