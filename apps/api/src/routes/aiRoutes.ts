@@ -150,13 +150,14 @@ export async function aiRoutes(app: FastifyInstance) {
     const config = readAIConfig();
     const entries = await Promise.all(ALL_PROVIDER_IDS.map(async (id) => {
       const configured = isProviderConfigured(id, config);
-      const available = id === 'opencode' || id === 'openai-compat' || id === 'mock';
+      // Every registry id now has a native adapter ('anthropic' landed in
+      // session-13); 'mock' answers locally before the provider seam.
+      const available = true;
       return {
         id,
         available,
         configured,
         health: configured && available ? await probeHealth(id) : null,
-        note: id === 'anthropic' && !available ? 'native Anthropic adapter pending — key can be stored now' : undefined,
       };
     }));
     return { activeProvider: config.activeProvider, fallbackChain: config.fallbackChain, useRealAI: config.useRealAI, providers: entries };
@@ -179,8 +180,9 @@ export async function aiRoutes(app: FastifyInstance) {
     }
     const instance = createProvider(provider);
     if (!instance) {
-      reply.code(400);
-      return { provider, ok: false, error: 'native Anthropic adapter not implemented yet' };
+      // Unreachable: 'mock' early-returned above and every configured provider
+      // id constructs through the registry.
+      throw new Error(`No adapter registered for configured provider '${provider}'`);
     }
     const health = await instance.healthCheck();
     return { provider, ...health };
@@ -210,11 +212,20 @@ export async function aiRoutes(app: FastifyInstance) {
     }
 
     if (provider === 'anthropic') {
-      // Native Anthropic adapter is a later milestone; catalog is a placeholder.
-      return {
-        models: [{ id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6' }],
-        note: 'native Anthropic adapter pending — catalog is placeholder',
-      };
+      const config = readAIConfig();
+      if (!config.anthropic.apiKey) {
+        reply.code(400);
+        return { error: 'Anthropic API key not configured. Save an Anthropic API key first.' };
+      }
+      try {
+        const anthropic = createProvider('anthropic', app.log, config);
+        if (!anthropic) throw new Error('Anthropic adapter unavailable despite configured key');
+        const models = await anthropic.listModels();
+        return { models };
+      } catch (err: any) {
+        reply.code(502);
+        return { error: `Failed to fetch Anthropic catalog: ${err.message}` };
+      }
     }
 
     if (provider === 'openai-compat') {
