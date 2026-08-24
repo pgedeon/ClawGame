@@ -28,7 +28,14 @@ Parity test updates same-commit per regression-guard convention: `extractLoadTex
 
 **Next:** lane A units complete — awaiting CEO assignment. Candidate follow-up only if projects start shipping camera configs: port camera bounds/scroll/zoom passthrough (currently latent non-gap).
 
-**Blockers:** none. Note for CEO: `docs/status/openclaw-status.md` carries leftover git conflict markers (`<<<<<<<`/`>>>>>>>`) around the session-8 section from the research/market-onboarding merge — untouched here (outside unit scope).
+**Blockers:** none.
+## 2026-08-24 03:40 — session-10 (design/onboarding, strategy lane)
+**Task:** Acting CEO strategy lane — turn onboarding research addendum (implications 1/3/4/5) + roadmap P2 + ruling #2 into implementation-ready design for the P2 activation flow.
+**Done:** Branch `design/onboarding` off origin/main `2e606f5` (verified via fetch; task brief's tip matched post-fetch origin/main), one commit. Wrote `docs/design/no-auth-onboarding.md`: 3 user stories with binding click-count convention (landing→playable ≤3 clicks, expected 2) + activation event definition (first `play_started` with `editsApplied ≥ 1`); screen-by-screen UX flow (gallery-default landing with prompt bar beside it; instant auto-named project creation; guided first mock edit chips on preview; key prompt strictly AFTER first applied edit, non-modal, skippable); technical approach grounded in code inspection — in-place: `templateScenes.ts`, CreateProjectPage create+writeFile sequence, mock `aiService.ts` + registry fallback chain, `AIProvidersPage.tsx` first-run card, `useGamePreview.handleStartGame`; new: `LandingPage.tsx` (+ `/`→landing route swap, dashboard→`/dashboard`), `templateLaunch.ts` shared launcher, per-template mock recipes constrained to scene JSON (evidence: Phaser preview builds from raw scene JSON via `phaserPreviewSession.ts`/`buildPreviewBootstrap.ts` and does not execute `scripts/game.ts` — script-text edits would be invisible at Play), `recentProjects.ts` localStorage index, `activationEvents.ts` storage-only funnel log (`clawgame.events.v1`, ring buffer 500, no PII/no network, A/B variant hook); 3-slice build sequence with per-slice QA acceptance criteria; risks (template inert behaviors = audit-lane dependency, scene JSON drift, route-swap e2e fallout); 6 open questions for CEO (route swap, offline persistence scope, OnboardingTour fate, recipe constraint sign-off, 30% activation target, recipe content review).
+**Gates:** docs-only commit — build/typecheck/test/lint not applicable (no source touched); markdown written and reviewed against required section list.
+**Manual verify:** read-only codebase inspection cited inline in doc (file paths verified by grep/read this session): App.tsx routes, CreateProjectPage submit path, aiRoutes/registry/mock service, AIProvidersPage first-run card, preview bootstrap chain, e2e smoke spec, status-log format. No app flow exercised (planning lane, no code changed).
+**Next:** CEO review of design + §5 open questions; then builder lanes slice 1→3 per doc §3.5; coordinate slice 2 recipes with P2 template-audit lane.
+**Blockers:** none.
 
 ## 2026-08-24 02:00 — session-9 (feat/export-convergence-3) unit 1
 
@@ -52,7 +59,6 @@ Parity test updates same-commit per regression-guard convention: `extractLoadTex
 **Blockers:** none.
 
 ## 2026-08-23 23:45 — session-8 (feat/export-convergence-2)
->>>>>>> origin/research/market-onboarding
 **Task:** Convergence step 3 per docs/export-parity.md gap summary item 3 — body semantics divergence.
 **Done:** Branch `feat/export-convergence-2` off main `e740925`, one commit:
 1. feat(api): export body semantics mirror preview bootstrap — `resolveExportBody` in `exportService.ts` mirrors `buildPreviewBootstrap.buildBodyConfig`: boolean flags override (`solid===true`→static, `trigger===true`→sensor) → `collision.type` (`solid`→static, `trigger|sensor`→sensor) → normalized entity type (`player|enemy|projectile`→dynamic), else no body. All bodies sized via `setSize(sprite/collision/transform dims)`; dynamic adds `setCollideWorldBounds(true)`; sensor adds `setImmovable(true)+setAllowGravity(false)`; emission order matches `ClawgamePhaserScene.createEntity`. Reads normalized `entity.type` directly (entities pre-normalized via `prepareExportEntities` since session-7) instead of re-inferring from components — engine normalizer stays single source of truth. Parity baselines pinned to zero delta (platformer/topdown/dialogue all +0); new probe covers solid/trigger-flag/player/collectible emissions; `export-extended` wall fixture updated (`collision.type='wall'` on obstacle emits NO body — parity with preview bootstrap which only matches `'solid'`) + explicit no-body pin for legacy `'wall'`.
