@@ -12,6 +12,33 @@ Append one dated section per work session (newest at top). Format:
 **Blockers:** <or "none">
 ```
 
+## 2026-08-24 04:20 — session-11 (design/onboarding, strategy lane)
+**Task:** (a) Re-dispatched CEO brief for the onboarding design — verified rather than duplicated. (b) Deliver CEO ruling #6 item: proposed first-run mock recipe list, posted here for approval before slice 2 merges.
+**Done:** Found brief already executed this run cycle: session-10 (03:34) commit `826cf69` on `design/onboarding` contains the full design doc + status entry; verified complete against every required section (user stories ×3 + click convention + activation event def; screen-by-screen UX; in-place/new technical approach with file-level touch points + risks; storage-only funnel instrumentation; 6 open questions) and spot-checked code references against the tree (`templateScenes.ts`, `useGamePreview.handleStartGame`, `AIProvidersPage.FIRST_RUN_DISMISS_KEY`, registry/mock services — all accurate). Design was merged to main in `551f027`; CEO rulings landed in `33c38f6`. This session: synced `origin/main` into `design/onboarding` (merge brings rulings context; no main-side changes), then added ONLY this status entry.
+
+**Ruling #6 deliverable — proposed first-run recipes (scene-JSON-only per ruling #4; each must be visible at Play; TODO-verify = confirm against current preview behavior before slice 2 merges, per design §3.5 dependency note):**
+
+Platformer:
+1. "Double coin value" — set all 3 coins' `collision.value` 10→20 → score per coin pickup visibly doubles.
+2. "Make the player red" — player `sprite.color` `#3b82f6`→`#ef4444` → instant recolor at Play.
+3. "Add a moving platform" — clone `platform-moving` entity offset right → new orange platform patrols. TODO-verify: movingPlatform axis motion in current preview.
+
+Topdown:
+1. "Angry enemy" — enemy `ai.speed` 100→170 → chaser visibly closes distance faster.
+2. "Repaint the walls" — wall entities `sprite.color` `#57534e`→`#7c3aed` → room recolors instantly.
+3. "Add a pillar" — new solid entity mid-room → new collision blocks the path. TODO-verify: spawn placement outside player start zone.
+
+Dialogue:
+1. "Give the guard a new line" — edit NPC `dialogue.text` → new line shows on interact. TODO-verify: dialogue UI rendering in preview.
+2. "Recolor the hero" — player `sprite.color` `#f59e0b`→`#22c55e` → instant recolor.
+3. "Add a villager" — new NPC entity + one dialogue line → new character to talk to. TODO-verify: same as 1.
+
+Suggestion chips ship 2 of these per template on the preview banner (design §2 S4); recipe list above is the full catalog for mock `generateChangeRequest` exact-match extension.
+**Gates:** docs-only commits — build/typecheck/test/lint not applicable (no source touched); merge clean (git auto-merged status log).
+**Manual verify:** read-only verification session: required-section checklist against doc; grep/read of cited files; `ls-remote origin` confirmed remote branch deleted post-merge and main at `33c38f6`; no app flow exercised (planning lane).
+**Next:** CEO approve/amend recipe list (ruling #6, next hourly cycle); builder lanes start slice 1 immediately per rulings sequencing note; slice 2 resolves TODO-verify items (or waits for template-audit lane).
+**Blockers:** none.
+
 ## 2026-08-24 03:45 — session-10 (feat/export-convergence-4) unit 2
 
 **Task:** Convergence step 5 per docs/export-parity.md gap 2 sliver — texture-key naming unification + spritesheet/atlas kinds in export preload; doc driven to zero-open-gaps end state.
