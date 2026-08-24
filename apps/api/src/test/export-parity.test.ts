@@ -45,8 +45,8 @@ function extractSpriteNames(sceneCode: string): Set<string> {
   return new Set([...sceneCode.matchAll(re)].map((m) => m[1]));
 }
 
-function extractLoadImageKeys(sceneCode: string): Set<string> {
-  const re = /this\.load\.image\('([^']+)'/g;
+function extractLoadTextureKeys(sceneCode: string): Set<string> {
+  const re = /this\.load\.(?:image|spritesheet|atlas|atlasXML)\('([^']+)'/g;
   return new Set([...sceneCode.matchAll(re)].map((m) => m[1]));
 }
 
@@ -80,7 +80,7 @@ function computeParity(template: TemplateScene): ParityDiff {
   );
 
   const previewAssetKeys = bootstrap.assets.map((a) => a.key).sort();
-  const exportAssetKeys = [...extractLoadImageKeys(sceneCode)].sort();
+  const exportAssetKeys = [...extractLoadTextureKeys(sceneCode)].sort();
 
   return {
     missingEntitiesExport: previewIds.filter(
@@ -119,7 +119,7 @@ describe('export/preview parity smoke (docs/export-parity.md)', () => {
     });
   }
 
-  it('synthetic sprite.assetRef probe: both pipelines load the referenced asset (field-name gap closed)', () => {
+  it('synthetic sprite.assetRef probe: both pipelines load the referenced asset under the unified asset: key (gap 2 closed)', () => {
     const template = JSON.parse(JSON.stringify(templateScenes.platformer)) as TemplateScene;
     (template.entities[0].components as any).sprite.assetRef = 'hero.png';
 
@@ -130,10 +130,69 @@ describe('export/preview parity smoke (docs/export-parity.md)', () => {
     const sceneCode = svc.compileSceneToPhaser('MainScene', template.name, toExportEntityMap(template), [
       { id: 'hero.png', dataUri: 'data:image/png;base64,AAAA' },
     ]);
-    // Remaining divergence is key naming only: preview prefixes `asset:`, export uses the raw ref.
-    expect(extractLoadImageKeys(sceneCode)).toEqual(new Set(['hero.png']));
-    expect(sceneCode).toContain("this.load.image('hero.png', hero_png)");
-    expect(sceneCode).toContain("this.add.sprite(100, 350, 'hero.png')");
+    // Key naming unified on the preview convention: `asset:` prefix on both sides.
+    expect(extractLoadTextureKeys(sceneCode)).toEqual(new Set(['asset:hero.png']));
+    expect(sceneCode).toContain("this.load.image('asset:hero.png', hero_png)");
+    expect(sceneCode).toContain("this.add.sprite(100, 350, 'asset:hero.png')");
+  });
+
+  it('spritesheet frameData emits load.spritesheet with unified key (gap 2 closed)', () => {
+    const template = JSON.parse(JSON.stringify(templateScenes.platformer)) as TemplateScene;
+    (template.entities[0].components as any).sprite.assetRef = 'hero.png';
+    (template.entities[0].components as any).sprite.frameData = { frameWidth: 24, frameHeight: 32, endFrame: 3 };
+
+    const bootstrap = buildPhaserPreviewBootstrap(normalizePreviewScene(template as any));
+    expect(bootstrap.assets.map((a) => [a.key, a.kind])).toEqual([['asset:hero.png', 'spritesheet']]);
+
+    const sceneCode = svc.compileSceneToPhaser('MainScene', template.name, toExportEntityMap(template), [
+      { id: 'hero.png', dataUri: 'data:image/png;base64,AAAA' },
+    ]);
+    expect(sceneCode).toContain(
+      "this.load.spritesheet('asset:hero.png', hero_png, { frameWidth: 24, frameHeight: 32, endFrame: 3 });",
+    );
+    expect(sceneCode).toContain("this.add.sprite(100, 350, 'asset:hero.png')");
+  });
+
+  it('atlasMeta json/xml emit load.atlas/load.atlasXML (gap 2 closed)', () => {
+    for (const type of ['json', 'xml'] as const) {
+      const template = JSON.parse(JSON.stringify(templateScenes.platformer)) as TemplateScene;
+      (template.entities[0].components as any).sprite.assetRef = 'hero.png';
+      (template.entities[0].components as any).sprite.atlasMeta = { atlasUrl: 'hero.json', type };
+
+      const bootstrap = buildPhaserPreviewBootstrap(normalizePreviewScene(template as any));
+      expect(bootstrap.assets.map((a) => [a.key, a.kind])).toEqual([['asset:hero.png', 'atlas']]);
+
+      const sceneCode = svc.compileSceneToPhaser('MainScene', template.name, toExportEntityMap(template), [
+        { id: 'hero.png', dataUri: 'data:image/png;base64,AAAA' },
+      ]);
+      const loader = type === 'xml' ? 'atlasXML' : 'atlas';
+      expect(sceneCode).toContain(`this.load.${loader}('asset:hero.png', hero_png, 'hero.json');`);
+    }
+  });
+
+  it('atlas document resolves embedded data URI by url or id match; invalid frameData falls back to image', () => {
+    // atlasUrl matching an embedded asset url → data URI const instead of runtime fetch.
+    const template = JSON.parse(JSON.stringify(templateScenes.platformer)) as TemplateScene;
+    (template.entities[0].components as any).sprite.assetRef = 'hero.png';
+    (template.entities[0].components as any).sprite.atlasMeta = {
+      atlasUrl: '/data/assets/p1/hero.json',
+      type: 'json',
+    };
+    const sceneCode = svc.compileSceneToPhaser('MainScene', template.name, toExportEntityMap(template), [
+      { id: 'hero.png', dataUri: 'data:image/png;base64,AAAA' },
+      { id: 'hero-json', url: '/data/assets/p1/hero.json', dataUri: 'data:application/json;base64,e30=' },
+    ]);
+    expect(sceneCode).toContain("this.load.atlas('asset:hero.png', hero_png, hero_json);");
+
+    // frameData missing frameHeight is invalid → plain image fallback (mirrors buildAssetRecord).
+    const badFrame = JSON.parse(JSON.stringify(templateScenes.platformer)) as TemplateScene;
+    (badFrame.entities[0].components as any).sprite.assetRef = 'hero.png';
+    (badFrame.entities[0].components as any).sprite.frameData = { frameWidth: 24 };
+    const fallbackCode = svc.compileSceneToPhaser('MainScene', badFrame.name, toExportEntityMap(badFrame), [
+      { id: 'hero.png', dataUri: 'data:image/png;base64,AAAA' },
+    ]);
+    expect(fallbackCode).toContain("this.load.image('asset:hero.png', hero_png)");
+    expect(fallbackCode).not.toContain('load.spritesheet');
   });
 
   it('legacy sprite.assetId field still resolves (read-only fallback)', () => {
@@ -143,8 +202,8 @@ describe('export/preview parity smoke (docs/export-parity.md)', () => {
     const sceneCode = svc.compileSceneToPhaser('MainScene', template.name, toExportEntityMap(template), [
       { id: 'hero.png', dataUri: 'data:image/png;base64,AAAA' },
     ]);
-    expect(extractLoadImageKeys(sceneCode)).toEqual(new Set(['hero.png']));
-    expect(sceneCode).toContain("this.add.sprite(100, 350, 'hero.png')");
+    expect(extractLoadTextureKeys(sceneCode)).toEqual(new Set(['asset:hero.png']));
+    expect(sceneCode).toContain("this.add.sprite(100, 350, 'asset:hero.png')");
   });
 
   it('normalization feeds export: typed entities no longer fall back to custom (gap 1)', () => {

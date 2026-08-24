@@ -19,6 +19,10 @@ interface ExportComponent {
   assetRef?: string;
   /** @legacy field written by very old editors; kept only as a read fallback */
   assetId?: string;
+  /** Spritesheet frame slicing — mirrors PhaserPreviewAsset.frameData. */
+  frameData?: { frameWidth?: number; frameHeight?: number; endFrame?: number };
+  /** Atlas metadata — mirrors PhaserPreviewAsset.atlasMeta. */
+  atlasMeta?: { atlasUrl?: string; type?: string };
   color?: string;
   content?: string;
   fontSize?: string | number;
@@ -59,6 +63,14 @@ interface ExportAsset {
   mimeType?: string;
   size?: number;
   tags?: string[];
+}
+
+/** Load kind resolved per referenced sprite asset — mirrors buildAssetRecord precedence (atlas > spritesheet > image). */
+interface ExportSpriteLoad {
+  ref: string;
+  kind: 'image' | 'spritesheet' | 'atlas';
+  frameData?: { frameWidth: number; frameHeight: number; endFrame?: number };
+  atlasMeta?: { atlasUrl: string; type: 'json' | 'xml' };
 }
 
 interface ScenePhysicsConfig {
@@ -240,6 +252,91 @@ function resolveExportBody(entity: ExportEntity, components: Map<string, ExportC
   return { kind: 'none', width, height };
 }
 
+function safeIdentifier(id: string): string {
+  return id.replace(/[^a-zA-Z0-9]/g, '_');
+}
+
+/**
+ * Unified texture-key convention (docs/export-parity.md gap 2): both pipelines key
+ * assets `asset:${ref}` via buildAssetKey. Exported games are standalone single-file
+ * HTML — every texture is an embedded data URI registered under our chosen key, so the
+ * prefix costs nothing and keeps editor preview + export interchangeable.
+ */
+function exportTextureKey(ref: string): string {
+  return `asset:${ref}`;
+}
+
+/** frameData validation mirrors buildAssetRecord: both dimensions must be numbers. */
+function normalizeExportFrameData(
+  frameData: ExportComponent['frameData'],
+): ExportSpriteLoad['frameData'] {
+  return frameData &&
+    typeof frameData.frameWidth === 'number' &&
+    typeof frameData.frameHeight === 'number'
+    ? {
+        frameWidth: frameData.frameWidth,
+        frameHeight: frameData.frameHeight,
+        ...(typeof frameData.endFrame === 'number' ? { endFrame: frameData.endFrame } : {}),
+      }
+    : undefined;
+}
+
+/** atlasMeta validation mirrors buildAssetRecord: atlasUrl string + json|xml type. */
+function normalizeExportAtlasMeta(
+  atlasMeta: ExportComponent['atlasMeta'],
+): ExportSpriteLoad['atlasMeta'] {
+  return atlasMeta &&
+    typeof atlasMeta.atlasUrl === 'string' &&
+    (atlasMeta.type === 'json' || atlasMeta.type === 'xml')
+    ? { atlasUrl: atlasMeta.atlasUrl, type: atlasMeta.type }
+    : undefined;
+}
+
+function getComponents(entity: ExportEntity): Map<string, ExportComponent> {
+  return entity.components instanceof Map
+    ? entity.components
+    : new Map(Object.entries(entity.components || {}));
+}
+
+/** Collect one load descriptor per referenced sprite asset ref (first entity wins). */
+function collectExportLoads(entities: Record<string, ExportEntity>): Map<string, ExportSpriteLoad> {
+  const loads = new Map<string, ExportSpriteLoad>();
+  for (const entity of Object.values(entities)) {
+    const comps = getComponents(entity);
+    const sprite = comps.get('sprite');
+    const ref = sprite?.assetRef ?? sprite?.assetId;
+    if (!ref) continue;
+    const key = String(ref);
+    if (loads.has(key)) continue;
+    const frameData = normalizeExportFrameData(sprite?.frameData);
+    const atlasMeta = normalizeExportAtlasMeta(sprite?.atlasMeta);
+    loads.set(key, {
+      ref: key,
+      kind: atlasMeta ? 'atlas' : frameData ? 'spritesheet' : 'image',
+      ...(frameData ? { frameData } : {}),
+      ...(atlasMeta ? { atlasMeta } : {}),
+    });
+  }
+  return loads;
+}
+
+/** Embedded data URI const when the referenced asset was embedded; else legacy file-path fallback. */
+function resolveExportSource(ref: string, assets?: ExportAsset[]): string {
+  const embedded = assets?.find((a) => a.id === ref);
+  if (embedded?.dataUri) return safeIdentifier(ref);
+  return `'assets/${ref}.png'`;
+}
+
+/**
+ * Atlas document source: embedded asset matched by url or raw id, else pass through
+ * verbatim (data:/remote URLs), matching how the preview loader consumes atlasUrl.
+ */
+function resolveExportAtlasSource(atlasUrl: string, assets?: ExportAsset[]): string {
+  const embedded = assets?.find((a) => a.url === atlasUrl || a.id === atlasUrl);
+  if (embedded?.dataUri) return safeIdentifier(embedded.id);
+  return `'${String(atlasUrl).replace(/'/g, "\\'")}'`;
+}
+
 export class ExportService {
   private logger: FastifyLoggerInstance;
   private projectService: ProjectService;
@@ -322,21 +419,27 @@ export class ExportService {
   compileSceneToPhaser(className: string, sceneName: string, entities: Record<string, ExportEntity>, assets?: ExportAsset[], metadata?: SceneMetadata, world?: ExportWorldConfig): string {
     const lines: string[] = [];
     const indent = '    ';
-    const assetIds = new Set<string>();
-    for (const entity of Object.values(entities)) {
-      const comps = entity.components instanceof Map ? entity.components : new Map(Object.entries(entity.components || {}));
-      const sprite = comps.get('sprite');
-      const assetRef = sprite?.assetRef ?? sprite?.assetId;
-      if (assetRef) assetIds.add(String(assetRef));
-    }
+    // Preload every referenced sprite asset with the unified `asset:` texture key.
+    // Kind precedence mirrors buildAssetRecord / ClawgamePhaserScene.preload:
+    // atlasMeta → load.atlas|atlasXML, frameData → load.spritesheet, else load.image.
+    const loads = collectExportLoads(entities);
     lines.push(`${indent}preload() {`);
-    // Use data URIs for assets if available, otherwise fall back to file paths
-    for (const id of assetIds) {
-      const embedded = assets?.find((a) => a.id === id);
-      if (embedded?.dataUri) {
-        lines.push(`${indent}  this.load.image('${id}', ${id.replace(/[^a-zA-Z0-9]/g, '_')});`);
+    for (const load of loads.values()) {
+      const key = exportTextureKey(load.ref);
+      if (load.kind === 'atlas') {
+        const loader = load.atlasMeta!.type === 'xml' ? 'atlasXML' : 'atlas';
+        const atlasSrc = resolveExportAtlasSource(load.atlasMeta!.atlasUrl, assets);
+        lines.push(
+          `${indent}  this.load.${loader}('${key}', ${resolveExportSource(load.ref, assets)}, ${atlasSrc});`,
+        );
+      } else if (load.kind === 'spritesheet') {
+        const fd = load.frameData!;
+        const endFrame = typeof fd.endFrame === 'number' ? `, endFrame: ${fd.endFrame}` : '';
+        lines.push(
+          `${indent}  this.load.spritesheet('${key}', ${resolveExportSource(load.ref, assets)}, { frameWidth: ${fd.frameWidth}, frameHeight: ${fd.frameHeight}${endFrame} });`,
+        );
       } else {
-        lines.push(`${indent}  this.load.image('${id}', 'assets/${id}.png');`);
+        lines.push(`${indent}  this.load.image('${key}', ${resolveExportSource(load.ref, assets)});`);
       }
     }
     lines.push(`${indent}}`);
@@ -369,7 +472,8 @@ export class ExportService {
       } else if (type === 'rectangle') {
         lines.push(`${indent}  this.add.rectangle(${x}, ${y}, ${e.transform?.width || 32}, ${e.transform?.height || 32}, '${sprite?.color || '#8b5cf6'}');`);
       } else {
-        const key = (sprite?.assetRef ?? sprite?.assetId) || safeName;
+        const assetRef = sprite?.assetRef ?? sprite?.assetId;
+        const key = assetRef ? exportTextureKey(String(assetRef)) : safeName;
         lines.push(`${indent}  const ${safeName} = this.add.sprite(${x}, ${y}, '${key}');`);
         if (e.transform?.rotation) lines.push(`${indent}  ${safeName}.setRotation(${e.transform.rotation});`);
         if ((e.transform?.scaleX ?? 1) !== 1 || (e.transform?.scaleY ?? 1) !== 1) lines.push(`${indent}  ${safeName}.setScale(${e.transform?.scaleX ?? 1}, ${e.transform?.scaleY ?? 1});`);
@@ -527,6 +631,9 @@ new Phaser.Game(config);
           id: asset.id,
           name: asset.name,
           type: asset.type,
+          // Server-relative source path — lets preload resolve atlas documents
+          // referenced via atlasMeta.atlasUrl to embedded data URIs.
+          url: (asset as { url?: string }).url,
           dataUri,
           mimeType,
           tags: asset.tags || [],
