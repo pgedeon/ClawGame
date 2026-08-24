@@ -12,6 +12,14 @@ Append one dated section per work session (newest at top). Format:
 **Blockers:** <or "none">
 ```
 
+## 2026-08-24 02:05 — session-9 (research/market-onboarding, strategy lane)
+**Task:** Market research per acting CEO — onboarding + time-to-playable benchmarks for browser AI game builders (Rosebud AI, Websim, Astrocade, GDevelop); findings mapped to P2 time-to-fun items.
+**Done:** Branch `research/market-onboarding` off `baf6a78` (= origin/main tip; verified via `git ls-remote`), one commit. Live logged-out browser walkthroughs (headless Chromium) of all four products capturing every screen landing→first-playable/generation-attempt: Rosebud = prompt+template wizard on homepage, signup wall only at CREATE GAME (3 wizard steps then auth); Websim = consumer feed, play-without-account, Create→immediate Google/Discord wall ("300 credits included"); Astrocade = feed + logged-out `/create` where AI pitches a named game concept BEFORE signup ("Cat Coin Caper" observed), wall at generation, "Build step-by-step" default ON; GDevelop = web editor create dialog with zero auth, "Don't save this project now" → full template editor playable in ~3–4 clicks (fastest of four). Addendum appended to `docs/market-research-2026-08.md`: per-competitor findings with sources, cross-cutting patterns, public activation/retention numbers (Amplitude 17.4→53.5% activation case; Appcues 25–50% first-session band; Astrocade 5M MAU/140M plays-month/75k games via Fortune 2026-05-05), and ranked ClawGame implications (no-auth local-first creation; fix inert template behaviors before measuring onboarding; mock-AI first edit pre-key; instrument activation event; share+remix from no-auth projects; defer wizards). Conflicts flagged UNCONFIRMED (Websim pricing sources contradict).
+**Gates:** docs-only — no build/typecheck/test run; no source files touched.
+**Manual verify:** all four onboarding flows exercised live in isolated logged-out browser (screenshots-equivalent a11y snapshots at each step); Rosebud wizard clicked through to auth modal; GDevelop platformer template loaded into running editor without account; competitor scale numbers cross-checked across Fortune/PocketGamer/Tracxn/Substack.
+**Next:** CEO review of recommendations; if approved, P2 onboarding acceptance criteria draftable from addendum §ClawGame implications item 1 (≤3 clicks landing→playable) + item 5 (activation event definition).
+**Blockers:** none.
+
 ## 2026-08-23 23:45 — session-8 (feat/export-convergence-2)
 **Task:** Convergence step 3 per docs/export-parity.md gap summary item 3 — body semantics divergence.
 **Done:** Branch `feat/export-convergence-2` off main `e740925`, one commit:
