@@ -17,6 +17,15 @@ function jsonResponse(data: unknown, ok = true, status = 200) {
   };
 }
 
+/**
+ * Normalize: AIProvidersPage prefixes VITE_API_URL when a developer env file
+ * (e.g. .env.local) sets it — strip any absolute origin so recorded URLs and
+ * assertions stay env-independent (same pattern as asset-mapping fix).
+ */
+function normalizeUrl(u: URL | string): string {
+  return String(u).replace(/^https?:\/\/[^/]+/, '');
+}
+
 const providersConfigured: ProvidersResponse = {
   activeProvider: 'opencode',
   fallbackChain: ['openai-compat'],
@@ -73,13 +82,14 @@ function installFetch(opts: {
 } = {}) {
   const providers = opts.providers ?? providersConfigured;
   let config = opts.config ?? configStored;
-  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+  const fetchMock = vi.fn(async (url: URL | string, init?: RequestInit) => {
+    const u = normalizeUrl(url);
     const method = init?.method || 'GET';
     const body = init?.body ? JSON.parse(init.body as string) : undefined;
-    calls.push({ url, method, body });
+    calls.push({ url: u, method, body });
 
-    if (url.includes('/api/ai/providers')) return jsonResponse(providers);
-    if (url.includes('/api/ai/config')) {
+    if (u.includes('/api/ai/providers')) return jsonResponse(providers);
+    if (u.includes('/api/ai/config')) {
       if (method === 'PUT') {
         config = {
           ...config,
@@ -91,7 +101,7 @@ function installFetch(opts: {
       }
       return jsonResponse(config);
     }
-    if (url.includes('/api/ai/models')) {
+    if (u.includes('/api/ai/models')) {
       const provider = new URL(url, 'http://localhost').searchParams.get('provider');
       const okMap = opts.modelsOk ?? {};
       if (okMap[provider || ''] === false) {
@@ -108,7 +118,7 @@ function installFetch(opts: {
       }
       return jsonResponse({ models: [] });
     }
-    if (url.includes('/api/ai/test')) {
+    if (u.includes('/api/ai/test')) {
       return jsonResponse({ provider: body?.provider, ok: true, latencyMs: 7 });
     }
     return jsonResponse({ error: 'not found' }, false, 404);
@@ -162,7 +172,6 @@ describe('AIProvidersPage', () => {
     expect(select.options[0].value).toBe('big-pickle');
     expect(calls.some(c => c.url.includes('/api/ai/models?provider=anthropic'))).toBe(true);
   });
-
   it('Test Connection posts to /api/ai/test and shows visible result', async () => {
     installFetch();
     renderPage();
@@ -190,14 +199,11 @@ describe('AIProvidersPage', () => {
     });
     fireEvent.click(screen.getByTestId('set-active-anthropic'));
 
+    // Env-independent: match against normalized recorded URLs, not raw fetch args
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith(
-        '/api/ai/config',
-        expect.objectContaining({
-          method: 'PUT',
-          body: JSON.stringify({ activeProvider: 'anthropic' }),
-        }),
-      );
+      const putCall = calls.find(c => c.url === '/api/ai/config' && c.method === 'PUT');
+      expect(putCall).toBeTruthy();
+      expect(putCall?.body).toEqual({ activeProvider: 'anthropic' });
     });
   });
 
@@ -215,13 +221,12 @@ describe('AIProvidersPage', () => {
     fireEvent.change(screen.getByTestId('key-input-opencode'), { target: { value: 'sk-new-key' } });
     fireEvent.click(screen.getByTestId('save-opencode'));
 
+    // Env-independent: match against normalized recorded URLs, not raw fetch args
     await waitFor(() => {
-      const putCall = fetchMock.mock.calls.find(([, init]: any[]) => init?.method === 'PUT');
+      const putCall = calls.find(c => c.url === '/api/ai/config' && c.method === 'PUT');
       expect(putCall).toBeTruthy();
-      const [url, init] = putCall as any[];
-      expect(url).toBe('/api/ai/config');
       // Per-provider section payload: new key + currently selected model
-      expect(JSON.parse(init.body)).toEqual({ opencode: { apiKey: 'sk-new-key', model: 'big-pickle' } });
+      expect(putCall?.body).toEqual({ opencode: { apiKey: 'sk-new-key', model: 'big-pickle' } });
     });
   });
 
@@ -234,14 +239,11 @@ describe('AIProvidersPage', () => {
     });
     fireEvent.click(screen.getByTestId('chain-up-openai-compat'));
 
+    // Env-independent: match against normalized recorded URLs, not raw fetch args
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith(
-        '/api/ai/config',
-        expect.objectContaining({
-          method: 'PUT',
-          body: JSON.stringify({ fallbackChain: ['openai-compat', 'anthropic'] }),
-        }),
-      );
+      const putCall = calls.find(c => c.url === '/api/ai/config' && c.method === 'PUT');
+      expect(putCall).toBeTruthy();
+      expect(putCall?.body).toEqual({ fallbackChain: ['openai-compat', 'anthropic'] });
     });
   });
 
@@ -271,14 +273,11 @@ describe('AIProvidersPage', () => {
     fireEvent.change(screen.getByTestId('firstrun-key-input'), { target: { value: 'oc-free-key' } });
     fireEvent.click(screen.getByText(/Save & Activate/i));
 
+    // Env-independent: match against normalized recorded URLs, not raw fetch args
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith(
-        '/api/ai/config',
-        expect.objectContaining({
-          method: 'PUT',
-          body: JSON.stringify({ opencode: { apiKey: 'oc-free-key' }, activeProvider: 'opencode' }),
-        }),
-      );
+      const putCall = calls.find(c => c.url === '/api/ai/config' && c.method === 'PUT');
+      expect(putCall).toBeTruthy();
+      expect(putCall?.body).toEqual({ opencode: { apiKey: 'oc-free-key' }, activeProvider: 'opencode' });
     });
     await waitFor(() => {
       const testCall = calls.filter(c => c.url.includes('/api/ai/test')).pop();
