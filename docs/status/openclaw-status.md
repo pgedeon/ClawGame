@@ -12,6 +12,14 @@ Append one dated section per work session (newest at top). Format:
 **Blockers:** <or "none">
 ```
 
+## 2026-08-24 03:40 — session-10 (design/onboarding, strategy lane)
+**Task:** Acting CEO strategy lane — turn onboarding research addendum (implications 1/3/4/5) + roadmap P2 + ruling #2 into implementation-ready design for the P2 activation flow.
+**Done:** Branch `design/onboarding` off origin/main `2e606f5` (verified via fetch; task brief's tip matched post-fetch origin/main), one commit. Wrote `docs/design/no-auth-onboarding.md`: 3 user stories with binding click-count convention (landing→playable ≤3 clicks, expected 2) + activation event definition (first `play_started` with `editsApplied ≥ 1`); screen-by-screen UX flow (gallery-default landing with prompt bar beside it; instant auto-named project creation; guided first mock edit chips on preview; key prompt strictly AFTER first applied edit, non-modal, skippable); technical approach grounded in code inspection — in-place: `templateScenes.ts`, CreateProjectPage create+writeFile sequence, mock `aiService.ts` + registry fallback chain, `AIProvidersPage.tsx` first-run card, `useGamePreview.handleStartGame`; new: `LandingPage.tsx` (+ `/`→landing route swap, dashboard→`/dashboard`), `templateLaunch.ts` shared launcher, per-template mock recipes constrained to scene JSON (evidence: Phaser preview builds from raw scene JSON via `phaserPreviewSession.ts`/`buildPreviewBootstrap.ts` and does not execute `scripts/game.ts` — script-text edits would be invisible at Play), `recentProjects.ts` localStorage index, `activationEvents.ts` storage-only funnel log (`clawgame.events.v1`, ring buffer 500, no PII/no network, A/B variant hook); 3-slice build sequence with per-slice QA acceptance criteria; risks (template inert behaviors = audit-lane dependency, scene JSON drift, route-swap e2e fallout); 6 open questions for CEO (route swap, offline persistence scope, OnboardingTour fate, recipe constraint sign-off, 30% activation target, recipe content review).
+**Gates:** docs-only commit — build/typecheck/test/lint not applicable (no source touched); markdown written and reviewed against required section list.
+**Manual verify:** read-only codebase inspection cited inline in doc (file paths verified by grep/read this session): App.tsx routes, CreateProjectPage submit path, aiRoutes/registry/mock service, AIProvidersPage first-run card, preview bootstrap chain, e2e smoke spec, status-log format. No app flow exercised (planning lane, no code changed).
+**Next:** CEO review of design + §5 open questions; then builder lanes slice 1→3 per doc §3.5; coordinate slice 2 recipes with P2 template-audit lane.
+**Blockers:** none.
+
 ## 2026-08-24 02:00 — session-9 (feat/export-convergence-3) unit 1
 
 **Task:** Convergence step 4 per docs/export-parity.md gap summary item 4 — physics/world config passthrough.
