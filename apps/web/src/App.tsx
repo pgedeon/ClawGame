@@ -39,6 +39,7 @@ const AIProvidersPage = lazy(() => import('./pages/AIProvidersPage').then(m => (
 const BehaviorGraphPage = lazy(() => import('./pages/BehaviorGraphPage').then(m => ({ default: m.BehaviorGraphPage })));
 const NavigationPage = lazy(() => import('./pages/NavigationPage').then(m => ({ default: m.NavigationPage })));
 const MediaForgePage = lazy(() => import('./pages/MediaForgePage').then(m => ({ default: m.MediaForgePage })));
+const RemixPage = lazy(() => import('./pages/RemixPage').then(m => ({ default: m.RemixPage })));
 
 function PageLoader() {
   return (
@@ -86,6 +87,17 @@ function App() {
     <ErrorBoundary>
       <BrowserRouter>
         <Routes>
+          {/* Recipient landing for shared links — outside AppLayout (design §2 S4).
+              Slice 1: honest placeholder; slice 2 replaces with the auto-import flow. */}
+          <Route path="/remix/:hostedId" element={
+            <Suspense fallback={
+              <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', background: '#0f172a' }}>
+                Loading...
+              </div>
+            }>
+              <RemixPage />
+            </Suspense>
+          } />
           <Route path="/" element={<AppLayout />}>
             <Route index element={<LandingPage />} />
             <Route path="dashboard" element={<DashboardPage />} />

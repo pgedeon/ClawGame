@@ -32,6 +32,7 @@ import type {
   ExportOptions,
   HostedExport,
   HostedOptions,
+  ShareResponse,
   GenerationResult,
   GenerationQuality,
   GenerationFormat,
@@ -65,6 +66,7 @@ export type {
   ExportOptions,
   HostedExport,
   HostedOptions,
+  ShareResponse,
   GenerationResult,
   GenerationQuality,
   GenerationFormat,
@@ -463,6 +465,15 @@ export const api = {
 
   listHostedExports: (projectId: string) =>
     request<{ hosted: HostedExport[] }>(`/api/projects/${projectId}/hosted`).then((r) => r.hosted || []),
+
+  // One-click share (slice 1): fresh export + capability-token host in one call.
+  // Body {} because request() always sets application/json and Fastify rejects
+  // empty bodies under that content-type.
+  shareProject: (projectId: string) =>
+    request<ShareResponse>(`/api/projects/${projectId}/share`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
 
   hostExport: (projectId: string, filename: string, options?: HostedOptions) =>
     request<{ success: boolean; hosted: HostedExport; message: string }>(

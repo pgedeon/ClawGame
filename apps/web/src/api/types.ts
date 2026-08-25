@@ -352,7 +352,8 @@ export interface HostedOptions {
   title?: string;
   description?: string;
   expiresInHours?: number;
-  expiresInDays?: number;
+  /** `null` = never expires (one-click share path); undefined = server default. */
+  expiresInDays?: number | null;
   public?: boolean;
 }
 
@@ -367,5 +368,16 @@ export interface HostedExport {
   hostedUrl: string;
   projectName?: string;
   createdAt: string;
-  expiresAt?: string;
+  expiresAt?: string | null;
+  /** v1: shares include full editable source by default (CEO ruling 2). */
+  sourceIncluded?: boolean;
+}
+
+/** Response shape of POST /api/projects/:id/share (share/publish slice 1). */
+export interface ShareResponse {
+  success: boolean;
+  hosted?: HostedExport;
+  url?: string;
+  stage?: 'export' | 'host';
+  error?: string;
 }

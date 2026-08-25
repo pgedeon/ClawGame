@@ -84,3 +84,6 @@ apps/web/src/utils/*.d.ts
 # One-off scripts
 debug_test.js
 apply-*.js
+
+# Hosted share artifacts (slice 1 runtime data)
+apps/api/data/hosted/

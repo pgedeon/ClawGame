@@ -4,7 +4,9 @@ import { Sparkles, Play, Wrench, FileCode, Zap } from 'lucide-react';
 import { api } from '../api/client';
 import { FileWorkspace } from '../components/FileWorkspace';
 import { ContextualAIAssistant } from '../components/ContextualAIAssistant';
+import { ShareButton } from '../components/ShareButton';
 import '../contextual-ai.css';
+import '../components/share.css';
 import { logger } from '../utils/logger';
 
 interface EditorPageProps {
@@ -129,6 +131,8 @@ function EditorPageContent({ projectId }: EditorPageProps) {
             <Play size={14} />
             Play
           </button>
+          {/* One-click share (slice 1) — same handler as the Preview top bar */}
+          <ShareButton projectId={projectId} projectName={projectName} />
         </div>
       </header>
 

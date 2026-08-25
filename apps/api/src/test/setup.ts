@@ -8,6 +8,7 @@ const TEST_DIR = mkdtempSync(join(tmpdir(), 'clawgame-api-test-'));
 process.env.PROJECTS_DIR = TEST_DIR;
 process.env.ASSETS_DIR = TEST_DIR;
 process.env.EXPORTS_DIR = TEST_DIR;
+process.env.HOSTED_DIR = join(TEST_DIR, 'hosted');
 
 // Clean up on exit
 process.on('exit', () => {
