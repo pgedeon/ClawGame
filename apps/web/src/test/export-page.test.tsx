@@ -62,13 +62,13 @@ describe('ExportPage — default export format (retro-2 ruling #2)', () => {
     expect(select).toHaveValue('phaser-html');
   });
 
-  it('still offers html as an explicit option', async () => {
+  it('no longer offers the deleted legacy canvas format (html)', async () => {
     installFetch();
     renderExportPage();
 
     const select = await screen.findByRole('combobox', { name: /export format/i });
     const options = Array.from(select.querySelectorAll('option')).map((o) => o.value);
-    expect(options).toContain('html');
-    expect(options).toContain('phaser-html');
+    expect(options).toEqual(['phaser-html']);
+    expect(options).not.toContain('html');
   });
 });

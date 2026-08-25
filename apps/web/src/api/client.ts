@@ -435,11 +435,6 @@ export const api = {
     request<any>(`/api/templates/${templateId}`),
 
   // Export operations
-  exportProject: (projectId: string, options?: { format?: 'html' | 'zip'; includeAssets?: boolean }) =>
-    request<Blob>(`/api/projects/${projectId}/export`, {
-      query: options,
-    }),
-
   exportGame: (projectId: string, options?: ExportOptions) =>
     request<ExportResult>(`/api/projects/${projectId}/export`, {
       method: 'POST',

@@ -1,7 +1,8 @@
 # Export/Preview Parity Probe (Roadmap P0 item 5)
 
 **Date:** 2026-08-23 · **Branch:** `feat/export-parity-probe` · **Scope:** measurement only — no `exportService` refactor.
-**Status 2026-08-24:** phaser-html export ↔ preview parity is **complete** (`feat/export-convergence-1…4`). Zero open gaps remain for the phaser-html pipeline; the only known divergence is the out-of-scope legacy canvas `format:'html'` generator (gap 5 below).
+**Status 2026-08-24:** phaser-html export ↔ preview parity is **complete** (`feat/export-convergence-1…4`). Zero open gaps remain for the phaser-html pipeline.
+**Status 2026-08-26:** the legacy canvas `format:'html'` generator is **deleted** (`chore/remove-legacy-export`) — phaser-html is the only export format (retro-2 ruling #2); gap 5 below is resolved by deletion.
 **Method:** code-path reading with file/line evidence + static smoke test (`apps/api/src/test/export-parity.test.ts`) that diffs `compileSceneToPhaser` output against `buildPhaserPreviewBootstrap` for each shipped template.
 
 ## The two pipelines being compared
@@ -10,9 +11,9 @@
 
 **Export (phaser-html):** `main-scene.json` → `prepareExportEntities` (shared `normalizePreviewScene` + shape-type preservation, `apps/api/src/services/exportService.ts`) → `compileSceneToPhaser` string generator → inline HTML with CDN Phaser 4.
 
-A third runtime exists (`format:'html'`, default in ExportPage — `apps/web/src/pages/ExportPage.tsx:74,386`): the hand-written canvas engine in `export-templates.ts`. It is also fed raw type-less JSON and degrades the same way (`export-templates.ts:199` `e.type || 'unknown'`), so per-entity behavior branches (enemy AI at `:309`, collectible rotation at `:342`) never fire for shipped templates. It is out of the matrix below but shares the root cause.
+A third runtime existed until 2026-08-26 (`format:'html'`, formerly default in ExportPage): the hand-written canvas engine in `export-templates.ts`. It was fed raw type-less JSON and degraded the same way (`e.type || 'unknown'`), so per-entity behavior branches never fired for shipped templates. It shared the root cause below and was deleted rather than ported — see gap 5.
 
-**Root structural gap:** preview normalizes + infers entity types before rendering; the legacy export generators did not. Shipped templates intentionally store entities **without** a `type` field (`apps/web/src/templates/templateScenes.ts:11-13`). Narrowed on `feat/export-convergence-1`: phaser-html now runs the shared `normalizePreviewScene` (implementation moved to `packages/engine/src/preview-scene.ts`; web module re-exports it); the canvas `format:'html'` generator still does not.
+**Root structural gap:** preview normalizes + infers entity types before rendering; the legacy export generators did not. Shipped templates intentionally store entities **without** a `type` field (`apps/web/src/templates/templateScenes.ts:11-13`). Narrowed on `feat/export-convergence-1`: phaser-html now runs the shared `normalizePreviewScene` (implementation moved to `packages/engine/src/preview-scene.ts`; web module re-exports it); the canvas `format:'html'` generator never did and is since deleted (gap 5).
 
 ## Parity matrix — all three shipped templates
 
@@ -28,7 +29,7 @@ Template genres after creation: platformer → `'action'`, topdown → `'action'
 | Asset loading | Keys `asset:${assetRef}` (`buildPreviewBootstrap.ts:61-62`); reads `sprite.assetRef`; URL resolution incl. data:/absolute/baseURL (`:65-79`); image/spritesheet/atlas kinds via frameData/atlasMeta (`:102-135`); load-error fallback gray texture (`ClawgamePhaserScene.ts:52-57,127-129,182`) | Reads **`sprite.assetRef`** with legacy `sprite.assetId` read fallback; same key convention `asset:${ref}` via `exportTextureKey`; embedded data URIs preload per kind mirroring `buildAssetRecord` validation/precedence — `atlasMeta` (atlasUrl string + json\|xml) → `load.atlas`/`load.atlasXML`, valid `frameData` (frameWidth+frameHeight, optional endFrame) → `load.spritesheet` with inline frame config, else `load.image`; atlas documents resolve to embedded data URI consts when they match an embedded asset by url/id, data:/remote URLs pass through verbatim like the preview loader; non-embedded fallback path `assets/${id}.png` still doesn't exist standalone | Closed — both sides key and load identically |
 | Camera | Camera bounds/scroll/zoom honored from bootstrap.camera (`ClawgamePhaserScene.ts:100-109`); Scale.FIT + keyboard/mouse/touch enabled (`ClawgamePhaserRuntime.ts:54-58`) | No camera code at all in generated scene; fixed canvas, no scale manager config (`exportService.ts:248-262`) | Templates ship no camera metadata → low practical impact today, divergent machinery |
 | Input bindings | None registered by base scene (keyboard enabled but unused) — same for all three templates | None registered | Equivalent (both gameplay-less); GENRE_CONTROLS advertises controls that neither path implements for these genres (`useGamePreview.ts:29-44`) |
-| Genre gameplay | None for action/adventure genres (genre scenes exist only for td/rpg/shooter/puzzle) | None (no update() emitted; scene is preload+create only, `exportService.ts:180-231`) | Equivalent emptiness; legacy html export *does* ship generic gameplay (movement/enemies/victory, `export-templates.ts:280-390`) → the two export formats disagree with each other too |
+| Genre gameplay | None for action/adventure genres (genre scenes exist only for td/rpg/shooter/puzzle) | None (no update() emitted; scene is preload+create only, `exportService.ts:180-231`) | Equivalent emptiness; the former legacy html export shipped generic gameplay (`export-templates.ts:280-390`) → the two export formats disagreed with each other too. Resolved 2026-08-26: legacy format deleted, single phaser-html pipeline remains |
 
 ## Per-template body-level diff (what the smoke test pins)
 
@@ -44,14 +45,14 @@ Entity sets and asset-key sets currently match (templates are asset-free); the a
 
 ## Gap summary (ranked)
 
-1. ~~**No normalization on export path**~~ **CLOSED 2026-08-23 (`feat/export-convergence-1`)** — phaser-html feeds project JSON through the shared `normalizePreviewScene` (`prepareExportEntities`); inferred runtime types drive per-type branches while shape primitives keep theirs. Canvas `format:'html'` still unnormalized (see gap 5).
+1. ~~**No normalization on export path**~~ **CLOSED 2026-08-23 (`feat/export-convergence-1`)** — phaser-html feeds project JSON through the shared `normalizePreviewScene` (`prepareExportEntities`); inferred runtime types drive per-type branches while shape primitives keep theirs. Canvas `format:'html'` stayed unnormalized until its deletion (see gap 5).
 2. ~~**Asset field mismatch `assetId` vs `assetRef`** + assets arg never passed~~ **CLOSED 2026-08-23 (`feat/export-convergence-1`) + 2026-08-24 (`feat/export-convergence-4`)** — export reads `sprite.assetRef` (legacy `assetId` fallback), embeds and passes project assets, loads data URIs in preload; texture keys unified on preview's `asset:` prefix; spritesheet/atlas kinds ported mirroring `buildAssetRecord` validation/precedence.
 3. ~~**Body semantics divergence**~~ **CLOSED 2026-08-23 (`feat/export-convergence-2`)** — `resolveExportBody` mirrors `buildBodyConfig`: boolean flags override → collision.type → normalized entity type; solid→static, trigger/sensor→sensor+immovable+no-gravity, player/enemy/projectile→dynamic+world-bounds, everything else→no body; all bodies sized via `setSize`.
 4. ~~**Physics/world config divergence**~~ **CLOSED 2026-08-24 (`feat/export-convergence-3`)** — `resolveExportWorld` reads `scene.bounds` + `scene.physics` exactly like `buildPhaserPreviewBootstrap`/`buildPhaserGameConfig`: game dimensions and emitted `physics.world.setBounds(...)` from bounds (default 1280×720), arcade gravity/debug passthrough. Legacy `metadata.width/height` no longer consulted.
-5. ~~**Two export formats disagree**~~ **OUT OF SCOPE** — `format:'html'` is the legacy canvas engine, a deprecated direction; phaser-html is the convergence target. Sole documented exception to the zero-open-gap state below.
+5. ~~**Two export formats disagree**~~ **RESOLVED 2026-08-26 (`chore/remove-legacy-export`) by deletion** — the legacy canvas engine (`format:'html'`: `exportToHTML` + `export-templates.ts`) is removed per retro-2 ruling #2 (phaser-html is THE single shipped export format). The export route now rejects non-phaser formats with 400 (omitted format defaults to phaser-html); ExportPage no longer offers a canvas option; `listExports` reports `phaser-html` uniformly.
 6. ~~Camera/input machinery present only on preview side~~ **OUT OF SCOPE / NON-GAP** — latent only: no shipped template sets camera metadata or input bindings, so there is zero behavioral divergence for real projects today; porting becomes relevant only if projects start shipping camera configs.
 
-**Open gaps: 0** for the phaser-html pipeline. The only known divergences are the two out-of-scope items above (legacy canvas format; latent camera/input machinery).
+**Open gaps: 0.** With the legacy canvas format deleted there are no known divergences beyond the latent camera/input machinery note above.
 
 ## Regression guard
 

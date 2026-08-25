@@ -330,14 +330,15 @@ export interface ExportOptions {
   includeAssets?: boolean;
   minify?: boolean;
   compress?: boolean;
-  format?: 'html' | 'zip' | 'phaser-html';
+  /** retro-2 ruling #2: phaser-html is THE single shipped export format. */
+  format?: 'phaser-html';
 }
 
 export interface ExportResult {
   projectId: string;
   projectName: string;
   version: string;
-  format: 'html' | 'zip';
+  format: 'phaser-html';
   size: number;
   filename: string;
   downloadUrl: string;

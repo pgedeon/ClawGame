@@ -12,7 +12,6 @@ import { existsSync } from 'node:fs';
 import { FastifyLoggerInstance } from 'fastify';
 import { ProjectService } from './projectService';
 import { AssetService } from './assetService';
-import { generateGameHTML } from './export-templates';
 import { normalizePreviewScene, type SerializableEntity } from '@clawgame/engine';
 
 interface ExportComponent {
@@ -175,14 +174,15 @@ export interface ExportOptions {
   includeAssets?: boolean;
   minify?: boolean;
   compress?: boolean;
-  format?: 'html' | 'zip' | 'phaser-html';
+  /** retro-2 ruling #2: phaser-html is THE single shipped export format. */
+  format?: 'phaser-html';
 }
 
 export interface ExportResult {
   projectId: string;
   projectName: string;
   version: string;
-  format: 'html' | 'zip' | 'phaser-html';
+  format: 'phaser-html';
   size: number;
   filename: string;
   downloadUrl: string;
@@ -559,90 +559,6 @@ new Phaser.Game(config);
   }
 
   /**
-   * Generate standalone HTML export of a game
-   */
-  async exportToHTML(projectId: string, options: ExportOptions = {}): Promise<ExportResult> {
-    const includeAssets = options.includeAssets !== false;
-    const exportsDir = await this.ensureExportsDir();
-
-    this.logger.info({ projectId, includeAssets }, 'Starting HTML export');
-
-    // Load project data
-    const project = await this.projectService.getProjectDetail(projectId);
-    if (!project) {
-      throw new Error('Project not found');
-    }
-
-    // Load scene data - use direct file reading for simplicity
-    let sceneData: SceneData | null = null;
-    const scenePath = join(PROJECTS_DIR, projectId, 'scenes/main-scene.json');
-    try {
-      if (existsSync(scenePath)) {
-        const sceneContent = await readFile(scenePath, 'utf-8');
-        sceneData = JSON.parse(sceneContent);
-      }
-    } catch (sceneErr) {
-      this.logger.warn({ projectId, err: sceneErr }, 'No scene file found, using default scene');
-      sceneData = { name: 'Main Scene', entities: [] };
-    }
-
-    if (!sceneData) {
-      sceneData = { name: 'Main Scene', entities: [] };
-    }
-
-    // Load assets if requested
-    let assetData: ExportAsset[] = [];
-    if (includeAssets) {
-      assetData = await this.embedAssets(projectId);
-    }
-
-    // Generate HTML
-    const html = generateGameHTML(project, sceneData, assetData, includeAssets);
-
-    // Write export file — include projectId in filename for reliable listing
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const safeName = project.name.replace(/[^a-zA-Z0-9-]/g, '-');
-    const filename = `${projectId}-${safeName}-${timestamp}.html`;
-    const filePath = join(exportsDir, filename);
-
-    await writeFile(filePath, html, 'utf-8');
-
-    // Write metadata sidecar for accurate listing
-    const metadata: ExportMetadata = {
-      projectId,
-      projectName: project.name,
-      version: project.version || '1.0.0',
-      createdAt: new Date().toISOString(),
-      includesAssets: includeAssets,
-      assetCount: assetData.length,
-    };
-    const metaPath = join(exportsDir, `${filename}.meta.json`);
-    await writeFile(metaPath, JSON.stringify(metadata, null, 2), 'utf-8');
-
-    const result: ExportResult = {
-      projectId,
-      projectName: project.name,
-      version: project.version || '1.0.0',
-      format: 'html',
-      size: Buffer.byteLength(html, 'utf-8'),
-      filename,
-      downloadUrl: `/api/projects/${projectId}/exports/${filename}`,
-      createdAt: metadata.createdAt,
-      includesAssets: includeAssets,
-      assetCount: assetData.length,
-    };
-
-    this.logger.info({
-      projectId,
-      filename,
-      size: result.size,
-      assetCount: result.assetCount,
-    }, 'HTML export completed');
-
-    return result;
-  }
-
-  /**
    * Embed assets as data URIs in the export
    */
   private async embedAssets(projectId: string): Promise<any[]> {
@@ -732,7 +648,9 @@ new Phaser.Game(config);
           projectId: meta.projectId,
           projectName: meta.projectName,
           version: meta.version,
-          format: 'html',
+          // retro-2 ruling #2: phaser-html is the only generator; historical
+          // rows predate the legacy-generator deletion and are reported uniformly.
+          format: 'phaser-html',
           size: stats.size,
           filename: htmlFilename,
           downloadUrl: `/api/projects/${projectId}/exports/${htmlFilename}`,

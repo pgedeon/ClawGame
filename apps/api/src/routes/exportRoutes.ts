@@ -25,13 +25,16 @@ export async function exportRoutes(app: FastifyInstance) {
       const { projectId } = request.params;
       const options = request.body || {};
 
+      // retro-2 ruling #2 + legacy-generator deletion: phaser-html is the only
+      // export format. Omitted format defaults to it; any other explicit format
+      // (legacy 'html', 'zip') is rejected instead of silently falling back.
+      if (options.format !== undefined && options.format !== 'phaser-html') {
+        reply.code(400);
+        return { error: `Unsupported export format: ${String(options.format)}. Only 'phaser-html' is supported.` };
+      }
+
       try {
-        if (options.format === 'phaser-html') {
-          const result = await exportServiceInstance!.exportToPhaserHTML(projectId, options);
-          reply.code(201);
-          return result;
-        }
-        const result = await exportServiceInstance!.exportToHTML(projectId, options);
+        const result = await exportServiceInstance!.exportToPhaserHTML(projectId, options);
         reply.code(201);
         return result;
       } catch (error: any) {
