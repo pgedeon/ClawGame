@@ -15,6 +15,7 @@ export function useAutosave(
   saveFn: (data: unknown) => Promise<void>,
   intervalMs: number = 30000,
   debounceMs: number = 2000,
+  enabled: boolean = true,
 ): AutosaveState & { triggerSave: () => void } {
   const [state, setState] = useState<AutosaveState>({ status: 'idle', lastSaved: null, error: null });
   const dataRef = useRef(data);
@@ -23,7 +24,13 @@ export function useAutosave(
 
   dataRef.current = data;
 
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
+
   const triggerSave = useCallback(async () => {
+    // Skip entirely when autosave is not armed (no user edits yet) or there is
+    // no scene to save (never loaded). Prevents pointless/unsafe write-backs.
+    if (!enabledRef.current || dataRef.current == null) return;
     setState((s) => ({ ...s, status: 'saving', error: null }));
     try {
       await saveFn(dataRef.current);
@@ -35,10 +42,11 @@ export function useAutosave(
 
   // Debounce
   useEffect(() => {
+    if (!enabled) return;
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(triggerSave, debounceMs);
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [data, triggerSave, debounceMs]);
+  }, [data, triggerSave, debounceMs, enabled]);
 
   // Interval autosave
   useEffect(() => {

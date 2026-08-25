@@ -69,16 +69,27 @@ function SceneEditorContent() {
   const [showCompiledCode, setShowCompiledCode] = useState(false);
   const [compiledCode, setCompiledCode] = useState<string>('');
 
-  // Autosave: every 30s with 2s debounce after changes
+  // Baseline identity of the scene as loaded from disk (or created fresh for a
+  // new project). Every user edit produces a NEW scene object, so
+  // `scene !== loadedSceneBaselineRef.current` ⟺ there are real unsaved edits.
+  // This keeps the null→loaded transition from triggering a pointless write-back
+  // and blocks autosaving over a never-loaded scene (CRITICAL wipe fix, see
+  // docs/qa/known_issues.md — autosave used to stringify the raw Map to {}).
+  const loadedSceneBaselineRef = useRef<Scene | null>(null);
+
+  // Autosave: every 30s with 2s debounce after changes; armed only after the
+  // first real edit. saveFn MUST serialize via serializeEditorScene — the raw
+  // editor scene holds entities in a JS Map and JSON.stringify(Map) emits {}.
   const autosave = useAutosave(
     scene,
     async (data: unknown) => {
       if (!projectId || !data) return;
       await api.createDirectory(projectId as string, 'scenes');
-      await api.writeFile(projectId as string, 'scenes/main-scene.json', JSON.stringify(data, null, 2));
+      await api.writeFile(projectId as string, 'scenes/main-scene.json', serializeEditorScene(data as Scene));
     },
     30000,
     2000,
+    scene !== null && scene !== loadedSceneBaselineRef.current,
   );
 
   // Editor state
@@ -179,6 +190,10 @@ function SceneEditorContent() {
       setIsLoading(true);
       setError(null);
       setSelectedEntityId(null);
+      // Clear scene + baseline first so a stale scene from a previously open
+      // project can never be autosaved under the new projectId.
+      loadedSceneBaselineRef.current = null;
+      setScene(null);
       const project = await api.getProject(id);
       setProjectName(project?.name || 'Unknown Project');
       
@@ -187,11 +202,13 @@ function SceneEditorContent() {
         const sceneData = await api.readFile(id, 'scenes/main-scene.json');
         const sceneContent = JSON.parse(sceneData.content) as any;
         const loadedScene = deserializeEditorScene(sceneContent);
+        loadedSceneBaselineRef.current = loadedScene;
         setScene(loadedScene);
         setViewport(getSceneInitialViewport(loadedScene));
       } catch (sceneErr) {
         logger.warn('No existing scene found, creating default:', sceneErr);
         const defaultScene = createDefaultEditorScene();
+        loadedSceneBaselineRef.current = defaultScene;
         setScene(defaultScene);
         setViewport(getSceneInitialViewport(defaultScene));
       }
