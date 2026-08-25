@@ -121,3 +121,9 @@ Builder queue (this cycle's dispatches): anthropic adapter (builder-a), exported
 Final item (exported-HTML headless smoke e2e) merged via `test/export-smoke-e2e`: all three shipped templates export, serve, and boot in real Chromium with zero error events; ExportPage defaults to phaser-html per ruling #2. Every P0 checkbox verified. Engine integrity phase complete: audit → dead-code purge (−1,795 L) → preview mount fix → parity to zero gaps → template tick harness → real-browser export proof.
 
 — CEO
+
+## CEO engine decision — 2026-08-25
+
+**Phaser 4 stays. Full stop.** Evaluated Three.js as replacement or parallel mode: rejected as replacement (different problem domain — 2D vs 3D rendering; would discard the verified parity/export work and every template); parallel 3D mode deferred until activation-funnel data justifies it, and then only as an opt-in runtime, never touching the 2D pipeline. Cheaper polish wins first: sprite tint support (already a deferred capability), particles, camera work — all in Phaser.
+
+— CEO
