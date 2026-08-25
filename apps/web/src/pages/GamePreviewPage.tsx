@@ -13,6 +13,7 @@ import React, { Suspense, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { Play, ArrowLeft, Skull, Trophy, Monitor, Smartphone, Tablet, Maximize2, RotateCcw, Keyboard } from 'lucide-react';
 import '../game-preview.css';
+import '../first-run-edit-card.css';
 import { useSceneLoader } from '../hooks/useSceneLoader';
 import { useGamePreview, GENRE_CONTROLS } from '../hooks/useGamePreview';
 import { PreviewCanvas } from '../components/PreviewCanvas';
@@ -20,6 +21,8 @@ import { RPGPanels } from '../components/game/RPGPanels';
 import { ReplayControls } from '../components/game/ReplayControls';
 import { KeyboardShortcutsLegend } from '../components/game/KeyboardShortcutsLegend'
 import { NotificationArea } from '../components/game/Notification';
+import { FirstRunEditCard } from '../components/FirstRunEditCard';
+import { getRecentProjects } from '../utils/recentProjects';
 
 /* ═══════════════════════════════════════════════════════════
    Compact top bar with back, title, status, device picker
@@ -37,10 +40,17 @@ const DEVICE_PRESETS = [
    ═══════════════════════════════════════════════════════════ */
 const GamePreviewContent: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
-  const { loading, error, projectName, scene: projectScene, projectGenre } = useSceneLoader(projectId);
+  const { loading, error, projectName, scene: projectScene, projectGenre, reloadScene } = useSceneLoader(projectId);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [device, setDevice] = useState(DEVICE_PRESETS[0]);
   const [deviceRotated, setDeviceRotated] = useState(false);
+
+  // First-run suggestion chips (onboarding slice 2): template id comes from
+  // the local recent-projects index written at launch time. Projects without
+  // an index entry simply get no chips — no guessing.
+  const templateId = projectId
+    ? getRecentProjects().find((e) => e.id === projectId)?.templateId
+    : undefined;
 
   const {
     previewRuntime,
@@ -64,6 +74,14 @@ const GamePreviewContent: React.FC = () => {
     runtimeErrors,
     handleHostReady,
   } = useGamePreview(projectId ?? '', projectScene, projectGenre);
+
+  // After a chip edit applies: reload the scene from disk (the content-
+  // sensitive scene key remounts the preview session with the new bootstrap)
+  // and return to the start overlay so the user presses Start Game fresh.
+  const handleFirstRunApplied = useCallback(() => {
+    handleBackToEditor();
+    reloadScene();
+  }, [handleBackToEditor, reloadScene]);
 
   if (loading) {
     return (
@@ -285,6 +303,15 @@ const GamePreviewContent: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* ── First-run suggestion chips (onboarding slice 2) ── */}
+      {projectId && (
+        <FirstRunEditCard
+          projectId={projectId}
+          templateId={templateId}
+          onApplied={handleFirstRunApplied}
+        />
+      )}
 
       {/* ── Floating replay bar at bottom ── */}
       <div className="gp-replay-bar">

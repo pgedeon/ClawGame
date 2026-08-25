@@ -1,0 +1,80 @@
+/* FirstRunEditCard — guided first mock edit banner (onboarding slice 2).
+   Slim, non-blocking strip below the preview canvas; never overlays the
+   canvas or the Start Game control (design §2 S6 hard rule). */
+
+.first-run-edit-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px;
+  margin: 0 auto 52px; /* clears the floating replay bar (absolute, bottom 12px) */
+  max-width: 90%;
+  flex-shrink: 0;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  border-radius: 10px;
+  color: #e2e8f0;
+  font-size: 13px;
+}
+
+.first-run-edit-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #a5b4fc;
+}
+
+.first-run-edit-title {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.first-run-edit-dismiss {
+  margin-left: auto;
+  display: flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: #94a3b8;
+  cursor: pointer;
+}
+.first-run-edit-dismiss:hover { background: rgba(51, 65, 85, 0.7); color: #e2e8f0; }
+
+.first-run-edit-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.first-run-chip {
+  padding: 6px 14px;
+  background: rgba(99, 102, 241, 0.16);
+  border: 1px solid rgba(99, 102, 241, 0.5);
+  border-radius: 999px;
+  color: #c7d2fe;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.first-run-chip:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.32);
+  border-color: rgba(129, 140, 248, 0.8);
+}
+.first-run-chip:disabled { opacity: 0.55; cursor: default; }
+
+.first-run-edit-summary { margin: 0; color: #94a3b8; font-size: 12px; }
+.first-run-edit-note { color: #fbbf24; }
+
+.first-run-edit-error { margin: 0; color: #f87171; font-size: 12px; }
+
+.first-run-edit-done {
+  display: flex; align-items: center; gap: 6px;
+  margin: 0;
+  color: #4ade80;
+  font-weight: 600;
+}
+
+/* Keep the inline diff from blowing the banner height */
+.first-run-edit-diff { max-height: 260px; overflow: auto; }

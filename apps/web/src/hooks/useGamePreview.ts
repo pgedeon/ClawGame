@@ -1,5 +1,5 @@
 import { createDefaultPreviewScene } from '../utils/previewScene';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ReplayRecorder,
   ReplayPlayer,
@@ -99,8 +99,23 @@ export function useGamePreview(
     : createDefaultPreviewScene();
   const activeSceneRef = useRef<typeof activeScene | null>(null);
   activeSceneRef.current = activeScene;
-  // Stable key to trigger re-initialization when scene data changes
-  const sceneKey = activeScene ? activeScene.entities?.length ?? 0 : 0;
+  // Stable key to trigger re-initialization when scene data changes.
+  // Content-sensitive (entity count + cheap JSON hash) so ANY applied edit —
+  // including ones that keep the entity count, like a gravity or speed bump —
+  // remounts the preview session with a fresh bootstrap on the next Start Game.
+  const sceneKey = useMemo(() => {
+    if (!activeScene) return '0:0';
+    let hash = 5381;
+    try {
+      const json = JSON.stringify({ p: (activeScene as { physics?: unknown }).physics ?? null, e: activeScene.entities });
+      for (let i = 0; i < json.length; i++) hash = ((hash << 5) + hash + json.charCodeAt(i)) | 0;
+    } catch {
+      // Circular/unserializable scene — fall back to count-only sensitivity.
+      return String(activeScene.entities?.length ?? 0);
+    }
+    return `${activeScene.entities?.length ?? 0}:${hash}`;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectScene]);
 
   // Core game state
   const [gameStarted, setGameStarted] = useState(false);

@@ -89,6 +89,10 @@ export {
 // Game templates
 export { GAME_TEMPLATES } from './templates';
 
+// First-run recipe catalog (onboarding slice 2, amended catalog)
+export type { FirstRunRecipe, FirstRunTemplateId } from './recipes';
+export { FIRST_RUN_RECIPES, getRecipesForTemplate } from './recipes';
+
 // General utilities
 export {
   generateId,
