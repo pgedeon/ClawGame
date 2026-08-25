@@ -6,6 +6,7 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { getFileTree, readFileContent } from './fileService';
+import { FIRST_RUN_RECIPES, type FirstRunRecipe } from '@clawgame/shared';
 
 // AI response types
 export interface AICommandRequest {
@@ -52,6 +53,25 @@ export class AIService {
 
   async processCommand(request: AICommandRequest): Promise<AICommandResponse> {
     const { projectId, command, context } = request;
+    
+    // First-run recipe commands (onboarding slice 2) short-circuit the intent
+    // parser: exact match against the shared catalog, then a template-aware
+    // scene-JSON mutation of the project's actual scenes/main-scene.json.
+    // Missing/unreadable scene file falls through to the generic path rather
+    // than promising a change we cannot produce.
+    const recipeResponse = await this.tryFirstRunRecipe(projectId, command);
+    if (recipeResponse) {
+      const historyId = this.generateId();
+      this.history.set(historyId, {
+        id: historyId,
+        projectId,
+        command,
+        response: recipeResponse,
+        timestamp: new Date(),
+        status: 'completed'
+      });
+      return recipeResponse;
+    }
     
     // Parse command intent
     const intent = this.parseCommandIntent(command);
@@ -128,6 +148,57 @@ export class AIService {
     }
     
     return undefined;
+  }
+
+  /**
+   * Exact-match first-run recipe handling. Returns null when the command is
+   * not a catalog recipe OR the project has no readable scenes/main-scene.json
+   * (caller falls through to the generic mock path).
+   */
+  private async tryFirstRunRecipe(projectId: string, command: string): Promise<AICommandResponse | null> {
+    const recipe = FIRST_RUN_RECIPES.find((r) => r.command === command.trim());
+    if (!recipe) return null;
+
+    let oldContent: string;
+    try {
+      const file = await readFileContent(projectId, 'scenes/main-scene.json');
+      oldContent = file.content;
+    } catch {
+      return null;
+    }
+
+    let scene: any;
+    try {
+      scene = JSON.parse(oldContent);
+    } catch {
+      return null;
+    }
+
+    const mutated = applyFirstRunRecipeMutation(scene, recipe);
+    if (!mutated) return null; // expected entity/shape missing — honest fallback
+
+    const newContent = JSON.stringify(scene, null, 2);
+    const summary = recipe.deferredNote
+      ? `${recipe.summaryLine} (${recipe.deferredNote})`
+      : recipe.summaryLine;
+
+    return {
+      id: this.generateId(),
+      type: 'change',
+      title: `Quick edit: ${recipe.chipLabel}`,
+      content: `✨ Applied your quick edit as a scene change.\n\n**What changed:** ${summary}\n\nThe edit targets \`scenes/main-scene.json\` only, so you can see it in Play right after applying.` + (recipe.deferredNote ? `\n\nℹ️ ${recipe.deferredNote}` : ''),
+      riskLevel: 'low',
+      changes: [
+        {
+          path: 'scenes/main-scene.json',
+          oldContent,
+          newContent,
+          summary,
+          confidence: 1,
+        },
+      ],
+      nextSteps: ['Apply the change, then press Start Game to see it'],
+    };
   }
 
   private async getProjectContext(projectId: string, context?: AICommandRequest['context']) {
@@ -229,6 +300,83 @@ export class AIService {
 
   private generateId(): string {
     return Math.random().toString(36).substr(2, 9);
+  }
+}
+
+// ── First-run recipe scene mutations (onboarding slice 2) ──
+//
+// Scene-JSON-only per CEO ruling #4: every mutation must be visible at Play
+// through the current Phaser preview wiring (static/dynamic colliders, world
+// gravity, chase AI). Mutations mirror the slice-2c verification harness
+// (docs/design/no-auth-onboarding.md §7). Return false when the expected
+// entity/shape is missing so the caller can fall back honestly.
+
+type AnyScene = Record<string, any>;
+
+function findEntity(scene: AnyScene, id: string): any | null {
+  return Array.isArray(scene?.entities)
+    ? scene.entities.find((e: any) => e?.id === id) ?? null
+    : null;
+}
+
+function applyFirstRunRecipeMutation(scene: AnyScene, recipe: FirstRunRecipe): boolean {
+  switch (recipe.id) {
+    case 'platformer-move-platform': {
+      const platform = findEntity(scene, 'platform-moving');
+      if (!platform?.transform) return false;
+      platform.transform.x = 640; // 380 → 640: visible jump to the right
+      return true;
+    }
+    case 'platformer-widen-ground': {
+      const ground = findEntity(scene, 'platform-ground');
+      const components = ground?.components;
+      if (!components?.sprite || !components?.collision) return false;
+      components.sprite.width = 100; // rendered width = sprite.width × scaleX(12) = 1200
+      components.collision.width = 1200; // physics footprint matches
+      return true;
+    }
+    case 'platformer-raise-gravity': {
+      if (!scene.physics || typeof scene.physics.gravity?.y !== 'number') return false;
+      scene.physics.gravity.y = 1400; // 900 → 1400
+      return true;
+    }
+    case 'topdown-angry-enemy': {
+      const enemy = findEntity(scene, 'enemy-1');
+      if (typeof enemy?.components?.ai?.speed !== 'number') return false;
+      enemy.components.ai.speed = 170; // verified chase-speed read path
+      return true;
+    }
+    case 'topdown-add-pillar': {
+      if (!Array.isArray(scene.entities)) return false;
+      if (findEntity(scene, 'wall-pillar-3')) return true; // idempotent
+      // Exact shape verified in slice-2c T3: blocks the spawn→right-wall path.
+      scene.entities.push({
+        id: 'wall-pillar-3',
+        transform: { x: 480, y: 300, scaleX: 1, scaleY: 2, rotation: 0 },
+        components: {
+          sprite: { width: 48, height: 48, color: '#78716c' },
+          collision: { width: 48, height: 96, type: 'solid' },
+        },
+      });
+      return true;
+    }
+    case 'topdown-speed-ring': {
+      if (!Array.isArray(scene.entities)) return false;
+      if (findEntity(scene, 'trigger-speed-ring')) return true; // idempotent
+      // Trigger-zone body (sensor): renders today; behavior deferred until
+      // trigger actions exist — chip copy says so explicitly.
+      scene.entities.push({
+        id: 'trigger-speed-ring',
+        transform: { x: 320, y: 350, scaleX: 1, scaleY: 1, rotation: 0 },
+        components: {
+          sprite: { width: 64, height: 64, color: '#22d3ee' },
+          collision: { width: 64, height: 64, type: 'trigger' },
+        },
+      });
+      return true;
+    }
+    default:
+      return false;
   }
 }
 

@@ -1,6 +1,6 @@
 # ClawGame 1.0 — Known Issues
 
-Last updated: 2026-08-23
+Last updated: 2026-08-25
 
 ## High Priority
 
@@ -20,6 +20,7 @@ Last updated: 2026-08-23
 
 | Issue | Status | Notes |
 |-------|--------|-------|
+| Recipe verification pixel metric occludes on convergent chasers | Open (test-tooling limitation, not a product bug) | Found 2026-08-25, slice-2d QA (session-17). When player and enemy move toward each other they overlap on screen; pixel-diff sampling of the enemy sprite saturates once the sprites coincide, so distance deltas read null/plateau even though chase behavior is correct. Chip edit itself proven valid: runtime reads `ai.speed` at `ClawgamePhaserScene.ts:298`; numeric position sampling showed baseline contact closure 1.5→0.5 px and mutated textbook chase 142→57→contact. Recommendation: future recipe verification should sample numeric entity positions (`__probe.handle.getScene()`) instead of pixel metrics for motion recipes. |
 | Autosave hook runs even when data hasn't meaningfully changed (deep-equal not performed) | Open | Performance impact minimal for typical project sizes |
 | Tilemap code generation produces basic layer arrays — doesn't use Phaser's built-in Tiled JSON importer yet | Open | Functional for hand-painted maps; Tiled import is a future enhancement |
 | Thumbnail generation not yet implemented | Open | Placeholder only |

@@ -17,6 +17,8 @@ export interface SceneLoaderReturn {
   scene: PreviewSceneData | null;
   projectName: string;
   projectGenre: string;
+  /** Re-reads project metadata + scene from the API (e.g. after an edit applies). */
+  reloadScene: () => void;
 }
 
 export function useSceneLoader(projectId: string | undefined): SceneLoaderReturn {
@@ -73,6 +75,7 @@ export function useSceneLoader(projectId: string | undefined): SceneLoaderReturn
     scene,
     projectName,
     projectGenre,
+    reloadScene: loadScene,
   };
 }
 
