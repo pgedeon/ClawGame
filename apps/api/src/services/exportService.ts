@@ -202,6 +202,8 @@ interface ExportMetadata {
 }
 
 const EXPORTS_DIR = process.env.EXPORTS_DIR || './data/exports';
+/** Projects dir (env-aware so tests can redirect; runtime default unchanged). */
+const PROJECTS_DIR = process.env.PROJECTS_DIR || './data/projects';
 
 /**
  * Body sizing mirror of buildPreviewBootstrap getEntityDimensions.
@@ -382,7 +384,7 @@ export class ExportService {
     if (!project) throw new Error('Project not found');
 
     let sceneData: SceneData | null = null;
-    const scenePath = join('./data/projects', projectId, 'scenes/main-scene.json');
+    const scenePath = join(PROJECTS_DIR, projectId, 'scenes/main-scene.json');
     try {
       if (existsSync(scenePath)) sceneData = JSON.parse(await readFile(scenePath, 'utf-8'));
     } catch { sceneData = { name: 'Main Scene', entities: [] }; }
@@ -573,7 +575,7 @@ new Phaser.Game(config);
 
     // Load scene data - use direct file reading for simplicity
     let sceneData: SceneData | null = null;
-    const scenePath = join('./data/projects', projectId, 'scenes/main-scene.json');
+    const scenePath = join(PROJECTS_DIR, projectId, 'scenes/main-scene.json');
     try {
       if (existsSync(scenePath)) {
         const sceneContent = await readFile(scenePath, 'utf-8');

@@ -22,6 +22,8 @@ import { ReplayControls } from '../components/game/ReplayControls';
 import { KeyboardShortcutsLegend } from '../components/game/KeyboardShortcutsLegend'
 import { NotificationArea } from '../components/game/Notification';
 import { FirstRunEditCard } from '../components/FirstRunEditCard';
+import { ShareButton } from '../components/ShareButton';
+import '../components/share.css';
 import { getRecentProjects } from '../utils/recentProjects';
 
 /* ═══════════════════════════════════════════════════════════
@@ -158,6 +160,8 @@ const GamePreviewContent: React.FC = () => {
             <Keyboard size={13} />
           </button>
           {showShortcuts && <KeyboardShortcutsLegend />}
+          {/* One-click share (slice 1) — same handler as the Editor toolbar */}
+          {projectId && <ShareButton projectId={projectId} projectName={projectName} />}
         </div>
       </div>
 

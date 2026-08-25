@@ -7,17 +7,73 @@ import { FastifyInstance } from 'fastify';
 import { mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { HostedService, type HostedOptions } from '../services/hostedService';
+import { ExportService } from '../services/exportService';
 
 const HOSTED_DIR = process.env.HOSTED_DIR || './data/hosted';
 
 // Global reference to hosted service (initialized with logger)
 let hostedServiceInstance: HostedService | null = null;
+// Share endpoint needs fresh exports — same proven exportService the
+// ExportPage wizard and e2e/export-smoke.spec.ts exercise.
+let shareExportServiceInstance: ExportService | null = null;
+
+/**
+ * Security headers for serving user-generated game HTML on the API origin
+ * (design §7 risk 2 — mandatory in slice 1). CSP sandbox blocks same-origin
+ * reads (no cookies exist today; standing rule: none may be added while this
+ * origin serves user HTML). Exported games need only scripts + pointer lock.
+ */
+function applyGameHtmlHeaders(reply: { header: (name: string, value: string) => void }) {
+  reply.header('Content-Security-Policy', 'sandbox allow-scripts allow-pointer-lock');
+  reply.header('X-Content-Type-Options', 'nosniff');
+}
 
 export async function hostedRoutes(app: FastifyInstance) {
   // Initialize hosted service with logger on first use
   if (!hostedServiceInstance) {
     hostedServiceInstance = new HostedService(app.log);
   }
+  if (!shareExportServiceInstance) {
+    shareExportServiceInstance = new ExportService(app.log);
+  }
+
+  /**
+   * Shared handler for GET /share/:token and GET /api/hosted/:hostedId/view:
+   * clean 404/410 pages (never a stack trace), CSP-sandboxed game HTML on hit.
+   */
+  const serveHostedGame = async (hostedId: string, reply: any) => {
+    try {
+      const hostedExport = await hostedServiceInstance!.getHostedExport(hostedId);
+      if (!hostedExport) {
+        reply.code(404);
+        return { error: 'Hosted game not found' };
+      }
+
+      // Check if expired
+      if (hostedExport.expiresAt && new Date(hostedExport.expiresAt) < new Date()) {
+        reply.code(410);
+        return {
+          error: 'Hosted game has expired',
+          expiresAt: hostedExport.expiresAt,
+          message: 'This hosted game has expired and is no longer available for viewing.',
+        };
+      }
+
+      const { content, mimeType } = await hostedServiceInstance!.getHostedFile(hostedId);
+
+      applyGameHtmlHeaders(reply);
+      reply
+        .header('Content-Type', mimeType)
+        .header('Cache-Control', 'public, max-age=3600')
+        .header('X-ClawGame-Hosted', 'true')
+        .header('X-ClawGame-Project', hostedExport.projectId)
+        .header('X-ClawGame-HostedId', hostedExport.id)
+        .send(content);
+    } catch (error: any) {
+      reply.code(500);
+      return { error: error.message || 'Failed to serve hosted game' };
+    }
+  };
 
   // Host an export for web viewing
   app.post<{
@@ -74,42 +130,60 @@ export async function hostedRoutes(app: FastifyInstance) {
     }
   );
 
-  // View hosted game in browser (serve HTML)
+  // One-click share (slice 1 core): always exports FRESH (never re-hosts a
+  // stale artifact), then hosts it as a non-expiring capability-token link.
+  // stage in error responses lets the client raise distinct toasts for
+  // export vs host failure (US-1 AC 5).
+  app.post<{ Params: { projectId: string } }>(
+    '/api/projects/:projectId/share',
+    async (request, reply) => {
+      const { projectId } = request.params;
+
+      try {
+        const exportResult = await shareExportServiceInstance!.exportToPhaserHTML(projectId, {
+          format: 'phaser-html',
+        });
+        try {
+          const hosted = await hostedServiceInstance!.hostExport(projectId, exportResult.filename, {
+            expiresInDays: null,
+            public: true,
+          });
+          reply.code(201);
+          return { success: true, hosted, url: hosted.hostedUrl };
+        } catch (hostError: any) {
+          reply.code(500);
+          return {
+            success: false,
+            stage: 'host',
+            error: hostError?.message || 'Failed to host shared game',
+          };
+        }
+      } catch (exportError: any) {
+        reply.code(400);
+        return {
+          success: false,
+          stage: 'export',
+          error: exportError?.message || 'Failed to export game for sharing',
+        };
+      }
+    }
+  );
+
+  // Capability-token share link (CEO ruling 3): GET /share/:token serves the
+  // standalone phaser-html bundle directly — instant play, no app shell.
+  app.get<{ Params: { token: string } }>(
+    '/share/:token',
+    async (request, reply) => {
+      return serveHostedGame(request.params.token, reply);
+    }
+  );
+
+  // View hosted game in browser (serve HTML) — legacy route kept working;
+  // new shares advertise /share/:token links instead.
   app.get<{ Params: { hostedId: string } }>(
     '/api/hosted/:hostedId/view',
     async (request, reply) => {
-      const { hostedId } = request.params;
-
-      try {
-        const hostedExport = await hostedServiceInstance!.getHostedExport(hostedId);
-        if (!hostedExport) {
-          reply.code(404);
-          return { error: 'Hosted game not found' };
-        }
-
-        // Check if expired
-        if (hostedExport.expiresAt && new Date(hostedExport.expiresAt) < new Date()) {
-          reply.code(410);
-          return {
-            error: 'Hosted game has expired',
-            expiresAt: hostedExport.expiresAt,
-            message: 'This hosted game has expired and is no longer available for viewing.',
-          };
-        }
-
-        const { content, mimeType } = await hostedServiceInstance!.getHostedFile(hostedId);
-
-        reply
-          .header('Content-Type', mimeType)
-          .header('Cache-Control', 'public, max-age=3600')
-          .header('X-ClawGame-Hosted', 'true')
-          .header('X-ClawGame-Project', hostedExport.projectId)
-          .header('X-ClawGame-HostedId', hostedExport.id)
-          .send(content);
-      } catch (error: any) {
-        reply.code(500);
-        return { error: error.message || 'Failed to serve hosted game' };
-      }
+      return serveHostedGame(request.params.hostedId, reply);
     }
   );
 
