@@ -252,3 +252,24 @@ AC: see §4 acceptance block.
 Builder sequencing note: slice order per doc §3.5. Slice 1 may start immediately after current lanes drain.
 
 — CEO
+
+---
+
+## 7. Recipe verification results — slice-2c (2026-08-25)
+
+Resolves the session-11 catalog TODO-verify flags (ruling #6 deliverable, approved 2026-08-24) before slice 2 merges. Method: untracked QA harness (`tmp-verify-slice2c.mjs` + `apps/web/probe.html` + `apps/web/src/debug/phaserProbe.ts`, never committed) drives the **exact production preview pipeline** — `normalizePreviewScene` → `buildPhaserPreviewBootstrap` → `runPhaserPreviewSession` on the generic `ClawgamePhaserScene` path used by the platformer/action genres — with per-recipe mutated template scenes. One fresh browser context per pass (baseline + mutated), `probeScene` injected via `addInitScript` before any page script runs; zero page errors in all 12 loads. Numeric evidence (sprite fills, position tracks, chase-distance series, scene text-object inventory) plus screenshots; raw data `/tmp/slice2-verify-c/results.json`.
+
+| # | Template | Recipe | Verdict | Evidence |
+|---|----------|--------|---------|----------|
+| P1 | Platformer | "Double coin value" (`collision.value` 10→20) | **FAILED** | Coins have `body.kind: 'none'` in bootstrap (no overlap possible); teleporting player onto coin-1 and waiting 800 ms leaves coin present in baseline AND mutated passes; scene contains zero Text objects (no score HUD exists to change). No pickup or score consumer in generic preview wiring. |
+| P2 | Platformer | "Make the player red" (`sprite.color` → `#ef4444`) | **FAILED** | Player `fillColor` = `0x3b82f6` in BOTH passes. Bootstrap carries `tint: '#ef4444'` correctly, but `ClawgamePhaserScene.createEntity` ignores `entity.tint` and colors every sprite from the hardcoded `getColorForType` map (`player: 0x3b82f6`). Screenshot confirms blue player in mutated pass. |
+| P3 | Platformer | "Add a moving platform" (clone `platform-moving`, offset +180 x) | **FAILED** | Position track over 2.25 s: original `platform-moving` pinned at x=380, clone at x=560 — neither moves. The template's own `movingPlatform: { axis:'x', range:120, speed:80 }` component has no consumer anywhere in phaser-runtime/web runtime (grep: only unrelated RPGScene NPC patrol). Clone spawns and renders, but nothing patrols. |
+| T1 | Topdown | "Angry enemy" (`ai.speed` 100→170) | **VERIFIED** | Chase closure from 323 px: baseline ≈99 px/s (matches speed 100), mutated reaches contact in 2.0 s ≈160 px/s effective (170 minus contact clamping at d=4). Chase AI reads `entity.ai.speed` directly (`ClawgamePhaserScene.ts:298`). Visible difference clear. |
+| T2 | Topdown | "Repaint the walls" (`sprite.color` → `#7c3aed`) | **FAILED** | All 7 wall entities render `0x64748b` in BOTH passes — same `getColorForType` override as P2 (walls type-map to `obstacle`). Note this also means the template's own wall color `#57534e` never displays today; walls are always obstacle-grey in preview. |
+| T3 | Topdown | "Add a pillar" (new solid entity at 480,300) | **VERIFIED** | Spawn placement outside player start zone: pillar AABB x[456..504] y[252..348] vs player start box x[384..416] y[334..366] — no overlap. Path blocking: holding ArrowRight 2 s, baseline player walks 400→708 (right-wall inner edge) while mutated player advances 400→440 then stops dead for the remaining 1.75 s — exactly pillar left edge (456) minus half player width (16). Pillar visible in screenshot as grey mid-room block. |
+
+**Root cause of the four failures (one mechanism):** the preview bootstrap faithfully carries scene-JSON data (`tint`, `movingPlatform`, collectible `collision.value`), but the generic gameplay wiring implements only static/dynamic colliders + keyboard control + chase AI. Sprite colors come from a hardcoded per-type map that overrides scene colors; there is no pickup/score loop, no score HUD, and no patrol mover. This is the concrete instance of design risk §6.1 ("template inert behaviors") — three of the six catalog recipes promise effects the current preview cannot show.
+
+**Implication for slice 2 (decision owed to CEO, not built here):** chips must ship only recipes whose underlying behavior is verified, or slice 2 scope must grow runtime fixes first (apply `entity.tint`; add pickup→score loop + HUD; add movingPlatform patrol consumer). Verified-safe today: T1 "Angry enemy", T3 "Add a pillar" for topdown; no platformer recipe is currently honest at Play. Per ruling #4 ("honesty beats demo-scope"), shipping P1/P2/P3/T2 as-is would recreate the exact "edits don't stick" trust failure the ruling rejects.
+
+— builder lane B (slice-2c verification), 2026-08-25
