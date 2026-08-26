@@ -340,6 +340,28 @@ function applyFirstRunRecipeMutation(scene: AnyScene, recipe: FirstRunRecipe): b
       scene.physics.gravity.y = 1400; // 900 → 1400
       return true;
     }
+    case 'platformer-player-red': {
+      const player = findEntity(scene, 'player-1');
+      if (typeof player?.components?.sprite?.color !== 'string') return false;
+      // Exact mutation verified end-to-end at Play 2026-08-26, after tint
+      // passthrough landed (docs/design/no-auth-onboarding.md §7.1).
+      player.components.sprite.color = '#ef4444';
+      return true;
+    }
+    case 'topdown-repaint-walls': {
+      if (!Array.isArray(scene.entities)) return false;
+      // All wall-* entities recolor — verified end-to-end at Play 2026-08-26,
+      // after tint passthrough landed (§7.1). Returns false when the scene has
+      // no walls so the caller falls back honestly.
+      let repainted = 0;
+      for (const entity of scene.entities) {
+        if (typeof entity?.id !== 'string' || !entity.id.startsWith('wall-')) continue;
+        if (typeof entity.components?.sprite?.color !== 'string') continue;
+        entity.components.sprite.color = '#7c3aed';
+        repainted += 1;
+      }
+      return repainted > 0;
+    }
     case 'topdown-angry-enemy': {
       const enemy = findEntity(scene, 'enemy-1');
       if (typeof enemy?.components?.ai?.speed !== 'number') return false;

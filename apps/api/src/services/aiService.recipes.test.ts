@@ -173,6 +173,60 @@ describe('aiService first-run recipes', () => {
     expect(res.changes![0].summary).toContain('deferred');
   });
 
+  it('platformer-player-red recolors player-1 sprite.color', async () => {
+    const res = await aiService.processCommand({
+      projectId: PLATFORMER_PROJECT,
+      command: 'Make the player red',
+    });
+    expect(res.type).toBe('change');
+    const scene = parseChange(res);
+    const player = scene.entities.find((e: any) => e.id === 'player-1');
+    expect(player.components.sprite.color).toBe('#ef4444');
+    // Original untouched in oldContent
+    const original = JSON.parse(res.changes![0].oldContent!);
+    expect(original.entities.find((e: any) => e.id === 'player-1').components.sprite.color).toBe('#3b82f6');
+  });
+
+  it('topdown-repaint-walls recolors every wall-* entity', async () => {
+    // Seed template-shaped walls (real topdown template ships 7 wall-*
+    // entities) so the plural promise is exercised beyond a single block.
+    const mkWall = (id: string, x: number, y: number) => ({
+      id,
+      transform: { x, y, scaleX: 10, scaleY: 1, rotation: 0 },
+      components: {
+        sprite: { width: 80, height: 32, color: '#57534e' },
+        collision: { width: 800, height: 32, type: 'solid' },
+      },
+    });
+    await seedProject(TOPDOWN_PROJECT, {
+      ...TOPDOWN_SCENE,
+      entities: [
+        ...TOPDOWN_SCENE.entities,
+        mkWall('wall-top', 400, 60),
+        mkWall('wall-bottom', 400, 580),
+        {
+          id: 'wall-extra',
+          transform: { x: 200, y: 200, scaleX: 1, scaleY: 1, rotation: 0 },
+          components: { sprite: { width: 32, height: 32, color: '#57534e' }, collision: { width: 32, height: 32, type: 'solid' } },
+        },
+      ],
+    });
+    try {
+      const res = await aiService.processCommand({
+        projectId: TOPDOWN_PROJECT,
+        command: 'Repaint the walls',
+      });
+      const scene = parseChange(res);
+      const walls = scene.entities.filter((e: any) => e.id.startsWith('wall-'));
+      expect(walls.length).toBeGreaterThanOrEqual(3);
+      for (const wall of walls) expect(wall.components.sprite.color).toBe('#7c3aed');
+      // Non-wall entities untouched
+      expect(scene.entities.find((e: any) => e.id === 'enemy-1').components.sprite.color).toBe('#ef4444');
+    } finally {
+      await seedProject(TOPDOWN_PROJECT, TOPDOWN_SCENE); // restore shared fixture
+    }
+  });
+
   it('is idempotent for add-entity recipes (no duplicate entities)', async () => {
     const command = 'Add a stone pillar in the middle of the room';
     await aiService.processCommand({ projectId: TOPDOWN_PROJECT, command });

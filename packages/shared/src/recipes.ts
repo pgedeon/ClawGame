@@ -4,10 +4,12 @@
  * docs/design/no-auth-onboarding.md §7).
  *
  * Only recipes whose effect is VERIFIED visible at Play ship as chips.
- * The original P1/P2/P3/T2 recipes (double coin value, repaint, moving-platform
- * clone) are DEFERRED until the preview runtime gains tint support and a
- * pickup→score loop — shipping them would violate ruling #4 (scene-JSON-only,
- * honesty beats demo-scope).
+ * P1 (double coin value) and P3 (moving-platform clone) remain DEFERRED —
+ * they need a pickup→score loop / movingPlatform consumer that the preview
+ * runtime still lacks. P2 (player red) and T2 (repaint walls) were re-verified
+ * end-to-end after tint support landed in ClawgamePhaserScene.createEntity
+ * (feat/sprite-tint); shipping them would otherwise violate ruling #4
+ * (scene-JSON-only, honesty beats demo-scope).
  *
  * Consumed by:
  * - apps/web FirstRunEditCard (chip labels + commands sent verbatim)
@@ -60,6 +62,13 @@ export const FIRST_RUN_RECIPES: FirstRunRecipe[] = [
     chipLabel: 'Raise gravity',
     summaryLine: 'World gravity 900 → 1400 — falls and jumps feel much snappier.',
   },
+  {
+    id: 'platformer-player-red',
+    templateId: 'platformer',
+    command: 'Make the player red',
+    chipLabel: 'Player red',
+    summaryLine: 'Your blue player turns red — visible in preview and at Play.',
+  },
   // ── Topdown ──
   {
     id: 'topdown-angry-enemy',
@@ -82,6 +91,13 @@ export const FIRST_RUN_RECIPES: FirstRunRecipe[] = [
     chipLabel: 'Speed boost ring',
     summaryLine: 'A glowing trigger ring appears near your spawn.',
     deferredNote: 'Renders now; the speed boost itself needs trigger-action support (deferred).',
+  },
+  {
+    id: 'topdown-repaint-walls',
+    templateId: 'topdown',
+    command: 'Repaint the walls',
+    chipLabel: 'Repaint walls',
+    summaryLine: 'All seven wall blocks turn purple — visible in preview and at Play.',
   },
 ];
 
