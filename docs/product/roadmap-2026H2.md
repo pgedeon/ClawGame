@@ -5,6 +5,7 @@ Update this file: mark items `[x]` when done AND verified, add discovered sub-it
 
 > **Retro 2026-08-23** (branch `plan/roadmap-retro-1`, session-8): checkboxes audited against `docs/status/openclaw-status.md` sessions 1–7 and git history through origin/main `e740925`. Dated annotations cite commit evidence. New "CEO decision requested" section at bottom.
 > **Retro 2026-08-24** (branch `plan/roadmap-retro-2`, session-12): checkboxes re-audited against sessions 9–11 and git history through origin/main `318e316`, including unmerged lane state (`feat/onboarding-slice-1b` `efc75e7`, `qa/audit-web-ai` `61c042e`). Updated "CEO decision requested" section at bottom.
+> **P2 closing sweep 2026-08-26** (branch `chore/p2-closing-sweep`): P2 checkboxes updated against git history through origin/main `8040866` — activation flow + share/publish program shipped this week; evidence cited per item. Only open P2 work: counters readout. Scene-compiler unification stays PARKED per ruling, not an active lane.
 
 ## P0 — Engine integrity (make the built-in engine real)
 
@@ -30,11 +31,12 @@ Update this file: mark items `[x]` when done AND verified, add discovered sub-it
 
 ## P2 — Time-to-fun
 
-- [ ] Template audit: each template demonstrates engine + AI end-to-end; fix gaps found by P0 integration tests. *(Gaps identified by session-5 harness, fixes not started: platformer gravity inert on `movement.gravity`, topdown chase-AI inert without `movement` component. Retro-2: priority RAISED — onboarding slice 2's recipe TODO-verifies (session-11 catalog) need known-good preview behaviors to be visibly true at Play.)*
-- [ ] Onboarding flow: create → first AI edit applied → play, measured in clicks; reduce to minimum. *(Design + rulings merged: `826cf69`, `551f027`, `33c38f6`. First-run recipe catalog approved WITH AMENDMENTS per acting-CEO brief 2026-08-24 — amendments not yet committed to any doc, TODO-capture by design lane. Slice 1b COMMITTED but UNMERGED/UNPUSHED `efc75e7` on `feat/onboarding-slice-1b`: landing page at `/`, shared `templateLaunch.ts`, localStorage recent-projects index, OnboardingTour deleted per ruling #3; web suite 257 passing per commit message. No status entry logged yet. Slice 2 in progress.)*
-- [ ] One-click share/publish path (static export hosting or downloadable bundle with clear instructions).
-- [ ] Full scene-compiler→runtime unification *(moved from P0 per CEO ruling 2026-08-23 #1; revisit when genre-gameplay parity matters — td/rpg/shooter/puzzle scene classes start shipping real gameplay).*
-- [ ] Export format consolidation: deprecate/remove legacy canvas `format:'html'` generator *(pending CEO ruling, decision requested 2026-08-24 #2; phaser-html is the convergence target with Open gaps: 0).*
+- [x] Template audit: each template demonstrates engine + AI end-to-end; fix gaps found by P0 integration tests. *(DONE 2026-08-25: session-5 harness gaps fixed `5ba430b` — platformer gravity wired to the physics component, topdown chase enemies drivable; live acceptance walkthrough of all three shipped genres passed in QA merge `038bdc3` (sessions 17–19; residual cosmetic findings filed to `docs/qa/known_issues.md`).)*
+- [x] Onboarding flow: create → first AI edit applied → play, measured in clicks; reduce to minimum. *(SHIPPED 2026-08-25/26: design + rulings `826cf69`/`33c38f6`; slice 1b landing page at `/` + shared template launcher + recent-projects index `efc75e7`; slice 2 first-run mock edit card merged `fae5c37`; slice 2d first-run recipe chips with 5/6 harness-verified catalog `ef1e615`, merged `1fa1e96`; QA acceptance pass `038bdc3`.)*
+- [x] One-click share/publish path (static export hosting or downloadable bundle with clear instructions). *(SHIPPED 2026-08-26 in three slices, all on main: slice 1 capability-token share links + hosted standalone play `b37705c`, merged `35e27aa`; slice 2 remix import flow — real payload sidecar, `/api/share/:token/remix`, RemixPage auto-import replacing the slice-1 placeholder IN-PLACE (single file, no stale stopgap left; still routed in `App.tsx`) `e942202`, merged `e63e0e4`; slice 3 play/remix counters + `share_created`/`game_remixed` funnel events `8040866`.)*
+- [ ] Share/activation counters readout: slice 3 counters + funnel events persist storage-side only (`8040866`) — no readout/reporting surface exists yet. *(Only open P2 item per closing sweep 2026-08-26.)*
+- [ ] Full scene-compiler→runtime unification *(PARKED — not an active lane; moved from P0 per CEO ruling 2026-08-23 #1; revisit when genre-gameplay parity matters — td/rpg/shooter/puzzle scene classes start shipping real gameplay.)*
+- [x] Export format consolidation: deprecate/remove legacy canvas `format:'html'` generator *(DONE 2026-08-26: ExportPage default flipped to phaser-html `97322aa`; legacy canvas generator deleted `9756983` — phaser-html is the single shipped format, non-phaser export requests now 400 with pointer.)*
 
 ## P3 — Growth (requires CEO sign-off before starting)
 
