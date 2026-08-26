@@ -33,6 +33,7 @@ import type {
   HostedExport,
   HostedOptions,
   ShareResponse,
+  GalleryGame,
   RemixPayload,
   GenerationResult,
   GenerationQuality,
@@ -72,6 +73,7 @@ export type {
   GenerationResult,
   GenerationQuality,
   GenerationFormat,
+  GalleryGame,
   GenerationAspectRatio
 } from './types';
 
@@ -485,6 +487,11 @@ export const api = {
   // fork an editable copy via the normal project-create path.
   getRemixPayload: (token: string) =>
     request<RemixPayload>(`/api/share/${encodeURIComponent(token)}/remix`),
+
+  // Community gallery (P3.1 feed v1): public listing of playable shares,
+  // newest first. Cards deep-link to the API-origin /share/:token page.
+  listGallery: () =>
+    request<{ games: GalleryGame[] }>('/api/gallery').then((r) => r.games || []),
 
   // Share stats (slice 3): aggregate integers only, consumed by the Settings
   // Local diagnostics readout for tokens known from the local funnel log.

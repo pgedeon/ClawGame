@@ -318,6 +318,21 @@ export async function hostedRoutes(app: FastifyInstance) {
     }
   );
 
+  // Community gallery (P3.1 feed v1): public listing over share snapshots —
+  // name + aggregate counters only, playable-now games, newest shares first.
+  app.get(
+    '/api/gallery',
+    async (_request, reply) => {
+      try {
+        const games = await hostedServiceInstance!.listGallery();
+        return { games };
+      } catch (error: any) {
+        reply.code(500);
+        return { error: error.message || 'Failed to list gallery' };
+      }
+    }
+  );
+
   // Health check for hosted service — auto-creates hosted directory
   app.get(
     '/api/hosted/health',

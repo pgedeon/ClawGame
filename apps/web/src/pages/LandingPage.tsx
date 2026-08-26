@@ -5,7 +5,7 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, Settings, Sparkles, FolderOpen, Loader2 } from 'lucide-react';
+import { Play, Settings, Sparkles, FolderOpen, Loader2, LayoutGrid } from 'lucide-react';
 import { templates, type GameTemplate } from '../templates/templateCatalog';
 import { launchTemplate, matchPromptToTemplate } from '../templates/templateLaunch';
 import { getRecentProjects, touchRecentProject, type RecentProjectEntry } from '../utils/recentProjects';
@@ -69,6 +69,15 @@ export function LandingPage() {
           <a href="#how-it-works" className="landing-how-link">
             How it works
           </a>
+          <button
+            type="button"
+            className="landing-settings-btn"
+            onClick={() => navigate('/gallery')}
+            aria-label="Community gallery"
+            title="Community gallery"
+          >
+            <LayoutGrid size={18} />
+          </button>
           <button
             type="button"
             className="landing-settings-btn"
