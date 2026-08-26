@@ -87,9 +87,10 @@ function App() {
     <ErrorBoundary>
       <BrowserRouter>
         <Routes>
-          {/* Recipient landing for shared links — outside AppLayout (design §2 S4).
-              Slice 1: honest placeholder; slice 2 replaces with the auto-import flow. */}
-          <Route path="/remix/:hostedId" element={
+          {/* Recipient remix import flow — outside AppLayout (design §2 S4).
+              Slice 2: fetches the share payload, forks an editable copy via
+              the normal project-create path, redirects into the editor. */}
+          <Route path="/remix/:token" element={
             <Suspense fallback={
               <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', background: '#0f172a' }}>
                 Loading...

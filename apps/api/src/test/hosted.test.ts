@@ -111,8 +111,11 @@ describe('GET /share/:token — validation and serving', () => {
     const res = await app.inject({ method: 'GET', url: `/share/${created.hosted.id}` });
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-type']).toContain('text/html');
-    // Stored-XSS mitigation mandatory in slice 1 (design §7 risk 2).
+    // Stored-XSS mitigation mandatory in slice 1 (design §7 risk 2). Minimal
+    // sandbox: same-tab Remix CTA needs no allow-popups (popup would inherit
+    // these flags onto the web origin and break it).
     expect(res.headers['content-security-policy']).toContain('sandbox');
+    expect(res.headers['content-security-policy']).not.toContain('allow-popups');
     expect(res.headers['x-content-type-options']).toBe('nosniff');
 
     const html = res.body;
