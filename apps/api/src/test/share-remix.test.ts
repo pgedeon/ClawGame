@@ -52,6 +52,16 @@ async function createFixtureProject(name = 'Remix Fixture', sceneName = 'Remix M
   return { id, scenePath };
 }
 
+/** Recursively collect every object key path in a JSON value. */
+function flattenKeys(value: unknown, prefix = ''): string[] {
+  if (value === null || typeof value !== 'object') return [];
+  if (Array.isArray(value)) return value.flatMap((v) => flattenKeys(v, prefix));
+  return Object.entries(value as Record<string, unknown>).flatMap(([k, v]) => [
+    prefix ? `${prefix}.${k}` : k,
+    ...flattenKeys(v, prefix ? `${prefix}.${k}` : k),
+  ]);
+}
+
 async function shareProject(app: any, projectId: string) {
   const res = await app.inject({ method: 'POST', url: `/api/projects/${projectId}/share` });
   expect(res.statusCode).toBe(201);
@@ -202,5 +212,107 @@ describe('serialized payload size cap (design §4)', () => {
 
     const oversized = 'x'.repeat(SHARE_PAYLOAD_MAX_BYTES + 1);
     expect(() => assertPayloadWithinSize(oversized)).toThrow(/too large/i);
+  });
+});
+
+describe('share counters (slice 3, CEO ruling #4: aggregate integers only, zero PII)', () => {
+  it('fresh shares start at zero and GET /api/share/:token/stats returns exactly {plays, remixes}', async () => {
+    const app = await buildApp();
+    const { id: projectId } = await createFixtureProject('Stats Fresh');
+    const { hosted } = await shareProject(app, projectId);
+
+    const res = await app.inject({ method: 'GET', url: `/api/share/${hosted.id}/stats` });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ plays: 0, remixes: 0 });
+
+    // CORS header is mandatory: the injected landing bar fetches stats from a
+    // CSP-sandboxed page with an opaque origin (cross-origin request).
+    expect(res.headers['access-control-allow-origin']).toBe('*');
+    expect(res.headers['cache-control']).toBe('no-store');
+
+    await app.close();
+  });
+
+  it('serving the game increments plays — /share/:token and legacy view route both count', async () => {
+    const app = await buildApp();
+    const { id: projectId } = await createFixtureProject('Stats Plays');
+    const { hosted } = await shareProject(app, projectId);
+
+    await app.inject({ method: 'GET', url: `/share/${hosted.id}` });
+    await app.inject({ method: 'GET', url: `/api/hosted/${hosted.id}/view` });
+    await app.inject({ method: 'GET', url: `/share/${hosted.id}` });
+
+    const res = await app.inject({ method: 'GET', url: `/api/share/${hosted.id}/stats` });
+    expect(res.json()).toEqual({ plays: 3, remixes: 0 });
+
+    await app.close();
+  });
+
+  it('remix payload fetches increment remixes; failed/legacy remix attempts do not', async () => {
+    const app = await buildApp();
+    const { id: projectId } = await createFixtureProject('Stats Remixes');
+    const { hosted } = await shareProject(app, projectId);
+
+    await app.inject({ method: 'GET', url: `/api/share/${hosted.id}/remix` });
+    await app.inject({ method: 'GET', url: `/api/share/${hosted.id}/remix` });
+
+    // Legacy share without sidecar → typed 404 must NOT count as a remix.
+    const other = await createFixtureProject('Legacy Stats');
+    const legacyShare = await shareProject(app, other.id);
+    await unlink(join(HOSTED_DIR, `${legacyShare.hosted.id}.share.json`));
+    await app.inject({ method: 'GET', url: `/api/share/${legacyShare.hosted.id}/remix` });
+    expect(
+      (await app.inject({ method: 'GET', url: `/api/share/${legacyShare.hosted.id}/stats` })).json(),
+    ).toEqual({ plays: 0, remixes: 0 });
+
+    const res = await app.inject({ method: 'GET', url: `/api/share/${hosted.id}/stats` });
+    expect(res.json()).toEqual({ plays: 0, remixes: 2 });
+
+    await app.close();
+  });
+
+  it('404 unknown token, 410 expired token for stats', async () => {
+    const app = await buildApp();
+    const missing = await app.inject({ method: 'GET', url: '/api/share/no-such-token/stats' });
+    expect(missing.statusCode).toBe(404);
+
+    const service = new HostedService(mockLogger);
+    const { id: projectId } = await createFixtureProject('Expired Stats');
+    const { ExportService } = await import('../services/exportService');
+    const exportService = new ExportService(mockLogger);
+    const exported = await exportService.exportToPhaserHTML(projectId, { format: 'phaser-html' });
+    const hosted = await service.hostExport(projectId, exported.filename, { expiresInDays: 30 });
+    const metaPath = join(HOSTED_DIR, `${hosted.id}.meta.json`);
+    const meta = JSON.parse(await readFile(metaPath, 'utf-8'));
+    meta.expiresAt = new Date(Date.now() - 1000).toISOString();
+    await writeFile(metaPath, JSON.stringify(meta, null, 2), 'utf-8');
+
+    const expired = await app.inject({ method: 'GET', url: `/api/share/${hosted.id}/stats` });
+    expect(expired.statusCode).toBe(410);
+
+    await app.close();
+  });
+
+  it('meta file carries integers only — no PII keys ever written by counter paths', async () => {
+    const app = await buildApp();
+    const { id: projectId } = await createFixtureProject('Stats No PII');
+    const { hosted } = await shareProject(app, projectId);
+
+    await app.inject({ method: 'GET', url: `/share/${hosted.id}` });
+    await app.inject({ method: 'GET', url: `/api/share/${hosted.id}/remix` });
+
+    const raw = await readFile(join(HOSTED_DIR, `${hosted.id}.meta.json`), 'utf-8');
+    const meta = JSON.parse(raw);
+    expect(meta.counts).toEqual({ plays: 1, remixes: 1 });
+    expect(Number.isInteger(meta.counts.plays)).toBe(true);
+    expect(Number.isInteger(meta.counts.remixes)).toBe(true);
+
+    const FORBIDDEN = ['ip', 'ips', 'useragent', 'user-agent', 'ua', 'referer', 'referrer', 'fingerprint', 'sessionid'];
+    const keys = Object.keys(flattenKeys(meta)).map((k) => k.toLowerCase());
+    for (const forbidden of FORBIDDEN) {
+      expect(keys.some((k) => k === forbidden || k.endsWith(`.${forbidden}`))).toBe(false);
+    }
+
+    await app.close();
   });
 });

@@ -11,6 +11,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link2, Copy, ExternalLink, Trash2, Loader2, X } from 'lucide-react';
 import { api, type HostedExport, type ShareResponse } from '../api/client';
 import { useToast } from './Toast';
+import { trackEvent } from '../utils/activationEvents';
 
 interface ShareButtonProps {
   projectId: string;
@@ -85,6 +86,8 @@ const SharePopover: React.FC<{ projectId: string; projectName?: string; onClose:
     try {
       const res = await api.shareProject(projectId);
       if (res.success && res.hosted && res.url) {
+        // Storage-only funnel (design §4): creator-side share event. Ids only.
+        trackEvent('share_created', { hostedId: res.hosted.id });
         setState({ phase: 'result', link: res.url, hosted: res.hosted });
         void loadExisting();
         return;

@@ -9,6 +9,17 @@
  *
  * Storage: localStorage ring buffer (cap 500, drop oldest). Every access is
  * try/catch-wrapped — unavailable storage degrades to a silent no-op.
+ *
+ * Event schema (design §4, onboarding + share/publish):
+ * - landing_viewed, template_launched — landing/launch (slices 1b/2)
+ * - ai_suggestion_shown, ai_prompt_submitted, edit_applied — chip funnel (slice 2)
+ * - play_started {editsApplied} — activation gate
+ * - share_created {hostedId} — creator shares a link (share slice 3)
+ * - game_remixed {hostedId, projectId} — recipient forks a copy (share slice 3)
+ *
+ * Recipient play/remix AGGREGATE counts are the one server-side exception
+ * (CEO ruling #4): bare integers in the hosted meta file, zero PII — they do
+ * NOT flow through this log.
  */
 
 export type ActivationEventProps = Record<string, string | number | boolean | undefined>;

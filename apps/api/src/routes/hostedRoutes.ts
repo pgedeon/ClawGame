@@ -64,6 +64,12 @@ export async function hostedRoutes(app: FastifyInstance) {
 
       const { content, mimeType } = await hostedServiceInstance!.getHostedFile(hostedId);
 
+      // Play counter (slice 3): every serve of the game counts as a play —
+      // both the canonical /share/:token link and the legacy view route come
+      // through this shared handler. Awaited (tiny local write) so the
+      // landing bar's own stats fetch sees its own view; never throws.
+      await hostedServiceInstance!.incrementShareCount(hostedId, 'plays');
+
       applyGameHtmlHeaders(reply);
       reply
         .header('Content-Type', mimeType)
@@ -207,10 +213,43 @@ export async function hostedRoutes(app: FastifyInstance) {
             code: 'remix_payload_missing',
           };
         }
+        // Remix counter (slice 3): only real payload deliveries count —
+        // unknown/expired/legacy-missing fetches are not remixes.
+        await hostedServiceInstance!.incrementShareCount(token, 'remixes');
         return payload;
       } catch (error: any) {
         reply.code(500);
         return { error: error.message || 'Failed to load remix payload' };
+      }
+    }
+  );
+
+  // Share stats (slice 3): aggregate integers only (CEO ruling #4 exception
+  // to the storage-only funnel — no PII). Consumed by the injected landing
+  // bar ("played N times"), which runs inside a CSP-sandboxed page with an
+  // opaque origin → its fetch is cross-origin, so ACAO:* is required.
+  app.get<{ Params: { token: string } }>(
+    '/api/share/:token/stats',
+    async (request, reply) => {
+      const { token } = request.params;
+      try {
+        const hostedExport = await hostedServiceInstance!.getHostedExport(token);
+        if (!hostedExport) {
+          reply.code(404);
+          return { error: 'Hosted game not found' };
+        }
+        if (hostedExport.expiresAt && new Date(hostedExport.expiresAt) < new Date()) {
+          reply.code(410);
+          return { error: 'Hosted game has expired' };
+        }
+        const stats = await hostedServiceInstance!.getShareStats(token);
+        reply
+          .header('Access-Control-Allow-Origin', '*')
+          .header('Cache-Control', 'no-store');
+        return stats;
+      } catch (error: any) {
+        reply.code(500);
+        return { error: error.message || 'Failed to load share stats' };
       }
     }
   );

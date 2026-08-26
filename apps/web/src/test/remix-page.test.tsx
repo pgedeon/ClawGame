@@ -13,6 +13,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { RemixPage } from '../pages/RemixPage';
 import { RECENT_PROJECTS_STORAGE_KEY } from '../utils/recentProjects';
+import { ACTIVATION_EVENTS_STORAGE_KEY } from '../utils/activationEvents';
 
 const TOKEN = '6f9619ff-8b86-d011-b42d-00cf4fc964ff';
 
@@ -134,6 +135,31 @@ describe('RemixPage — remix import flow (slice 2)', () => {
     const recent = JSON.parse(window.localStorage.getItem(RECENT_PROJECTS_STORAGE_KEY) || '[]');
     expect(recent).toHaveLength(1);
     expect(recent[0]).toMatchObject({ id: 'remixed-1', name: 'Remix of Space Shooter', remixedFrom: TOKEN });
+  });
+
+  it('records a game_remixed funnel event (ids only) after the fork fully succeeds', async () => {
+    installFetch();
+    renderRemixPage();
+
+    await waitFor(() =>
+      expect(screen.getByTestId('location-probe').textContent).toBe('/project/remixed-1/editor'),
+    );
+
+    const events = JSON.parse(window.localStorage.getItem(ACTIVATION_EVENTS_STORAGE_KEY) || '[]');
+    const remixEvent = events.find((e: any) => e.name === 'game_remixed');
+    expect(remixEvent).toBeTruthy();
+    expect(remixEvent.props).toEqual({ hostedId: TOKEN, projectId: 'remixed-1' });
+    expect(typeof remixEvent.ts).toBe('string');
+  });
+
+  it('failed imports record no game_remixed event', async () => {
+    installFetch({ remixStatus: 404 });
+    renderRemixPage();
+
+    await waitFor(() => screen.getByText(/Remix unavailable/i));
+
+    const events = JSON.parse(window.localStorage.getItem(ACTIVATION_EVENTS_STORAGE_KEY) || '[]');
+    expect(events.filter((e: any) => e.name === 'game_remixed')).toHaveLength(0);
   });
 
   it('invalid token (404): error card, no project created, back-to-game link offered', async () => {

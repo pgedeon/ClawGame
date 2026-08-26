@@ -20,6 +20,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { recordRecentProject } from '../utils/recentProjects';
+import { trackEvent } from '../utils/activationEvents';
 import './remix.css';
 
 /** API origin for the "back to game" link (the playable share lives there). */
@@ -81,6 +82,10 @@ export const RemixPage: React.FC = () => {
         );
 
         recordRecentProject({ id: created.id, name, remixedFrom: token });
+
+        // Storage-only funnel (design §4): recipient-side remix event, fired
+        // only after the fork fully succeeded. Ids only — no payload text.
+        trackEvent('game_remixed', { hostedId: token, projectId: created.id });
 
         navigate(`/project/${created.id}/editor`, { replace: true });
       } catch (err) {

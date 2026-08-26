@@ -22,6 +22,8 @@ export interface HostedExport {
   downloadUrl: string;
   /** v1 ruling (CEO 2026-08-25): shares include full editable source by default. */
   sourceIncluded?: boolean;
+  /** Aggregate play/remix counters (slice 3). Integers only — zero PII by design. */
+  counts?: { plays: number; remixes: number };
 }
 
 export interface HostedOptions {
@@ -207,6 +209,7 @@ export class HostedService {
       expiresAt,
       downloadUrl: `/api/projects/${projectId}/exports/${exportFilename}`,
       sourceIncluded: true,
+      counts: { plays: 0, remixes: 0 },
     };
 
     // Save hosted metadata
@@ -404,7 +407,7 @@ window.addEventListener('DOMContentLoaded', () => {
   \`;
 
   nav.innerHTML = \`
-    <div>
+    <div id="clawgame-bar-left">
       <strong>🎮 ClawGame</strong>${expiresLine}
     </div>
     <div style="display:flex;align-items:center;gap:12px;">
@@ -422,6 +425,30 @@ window.addEventListener('DOMContentLoaded', () => {
     dismiss.addEventListener('click', () => nav.remove());
   }
 
+  // Play count (slice 3): subtle aggregate integer from the share-stats
+  // endpoint — rendered only after it arrives, so a slow/failed fetch never
+  // delays or breaks the game. The CSP sandbox gives this page an opaque
+  // origin, making the fetch cross-origin; /api/share/:token/stats answers
+  // with ACAO:*. Failure is silent by design.
+  try {
+    var meta = window.GAME_HOSTED_METADATA || {};
+    if (meta.hostedId) {
+      fetch('/api/share/' + encodeURIComponent(meta.hostedId) + '/stats')
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (s) {
+          if (!s || typeof s.plays !== 'number' || s.plays < 1) return;
+          var left = document.getElementById('clawgame-bar-left');
+          if (!left || document.getElementById('clawgame-play-count')) return;
+          var span = document.createElement('span');
+          span.id = 'clawgame-play-count';
+          span.style.cssText = 'opacity:0.65;margin-left:8px;';
+          span.textContent = 'Played ' + s.plays + (s.plays === 1 ? ' time' : ' times');
+          left.appendChild(span);
+        })
+        .catch(function () {});
+    }
+  } catch (e) { /* counters must never break play */ }
+
   // Adjust game container for nav bar
   const container = document.getElementById('game-container');
   if (container) {
@@ -433,6 +460,46 @@ window.addEventListener('DOMContentLoaded', () => {
     );
 
     return injectedHtml;
+  }
+
+  /**
+   * Read the aggregate share counters for a token.
+   * Returns null when the token is unknown; zeros for legacy metas written
+   * before counters existed. Integers only — no PII is ever recorded here.
+   */
+  async getShareStats(hostedId: string): Promise<{ plays: number; remixes: number } | null> {
+    const hosted = await this.getHostedExport(hostedId);
+    if (!hosted) return null;
+    return {
+      plays: Math.max(0, Math.trunc(hosted.counts?.plays ?? 0)),
+      remixes: Math.max(0, Math.trunc(hosted.counts?.remixes ?? 0)),
+    };
+  }
+
+  /**
+   * Increment one aggregate counter in `<id>.meta.json` (read-modify-write).
+   *
+   * CEO ruling #4 exception to the storage-only funnel: these are bare
+   * integers on an already-public artifact's meta file — no IPs, no user
+   * agents, no fingerprints, nothing per-visitor. Never throws: a failed
+   * counter write must not break serving or remixing (callers rely on it).
+   */
+  async incrementShareCount(hostedId: string, key: 'plays' | 'remixes'): Promise<void> {
+    try {
+      const hostedDir = await this.ensureHostedDir();
+      const metaPath = join(hostedDir, `${hostedId}.meta.json`);
+      if (!existsSync(metaPath)) return;
+      const meta = JSON.parse(await readFile(metaPath, 'utf-8')) as HostedExport;
+      const counts = {
+        plays: Math.max(0, Math.trunc(meta.counts?.plays ?? 0)),
+        remixes: Math.max(0, Math.trunc(meta.counts?.remixes ?? 0)),
+      };
+      counts[key] += 1;
+      meta.counts = counts;
+      await writeFile(metaPath, JSON.stringify(meta, null, 2), 'utf-8');
+    } catch (err) {
+      this.logger.warn({ hostedId, key, err }, 'Failed to increment share counter');
+    }
   }
 
   /**

@@ -8,6 +8,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ToastProvider, ToastList } from '../components/Toast';
 import { ShareButton } from '../components/ShareButton';
+import { ACTIVATION_EVENTS_STORAGE_KEY } from '../utils/activationEvents';
 
 const SHARE_OK = {
   success: true,
@@ -105,6 +106,21 @@ describe('ShareButton/SharePopover — one-click share (slice 1)', () => {
     // (CEO ruling 2), never an expiry promise for non-expiring shares.
     expect(screen.getByText(/works while your ClawGame server is running/i)).toBeTruthy();
     expect(screen.getByText(/Includes full editable source/i)).toBeTruthy();
+  });
+
+  it('records a share_created funnel event (ids only) when the link is created', async () => {
+    installFetch(SHARE_OK);
+    renderShareButton();
+    await openPopover();
+
+    fireEvent.click(screen.getByText(/Create share link/i));
+    await waitFor(() => expect(screen.getByDisplayValue(SHARE_OK.url)).toBeTruthy());
+
+    const events = JSON.parse(window.localStorage.getItem(ACTIVATION_EVENTS_STORAGE_KEY) || '[]');
+    const shareEvent = events.find((e: any) => e.name === 'share_created');
+    expect(shareEvent).toBeTruthy();
+    expect(shareEvent.props).toEqual({ hostedId: SHARE_OK.hosted.id });
+    expect(typeof shareEvent.ts).toBe('string');
   });
 
   it('shows the export-stage error toast when export fails', async () => {
