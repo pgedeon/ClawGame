@@ -486,6 +486,11 @@ export const api = {
   getRemixPayload: (token: string) =>
     request<RemixPayload>(`/api/share/${encodeURIComponent(token)}/remix`),
 
+  // Share stats (slice 3): aggregate integers only, consumed by the Settings
+  // Local diagnostics readout for tokens known from the local funnel log.
+  getShareStats: (token: string) =>
+    request<{ plays: number; remixes: number }>(`/api/share/${encodeURIComponent(token)}/stats`),
+
   deleteHostedExport: (projectId: string, hostedId: string) =>
     request<{ success: boolean; message: string }>(`/api/projects/${projectId}/hosted/${hostedId}`, {
       method: 'DELETE',

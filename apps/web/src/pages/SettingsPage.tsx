@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Moon, Sun, Monitor, Keyboard, Cpu, Info, ChevronRight, Server, Palette, Plug } from 'lucide-react';
+import { LocalDiagnosticsSection } from '../components/LocalDiagnosticsSection';
 import {
   getRequestedPreviewRuntimeKind,
   listPreviewRuntimeDescriptors,
@@ -341,6 +342,9 @@ export function SettingsPage() {
             </table>
           </div>
         </section>
+
+        {/* Local diagnostics (onboarding design §4 — storage-only funnel readout) */}
+        <LocalDiagnosticsSection />
 
         {/* About */}
         <section className="settings-section">

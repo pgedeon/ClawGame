@@ -102,6 +102,7 @@ export function FirstRunEditCard({ projectId, templateId, onApplied }: FirstRunE
         provider,
         recipeId: activeRecipe.id,
         path: change.path.split('/').pop(),
+        projectId,
       });
       touchRecentProject(projectId, { edited: true });
       setPhase('applied');

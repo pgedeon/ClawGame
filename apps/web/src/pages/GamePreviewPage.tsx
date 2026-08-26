@@ -9,7 +9,7 @@
  * Layout: single top bar + canvas fills remaining space + floating replay bar at bottom
  */
 
-import React, { Suspense, useState, useCallback } from 'react';
+import React, { Suspense, useState, useCallback, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { Play, ArrowLeft, Skull, Trophy, Monitor, Smartphone, Tablet, Maximize2, RotateCcw, Keyboard } from 'lucide-react';
 import '../game-preview.css';
@@ -25,6 +25,7 @@ import { FirstRunEditCard } from '../components/FirstRunEditCard';
 import { ShareButton } from '../components/ShareButton';
 import '../components/share.css';
 import { getRecentProjects } from '../utils/recentProjects';
+import { trackEvent } from '../utils/activationEvents';
 
 /* ═══════════════════════════════════════════════════════════
    Compact top bar with back, title, status, device picker
@@ -84,6 +85,15 @@ const GamePreviewContent: React.FC = () => {
     handleBackToEditor();
     reloadScene();
   }, [handleBackToEditor, reloadScene]);
+
+  // Funnel: preview_opened once per mount once the project actually loaded
+  // (design §4). Ref guard keeps StrictMode's dev double-effect honest.
+  const previewOpenedRef = useRef(false);
+  useEffect(() => {
+    if (loading || error || !projectId || previewOpenedRef.current) return;
+    previewOpenedRef.current = true;
+    trackEvent('preview_opened', { projectId });
+  }, [loading, error, projectId]);
 
   if (loading) {
     return (

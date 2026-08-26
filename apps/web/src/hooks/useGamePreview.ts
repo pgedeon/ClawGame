@@ -24,6 +24,7 @@ import type { PhaserRuntimeError } from '@clawgame/phaser-runtime';
 import type { PhaserSessionHandle } from '../runtime/phaserPreviewSession';
 import type { TowerDefenseOverlayState, TowerType } from '../utils/previewTowerDefense';
 import type { MinimapEntity } from '../components/game/DungeonMinimap';
+import { trackPlayStarted } from '../utils/activationEvents';
 import { logger } from '../utils/logger';
 
 export type UIPanel = 'none' | 'inventory' | 'quests' | 'spellcraft' | 'saveload' | 'dialogue' | 'combat-log';
@@ -72,7 +73,7 @@ function getRuntimeErrorMessage(error: unknown): string {
 
 // ─── Main hook ───
 export function useGamePreview(
-  _projectId: string,
+  projectId: string,
   projectScene: { entities?: unknown[]; width?: number; height?: number; background?: string } | null,
   projectGenre: string = 'platformer',
 ) {
@@ -240,6 +241,9 @@ export function useGamePreview(
     setPlayerHealth(100);
     setPlayerMana(100);
     setPlayerScore(0);
+    // Funnel: play_started with derived editsApplied/isFirstForProject
+    // (design §4 activation gate — activation itself stays derived).
+    if (projectId) trackPlayStarted(projectId);
     // Focus the Phaser canvas so keyboard events reach it
     requestAnimationFrame(() => {
       const host = runtimeHostRef.current;
@@ -251,7 +255,7 @@ export function useGamePreview(
         }
       }
     });
-  }, []);
+  }, [projectId]);
 
   const handleRestart = useCallback(() => {
     handleStartGame();
