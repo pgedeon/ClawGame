@@ -7,6 +7,7 @@ import { MarkdownRenderer } from '../components/MarkdownRenderer';
 import { CodeDiffView, ConfidenceBadge } from '../components/CodeDiffView';
 import '../ai-thinking.css';
 import { logger } from '../utils/logger';
+import { trackEvent } from '../utils/activationEvents';
 
 function getProviderNotice(status?: { state: string; message?: string }): string | null {
   if (!status) return null;
@@ -180,6 +181,9 @@ export function AICommandPage() {
     setApplyingChanges(prev => new Set(prev).add(key));
     try {
       await api.writeFile(projectId, change.path, change.newContent);
+      // Funnel: edit_applied on the full AI surface too (design §4 — apply
+      // path (a); ids/file basenames only, never file contents).
+      trackEvent('edit_applied', { path: change.path.split('/').pop(), projectId });
       setAppliedChanges(prev => new Set(prev).add(key));
       setRejectedChanges(prev => { const n = new Set(prev); n.delete(key); return n; });
       showToast({ type: 'success', message: `Applied ${change.path}` });
@@ -207,6 +211,7 @@ export function AICommandPage() {
       setApplyingChanges(prev => new Set(prev).add(key));
       try {
         await api.writeFile(projectId, change.path, change.newContent);
+        trackEvent('edit_applied', { path: change.path.split('/').pop(), projectId });
         setAppliedChanges(prev => new Set(prev).add(key));
         applied++;
       } catch { failed++; }

@@ -9,6 +9,7 @@ import { Play, Settings, Sparkles, FolderOpen, Loader2 } from 'lucide-react';
 import { templates, type GameTemplate } from '../templates/templateCatalog';
 import { launchTemplate, matchPromptToTemplate } from '../templates/templateLaunch';
 import { getRecentProjects, touchRecentProject, type RecentProjectEntry } from '../utils/recentProjects';
+import { getAbVariant, trackEvent } from '../utils/activationEvents';
 import { logger } from '../utils/logger';
 import './landing.css';
 
@@ -23,16 +24,21 @@ export function LandingPage() {
 
   useEffect(() => {
     // Render immediately from the local index — no API wait (US-2 AC 1).
-    setRecent(getRecentProjects().slice(0, MAX_RECENT));
+    const entries = getRecentProjects().slice(0, MAX_RECENT);
+    setRecent(entries);
+    // Funnel: landing_viewed once per mount (design §4) — recentCount + the
+    // assigned A/B variant ride along as id/enum props.
+    trackEvent('landing_viewed', { recentCount: entries.length, abVariant: getAbVariant() });
   }, []);
 
   const continueProjects = useMemo(() => recent.slice(0, MAX_RECENT), [recent]);
 
-  const openLaunch = async (template: GameTemplate, description?: string) => {
+  const openLaunch = async (template: GameTemplate, via: 'gallery' | 'prompt', description?: string) => {
     setLaunchingId(template.id);
     setError(null);
     try {
       const { id } = await launchTemplate(template.id, { description });
+      trackEvent('project_created', { templateId: template.id, via });
       navigate(`/project/${id}/preview`);
     } catch (err) {
       logger.error('Template launch failed:', err);
@@ -46,7 +52,8 @@ export function LandingPage() {
     const text = prompt.trim();
     if (!text) return;
     const template = templates.find((t) => t.id === matchPromptToTemplate(text)) ?? templates[0];
-    await openLaunch(template, text);
+    trackEvent('prompt_submit_clicked', { matchedTemplateId: template.id, promptLength: text.length });
+    await openLaunch(template, 'prompt', text);
   };
 
   const openRecent = (entry: RecentProjectEntry) => {
@@ -133,7 +140,10 @@ export function LandingPage() {
                 type="button"
                 className="landing-play-btn"
                 disabled={launchingId !== null}
-                onClick={() => openLaunch(template)}
+                onClick={() => {
+                  trackEvent('template_launch_clicked', { templateId: template.id });
+                  void openLaunch(template, 'gallery');
+                }}
               >
                 {launchingId === template.id ? (
                   <>
