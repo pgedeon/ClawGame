@@ -274,6 +274,19 @@ function safeIdentifier(id: string): string {
 }
 
 /**
+ * '#rgb' | '#rrggbb' → '0x…' numeric literal for emitted setTint calls.
+ * Mirrors ClawgamePhaserScene.parseTintColor; null for anything else so the
+ * generator skips the tint line instead of emitting broken JS.
+ */
+function cssHexToNumberLiteral(value: string): string | null {
+  const match = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(value.trim());
+  if (!match) return null;
+  const hex = match[1];
+  const expanded = hex.length === 3 ? hex.split('').map((c) => c + c).join('') : hex;
+  return `0x${expanded.toLowerCase()}`;
+}
+
+/**
  * Unified texture-key convention (docs/export-parity.md gap 2): both pipelines key
  * assets `asset:${ref}` via buildAssetKey. Exported games are standalone single-file
  * HTML — every texture is an embedded data URI registered under our chosen key, so the
@@ -491,16 +504,31 @@ export class ExportService {
       } else {
         const assetRef = sprite?.assetRef ?? sprite?.assetId;
         const dims = getExportEntityDimensions(sprite, collision, e.transform);
+        // Explicit sprite.color mirrors ClawgamePhaserScene.createEntity tint
+        // handling: explicit color wins over the typed-color map.
+        const explicitColor = typeof sprite?.color === 'string' && sprite.color.trim() !== ''
+          ? sprite.color.trim()
+          : null;
         if (assetRef) {
           // Asset entities render as textured sprites sized like preview
           // (ClawgamePhaserScene.createEntity: image + setDisplaySize).
           const key = exportTextureKey(String(assetRef));
           lines.push(`${indent}  const ${safeName} = this.add.sprite(${x}, ${y}, '${key}');`);
           lines.push(`${indent}  ${safeName}.setDisplaySize(${dims.width}, ${dims.height});`);
+          if (explicitColor) {
+            // Tint passthrough mirrors the preview's capability-checked
+            // setTint. Numeric literal: Phaser setTint does not run
+            // ValueToColor on its argument like shape fills do.
+            const tintColor = cssHexToNumberLiteral(explicitColor);
+            if (tintColor !== null) {
+              lines.push(`${indent}  ${safeName}.setTint(${tintColor});`);
+            }
+          }
         } else {
           // Color-only entities render as typed-color rectangles like preview
-          // (getColorForType) instead of missing-texture sprites.
-          const color = EXPORT_TYPE_COLORS[type] || '#8b5cf6';
+          // (getColorForType) instead of missing-texture sprites; explicit
+          // sprite.color overrides the type map exactly like preview tint.
+          const color = explicitColor || EXPORT_TYPE_COLORS[type] || '#8b5cf6';
           lines.push(`${indent}  const ${safeName} = this.add.rectangle(${x}, ${y}, ${dims.width}, ${dims.height}, '${color}');`);
         }
         if (e.transform?.rotation) lines.push(`${indent}  ${safeName}.setRotation(${e.transform.rotation});`);

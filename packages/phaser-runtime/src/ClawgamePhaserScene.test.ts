@@ -11,7 +11,7 @@ vi.mock('phaser', () => ({
 }));
 
 import { ClawgamePhaserScene } from './ClawgamePhaserScene';
-import type { PhaserPreviewBootstrap, PhaserRuntimeErrorReporter } from './types';
+import type { PhaserPreviewBootstrap, PhaserPreviewEntity, PhaserRuntimeErrorReporter } from './types';
 
 function createBootstrap(overrides: Partial<PhaserPreviewBootstrap> = {}): PhaserPreviewBootstrap {
   return {
@@ -361,5 +361,117 @@ describe('ClawgamePhaserScene generic gameplay', () => {
     expect(() => sceneAny.update(0, 16)).not.toThrow();
     expect(() => sceneAny.update(16, 16)).not.toThrow();
     expect(h.scene.getErrors().filter((e) => e.phase === 'gameplay-update')).toHaveLength(1);
+  });
+});
+
+// ───────────────────── Per-entity tint passthrough ─────────────────────
+
+function makeEntity(overrides: Partial<PhaserPreviewEntity>): PhaserPreviewEntity {
+  return {
+    id: 'e1',
+    type: 'player',
+    x: 10,
+    y: 20,
+    width: 32,
+    height: 32,
+    rotation: 0,
+    scaleX: 1,
+    scaleY: 1,
+    body: { kind: 'none', width: 32, height: 32 },
+    ...overrides,
+  };
+}
+
+describe('ClawgamePhaserScene per-entity tint', () => {
+  function createTintScene(entities: PhaserPreviewEntity[]) {
+    const reporter: PhaserRuntimeErrorReporter = { reportError: vi.fn() };
+    const scene = new ClawgamePhaserScene({ reporter });
+    scene.setBootstrap(createBootstrap({ entities }));
+    const rectangle = vi.fn(() => ({
+      setRotation: vi.fn(), setScale: vi.fn(), setOrigin: vi.fn(),
+    }));
+    const image = vi.fn(() => ({
+      setDisplaySize: vi.fn(), setRotation: vi.fn(), setScale: vi.fn(), setOrigin: vi.fn(),
+      setTint: vi.fn(),
+    }));
+    Object.assign(scene, {
+      add: { rectangle, image },
+      cameras: { main: { setBackgroundColor: vi.fn() } },
+      physics: { world: { setBounds: vi.fn() } },
+    });
+    return { scene, rectangle, image, reporter };
+  }
+
+  it('uses sprite.color tint as the fill color instead of the type-color map', () => {
+    const { scene, rectangle } = createTintScene([
+      makeEntity({ id: 'player-1', type: 'player', tint: '#ef4444' }),
+    ]);
+    scene.create();
+    expect(rectangle).toHaveBeenCalledWith(10, 20, 32, 32, 0xef4444);
+    expect(scene.getErrors()).toHaveLength(0);
+  });
+
+  it('falls back to the type-color map when no tint is present', () => {
+    const { scene, rectangle } = createTintScene([
+      makeEntity({ id: 'wall-1', type: 'obstacle' }),
+    ]);
+    scene.create();
+    expect(rectangle).toHaveBeenCalledWith(10, 20, 32, 32, 0x64748b);
+  });
+
+  it('falls back to the type-color map for malformed tint strings', () => {
+    const { scene, rectangle, reporter } = createTintScene([
+      makeEntity({ id: 'player-1', type: 'player', tint: 'red' }),
+      makeEntity({ id: 'player-2', type: 'enemy', tint: '#12345' }),
+    ]);
+    scene.create();
+    expect(rectangle).toHaveBeenNthCalledWith(1, 10, 20, 32, 32, 0x3b82f6);
+    expect(rectangle).toHaveBeenNthCalledWith(2, 10, 20, 32, 32, 0xef4444);
+    expect(reporter.reportError).not.toHaveBeenCalled();
+  });
+
+  it('applies capability-checked setTint on asset sprites', () => {
+    const { scene, image } = createTintScene([
+      makeEntity({
+        id: 'hero',
+        type: 'player',
+        assetKey: 'asset:hero.png',
+        assetRef: 'hero.png',
+        tint: '#22d3ee',
+      }),
+    ]);
+    scene.create();
+    expect(image).toHaveBeenCalledWith(10, 20, 'asset:hero.png');
+    const sprite = image.mock.results[0].value as { setTint: ReturnType<typeof vi.fn> };
+    expect(sprite.setTint).toHaveBeenCalledWith(0x22d3ee);
+    expect(scene.getErrors()).toHaveLength(0);
+  });
+
+  it('skips tinting silently when the game object has no setTint (Phaser-4-safe)', () => {
+    const reporter: PhaserRuntimeErrorReporter = { reportError: vi.fn() };
+    const scene = new ClawgamePhaserScene({ reporter });
+    scene.setBootstrap(createBootstrap({
+      entities: [
+        makeEntity({
+          id: 'hero',
+          type: 'player',
+          assetKey: 'asset:hero.png',
+          assetRef: 'hero.png',
+          tint: '#22d3ee',
+        }),
+      ],
+    }));
+    // Mock without setTint — older engines / partial builds must not throw.
+    const image = vi.fn(() => ({
+      setDisplaySize: vi.fn(), setRotation: vi.fn(), setScale: vi.fn(), setOrigin: vi.fn(),
+    }));
+    Object.assign(scene, {
+      add: { rectangle: vi.fn(), image },
+      cameras: { main: { setBackgroundColor: vi.fn() } },
+      physics: { world: { setBounds: vi.fn() } },
+    });
+    scene.create();
+    expect(scene.getErrors()).toHaveLength(0);
+    expect(scene.getEntity('hero')).toBeDefined();
   });
 });

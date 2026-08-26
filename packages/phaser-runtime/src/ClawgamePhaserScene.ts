@@ -300,14 +300,39 @@ export class ClawgamePhaserScene extends Scene {
     }
   }
 
+  /**
+   * Parse a CSS hex color ('#rgb' | '#rrggbb') into a Phaser tint/fill number.
+   * Returns null for anything else so callers can fall back to type colors.
+   */
+  private parseTintColor(value: string): number | null {
+    const match = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(value.trim());
+    if (!match) return null;
+    const hex = match[1];
+    const expanded = hex.length === 3
+      ? hex.split('').map((c) => c + c).join('')
+      : hex;
+    return parseInt(expanded, 16);
+  }
+
   protected createEntity(entity: PhaserPreviewEntity): void {
     if (!this.add) return;
+    // Per-entity sprite.color (carried as bootstrap `tint`) overrides the
+    // hardcoded type-color map — template recolors must display at Play.
+    const tintColor = typeof entity.tint === 'string' ? this.parseTintColor(entity.tint) : null;
     let obj: GameObjects.Rectangle | GameObjects.Image;
     if (entity.assetKey) {
       obj = this.add.image(entity.x, entity.y, entity.assetKey);
       (obj as GameObjects.Image).setDisplaySize(entity.width, entity.height);
+      if (tintColor !== null) {
+        // Capability-checked setTint (Phaser-4-safe): skip silently-shaped mocks
+        // and engine builds without the Tint component rather than throwing.
+        const tappable = obj as unknown as { setTint?: (tint: number) => unknown };
+        if (typeof tappable.setTint === 'function') {
+          tappable.setTint(tintColor);
+        }
+      }
     } else {
-      const color = this.getColorForType(entity.type);
+      const color = tintColor ?? this.getColorForType(entity.type);
       obj = this.add.rectangle(entity.x, entity.y, entity.width, entity.height, color);
     }
     obj.setRotation(entity.rotation || 0);
