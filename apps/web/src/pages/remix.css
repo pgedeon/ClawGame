@@ -44,3 +44,29 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   color: rgba(255, 255, 255, 0.4) !important;
 }
+
+.remix-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.remix-btn,
+.remix-btn-secondary {
+  display: inline-block;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  text-decoration: none;
+  border: 1px solid #8b5cf6;
+  background: #8b5cf6;
+  color: #fff !important;
+}
+
+.remix-btn-secondary {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.85) !important;
+}

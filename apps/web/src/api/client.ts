@@ -33,6 +33,7 @@ import type {
   HostedExport,
   HostedOptions,
   ShareResponse,
+  RemixPayload,
   GenerationResult,
   GenerationQuality,
   GenerationFormat,
@@ -67,6 +68,7 @@ export type {
   HostedExport,
   HostedOptions,
   ShareResponse,
+  RemixPayload,
   GenerationResult,
   GenerationQuality,
   GenerationFormat,
@@ -483,6 +485,11 @@ export const api = {
 
   viewHostedExport: (hostedId: string) =>
     buildApiUrl(`/api/hosted/${hostedId}/view`).toString(),
+
+  // Remix import (slice 2): fetch the share sidecar payload so the client can
+  // fork an editable copy via the normal project-create path.
+  getRemixPayload: (token: string) =>
+    request<RemixPayload>(`/api/share/${encodeURIComponent(token)}/remix`),
 
   deleteHostedExport: (projectId: string, hostedId: string) =>
     request<{ success: boolean; message: string }>(`/api/projects/${projectId}/hosted/${hostedId}`, {

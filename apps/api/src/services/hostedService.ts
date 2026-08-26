@@ -40,12 +40,69 @@ const HOSTED_DIR = process.env.HOSTED_DIR || './data/hosted';
 const EXPORTS_DIR = process.env.EXPORTS_DIR || './data/exports';
 /** Projects dir (env-aware so tests can redirect; runtime default unchanged). */
 const PROJECTS_DIR = process.env.PROJECTS_DIR || './data/projects';
-/**
- * Web origin the injected Remix CTA points at. The remix import flow itself
- * ships in slice 2 — until then the web app serves an honest placeholder page
- * at /remix/:hostedId (no dead links rule).
- */
+/** Assets dir (env-aware so tests can redirect; runtime default unchanged). */
+const ASSETS_DIR = process.env.ASSETS_DIR || './data/assets';
+/** Web origin the injected Remix CTA points at (slice-2 import flow lives there). */
 export const SHARE_WEB_ORIGIN = process.env.SHARE_WEB_ORIGIN || 'http://localhost:5173';
+
+/** Serialized remix payload cap (design §4): host-time rejection, no partial artifacts. */
+export const SHARE_PAYLOAD_MAX_BYTES = 25 * 1024 * 1024;
+
+/** Minimal mime inference for asset refs (same intent as assetService.getMimeType). */
+function inferMimeType(filename: string): string {
+  const ext = filename.slice(filename.lastIndexOf('.') + 1).toLowerCase();
+  const table: Record<string, string> = {
+    png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
+    webp: 'image/webp', svg: 'image/svg+xml', mp3: 'audio/mpeg', wav: 'audio/wav',
+    ogg: 'audio/ogg', json: 'application/json', txt: 'text/plain',
+  };
+  return table[ext] || 'application/octet-stream';
+}
+
+/** Pure size guard so the cap is unit-testable without multi-MB fixtures. */
+export function assertPayloadWithinSize(json: string): void {
+  const bytes = Buffer.byteLength(json, 'utf8');
+  if (bytes > SHARE_PAYLOAD_MAX_BYTES) {
+    const mb = (bytes / (1024 * 1024)).toFixed(1);
+    throw new Error(
+      `Share payload too large (${mb} MB) — the limit is ${SHARE_PAYLOAD_MAX_BYTES / (1024 * 1024)} MB. Remove large assets and share again.`,
+    );
+  }
+}
+
+/** Lightweight asset reference — deliberately NO dataUri to keep payloads small. */
+export interface RemixAssetRef {
+  id: string;
+  name: string;
+  mimeType: string;
+}
+
+/**
+ * `.share.json` sidecar payload (schema 1, slice 2 real impl).
+ *
+ * Carries everything a recipient client needs to fork an editable copy via the
+ * existing project-create path: verbatim scene JSON + project metadata. Assets
+ * are referenced by id/name only (template projects have zero assets; embedded
+ * data URIs would blow past chat-app URL/link budgets for no v1 benefit).
+ */
+export interface ShareRemixPayload {
+  schema: 1;
+  originProjectId: string;
+  originHostedId: string;
+  sharedAt: string;
+  sourceIncluded: boolean;
+  project: {
+    name: string;
+    genre: string;
+    artStyle: string;
+    description?: string;
+    settings?: { width: number; height: number; backgroundColor: string; gravity: { x: number; y: number } };
+  };
+  /** Verbatim scenes/main-scene.json content at share time. */
+  scene: Record<string, unknown>;
+  /** Referenced-only asset list ([] for template projects). */
+  assets: RemixAssetRef[];
+}
 
 /**
  * Base URL for hosted game links.
@@ -114,6 +171,12 @@ export class HostedService {
       ? null
       : new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000).toISOString();
 
+    // Build the REAL remix payload FIRST (slice 2): a >cap payload must reject
+    // the host before any artifact is written (design AC: no partial artifacts).
+    const sharePayload = await this.buildRemixPayload(projectId, hostedId);
+    const shareJson = JSON.stringify(sharePayload, null, 2);
+    assertPayloadWithinSize(shareJson);
+
     // Copy export to hosted directory
     const hostedFilename = `${hostedId}.html`;
     const hostedPath = join(hostedDir, hostedFilename);
@@ -130,24 +193,8 @@ export class HostedService {
 
     await writeFile(hostedPath, enhancedContent, 'utf-8');
 
-    // Share payload sidecar (slice 1 stub per design §6): schema-1 record with
-    // lineage + source-included flag. Slice 2 replaces the stub bodies with the
-    // verbatim project/scene/scripts/assets payload for the remix import flow.
-    await writeFile(
-      join(hostedDir, `${hostedId}.share.json`),
-      JSON.stringify(
-        {
-          schema: 1,
-          originProjectId: projectId,
-          originHostedId: hostedId,
-          sharedAt: new Date().toISOString(),
-          sourceIncluded: true,
-        },
-        null,
-        2,
-      ),
-      'utf-8',
-    );
+    // Share payload sidecar — the real remix payload built above.
+    await writeFile(join(hostedDir, `${hostedId}.share.json`), shareJson, 'utf-8');
 
     // Create hosted metadata
     const hostedExport: HostedExport = {
@@ -174,6 +221,91 @@ export class HostedService {
     }, 'Export successfully hosted for web viewing');
 
     return hostedExport;
+  }
+
+  /**
+   * Build the remix payload written into `.share.json` (design §4).
+   *
+   * Sources mirror what exportToPhaserHTML reads: clawgame.project.json for
+   * metadata/settings, scenes/main-scene.json verbatim for the scene. Assets
+   * are listed as references only (id/name/mime) — never base64-embedded — so
+   * typical template shares stay well under the 25 MB cap.
+   */
+  private async buildRemixPayload(projectId: string, hostedId: string): Promise<ShareRemixPayload> {
+    // Project metadata + settings (legacy project.json fallback, same as getProjectName).
+    let meta: any = {};
+    const projectDir = join(PROJECTS_DIR, projectId);
+    for (const name of ['clawgame.project.json', 'project.json']) {
+      const projectPath = join(projectDir, name);
+      if (existsSync(projectPath)) {
+        try {
+          meta = JSON.parse(await readFile(projectPath, 'utf-8'));
+        } catch (err) {
+          this.logger.warn({ projectId, err }, 'Failed to parse project file for share payload');
+        }
+        break;
+      }
+    }
+
+    // Scene JSON verbatim (missing/unparsable → same default the exporter uses).
+    let scene: Record<string, unknown> = { name: 'Main Scene', entities: [] };
+    const scenePath = join(projectDir, 'scenes', 'main-scene.json');
+    if (existsSync(scenePath)) {
+      try {
+        scene = JSON.parse(await readFile(scenePath, 'utf-8'));
+      } catch (err) {
+        this.logger.warn({ projectId, err }, 'Failed to parse scene for share payload; using default');
+      }
+    }
+
+    // Asset references only — no data URIs (payload-size rule, design §7 risk 4).
+    // Dirs and *.json (metadata sidecars / project file) are never assets.
+    const assets: RemixAssetRef[] = [];
+    try {
+      const assetsDir = join(ASSETS_DIR, projectId);
+      if (existsSync(assetsDir)) {
+        for (const entry of await readdir(assetsDir, { withFileTypes: true })) {
+          if (entry.isDirectory()) continue;
+          if (entry.name.endsWith('.json')) continue;
+          assets.push({ id: entry.name, name: entry.name, mimeType: inferMimeType(entry.name) });
+        }
+      }
+    } catch (err) {
+      this.logger.warn({ projectId, err }, 'Failed to list assets for share payload; continuing without refs');
+    }
+
+    return {
+      schema: 1,
+      originProjectId: projectId,
+      originHostedId: hostedId,
+      sharedAt: new Date().toISOString(),
+      sourceIncluded: true,
+      project: {
+        name: meta?.project?.name || meta?.name || 'Untitled Game',
+        genre: meta?.project?.genre || 'action',
+        artStyle: meta?.project?.artStyle || 'pixel',
+        description: meta?.project?.description || '',
+        settings: meta?.settings,
+      },
+      scene,
+      assets,
+    };
+  }
+
+  /**
+   * Read the remix payload sidecar for a hosted token.
+   * Returns null when absent (legacy share without payload) or unparsable.
+   */
+  async getRemixPayload(hostedId: string): Promise<ShareRemixPayload | null> {
+    const hostedDir = await this.ensureHostedDir();
+    const sharePath = join(hostedDir, `${hostedId}.share.json`);
+    if (!existsSync(sharePath)) return null;
+    try {
+      return JSON.parse(await readFile(sharePath, 'utf-8')) as ShareRemixPayload;
+    } catch (err) {
+      this.logger.warn({ hostedId, err }, 'Failed to read share remix payload');
+      return null;
+    }
   }
 
   /**
@@ -230,7 +362,14 @@ export class HostedService {
       hostedAt: new Date().toISOString(),
     };
 
+    // Remix CTA: SAME-TAB deep-link into the web app's import flow.
+    // Deliberately NOT target=_blank: aux contexts inherit the opener's CSP
+    // sandbox flags, so a popup would carry our no-allow-same-origin sandbox
+    // onto the web origin — opaque origin, every vite module script
+    // CORS-blocked, blank page (found in slice-2 browser verify).
+    // Self-navigation is always permitted from a sandboxed top-level page.
     const remixHref = `${SHARE_WEB_ORIGIN}/remix/${metadata.hostedId}`;
+    const remixLink = `<a href="${remixHref}" id="clawgame-remix-link" style="color:#8b5cf6;font-weight:600;">🎮 Remix this game</a>`;
     const expiresLine = metadata.expiresAt
       ? ` • <span id="clawgame-expires">Expires: ${new Date(metadata.expiresAt).toLocaleDateString()}</span>`
       : '';
@@ -269,7 +408,7 @@ window.addEventListener('DOMContentLoaded', () => {
       <strong>🎮 ClawGame</strong>${expiresLine}
     </div>
     <div style="display:flex;align-items:center;gap:12px;">
-      <a href="${remixHref}" target="_blank" rel="noopener" id="clawgame-remix-link" style="color:#8b5cf6;font-weight:600;">🎮 Remix this game</a>
+      ${remixLink}
       <span>Made with ClawGame</span>
       <button id="clawgame-dismiss-bar" type="button" title="Hide bar (this session only)" style="background:none;border:none;color:rgba(255,255,255,0.6);cursor:pointer;font-size:14px;padding:0 2px;">✕</button>
     </div>

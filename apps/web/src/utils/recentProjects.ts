@@ -16,6 +16,8 @@ export interface RecentProjectEntry {
   edited?: boolean;
   /** Per-project first-run guidance dismissal flag (slice 2). */
   dismissedGuidance?: boolean;
+  /** Capability token this project was forked from (share slice 2 remix lineage). */
+  remixedFrom?: string;
 }
 
 export const RECENT_PROJECTS_STORAGE_KEY = 'clawgame.recent-projects.v1';
@@ -42,6 +44,7 @@ function normalizeEntry(value: unknown): RecentProjectEntry | null {
     lastOpenedAt: typeof v.lastOpenedAt === 'string' ? v.lastOpenedAt : new Date(0).toISOString(),
     edited: typeof v.edited === 'boolean' ? v.edited : undefined,
     dismissedGuidance: typeof v.dismissedGuidance === 'boolean' ? v.dismissedGuidance : undefined,
+    remixedFrom: typeof v.remixedFrom === 'string' ? v.remixedFrom : undefined,
   };
 }
 

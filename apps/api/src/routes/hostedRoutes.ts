@@ -22,6 +22,9 @@ let shareExportServiceInstance: ExportService | null = null;
  * (design §7 risk 2 — mandatory in slice 1). CSP sandbox blocks same-origin
  * reads (no cookies exist today; standing rule: none may be added while this
  * origin serves user HTML). Exported games need only scripts + pointer lock.
+ * The Remix CTA navigates SAME-TAB (hostedService): a target=_blank popup
+ * would inherit this sandbox's flags onto the web origin (opaque origin,
+ * every module script CORS-blocked), so popups are neither used nor allowed.
  */
 function applyGameHtmlHeaders(reply: { header: (name: string, value: string) => void }) {
   reply.header('Content-Security-Policy', 'sandbox allow-scripts allow-pointer-lock');
@@ -175,6 +178,40 @@ export async function hostedRoutes(app: FastifyInstance) {
     '/share/:token',
     async (request, reply) => {
       return serveHostedGame(request.params.token, reply);
+    }
+  );
+
+  // Remix payload endpoint (slice 2): returns the .share.json remix payload so
+  // the recipient's client can fork an editable copy via the normal project
+  // create path. Token must exist (404), must not be expired (410); legacy
+  // shares without a sidecar get a typed 404 so the UI can explain.
+  app.get<{ Params: { token: string } }>(
+    '/api/share/:token/remix',
+    async (request, reply) => {
+      const { token } = request.params;
+      try {
+        const hostedExport = await hostedServiceInstance!.getHostedExport(token);
+        if (!hostedExport) {
+          reply.code(404);
+          return { error: 'Hosted game not found' };
+        }
+        if (hostedExport.expiresAt && new Date(hostedExport.expiresAt) < new Date()) {
+          reply.code(410);
+          return { error: 'Hosted game has expired' };
+        }
+        const payload = await hostedServiceInstance!.getRemixPayload(token);
+        if (!payload) {
+          reply.code(404);
+          return {
+            error: 'This share predates remixing and carries no editable source',
+            code: 'remix_payload_missing',
+          };
+        }
+        return payload;
+      } catch (error: any) {
+        reply.code(500);
+        return { error: error.message || 'Failed to load remix payload' };
+      }
     }
   );
 

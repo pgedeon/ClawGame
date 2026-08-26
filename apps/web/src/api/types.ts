@@ -381,3 +381,29 @@ export interface ShareResponse {
   stage?: 'export' | 'host';
   error?: string;
 }
+
+/** Lightweight asset reference in a remix payload (no embedded data). */
+export interface RemixAssetRef {
+  id: string;
+  name: string;
+  mimeType: string;
+}
+
+/** Shape of GET /api/share/:token/remix (share/publish slice 2 sidecar payload). */
+export interface RemixPayload {
+  schema: 1;
+  originProjectId: string;
+  originHostedId: string;
+  sharedAt: string;
+  sourceIncluded?: boolean;
+  project: {
+    name: string;
+    genre: string;
+    artStyle: string;
+    description?: string;
+    settings?: CreateProjectInput['settings'];
+  };
+  /** Verbatim scenes/main-scene.json from the shared snapshot. */
+  scene: Record<string, unknown>;
+  assets: RemixAssetRef[];
+}
