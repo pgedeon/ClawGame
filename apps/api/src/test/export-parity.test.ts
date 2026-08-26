@@ -333,3 +333,79 @@ describe('export/preview parity smoke (docs/export-parity.md)', () => {
     expect(code).toContain('this.add.zone(0, 0');
   });
 });
+
+describe('export/preview tint parity (sprite.color passthrough)', () => {
+  it('explicit sprite.color overrides the typed-color map on color-only entities (mirrors preview tint)', () => {
+    const scene = {
+      name: 'Tinted',
+      entities: [
+        {
+          id: 'player-1',
+          type: 'player',
+          transform: { x: 100, y: 350 },
+          components: { playerInput: true, sprite: { width: 32, height: 48, color: '#ef4444' }, collision: { width: 32, height: 48, type: 'player' } },
+        },
+      ],
+    };
+    const code = svc.compileSceneToPhaser('MainScene', 'Tinted', toExportEntityMap(scene), [], undefined);
+    expect(code).toContain("this.add.rectangle(100, 350, 32, 48, '#ef4444')");
+    expect(code).not.toContain("'#3b82f6'");
+  });
+
+  it('asset sprites emit numeric setTint when sprite.color is present (mirrors preview setTint)', () => {
+    const scene = {
+      name: 'TintedAsset',
+      entities: [
+        {
+          id: 'hero-1',
+          type: 'player',
+          transform: { x: 100, y: 350 },
+          components: { playerInput: true, sprite: { width: 32, height: 48, color: '#22d3ee', assetRef: 'hero.png' }, collision: { width: 32, height: 48, type: 'player' } },
+        },
+      ],
+    };
+    const code = svc.compileSceneToPhaser('MainScene', 'TintedAsset', toExportEntityMap(scene), [
+      { id: 'hero.png', dataUri: 'data:image/png;base64,AAAA' },
+    ]);
+    expect(code).toContain("this.add.sprite(100, 350, 'asset:hero.png')");
+    expect(code).toContain('hero_1.setTint(0x22d3ee);');
+  });
+
+  it('omits the setTint line without sprite.color or for malformed colors (no broken JS)', () => {
+    const base = {
+      name: 'NoTint',
+      entities: [] as unknown[],
+    };
+    const untinted = {
+      ...base,
+      entities: [
+        {
+          id: 'hero-1',
+          type: 'player',
+          transform: { x: 0, y: 0 },
+          components: { sprite: { width: 32, height: 48, assetRef: 'hero.png' } },
+        },
+      ],
+    };
+    const code = svc.compileSceneToPhaser('MainScene', 'NoTint', toExportEntityMap(untinted), [
+      { id: 'hero.png', dataUri: 'data:image/png;base64,AAAA' },
+    ]);
+    expect(code).not.toContain('.setTint(');
+
+    const malformed = {
+      ...base,
+      entities: [
+        {
+          id: 'hero-2',
+          type: 'player',
+          transform: { x: 0, y: 0 },
+          components: { sprite: { width: 32, height: 48, color: 'crimson', assetRef: 'hero.png' } },
+        },
+      ],
+    };
+    const code2 = svc.compileSceneToPhaser('MainScene', 'NoTint', toExportEntityMap(malformed), [
+      { id: 'hero.png', dataUri: 'data:image/png;base64,AAAA' },
+    ]);
+    expect(code2).not.toContain('.setTint(');
+  });
+});
