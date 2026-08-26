@@ -51,6 +51,14 @@
 **Next:** CEO routing: lane A unit complete on `fix/autosave-wipe` (tip hash in push report); ready for QA re-run of acceptance check 3; no main merge per rules.
 # OpenClaw Session Status Log
 
+## 2026-08-26 06:15 — session-22 (feat/share-slice-2, builder lane B) — resume re-verification, no code changes
+**Task:** Resume after mid-turn-died session-21; brief assumed 393-line uncommitted WIP. Found slice 2 already committed AND pushed as `e942202` (code + status-log same-commit). This session = independent re-verification only.
+**Done:** No code changes. Docs-only log entry.
+**Gates:** typecheck all projects PASS · web suite 28 files / 292 tests WITH `.env.local` AND with it removed (restored), both exit 0 · api suite 15 files / 156 passed / 4 skipped PASS — all match session-21 claims exactly.
+**Manual verify:** fresh end-to-end remix loop in headless Chromium vs live dev servers (:3100/:5173): new project REMUX-VERIFY-B (`NARAHRYkkRU`) + PUT scene (Player) via API → share → token `c33bde37…`; `/share/<token>` renders bar + same-tab CTA href `http://localhost:5173/remix/<token>`; clicked CTA → auto-import → editor `/project/pmWOb6zV2hf/` as "Remix of REMUX-VERIFY-B"; Scene Editor shows Player from shared scene; added 👾 Enemy template → disk `scenes/main-scene.json` shows `[Player, 👾 Enemy]` within autosave debounce. Remix payload endpoint re-checked: schema 1, sourceIncluded true, verbatim scene. Loop PASS.
+**Next:** slice 3 (play/remix counters + events, activationEvents, e2e hardening) per design §6; QA acceptance pass on slice 2.
+**Blockers:** none.
+
 Append one dated section per work session (newest at top). Format:
 
 ```
