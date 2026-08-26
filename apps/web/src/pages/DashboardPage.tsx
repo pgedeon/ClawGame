@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { PlusCircle, FolderOpen, BookOpen, Sparkles, Terminal, Zap } from 'lucide-react';
+import { PlusCircle, FolderOpen, BookOpen, Sparkles, Terminal, Zap, LayoutGrid } from 'lucide-react';
 import { api, type ProjectListItem } from '../api/client';
 
 // Helper function to safely format dates
@@ -129,6 +129,11 @@ export function DashboardPage() {
             <BookOpen size={24} className="action-icon-svg" />
             <h3 className="action-title">Examples</h3>
             <p className="action-description">Browse sample game templates</p>
+          </Link>
+          <Link to="/gallery" className="action-card">
+            <LayoutGrid size={24} className="action-icon-svg" />
+            <h3 className="action-title">Community Gallery</h3>
+            <p className="action-description">Play and remix games shared by creators</p>
           </Link>
         </div>
       </section>

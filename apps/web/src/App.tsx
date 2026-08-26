@@ -13,6 +13,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { CreateProjectPage } from './pages/CreateProjectPage';
 import { OpenProjectPage } from './pages/OpenProjectPage';
 import { ExamplesPage } from './pages/ExamplesPage';
+import { GalleryPage } from './pages/GalleryPage';
 import { SettingsPage } from './pages/SettingsPage';
 
 // Import CSS files
@@ -105,6 +106,7 @@ function App() {
             <Route path="create-project" element={<CreateProjectPage />} />
             <Route path="open-project" element={<OpenProjectPage />} />
             <Route path="examples" element={<ExamplesPage />} />
+            <Route path="gallery" element={<GalleryPage />} />
             <Route path="settings" element={<SettingsPage />} />
           <Route path="settings/ai-providers" element={<Suspense fallback={<PageLoader />}><AIProvidersPage /></Suspense>} />
             {/* Project routes — nested under ProjectPage so Outlet works */}

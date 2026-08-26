@@ -383,6 +383,18 @@ export interface ShareResponse {
   error?: string;
 }
 
+/** One shared game in the community gallery (P3.1 feed v1, GET /api/gallery). */
+export interface GalleryGame {
+  /** Capability token — the `/share/:token` path segment. */
+  id: string;
+  name: string;
+  plays: number;
+  remixes: number;
+  sharedAt: string;
+  /** Absolute playable URL on the API origin. */
+  url: string;
+}
+
 /** Lightweight asset reference in a remix payload (no embedded data). */
 export interface RemixAssetRef {
   id: string;

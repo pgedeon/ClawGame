@@ -1,4 +1,4 @@
-import { Home, Settings } from 'lucide-react';
+import { Home, Settings, LayoutGrid } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export interface SidebarItem {
@@ -17,6 +17,11 @@ export const sidebarItems: SidebarItem[] = [
     path: '/dashboard',
     label: 'Dashboard',
     icon: Home,
+  },
+  {
+    path: '/gallery',
+    label: 'Gallery',
+    icon: LayoutGrid,
   },
   {
     path: '/settings',

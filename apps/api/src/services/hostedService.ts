@@ -50,6 +50,24 @@ export const SHARE_WEB_ORIGIN = process.env.SHARE_WEB_ORIGIN || 'http://localhos
 /** Serialized remix payload cap (design §4): host-time rejection, no partial artifacts. */
 export const SHARE_PAYLOAD_MAX_BYTES = 25 * 1024 * 1024;
 
+/**
+ * Public gallery-listing projection (P3.1 feed v1): one shared game as the
+ * community feed shows it. Aggregate integers only — zero PII by design,
+ * same rule as the slice-3 counters.
+ */
+export interface GalleryEntry {
+  /** Capability token — the `/share/:token` path segment. */
+  id: string;
+  /** Project name at share time (from the snapshot payload). */
+  name: string;
+  plays: number;
+  remixes: number;
+  /** ISO-8601 share timestamp from the snapshot payload. */
+  sharedAt: string;
+  /** Absolute playable URL (`HOSTED_BASE_URL/share/:token`). */
+  url: string;
+}
+
 /** Minimal mime inference for asset refs (same intent as assetService.getMimeType). */
 function inferMimeType(filename: string): string {
   const ext = filename.slice(filename.lastIndexOf('.') + 1).toLowerCase();
@@ -570,6 +588,59 @@ window.addEventListener('DOMContentLoaded', () => {
     results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return results;
+  }
+
+  /**
+   * Community gallery listing (P3.1 feed v1).
+   *
+   * Enumerates `.share.json` sidecars in HOSTED_DIR (the share-snapshot
+   * source of truth per design §4/§5) and joins each with its `.meta.json`
+   * for aggregate counters and expiry. A game is listed only when it is
+   * actually playable right now:
+   * - sidecar present and parsable (legacy shares without one are not listed);
+   * - meta present (orphan sidecar → skip) AND the hosted html still on disk;
+   * - not expired (expired shares are excluded — same rule as serving).
+   *
+   * Public projection only: name, aggregate integers, sharedAt, token URL.
+   * Sorted by sharedAt desc (newest shares first).
+   */
+  async listGallery(): Promise<GalleryEntry[]> {
+    const hostedDir = await this.ensureHostedDir();
+    let files: string[];
+    try {
+      files = await readdir(hostedDir);
+    } catch {
+      return [];
+    }
+
+    const entries: GalleryEntry[] = [];
+    for (const file of files) {
+      if (!file.endsWith('.share.json')) continue;
+      const hostedId = file.slice(0, -'.share.json'.length);
+      try {
+        const payload = JSON.parse(await readFile(join(hostedDir, file), 'utf-8')) as ShareRemixPayload;
+        if (!payload || typeof payload.sharedAt !== 'string') continue;
+
+        const meta = await this.getHostedExport(hostedId);
+        if (!meta) continue; // orphan sidecar — nothing playable behind it
+        if (meta.expiresAt && new Date(meta.expiresAt) < new Date()) continue;
+        if (!existsSync(join(hostedDir, `${hostedId}.html`))) continue;
+
+        entries.push({
+          id: hostedId,
+          name: payload.project?.name || meta.projectName || 'Untitled Game',
+          plays: Math.max(0, Math.trunc(meta.counts?.plays ?? 0)),
+          remixes: Math.max(0, Math.trunc(meta.counts?.remixes ?? 0)),
+          sharedAt: payload.sharedAt,
+          url: this.buildHostedUrl(hostedId),
+        });
+      } catch (err) {
+        this.logger.warn({ file, err }, 'Failed to read share payload for gallery; skipping');
+      }
+    }
+
+    entries.sort((a, b) => new Date(b.sharedAt).getTime() - new Date(a.sharedAt).getTime());
+    return entries;
   }
 
   /**
