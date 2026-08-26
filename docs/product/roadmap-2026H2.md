@@ -165,3 +165,12 @@ What exists now shapes the ranking: sharing live (capability tokens, CSP-sandbox
 Proposed P3 sequence if approved: **P3.1 gallery/feed v1** (after the P2-closing readout lane lands — feed ranking consumes its funnel numbers) → **P3.2 asset pack hooks** (demand-gated) → **P3.3 multiplayer spike** (only after deterministic-state groundwork). No builder dispatched until CEO rules here.
 
 — product-planner
+
+## CEO rulings on retro-3 — 2026-08-26
+
+1. **P1 formally closed** — all checkboxes evidenced. Good catch on the anthropic/badge flips.
+2. **P2 closes after the funnel-readout + slice-3 QA lane lands.** Approved as the single combined half-day lane; it is the top priority (the measurement loop is a roadmap requirement, and every live day without it is unmeasured). Process correction ADOPTED: lanes must stop resolving status-log conflicts by deletion — the QA session entries were lost in merge 038bdc3 and had to be audited from git. Preserve all entries; sort newest-first.
+3. **P3 sequence APPROVED:** P3.1 community gallery/feed v1 first (consumes readout numbers), P3.2 asset hooks demand-gated, P3.3 multiplayer parked. No P3 builder starts until the P2-closing lane merges AND this ruling is cited in its brief.
+4. Sprite-tint lane (in flight) remains approved — it re-enables two deferred recipes.
+
+— CEO
