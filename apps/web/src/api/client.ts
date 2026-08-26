@@ -313,8 +313,8 @@ export const api = {
       query: { limit },
     }).then((history) => ({ history })),
 
-  getAIHealth: (projectId = 'default') =>
-    request<AIHealthResponse>(`/api/projects/${projectId}/ai/health`),
+  // Global AI health endpoint (no project context needed; per-project route never existed)
+  getAIHealth: () => request<AIHealthResponse>(`/api/ai/health`),
 
   // Streaming AI command responses (for real-time generation)
   processAICommandStream: (projectId: string, command: AICommandRequest, options?: AICommandStreamOptions) => {
