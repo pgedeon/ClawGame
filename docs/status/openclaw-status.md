@@ -1,3 +1,15 @@
+## 2026-08-26 08:35 — product-planner (plan/retro-3) — roadmap retro #3: stale-checkbox audit vs sessions 15–22, P2 assessment, P3 proposal
+**Task:** Strategy lane per acting CEO: audit remaining open checkboxes in `docs/product/roadmap-2026H2.md` against status-log sessions 15–22; assess formal P2 completeness; propose P3 launch ranking (gallery vs asset hooks vs multiplayer). Docs-only on branch `plan/retro-3` off main `e665f8d`; no source code touched; no main merge.
+**Done:** One commit (roadmap + this entry):
+1. Audited open checkboxes against sessions 15–22 + unnumbered lane entries (autosave fix `4048886`, legacy-export deletion `9756983`, closing sweep UNITs 1–2 `4bdb49a`/`353bf57`, session-23 slice 3 `8040866`) and git through origin/main `e665f8d`. Sessions 17–19 entries recovered from git (`c005a25`, `1854763`, `fd20c86`, `5c29380`, `dbf5a22`, `6af0df4`) — merge `038bdc3` had dropped them from the live log via conflict resolution; flagged to CEO as process hazard.
+2. Flipped three stale checkboxes with evidence: P0 parity → [x] (smoke e2e session-13 via `test/export-smoke-e2e`; format flip `97322aa` + generator deletion `9756983`); P1 anthropic adapter → [x] (`aa72358` native Messages + SSE streaming, `a771640` aiRoutes cleanup); P1 provider badge/toast → [x] (`ae7d0da`). P1 now fully closed.
+3. Verified the one remaining open P2 item (counters readout) is genuinely open in code: `getFunnelSnapshot`/`exportEvents`/`clearEvents` wired to no page; no Settings Local diagnostics section; no ab-variant assignment; no `window.__clawgameEvents`; no `e2e/onboarding.spec.ts`; share stats only per-token recipient-bar. Scope defined (~half day).
+4. Added dated "P2 assessment & P3 proposal" section for CEO approval: P2 functionally complete, formally pending counters-readout build + slice-3 QA acceptance pass; P3 ranked gallery/feed v1 first (~90% infra exists via share slices; takeaways #5/#6 + implication 6), asset hooks second (demand-gated on asset-bearing share volume), multiplayer last parked (takeaway #10 + PARKED pipeline dependency).
+**Gates:** n/a — docs-only commit; no build/typecheck/test run (no source touched).
+**Manual verify:** checkbox evidence re-derived from git this session (`git show aa72358/ae7d0da/bbbe4a7 --stat`, grep of `anthropic.ts` stream implementation, grep of activationEvents consumers); roadmap diff reviewed before commit.
+**Next:** CEO rulings on retro-3 section (P2 close conditions + P3 sequence); then dispatch P2-closing readout+QA lane if approved.
+**Blockers:** none.
+
 ## 2026-08-26 07:30 — clawgame lane A (chore/p2-closing-sweep) — P2 closing sweep UNIT 2: roadmap P2 evidence + placeholder verdict
 **Task:** Closing sweep UNIT 2 per acting CEO: (1) stale slice-2d-era RemixPage placeholder check/removal; (2) roadmap-2026H2.md P2 checkboxes updated with commit evidence for this week's shipped work (activation flow slices, share slices 1–3), counters as only open item. Same branch `chore/p2-closing-sweep`, no main merge.
 **Done:** One commit (docs + this log; zero code changes needed):
