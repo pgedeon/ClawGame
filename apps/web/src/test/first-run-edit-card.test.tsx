@@ -124,7 +124,7 @@ describe('FirstRunEditCard', () => {
     expect(fetchMock).toHaveBeenCalled();
   });
 
-  it('apply writes the file, tracks edit_applied, flags the index, and calls onApplied', async () => {
+  it('apply writes the file, tracks edit_applied, shows confirmation, and calls onApplied', async () => {
     seedIndex('proj-1', 'platformer');
     installFetch({ sceneOnDisk: '{"name":"Main Scene","entities":[]}' });
     const onApplied = vi.fn();
@@ -149,8 +149,17 @@ describe('FirstRunEditCard', () => {
       path: 'main-scene.json',
     });
 
+    // The edited flag is deferred to dismissal so the applied confirmation stays
+    // mounted (QA v6 finding 1: card unmounted before the user could see it).
+    const indexBeforeDismiss = JSON.parse(window.localStorage.getItem(RECENT_PROJECTS_STORAGE_KEY)!);
+    expect(indexBeforeDismiss.find((e: any) => e.id === 'proj-1').edited).toBeUndefined();
+
+    // Dismissing the applied confirmation persists edited + dismissedGuidance.
+    fireEvent.click(screen.getByLabelText('Dismiss suggestions'));
     const index = JSON.parse(window.localStorage.getItem(RECENT_PROJECTS_STORAGE_KEY)!);
-    expect(index.find((e: any) => e.id === 'proj-1').edited).toBe(true);
+    const entry = index.find((e: any) => e.id === 'proj-1');
+    expect(entry.edited).toBe(true);
+    expect(entry.dismissedGuidance).toBe(true);
   });
 
   it('dismiss persists per-project guidance flag', () => {

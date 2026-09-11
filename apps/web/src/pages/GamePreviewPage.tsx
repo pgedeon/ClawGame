@@ -95,7 +95,13 @@ const GamePreviewContent: React.FC = () => {
     trackEvent('preview_opened', { projectId });
   }, [loading, error, projectId]);
 
-  if (loading) {
+  // Full-page spinner only on the INITIAL load. `reloadScene()` (fired by
+  // handleFirstRunApplied after a recipe apply) also flips `loading`, and an
+  // unconditional early-return here unmounted the whole page — including
+  // FirstRunEditCard — so its 'applied' confirmation remounted as 'idle'
+  // (QA v6 finding 1, second unmount path caught by browser verification).
+  // Stale-while-revalidate: with scene data already on screen, keep rendering.
+  if (loading && !projectScene) {
     return (
       <div className="game-preview">
         <div className="game-preview-loading">
