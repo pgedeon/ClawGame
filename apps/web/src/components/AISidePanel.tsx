@@ -44,6 +44,35 @@ interface AIStatus {
   lastChecked: number;
 }
 
+/**
+ * Panel open/closed is a user preference, not a page default. It is persisted
+ * per browser (not per project) so the panel never auto-opens over page
+ * controls on a fresh load — QA v6 finding 2: the fixed-position overlay
+ * intercepted pointer events on Share (Game Preview) and Add Entity (Scene
+ * Editor). Absent/invalid stored value → closed. Never throws.
+ */
+export const AI_PANEL_OPEN_STORAGE_KEY = 'clawgame.ai-panel-open.v1';
+
+function readPanelOpenPreference(storage?: StorageLike): boolean {
+  const s = storage ?? (typeof window === 'undefined' ? undefined : window.localStorage);
+  try {
+    return s?.getItem(AI_PANEL_OPEN_STORAGE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function writePanelOpenPreference(open: boolean, storage?: StorageLike): void {
+  const s = storage ?? (typeof window === 'undefined' ? undefined : window.localStorage);
+  try {
+    s?.setItem(AI_PANEL_OPEN_STORAGE_KEY, open ? 'true' : 'false');
+  } catch {
+    // best-effort — a blocked storage must not break the panel
+  }
+}
+
+type StorageLike = { getItem(key: string): string | null; setItem(key: string, value: string): void };
+
 function getAIStatus(health: AIHealthResponse | null): AIStatus {
   if (!health) {
     return {
@@ -109,7 +138,10 @@ export function AISidePanel({
   defaultWidth = 380,
   defaultPosition = 'right'
 }: AISidePanelProps) {
-  const [isOpen, setIsOpen] = useState(true);
+  // Default closed: a fresh visitor must never have page controls occluded
+  // by the fixed-position overlay (QA v6 finding 2). Subsequent loads honour
+  // the last explicit choice.
+  const [isOpen, setIsOpen] = useState(() => readPanelOpenPreference());
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isThinking, setIsThinking] = useState(false);
@@ -133,6 +165,11 @@ export function AISidePanel({
   const [dragStartX, setDragStartX] = useState(0);
   const panelRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Persist the user's last explicit open/closed choice.
+  useEffect(() => {
+    writePanelOpenPreference(isOpen);
+  }, [isOpen]);
 
   const { showToast } = useToast();
 
