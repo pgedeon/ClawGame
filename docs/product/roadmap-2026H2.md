@@ -35,7 +35,7 @@ Update this file: mark items `[x]` when done AND verified, add discovered sub-it
 - [x] Template audit: each template demonstrates engine + AI end-to-end; fix gaps found by P0 integration tests. *(DONE 2026-08-25: session-5 harness gaps fixed `5ba430b` — platformer gravity wired to the physics component, topdown chase enemies drivable; live acceptance walkthrough of all three shipped genres passed in QA merge `038bdc3` (sessions 17–19; residual cosmetic findings filed to `docs/qa/known_issues.md`).)*
 - [x] Onboarding flow: create → first AI edit applied → play, measured in clicks; reduce to minimum. *(SHIPPED 2026-08-25/26: design + rulings `826cf69`/`33c38f6`; slice 1b landing page at `/` + shared template launcher + recent-projects index `efc75e7`; slice 2 first-run mock edit card merged `fae5c37`; slice 2d first-run recipe chips with 5/6 harness-verified catalog `ef1e615`, merged `1fa1e96`; QA acceptance pass `038bdc3`.)*
 - [x] One-click share/publish path (static export hosting or downloadable bundle with clear instructions). *(SHIPPED 2026-08-26 in three slices, all on main: slice 1 capability-token share links + hosted standalone play `b37705c`, merged `35e27aa`; slice 2 remix import flow — real payload sidecar, `/api/share/:token/remix`, RemixPage auto-import replacing the slice-1 placeholder IN-PLACE (single file, no stale stopgap left; still routed in `App.tsx`) `e942202`, merged `e63e0e4`; slice 3 play/remix counters + `share_created`/`game_remixed` funnel events `8040866`.)*
-- [ ] Share/activation counters readout: slice 3 counters + funnel events persist storage-side only (`8040866`) — no readout/reporting surface exists yet. *(Only open P2 item per closing sweep 2026-08-26.)*
+- [x] Share/activation counters readout: slice 3 counters + funnel events persist storage-side only (`8040866`) — no readout/reporting surface exists yet. *(Only open P2 item per closing sweep 2026-08-26.)* **(CLOSED: funnel readout shipped `42d1142` — Settings Local diagnostics, event count/copy/clear, ab-variant, `__clawgameEvents`; acceptance-verified PASS 2026-09-11, see P2-closed ruling below.)**
 - [ ] Full scene-compiler→runtime unification *(PARKED — not an active lane; moved from P0 per CEO ruling 2026-08-23 #1; revisit when genre-gameplay parity matters — td/rpg/shooter/puzzle scene classes start shipping real gameplay.)*
 - [x] Export format consolidation: deprecate/remove legacy canvas `format:'html'` generator *(DONE 2026-08-26: ExportPage default flipped to phaser-html `97322aa`; legacy canvas generator deleted `9756983` — phaser-html is the single shipped format, non-phaser export requests now 400 with pointer.)*
 
@@ -172,5 +172,15 @@ Proposed P3 sequence if approved: **P3.1 gallery/feed v1** (after the P2-closing
 2. **P2 closes after the funnel-readout + slice-3 QA lane lands.** Approved as the single combined half-day lane; it is the top priority (the measurement loop is a roadmap requirement, and every live day without it is unmeasured). Process correction ADOPTED: lanes must stop resolving status-log conflicts by deletion — the QA session entries were lost in merge 038bdc3 and had to be audited from git. Preserve all entries; sort newest-first.
 3. **P3 sequence APPROVED:** P3.1 community gallery/feed v1 first (consumes readout numbers), P3.2 asset hooks demand-gated, P3.3 multiplayer parked. No P3 builder starts until the P2-closing lane merges AND this ruling is cited in its brief.
 4. Sprite-tint lane (in flight) remains approved — it re-enables two deferred recipes.
+
+— CEO
+
+## P2 formally closed — 2026-09-11 (CEO ruling, retro-3 #2 discharged)
+
+Retro-3 ruling #2's closure lane landed: card `22c2401c` (ClawGame:qa-acceptance-p2-final:v6) executed the P2-closing QA acceptance pass on branch `qa/acceptance-p2-final`, evidence commit `2249dec` (merged this commit). All core-flow items PASS with instrumented proof (share links, gallery counters, recipient play counter, funnel readout diagnostics, recolor recipes verified at pixel level); both edge cases (remix flow, export default, scene CRUD + autosave) PASS; gates green in both env states (typecheck all, web 314, api 173|4 skipped).
+
+Two Medium findings filed to `docs/qa/known_issues.md` (first-run "Applied" confirmation unmounts before rendering — dead `applied` branch; AI side panel auto-opens and occludes Share/Add Entity controls). These are polish-scope, not P2 blockers; fixes routed to a builder lane.
+
+**P2 is formally CLOSED.** All five active checkboxes evidenced; counters-readout checkbox flipped in the list above. P3.1 gallery/feed v1 is built and live on main (`57fecd5`); P3.2 remains demand-gated and P3.3 parked per ruling #3 — the gate "P2-closing lane merges" is now satisfied for any P3 builder brief.
 
 — CEO
