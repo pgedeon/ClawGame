@@ -12,7 +12,7 @@
  * (per-project flags in the recent-projects index). Emits the chip-funnel
  * events into the storage-only activation log (utils/activationEvents.ts).
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Sparkles, X, Check } from 'lucide-react';
 import { api, type AICommandResponse } from '../api/client';
 import { CodeDiffView } from './CodeDiffView';
@@ -39,6 +39,10 @@ export function FirstRunEditCard({ projectId, templateId, onApplied }: FirstRunE
   const [response, setResponse] = useState<AICommandResponse | null>(null);
   const [errorText, setErrorText] = useState<string | null>(null);
   const [provider, setProvider] = useState<'mock' | 'live'>('mock');
+  // Tracks whether an edit was actually applied this mount. The `edited` flag
+  // is written to the recent-projects index only on dismissal so the card stays
+  // mounted through its `applied` phase (confirmation + Start Game guidance).
+  const appliedRef = useRef(false);
 
   // Provider label for honest funnel props + copy: health endpoint is the same
   // source AICommandPage's badge uses ('mock-ai-preview' service = mock).
@@ -104,7 +108,7 @@ export function FirstRunEditCard({ projectId, templateId, onApplied }: FirstRunE
         path: change.path.split('/').pop(),
         projectId,
       });
-      touchRecentProject(projectId, { edited: true });
+      appliedRef.current = true;
       setPhase('applied');
       onApplied?.();
     } catch (err: any) {
@@ -116,7 +120,10 @@ export function FirstRunEditCard({ projectId, templateId, onApplied }: FirstRunE
 
   const handleDismiss = useCallback(() => {
     setDismissed(true);
-    touchRecentProject(projectId, { dismissedGuidance: true });
+    touchRecentProject(projectId, {
+      ...(appliedRef.current ? { edited: true } : {}),
+      dismissedGuidance: true,
+    });
   }, [projectId]);
 
   // Suppression: no recipes for this template, already edited, or dismissed.
